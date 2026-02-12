@@ -12,8 +12,8 @@ importers:
         specifier: 4.11.8
         version: 4.11.8
       mpay:
-        specifier: https://pkg.pr.new/wevm/mpay@8eb2140
-        version: https://pkg.pr.new/wevm/mpay@8eb2140(hono@4.11.8)(viem@2.45.3(zod@4.3.6))
+        specifier: https://pkg.pr.new/wevm/mpay@5c1afb0
+        version: https://pkg.pr.new/wevm/mpay@5c1afb0(hono@4.11.8)(viem@2.45.3(zod@4.3.6))
       viem:
         specifier: 2.45.3
         version: 2.45.3(zod@4.3.6)
@@ -593,9 +593,9 @@ packages:
     engines: {node: '>=18.0.0'}
     hasBin: true
 
-  mpay@https://pkg.pr.new/wevm/mpay@8eb2140:
-    resolution: {tarball: https://pkg.pr.new/wevm/mpay@8eb2140}
-    version: 0.2.1
+  mpay@https://pkg.pr.new/wevm/mpay@5c1afb0:
+    resolution: {tarball: https://pkg.pr.new/wevm/mpay@5c1afb0}
+    version: 0.2.2
     hasBin: true
     peerDependencies:
       '@modelcontextprotocol/sdk': '>=1.25.0'
@@ -1201,7 +1201,7 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  mpay@https://pkg.pr.new/wevm/mpay@8eb2140(hono@4.11.8)(viem@2.45.3(zod@4.3.6)):
+  mpay@https://pkg.pr.new/wevm/mpay@5c1afb0(hono@4.11.8)(viem@2.45.3(zod@4.3.6)):
     dependencies:
       '@remix-run/fetch-proxy': 0.7.1
       '@remix-run/node-fetch-server': 0.13.0

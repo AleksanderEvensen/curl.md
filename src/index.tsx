@@ -1,5 +1,7 @@
 import { Hono } from 'hono'
+import { Credential } from 'mpay'
 import { Mpay, Store, tempo } from 'mpay/server'
+import { Stream } from 'mpay/tempo'
 import { createClient, type Hex, http } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import {
@@ -11,7 +13,7 @@ const app = new Hono<{ Bindings: Env }>()
 
 app.get('/', async (c) => {
   const query = c.req.query('url')
-  const target = (() => {
+  const targetURL = (() => {
     if (!query) return
     try {
       const url = new URL(query.includes('://') ? query : `https://${query}`)
@@ -19,52 +21,15 @@ app.get('/', async (c) => {
     } catch {}
   })()
 
-  if (!target) {
+  if (!targetURL) {
+    const ua = (c.req.header('user-agent') ?? '').toLowerCase()
     const accept = c.req.header('accept') ?? ''
-    if (accept.includes('text/html'))
-      return c.html(
-        <html lang="en">
-          <head>
-            <meta charset="utf-8" />
-            <meta
-              name="viewport"
-              content="width=device-width, initial-scale=1"
-            />
-            <title>{c.env.HOST}</title>
-            <style>{`
-              body { font-family: system-ui, sans-serif; max-width: 600px; margin: 4rem auto; padding: 0 1rem; color: #e0e0e0; background: #111; }
-              h1 { font-size: 1.5rem; }
-              code { background: #222; padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.9em; }
-              pre { background: #222; padding: 1rem; border-radius: 6px; overflow-x: auto; }
-              pre code { background: none; padding: 0; }
-              a { color: #6cb6ff; }
-            `}</style>
-          </head>
-          <body>
-            <h1>{c.env.HOST}</h1>
-            <p>Fetch any URL as markdown.</p>
-            <pre>
-              <code>curl {c.env.HOST}?url=example.com</code>
-            </pre>
-            <p>
-              Powered by{' '}
-              <a href="https://developers.cloudflare.com/fundamentals/reference/markdown-for-agents/">
-                Cloudflare Markdown for Agents
-              </a>{' '}
-              with Workers AI and Browser Rendering fallbacks.
-            </p>
-          </body>
-        </html>,
-      )
-
-    return c.text(`# ${c.env.HOST}
-
-Fetch any URL as markdown.
-
-  curl ${c.env.HOST}?url=example.com
-
-Powered by Cloudflare Markdown for Agents with Workers AI and Browser Rendering fallbacks.
-`)
+    const isTerminal = /^(curl|httpie|wget)\b/i.test(ua) || !ua
+    if (isTerminal || accept.includes('text/markdown'))
+      return new Response(markdown({ host: c.env.HOST }), {
+        headers: { 'content-type': 'text/markdown; charset=utf-8' },
+      })
+    return c.html(<HTML host={c.env.HOST} />)
   }
 
   const account = privateKeyToAccount(c.env.TEMPO_PRIVATE_KEY as Hex)
@@ -87,14 +52,33 @@ Powered by Cloudflare Markdown for Agents with Workers AI and Browser Rendering 
     ],
   })
 
-  // TODO: use queue to close open sessions after 5m unless new requests come in
+  const channelId = c.req.query('channel') as Hex | undefined
   const payment = await mpay.session({
-    amount: '0.01',
+    amount: '0.001',
+    channelId,
     unitType: 'request',
   })(c.req.raw)
   if (payment.status === 402) return payment.challenge
 
-  const upstream = await fetch(target.toString(), {
+  // Schedule session settlement after idle timeout
+  const authHeader = c.req.header('authorization')
+  if (authHeader)
+    try {
+      const credential = Credential.deserialize<{ channelId?: Hex }>(authHeader)
+      const channelId = credential.payload.channelId
+      if (channelId) {
+        await c.env.KV.put(
+          `session:${channelId}:lastActive`,
+          Date.now().toString(),
+        )
+        await c.env.QUEUE.send(
+          { channelId },
+          { delaySeconds: sessionIdleTimeout },
+        )
+      }
+    } catch {}
+
+  const upstream = await fetch(targetURL.toString(), {
     headers: {
       Accept: 'text/markdown, text/html',
       'User-Agent': `${c.env.HOST}/1.0`,
@@ -133,7 +117,7 @@ Powered by Cloudflare Markdown for Agents with Workers AI and Browser Rendering 
   try {
     const conversion = await c.env.AI.toMarkdown([
       {
-        name: target.hostname,
+        name: targetURL.hostname,
         blob: new Blob([html], { type: 'text/html' }),
       },
     ])
@@ -159,7 +143,7 @@ Powered by Cloudflare Markdown for Agents with Workers AI and Browser Rendering 
         'content-type': 'application/json',
         authorization: `Bearer ${c.env.BROWSER_RENDERING_API_TOKEN}`,
       },
-      body: JSON.stringify({ url: target.toString() }),
+      body: JSON.stringify({ url: targetURL.toString() }),
     },
   )
   const data = (await browserResponse.json()) as {
@@ -167,7 +151,7 @@ Powered by Cloudflare Markdown for Agents with Workers AI and Browser Rendering 
     result?: string
     errors?: unknown
   }
-  if (!browserResponse.ok || !data.success || !data.result) {
+  if (!browserResponse.ok || !data.success || !data.result)
     return payment.withReceipt(
       new Response(
         JSON.stringify({ error: 'Browser Rendering conversion failed' }),
@@ -180,7 +164,6 @@ Powered by Cloudflare Markdown for Agents with Workers AI and Browser Rendering 
         },
       ),
     )
-  }
 
   return payment.withReceipt(
     new Response(data.result, {
@@ -193,4 +176,102 @@ Powered by Cloudflare Markdown for Agents with Workers AI and Browser Rendering 
   )
 })
 
-export default app
+export default {
+  fetch: app.fetch,
+  async queue(batch, env) {
+    const account = privateKeyToAccount(env.TEMPO_PRIVATE_KEY as Hex)
+    const client = createClient({
+      account,
+      chain: env.TEMPO_CHAIN === 'mainnet' ? tempoMainnet : tempoTestnet,
+      pollingInterval: 1_000,
+      transport: http(env.TEMPO_RPC_URL),
+    })
+    const store = Store.cloudflare(env.KV)
+    const channelStore = Stream.ChannelStore.fromStore(store)
+    const escrowContract = '0x9d136eEa063eDE5418A6BC7bEafF009bBb6CFa70'
+
+    for (const msg of batch.messages) {
+      const { channelId } = msg.body
+      const lastActive = await env.KV.get(`session:${channelId}:lastActive`)
+
+      if (lastActive) {
+        const elapsed = Date.now() - Number(lastActive)
+        if (elapsed < sessionIdleTimeout * 1_000) {
+          msg.retry()
+          continue
+        }
+      }
+
+      try {
+        await tempo.settle(channelStore, client, escrowContract, channelId)
+        await env.KV.delete(`session:${channelId}:lastActive`)
+        msg.ack()
+      } catch {
+        msg.retry()
+      }
+    }
+  },
+} satisfies ExportedHandler<Env, Parameters<Awaited<Env['QUEUE']['send']>>[0]>
+
+const sessionIdleTimeout = 300 // 5 minutes
+
+interface Env extends Cloudflare.Env {
+  // Adding stronger queue types
+  // https://github.com/cloudflare/workers-sdk/issues/7112
+  QUEUE: Queue<{ channelId: Hex }>
+}
+
+type Props = { host: string }
+
+function markdown(props: Props) {
+  const { host } = props
+  return `---
+title: ${host}
+---
+
+# ${host}
+
+Fetch any URL as markdown.
+
+\`\`\`
+curl ${host}?url=example.com
+\`\`\`
+
+Powered by [Cloudflare Markdown for Agents](https://developers.cloudflare.com/fundamentals/reference/markdown-for-agents) with Workers AI and Browser Rendering fallbacks.
+`
+}
+
+function HTML(props: Props) {
+  const { host } = props
+  return (
+    <html lang="en">
+      <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>{host}</title>
+        <style>{`
+              body { font-family: system-ui, sans-serif; max-width: 600px; margin: 4rem auto; padding: 0 1rem; color: #e0e0e0; background: #111; }
+              h1 { font-size: 1.5rem; }
+              code { background: #222; padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.9em; }
+              pre { background: #222; padding: 1rem; border-radius: 6px; overflow-x: auto; }
+              pre code { background: none; padding: 0; }
+              a { color: #6cb6ff; }
+            `}</style>
+      </head>
+      <body>
+        <h1>{host}</h1>
+        <p>Fetch any URL as markdown.</p>
+        <pre>
+          <code>curl {host}?url=example.com</code>
+        </pre>
+        <p>
+          Powered by{' '}
+          <a href="https://developers.cloudflare.com/fundamentals/reference/markdown-for-agents">
+            Cloudflare Markdown for Agents
+          </a>{' '}
+          with Workers AI and Browser Rendering fallbacks.
+        </p>
+      </body>
+    </html>
+  )
+}

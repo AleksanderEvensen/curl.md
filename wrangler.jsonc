@@ -7,6 +7,16 @@
     "binding": "AI"
   },
   "kv_namespaces": [{ "binding": "KV", "id": "curl_kv" }],
+  "queues": {
+    "producers": [{ "binding": "QUEUE", "queue": "curl-session-settle" }],
+    "consumers": [
+      {
+        "queue": "curl-session-settle",
+        "max_batch_size": 10,
+        "max_batch_timeout": 30
+      }
+    ]
+  },
   "observability": {
     "enabled": true
   },
@@ -20,6 +30,16 @@
         "binding": "AI"
       },
       "kv_namespaces": [{ "binding": "KV", "id": "curl_kv" }],
+      "queues": {
+        "producers": [{ "binding": "QUEUE", "queue": "curl-session-settle" }],
+        "consumers": [
+          {
+            "queue": "curl-session-settle",
+            "max_batch_size": 10,
+            "max_batch_timeout": 30
+          }
+        ]
+      },
       "vars": {
         "HOST": "curl.md"
       },
