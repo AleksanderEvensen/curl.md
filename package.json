@@ -1,0 +1,37 @@
+{
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "check": "biome check .",
+    "check:types": "tsgo -b tsconfig.json",
+    "deploy": "wrangler deploy",
+    "deps": "pnpx taze",
+    "deps:ci": "pnpx actions-up",
+    "dev": "wrangler dev",
+    "gen:types": "wrangler types src/worker-configuration.d.ts",
+    "preinstall": "pnpx only-allow pnpm",
+    "prepare": "simple-git-hooks"
+  },
+  "dependencies": {
+    "hono": "4.11.8",
+    "mpay": "https://pkg.pr.new/wevm/mpay@8eb2140",
+    "viem": "2.45.3"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.3.13",
+    "@typescript/native-preview": "7.0.0-dev.20260124.1",
+    "simple-git-hooks": "^2.13.1",
+    "wrangler": "^4.62.0"
+  },
+  "packageManager": "pnpm@10.22.0",
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "^24.5.1",
+      "onFail": "download"
+    }
+  },
+  "simple-git-hooks": {
+    "pre-commit": "pnpm biome check --write --staged --no-errors-on-unmatched && git update-index --again"
+  }
+}

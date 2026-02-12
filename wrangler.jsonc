@@ -1,0 +1,32 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "curl",
+  "main": "src/index.tsx",
+  "compatibility_date": "2024-12-01",
+  "ai": {
+    "binding": "AI"
+  },
+  "kv_namespaces": [{ "binding": "KV", "id": "curl_kv" }],
+  "observability": {
+    "enabled": true
+  },
+  "vars": {
+    "HOST": "curl.local"
+  },
+  "env": {
+    "production": {
+      "name": "curl",
+      "ai": {
+        "binding": "AI"
+      },
+      "kv_namespaces": [{ "binding": "KV", "id": "curl_kv" }],
+      "vars": {
+        "HOST": "curl.md"
+      },
+      "routes": [
+        { "pattern": "curl.md/*", "zone_name": "curl.md" },
+        { "pattern": "*.curl.md/*", "zone_name": "curl.md" }
+      ]
+    }
+  }
+}
