@@ -1,31 +1,46 @@
 {
-  "type": "module",
   "private": true,
+  "type": "module",
+  "imports": {
+    "#*": "./src/*"
+  },
   "scripts": {
+    "build": "vite build",
     "check": "biome check .",
-    "test": "vitest",
-    "check:types": "tsgo -b tsconfig.json",
-    "deploy": "wrangler deploy",
+    "check:types": "tsgo -b",
+    "deploy": "pnpm run build && wrangler deploy",
     "deps": "pnpx taze",
     "deps:ci": "pnpx actions-up",
-    "dev": "wrangler dev",
+    "dev": "vite dev --port 3000",
     "gen:types": "wrangler types src/worker-configuration.d.ts",
     "preinstall": "pnpx only-allow pnpm",
-    "prepare": "pnpm gen:types && simple-git-hooks"
+    "prepare": "pnpm gen:types && simple-git-hooks",
+    "preview": "pnpm run build && vite preview"
   },
   "dependencies": {
+    "@cloudflare/vite-plugin": "^1.13.8",
+    "@tanstack/react-router": "^1.132.0",
+    "@tanstack/react-start": "^1.132.0",
+    "@tanstack/router-plugin": "^1.132.0",
     "mppx": "0.1.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
     "viem": "2.45.3",
     "zod": "^4.3.6"
   },
   "devDependencies": {
     "@biomejs/biome": "2.3.13",
-    "@cloudflare/vitest-pool-workers": "^0.12.12",
-    "@types/turndown": "^5.0.6",
-    "@typescript/native-preview": "7.0.0-dev.20260124.1",
+    "@tailwindcss/vite": "^4.1.18",
+    "@types/node": "^25.2.3",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@typescript/native-preview": "7.0.0-dev.20260216.1",
+    "@vitejs/plugin-react": "^5.0.4",
     "simple-git-hooks": "^2.13.1",
-    "vitest": "^3.2.4",
-    "wrangler": "^4.62.0"
+    "tailwindcss": "^4.1.18",
+    "tiny-jsonc": "^1.0.2",
+    "vite": "^7.1.7",
+    "wrangler": "^4.65.0"
   },
   "packageManager": "pnpm@10.22.0",
   "devEngines": {

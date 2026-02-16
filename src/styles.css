@@ -1,0 +1,120 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@theme {
+  --color-*: initial;
+
+  /* Geist Gray Scale */
+  --color-gray1: light-dark(hsl(0 0% 95%), hsl(0 0% 10%));
+  --color-gray2: light-dark(hsl(0 0% 92%), hsl(0 0% 12%));
+  --color-gray3: light-dark(hsl(0 0% 90%), hsl(0 0% 16%));
+  --color-gray4: light-dark(hsl(0 0% 92%), hsl(0 0% 18%));
+  --color-gray5: light-dark(hsl(0 0% 79%), hsl(0 0% 27%));
+  --color-gray6: light-dark(hsl(0 0% 66%), hsl(0 0% 53%));
+  --color-gray7: light-dark(hsl(0 0% 56%), hsl(0 0% 56%));
+  --color-gray8: light-dark(hsl(0 0% 49%), hsl(0 0% 49%));
+  --color-gray9: light-dark(hsl(0 0% 40%), hsl(0 0% 63%));
+  --color-gray10: light-dark(hsl(0 0% 9%), hsl(0 0% 93%));
+
+  /* Geist Gray Alpha */
+  --color-gray-a1: light-dark(#0000000d, #ffffff0f);
+  --color-gray-a2: light-dark(#00000015, #ffffff17);
+  --color-gray-a3: light-dark(#0000001a, #ffffff21);
+  --color-gray-a4: light-dark(#00000014, #ffffff24);
+  --color-gray-a5: light-dark(#00000036, #ffffff3d);
+
+  /* Geist Blue */
+  --color-blue1: light-dark(hsl(212 100% 97%), hsl(216 50% 12%));
+  --color-blue2: light-dark(hsl(210 100% 96%), hsl(214 59% 15%));
+  --color-blue3: light-dark(hsl(210 100% 94%), hsl(213 71% 20%));
+  --color-blue4: light-dark(hsl(209 100% 90%), hsl(212 78% 23%));
+  --color-blue5: light-dark(hsl(209 100% 80%), hsl(211 86% 27%));
+  --color-blue6: light-dark(hsl(208 100% 66%), hsl(206 100% 50%));
+  --color-blue7: light-dark(hsl(212 100% 48%), hsl(212 100% 48%));
+  --color-blue8: light-dark(hsl(212 100% 41%), hsl(212 100% 41%));
+  --color-blue9: light-dark(hsl(211 100% 42%), hsl(210 100% 66%));
+  --color-blue10: light-dark(hsl(211 100% 15%), hsl(206 100% 96%));
+
+  /* Geist Red */
+  --color-red1: light-dark(hsl(0 100% 97%), hsl(357 37% 12%));
+  --color-red2: light-dark(hsl(0 100% 96%), hsl(357 46% 16%));
+  --color-red3: light-dark(hsl(0 100% 95%), hsl(356 54% 22%));
+  --color-red4: light-dark(hsl(0 90% 92%), hsl(357 55% 26%));
+  --color-red5: light-dark(hsl(0 82% 85%), hsl(357 60% 32%));
+  --color-red6: light-dark(hsl(359 90% 71%), hsl(358 75% 59%));
+  --color-red7: light-dark(hsl(358 75% 59%), hsl(358 75% 59%));
+  --color-red8: light-dark(hsl(358 70% 52%), hsl(358 69% 52%));
+  --color-red9: light-dark(hsl(358 66% 48%), hsl(358 100% 69%));
+  --color-red10: light-dark(hsl(355 49% 15%), hsl(353 90% 96%));
+
+  /* Geist Amber */
+  --color-amber1: light-dark(hsl(39 100% 95%), hsl(35 100% 8%));
+  --color-amber2: light-dark(hsl(44 100% 92%), hsl(32 100% 10%));
+  --color-amber3: light-dark(hsl(43 96% 90%), hsl(33 100% 15%));
+  --color-amber4: light-dark(hsl(42 100% 78%), hsl(35 100% 17%));
+  --color-amber5: light-dark(hsl(38 100% 71%), hsl(35 91% 22%));
+  --color-amber6: light-dark(hsl(36 90% 62%), hsl(39 85% 49%));
+  --color-amber7: light-dark(hsl(39 100% 57%), hsl(39 100% 57%));
+  --color-amber8: light-dark(hsl(35 100% 52%), hsl(35 100% 52%));
+  --color-amber9: light-dark(hsl(30 100% 32%), hsl(39 90% 50%));
+  --color-amber10: light-dark(hsl(20 79% 17%), hsl(40 94% 93%));
+
+  /* Geist Green */
+  --color-green1: light-dark(hsl(120 60% 96%), hsl(136 50% 9%));
+  --color-green2: light-dark(hsl(120 60% 95%), hsl(137 50% 12%));
+  --color-green3: light-dark(hsl(120 60% 91%), hsl(136 50% 14%));
+  --color-green4: light-dark(hsl(122 60% 86%), hsl(135 70% 16%));
+  --color-green5: light-dark(hsl(124 60% 75%), hsl(135 70% 23%));
+  --color-green6: light-dark(hsl(125 60% 64%), hsl(135 70% 34%));
+  --color-green7: light-dark(hsl(131 41% 46%), hsl(131 41% 46%));
+  --color-green8: light-dark(hsl(132 43% 39%), hsl(132 43% 39%));
+  --color-green9: light-dark(hsl(133 50% 32%), hsl(131 43% 57%));
+  --color-green10: light-dark(hsl(128 29% 15%), hsl(136 73% 94%));
+
+  /* Geist Teal */
+  --color-teal1: light-dark(hsl(169 70% 96%), hsl(169 78% 7%));
+  --color-teal2: light-dark(hsl(167 70% 94%), hsl(170 74% 9%));
+  --color-teal3: light-dark(hsl(168 70% 90%), hsl(171 75% 13%));
+  --color-teal4: light-dark(hsl(170 70% 85%), hsl(171 85% 13%));
+  --color-teal5: light-dark(hsl(170 70% 72%), hsl(172 85% 20%));
+  --color-teal6: light-dark(hsl(170 70% 57%), hsl(172 85% 32%));
+  --color-teal7: light-dark(hsl(173 80% 36%), hsl(173 80% 36%));
+  --color-teal8: light-dark(hsl(173 83% 30%), hsl(173 83% 30%));
+  --color-teal9: light-dark(hsl(174 91% 25%), hsl(174 90% 41%));
+  --color-teal10: light-dark(hsl(171 80% 13%), hsl(166 71% 93%));
+
+  /* Geist Purple */
+  --color-purple1: light-dark(hsl(276 100% 97%), hsl(283 30% 12%));
+  --color-purple2: light-dark(hsl(277 87% 97%), hsl(281 38% 16%));
+  --color-purple3: light-dark(hsl(274 78% 95%), hsl(279 44% 23%));
+  --color-purple4: light-dark(hsl(276 71% 92%), hsl(277 46% 28%));
+  --color-purple5: light-dark(hsl(274 70% 82%), hsl(274 49% 35%));
+  --color-purple6: light-dark(hsl(273 72% 73%), hsl(272 51% 54%));
+  --color-purple7: light-dark(hsl(272 51% 54%), hsl(272 51% 54%));
+  --color-purple8: light-dark(hsl(272 47% 45%), hsl(272 47% 45%));
+  --color-purple9: light-dark(hsl(274 71% 43%), hsl(275 80% 71%));
+  --color-purple10: light-dark(hsl(276 100% 15%), hsl(281 73% 96%));
+
+  /* Geist Pink */
+  --color-pink1: light-dark(hsl(330 100% 96%), hsl(335 32% 12%));
+  --color-pink2: light-dark(hsl(340 90% 96%), hsl(335 43% 16%));
+  --color-pink3: light-dark(hsl(340 82% 94%), hsl(335 47% 21%));
+  --color-pink4: light-dark(hsl(341 76% 91%), hsl(335 51% 22%));
+  --color-pink5: light-dark(hsl(340 75% 84%), hsl(335 57% 27%));
+  --color-pink6: light-dark(hsl(341 75% 73%), hsl(336 75% 40%));
+  --color-pink7: light-dark(hsl(336 80% 58%), hsl(336 80% 58%));
+  --color-pink8: light-dark(hsl(336 74% 51%), hsl(336 74% 51%));
+  --color-pink9: light-dark(hsl(336 65% 45%), hsl(341 90% 67%));
+  --color-pink10: light-dark(hsl(333 74% 15%), hsl(333 90% 96%));
+}
+
+html {
+  background-color: light-dark(#fff, #000);
+  color: var(--color-gray10);
+  color-scheme: light;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+}

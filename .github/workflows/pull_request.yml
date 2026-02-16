@@ -1,0 +1,74 @@
+name: Pull Request
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  PREVIEW_NAME: curl-pr${{ github.event.pull_request.number }}
+  WRANGLER_SEND_METRICS: false
+
+jobs:
+  verify:
+    name: Verify
+    uses: ./.github/workflows/verify.yml
+    secrets: inherit
+
+  preview:
+    name: Preview
+    if: contains(fromJSON('["COLLABORATOR", "MEMBER", "OWNER"]'), github.event.pull_request.author_association)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+      - name: Setup pnpm
+        uses: ./.github/actions/setup-pnpm
+
+      - name: Comment building status
+        uses: ./.github/actions/preview-comment
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          pr-number: ${{ github.event.pull_request.number }}
+          sha: ${{ github.event.pull_request.head.sha }}
+          status: building
+
+      - name: Setup preview wrangler.jsonc
+        run: |
+          sed -i.bak \
+            -e "s|__PREVIEW_NAME__|$PREVIEW_NAME|g" \
+            -e "s|__PREVIEW_APEX__|pr${{ github.event.pull_request.number }}|g" \
+            wrangler.jsonc
+
+      - name: Generate types
+        run: pnpm gen:types
+
+      - name: Build
+        run: pnpm build
+
+      - name: Deploy preview
+        uses: cloudflare/wrangler-action@da0e0dfe58b7a431659754fdf3f186c529afbe65 # v3.14.1
+        with:
+          wranglerVersion: ""
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --env preview
+          environment: preview
+
+      - name: Comment deploy status
+        if: always()
+        uses: ./.github/actions/preview-comment
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          pr-number: ${{ github.event.pull_request.number }}
+          sha: ${{ github.event.pull_request.head.sha }}
+          status: ${{ job.status == 'success' && 'ready' || 'error' }}
+          run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

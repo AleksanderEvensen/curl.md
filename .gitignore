@@ -3,3 +3,7 @@
 .wrangler
 dist
 node_modules
+.tanstack
+.output
+.vinxi
+tsconfig.tsbuildinfo

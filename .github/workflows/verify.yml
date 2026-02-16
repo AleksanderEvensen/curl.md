@@ -1,0 +1,31 @@
+name: Verify
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+env:
+  WRANGLER_SEND_METRICS: false
+
+jobs:
+  check:
+    name: Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+      - name: Setup
+        uses: ./.github/actions/setup-pnpm
+
+      - name: Lint
+        run: pnpm check
+
+      - name: Generate types
+        run: pnpm gen:types
+
+      - name: Check types
+        run: pnpm check:types
+
+      - name: Build
+        run: pnpm build
