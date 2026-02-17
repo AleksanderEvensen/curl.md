@@ -9,6 +9,7 @@ import '../styles.css'
 
 export const Route = createRootRoute({
   head: () => ({
+    links: [{ href: '/favicon.svg', rel: 'icon', type: 'image/svg+xml' }],
     meta: [
       { charSet: 'utf-8' },
       {
