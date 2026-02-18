@@ -16,7 +16,7 @@ Fetch any URL as markdown
    docker compose up -d
    ```
 
-4. **Request**: `curl curl.md?url=example.com`
+4. **Request**: `curl curl.md/example.com`
 
 OrbStack automatically resolves `curl.local` requests to the container.
 

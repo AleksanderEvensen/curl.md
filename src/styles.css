@@ -112,7 +112,8 @@
 }
 
 ::selection {
-  background-color: var(--color-pink4);
+  background-color: var(--color-gray10);
+  color: light-dark(#fff, #000);
 }
 
 *:focus-visible {

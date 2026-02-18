@@ -10,54 +10,105 @@ export const Route = createFileRoute('/')({
 
 // TODO: add ASCII sequence diagram showing how it works (get html, convert to markdown, summarize, etc.)
 // TODO: show live incrementing usage number on home page
+// TODO: og image
 
 function Home() {
   return (
     <>
-      <h1 className="text-base font-bold mb-8">curl.md</h1>
+      <h1 className="text-base font-bold mb-10">curl.md</h1>
       <h2 className="text-sm font-medium text-gray10">
-        Try it out <span className="text-gray7">— just use curl</span>
+        Try it out <span className="text-gray6">— just use curl</span>
       </h2>
-      <pre className="mt-2 whitespace-pre-wrap break-words p-1 -m-1">
-        <span className="block text-gray7"># Fetch any URL as markdown</span>
-        <CopyableCommand command={`curl ${__HOST__}/example.com`}>
-          curl {__HOST__}
-          <span className="text-blue9">/example.com</span>
-        </CopyableCommand>
-        <span className="mt-4 block text-gray7"># Fetch with prompt</span>
-        <CopyableCommand
-          command={`curl ${__HOST__}/example.com?prompt=summarize+this+page`}
-        >
-          curl {__HOST__}
-          <span className="text-blue9">/example.com</span>
-          <span className="text-purple9">
-            ?prompt=
-            <wbr />
-            summarize+this+page
-          </span>
-        </CopyableCommand>
-      </pre>
+      <div className="mt-2 flex flex-col gap-2 p-1 -m-1">
+        <pre className="whitespace-pre-wrap break-words">
+          <span className="block text-gray7"># Fetch any URL as markdown</span>
+          <CopyableCommand command={`curl ${__HOST__}/react.dev`}>
+            curl {__HOST__}
+            <span className="text-blue9">/react.dev</span>
+          </CopyableCommand>
+        </pre>
+        <pre className="whitespace-pre-wrap break-words">
+          <span className="block text-gray7"># Focus output with query</span>
+          <CopyableCommand
+            command={`curl ${__HOST__}/react.dev?q=fullstack+support`}
+          >
+            curl {__HOST__}
+            <span className="text-blue9">/react.dev</span>
+            <span className="text-purple9">
+              ?q=
+              <wbr />
+              fullstack+support
+            </span>
+          </CopyableCommand>
+        </pre>
+      </div>
 
-      <h2 className="mt-6 text-sm font-medium text-gray10">
-        Integrate <span className="text-gray7">— enhance your agents</span>
+      <h2 className="mt-8 text-sm font-medium text-gray10">
+        Integrate <span className="text-gray6">— enhance your agents</span>
       </h2>
-      <pre className="mt-2 whitespace-pre-wrap break-words p-1 -m-1">
-        <span className="block text-gray7"># Install CLI</span>
-        <CopyableCommand command="npm i -g curl.md">
-          npm i -g <span className="text-teal9">curl.md</span>
-        </CopyableCommand>
-        <span className="mt-4 block text-gray7"># Install agent skill</span>
-        <CopyableCommand command="npx skills add wevm/curl.md">
-          npx skills add <span className="text-teal9">wevm/curl.md</span>
-        </CopyableCommand>
-        <span className="mt-4 block text-gray7"># Install MCP tool</span>
-        <CopyableCommand command={`npx ${__HOST__}/mcp`}>
-          npx {__HOST__}
-          <span className="text-teal9">/mcp</span>
-        </CopyableCommand>
-      </pre>
+      <div className="mt-2 flex flex-col gap-2 p-1 -m-1">
+        <pre className="whitespace-pre-wrap break-words">
+          <span className="block text-gray7">{'# Install CLI'}</span>
+          <CopyableCommand command="npm i -g curl.md">
+            npm i -g <span className="text-teal9">curl.md</span>
+          </CopyableCommand>
+        </pre>
+        <pre className="whitespace-pre-wrap break-words">
+          <span className="block text-gray7">{'# Install agent skill'}</span>
+          <CopyableCommand command="npx skills add wevm/curl.md">
+            npx skills add <span className="text-teal9">wevm/curl.md</span>
+          </CopyableCommand>
+        </pre>
+        <pre className="whitespace-pre-wrap break-words">
+          <span className="block text-gray7">{'# Install MCP tool'}</span>
+          <CopyableCommand command={`npx ${__HOST__}/mcp`}>
+            npx {__HOST__}
+            <span className="text-teal9">/mcp</span>
+          </CopyableCommand>
+        </pre>
+      </div>
     </>
   )
+}
+
+export function selfMarkdown() {
+  const host = __HOST__
+  return `---
+title: curl.md
+description: Fetch any URL as markdown.
+---
+
+# ${host}
+
+Fetch any URL as markdown.
+
+## Try it out
+
+Just use curl.
+
+\`\`\`sh
+# Fetch any URL as markdown
+$ curl ${host}/react.dev
+
+# Focus output with query
+$ curl ${host}/react.dev?q=fullstack+support
+\`\`\`
+
+## Integrate
+
+Enhance your agents.
+
+\`\`\`sh
+# Install CLI
+$ npm i -g curl.md
+
+# Install agent skill
+$ npx skills add wevm/curl.md
+
+# Install MCP tool
+$ npx ${host}/mcp
+\`\`\`
+`
 }
 
 function CopyableCommand(

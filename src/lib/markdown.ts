@@ -15,6 +15,7 @@ export async function htmlToMarkdown(
     .use(rehypeStripNoise)
     .use(rehypeResolveLinks, options?.baseUrl)
     .use(rehypeStripEmpty)
+    .use(rehypePreNewlines)
     .use(rehypeRemark)
     .use(remarkStringify)
     .process(html)
@@ -143,6 +144,27 @@ function resolveLinks(node: Element | Root, baseUrl: string) {
     resolveLinks(child, baseUrl)
     return true
   })
+}
+
+// Ensure elements inside <pre> are separated by newlines so
+// rehype-remark preserves line breaks in code blocks.
+function rehypePreNewlines() {
+  return (tree: Root) => {
+    insertPreNewlines(tree)
+  }
+}
+
+function insertPreNewlines(node: Element | Root) {
+  if (!node.children) return
+  for (const child of node.children)
+    if (child.type === 'element') insertPreNewlines(child)
+  if (node.type !== 'element' || node.tagName !== 'pre') return
+  const updated: typeof node.children = []
+  for (const child of node.children) {
+    updated.push(child)
+    if (child.type === 'element') updated.push({ type: 'text', value: '\n' })
+  }
+  node.children = updated
 }
 
 const emptyStrippableTags = new Set([

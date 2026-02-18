@@ -2,6 +2,7 @@ import { env } from 'cloudflare:workers'
 import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
 import { htmlToMarkdown } from '#lib/markdown.ts'
+import { selfMarkdown } from './index.tsx'
 
 export const Route = createFileRoute('/$')({
   server: {
@@ -37,13 +38,17 @@ export const Route = createFileRoute('/$')({
               .string()
               .transform(() => true)
               .optional(),
-            p: z.string().optional(),
-            prompt: z.string().optional(),
+            q: z.string().optional(),
           }),
           Object.fromEntries(new URL(options.request.url).searchParams),
         )
 
         const fetched = await (async () => {
+          if (url.hostname === env.HOST) {
+            const content = selfMarkdown()
+            return { content, contentType: 'text/markdown' }
+          }
+
           const cacheKey = `page:${url.href}`
           type Cached = { content: string; contentType: string }
           const cached = await env.KV.get<Cached>(cacheKey, 'json')
@@ -51,7 +56,7 @@ export const Route = createFileRoute('/$')({
 
           const res = await fetch(url, {
             headers: {
-              Accept: 'text/markdown, text/html',
+              Accept: 'text/html, */*;q=0.8',
               'User-Agent': `${env.HOST}/1.0`,
             },
             redirect: 'follow',
@@ -74,11 +79,10 @@ export const Route = createFileRoute('/$')({
           return await htmlToMarkdown(fetched.content, { baseUrl: url.href })
         })()
 
-        const prompt = search.prompt ?? search.p
         const excerpt = await (async () => {
-          if (!prompt) return undefined
+          if (!search.q) return undefined
 
-          const cacheKey = `prompt:${url.href}:${prompt}`
+          const cacheKey = `query:${url.href}:${search.q}`
           const cached = await env.KV.get(cacheKey)
           if (!search.fresh && cached) return cached
 
@@ -90,7 +94,7 @@ export const Route = createFileRoute('/$')({
               messages: [
                 {
                   role: 'user',
-                  content: `Web page content:\n---\n${truncatedMarkdown}\n---\n\n${prompt}\n\nProvide a concise response based only on the content above. In your response:\n- Enforce a strict 125-character maximum for quotes from any source document. Open Source Software is ok as long as we respect the license.\n- Use quotation marks for exact language from articles; any language outside of the quotation should never be word-for-word the same.\n- You are not a lawyer and never comment on the legality of your own prompts and responses.\n- Never produce or reproduce exact song lyrics.`,
+                  content: `Web page content:\n---\n${truncatedMarkdown}\n---\n\n${search.q}\n\nProvide a concise response based only on the content above. In your response:\n- Enforce a strict 125-character maximum for quotes from any source document. Open Source Software is ok as long as we respect the license.\n- Use quotation marks for exact language from articles; any language outside of the quotation should never be word-for-word the same.\n- You are not a lawyer and never comment on the legality of your own prompts and responses.\n- Never produce or reproduce exact song lyrics.`,
                 },
               ],
             }),
