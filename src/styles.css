@@ -109,6 +109,13 @@
   --color-pink10: light-dark(hsl(333 74% 15%), hsl(333 90% 96%));
 }
 
+*:focus-visible {
+  outline-color: currentColor;
+  outline-offset: 0.15rem;
+  outline-style: solid;
+  outline-width: 2px;
+}
+
 html {
   background-color: light-dark(#fff, #000);
   color: var(--color-gray10);
@@ -117,4 +124,22 @@ html {
 
 html[data-theme="dark"] {
   color-scheme: dark;
+}
+
+.minimal-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-gray-a3) transparent;
+}
+
+.minimal-scrollbar::-webkit-scrollbar {
+  height: 6px;
+}
+
+.minimal-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.minimal-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--color-gray-a3);
+  border-radius: 3px;
 }
