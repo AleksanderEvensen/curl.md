@@ -1,37 +1,9 @@
-import { env } from 'cloudflare:workers'
 import { createFileRoute } from '@tanstack/react-router'
-import { createMiddleware } from '@tanstack/react-start'
-import { isTerminalClient } from '#lib/userAgents.ts'
 
 export const Route = createFileRoute('/')({
   head: () => ({
     meta: [{ title: __HOST__ }],
   }),
-  server: {
-    middleware: [
-      createMiddleware().server((options) => {
-        const accept = options.request.headers.get('accept') ?? ''
-        const userAgent = options.request.headers.get('user-agent') ?? ''
-        if (!accept.includes('text/markdown') && !isTerminalClient(userAgent))
-          return options.next()
-
-        return new Response(
-          `# curl.md
-
-Fetch any URL as markdown.
-
-\`\`\`bash
-$ curl ${env.HOST}/example.com
-\`\`\`
-`,
-          {
-            status: 200,
-            headers: { 'Content-Type': 'text/markdown; charset=utf-8' },
-          },
-        )
-      }),
-    ],
-  },
   component: Home,
 })
 

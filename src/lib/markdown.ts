@@ -8,7 +8,7 @@ import type { VFile } from 'vfile'
 export async function htmlToMarkdown(
   html: string,
   options?: { baseUrl?: string },
-): Promise<string> {
+): Promise<{ markdown: string; meta: Record<string, string> }> {
   const file = await unified()
     .use(rehypeParse)
     .use(rehypeExtractMeta)
@@ -18,18 +18,21 @@ export async function htmlToMarkdown(
     .use(rehypeRemark)
     .use(remarkStringify)
     .process(html)
-  const meta = file.data.meta as Record<string, string> | undefined
-  const frontmatter = meta
-    ? Object.entries(meta)
-        .map(([k, v]) => `${k}: ${JSON.stringify(v)}`)
-        .join('\n')
-    : undefined
-  return frontmatter
+  const meta = (file.data.meta as Record<string, string> | undefined) ?? {}
+  const frontmatter =
+    Object.keys(meta).length > 0
+      ? Object.entries(meta)
+          .map(([k, v]) => `${k}: ${JSON.stringify(v)}`)
+          .join('\n')
+      : undefined
+  const markdown = frontmatter
     ? `---\n${frontmatter}\n---\n\n${String(file)}`
     : String(file)
+  return { markdown, meta }
 }
 
 const metaPropertyMap: Record<string, string> = {
+  'article:published_time': 'publish_date',
   author: 'author',
   description: 'description',
   'og:description': 'description',
@@ -122,8 +125,13 @@ function rehypeResolveLinks(baseUrl?: string) {
 
 function resolveLinks(node: Element | Root, baseUrl: string) {
   if (!('children' in node)) return
-  for (const child of node.children) {
-    if (child.type !== 'element') continue
+  node.children = node.children.filter((child) => {
+    if (child.type !== 'element') return true
+    // Strip anchor elements with hash-only hrefs
+    if (child.tagName === 'a') {
+      const href = child.properties?.href
+      if (typeof href === 'string' && href.startsWith('#')) return false
+    }
     for (const prop of ['href', 'src'] as const) {
       const value = child.properties?.[prop]
       if (typeof value !== 'string') continue
@@ -133,7 +141,8 @@ function resolveLinks(node: Element | Root, baseUrl: string) {
       } catch {}
     }
     resolveLinks(child, baseUrl)
-  }
+    return true
+  })
 }
 
 const emptyStrippableTags = new Set([

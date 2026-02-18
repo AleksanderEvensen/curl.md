@@ -4,32 +4,34 @@ import { htmlToMarkdown } from '#lib/markdown.ts'
 
 describe('htmlToMarkdown', () => {
   test('basic html conversion', async () => {
-    const result = await htmlToMarkdown('<p>Hello</p>')
+    const { markdown: result } = await htmlToMarkdown('<p>Hello</p>')
     expect(result).toBe('Hello\n')
   })
 
   test('converts heading and paragraph', async () => {
-    const result = await htmlToMarkdown('<h1>Title</h1><p>Body</p>')
+    const { markdown: result } = await htmlToMarkdown(
+      '<h1>Title</h1><p>Body</p>',
+    )
     expect(result).toContain('# Title')
     expect(result).toContain('Body')
   })
 
   test('converts links', async () => {
-    const result = await htmlToMarkdown(
+    const { markdown: result } = await htmlToMarkdown(
       '<a href="https://example.com">link</a>',
     )
     expect(result).toContain('[link](https://example.com)')
   })
 
   test('extracts title as frontmatter', async () => {
-    const result = await htmlToMarkdown(
+    const { markdown: result } = await htmlToMarkdown(
       html({ head: '<title>My Page</title>', body: '<p>content</p>' }),
     )
     expect(result).toContain('title: "My Page"')
   })
 
   test('extracts meta description', async () => {
-    const result = await htmlToMarkdown(
+    const { markdown: result } = await htmlToMarkdown(
       html({
         head: '<meta name="description" content="A description">',
         body: '<p>content</p>',
@@ -39,7 +41,7 @@ describe('htmlToMarkdown', () => {
   })
 
   test('extracts og:description as fallback', async () => {
-    const result = await htmlToMarkdown(
+    const { markdown: result } = await htmlToMarkdown(
       html({
         head: '<meta property="og:description" content="OG desc">',
         body: '<p>content</p>',
@@ -49,7 +51,7 @@ describe('htmlToMarkdown', () => {
   })
 
   test('name=description takes priority over og:description', async () => {
-    const result = await htmlToMarkdown(
+    const { markdown: result } = await htmlToMarkdown(
       html({
         head: '<meta name="description" content="Name desc"><meta property="og:description" content="OG desc">',
         body: '<p>content</p>',
@@ -59,7 +61,7 @@ describe('htmlToMarkdown', () => {
   })
 
   test('extracts author', async () => {
-    const result = await htmlToMarkdown(
+    const { markdown: result } = await htmlToMarkdown(
       html({
         head: '<meta name="author" content="John">',
         body: '<p>content</p>',
@@ -69,7 +71,7 @@ describe('htmlToMarkdown', () => {
   })
 
   test('extracts og:site_name', async () => {
-    const result = await htmlToMarkdown(
+    const { markdown: result } = await htmlToMarkdown(
       html({
         head: '<meta property="og:site_name" content="My Site">',
         body: '<p>content</p>',
@@ -79,7 +81,7 @@ describe('htmlToMarkdown', () => {
   })
 
   test('extracts canonical url', async () => {
-    const result = await htmlToMarkdown(
+    const { markdown: result } = await htmlToMarkdown(
       html({
         head: '<link rel="canonical" href="https://example.com/page">',
         body: '<p>content</p>',
@@ -89,12 +91,12 @@ describe('htmlToMarkdown', () => {
   })
 
   test('no frontmatter when no head metadata', async () => {
-    const result = await htmlToMarkdown('<p>text</p>')
+    const { markdown: result } = await htmlToMarkdown('<p>text</p>')
     expect(result).not.toContain('---')
   })
 
   test('full document with all metadata', async () => {
-    const result = await htmlToMarkdown(
+    const { markdown: result } = await htmlToMarkdown(
       html({
         head: [
           '<title>Full Page</title>',
@@ -119,7 +121,7 @@ describe('htmlToMarkdown', () => {
 
 describe('strips noise elements', () => {
   test('strips nav elements', async () => {
-    const result = await htmlToMarkdown(
+    const { markdown: result } = await htmlToMarkdown(
       html({ body: '<nav><a href="/">Home</a></nav><p>Content</p>' }),
     )
     expect(result).toContain('Content')
@@ -127,7 +129,7 @@ describe('strips noise elements', () => {
   })
 
   test('preserves header elements', async () => {
-    const result = await htmlToMarkdown(
+    const { markdown: result } = await htmlToMarkdown(
       html({
         body: '<header><h1>Site Title</h1></header><main><p>Content</p></main>',
       }),
@@ -137,7 +139,7 @@ describe('strips noise elements', () => {
   })
 
   test('strips footer elements', async () => {
-    const result = await htmlToMarkdown(
+    const { markdown: result } = await htmlToMarkdown(
       html({ body: '<p>Content</p><footer><p>Copyright 2024</p></footer>' }),
     )
     expect(result).toContain('Content')
@@ -145,7 +147,7 @@ describe('strips noise elements', () => {
   })
 
   test('strips aside elements', async () => {
-    const result = await htmlToMarkdown(
+    const { markdown: result } = await htmlToMarkdown(
       html({ body: '<aside><p>Sidebar</p></aside><p>Content</p>' }),
     )
     expect(result).toContain('Content')
@@ -153,7 +155,7 @@ describe('strips noise elements', () => {
   })
 
   test('strips script and style tags', async () => {
-    const result = await htmlToMarkdown(
+    const { markdown: result } = await htmlToMarkdown(
       html({
         body: '<script>alert("hi")</script><style>body{}</style><p>Content</p>',
       }),
@@ -164,7 +166,7 @@ describe('strips noise elements', () => {
   })
 
   test('strips noscript and iframe', async () => {
-    const result = await htmlToMarkdown(
+    const { markdown: result } = await htmlToMarkdown(
       html({
         body: '<noscript>Enable JS</noscript><iframe src="x"></iframe><p>Content</p>',
       }),
@@ -174,7 +176,7 @@ describe('strips noise elements', () => {
   })
 
   test('strips svg elements', async () => {
-    const result = await htmlToMarkdown(
+    const { markdown: result } = await htmlToMarkdown(
       html({
         body: '<svg><circle r="5"/></svg><p>Content</p>',
       }),
@@ -184,7 +186,7 @@ describe('strips noise elements', () => {
   })
 
   test('strips elements by role attribute', async () => {
-    const result = await htmlToMarkdown(
+    const { markdown: result } = await htmlToMarkdown(
       html({
         body: '<div role="navigation"><a href="/">Nav</a></div><div role="banner">Banner</div><div role="contentinfo">Info</div><div role="complementary">Side</div><p>Content</p>',
       }),
@@ -197,7 +199,7 @@ describe('strips noise elements', () => {
   })
 
   test('preserves main content', async () => {
-    const result = await htmlToMarkdown(
+    const { markdown: result } = await htmlToMarkdown(
       html({
         body: '<main><h1>Title</h1><p>Paragraph</p><ul><li>Item</li></ul></main>',
       }),
@@ -208,7 +210,7 @@ describe('strips noise elements', () => {
   })
 
   test('strips nested noise', async () => {
-    const result = await htmlToMarkdown(
+    const { markdown: result } = await htmlToMarkdown(
       html({
         body: '<nav><ul><li><a href="/">Home</a></li><li><a href="/about">About</a></li></ul></nav><article><p>Article content</p></article>',
       }),
@@ -223,7 +225,7 @@ describe('resolves relative links', () => {
   const baseUrl = 'https://example.com/docs/page'
 
   test('resolves relative href', async () => {
-    const result = await htmlToMarkdown(
+    const { markdown: result } = await htmlToMarkdown(
       html({ body: '<a href="/about">About</a>' }),
       { baseUrl },
     )
@@ -231,7 +233,7 @@ describe('resolves relative links', () => {
   })
 
   test('resolves relative src', async () => {
-    const result = await htmlToMarkdown(
+    const { markdown: result } = await htmlToMarkdown(
       html({ body: '<img src="/img/photo.jpg" alt="Photo">' }),
       { baseUrl },
     )
@@ -239,23 +241,24 @@ describe('resolves relative links', () => {
   })
 
   test('preserves absolute links', async () => {
-    const result = await htmlToMarkdown(
+    const { markdown: result } = await htmlToMarkdown(
       html({ body: '<a href="https://other.com">Other</a>' }),
       { baseUrl },
     )
     expect(result).toContain('[Other](https://other.com)')
   })
 
-  test('preserves hash links', async () => {
-    const result = await htmlToMarkdown(
-      html({ body: '<a href="#section">Jump</a>' }),
+  test('strips hash-only links', async () => {
+    const { markdown: result } = await htmlToMarkdown(
+      html({ body: '<a href="#section">Jump</a><p>Content</p>' }),
       { baseUrl },
     )
-    expect(result).toContain('(#section)')
+    expect(result).not.toContain('Jump')
+    expect(result).toContain('Content')
   })
 
   test('resolves path-relative links', async () => {
-    const result = await htmlToMarkdown(
+    const { markdown: result } = await htmlToMarkdown(
       html({ body: '<a href="sibling">Sibling</a>' }),
       { baseUrl },
     )
@@ -263,7 +266,7 @@ describe('resolves relative links', () => {
   })
 
   test('no-op without baseUrl', async () => {
-    const result = await htmlToMarkdown(
+    const { markdown: result } = await htmlToMarkdown(
       html({ body: '<a href="/about">About</a>' }),
     )
     expect(result).toContain('(/about)')
@@ -272,27 +275,29 @@ describe('resolves relative links', () => {
 
 describe('strips empty elements', () => {
   test('strips empty paragraphs', async () => {
-    const result = await htmlToMarkdown(html({ body: '<p></p><p>Content</p>' }))
+    const { markdown: result } = await htmlToMarkdown(
+      html({ body: '<p></p><p>Content</p>' }),
+    )
     expect(result).toContain('Content')
     expect(result).toBe('Content\n')
   })
 
   test('strips whitespace-only paragraphs', async () => {
-    const result = await htmlToMarkdown(
+    const { markdown: result } = await htmlToMarkdown(
       html({ body: '<p>   </p><p>Content</p>' }),
     )
     expect(result).toBe('Content\n')
   })
 
   test('strips empty headings', async () => {
-    const result = await htmlToMarkdown(
+    const { markdown: result } = await htmlToMarkdown(
       html({ body: '<h2></h2><p>Content</p>' }),
     )
     expect(result).toBe('Content\n')
   })
 
   test('strips empty list items', async () => {
-    const result = await htmlToMarkdown(
+    const { markdown: result } = await htmlToMarkdown(
       html({ body: '<ul><li></li><li>Item</li></ul>' }),
     )
     expect(result).toContain('Item')
@@ -300,7 +305,7 @@ describe('strips empty elements', () => {
   })
 
   test('preserves non-empty elements', async () => {
-    const result = await htmlToMarkdown(
+    const { markdown: result } = await htmlToMarkdown(
       html({ body: '<p>Keep</p><div>Also keep</div>' }),
     )
     expect(result).toContain('Keep')
@@ -310,7 +315,7 @@ describe('strips empty elements', () => {
 
 describe('strips HTML comments', () => {
   test('strips React SSR hydration markers', async () => {
-    const result = await htmlToMarkdown(
+    const { markdown: result } = await htmlToMarkdown(
       html({
         body: '<!--$--><p>Content</p><!--/$--><!--$!--><!--/$-->',
       }),
@@ -319,7 +324,7 @@ describe('strips HTML comments', () => {
   })
 
   test('strips arbitrary comments', async () => {
-    const result = await htmlToMarkdown(
+    const { markdown: result } = await htmlToMarkdown(
       html({
         body: '<!--gEFrenCoRRJPVzAxJzheZ--><h1>Title<!-- --> here</h1>',
       }),
@@ -330,7 +335,7 @@ describe('strips HTML comments', () => {
 
 describe('strips form elements', () => {
   test('strips form elements', async () => {
-    const result = await htmlToMarkdown(
+    const { markdown: result } = await htmlToMarkdown(
       html({
         body: '<form><input type="text"><button>Submit</button></form><p>Content</p>',
       }),

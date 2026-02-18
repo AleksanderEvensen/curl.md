@@ -15,12 +15,20 @@
       "head_sampling_rate": 0.01
     }
   },
+  "ai": {
+    "binding": "AI"
+  },
+  "kv_namespaces": [{ "binding": "KV", "id": "curl_kv" }],
   "vars": {
     "HOST": "curl.local"
   },
   "env": {
     "production": {
       "name": "curl",
+      "ai": {
+        "binding": "AI"
+      },
+      "kv_namespaces": [{ "binding": "KV", "id": "curl_kv" }],
       "vars": {
         "HOST": "curl.md"
       },
@@ -28,6 +36,10 @@
     },
     "preview": {
       "name": "__PREVIEW_NAME__",
+      "ai": {
+        "binding": "AI"
+      },
+      "kv_namespaces": [{ "binding": "KV", "id": "curl_kv" }],
       "vars": {
         "HOST": "__PREVIEW_APEX__.curl.md"
       },
