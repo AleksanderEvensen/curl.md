@@ -1,3 +1,4 @@
+import geistMonoLatin from '@fontsource-variable/geist-mono/files/geist-mono-latin-wght-normal.woff2?url'
 import {
   createRootRoute,
   HeadContent,
@@ -9,7 +10,16 @@ import '../styles.css'
 
 export const Route = createRootRoute({
   head: () => ({
-    links: [{ href: '/favicon.svg', rel: 'icon', type: 'image/svg+xml' }],
+    links: [
+      {
+        as: 'font',
+        crossOrigin: 'anonymous',
+        href: geistMonoLatin,
+        rel: 'preload',
+        type: 'font/woff2',
+      },
+      { href: '/favicon.svg', rel: 'icon', type: 'image/svg+xml' },
+    ],
     meta: [
       { charSet: 'utf-8' },
       {

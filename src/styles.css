@@ -1,8 +1,10 @@
+@import "@fontsource-variable/geist-mono";
 @import "tailwindcss";
 
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 @theme {
+  --font-mono: "Geist Mono Variable", monospace;
   --color-*: initial;
 
   /* Geist Gray Scale */
@@ -109,6 +111,10 @@
   --color-pink10: light-dark(hsl(333 74% 15%), hsl(333 90% 96%));
 }
 
+::selection {
+  background-color: var(--color-pink4);
+}
+
 *:focus-visible {
   outline-color: currentColor;
   outline-offset: 0.15rem;
@@ -120,6 +126,7 @@ html {
   background-color: light-dark(#fff, #000);
   color: var(--color-gray10);
   color-scheme: light;
+  font-family: var(--font-mono);
 }
 
 html[data-theme="dark"] {
