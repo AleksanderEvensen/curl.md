@@ -60,6 +60,12 @@ jobs:
             echo "  Deleting worker..."
             pnpm exec wrangler delete "$worker" --force || echo "  Failed to delete worker"
 
+            echo "  Deleting KV namespace..."
+            KV_ID=$(pnpm exec wrangler kv namespace list | jq -r --arg name "curl-kv-pr$PR_NUM" '.[] | select(.title == $name) | .id')
+            if [ -n "$KV_ID" ]; then
+              pnpm exec wrangler kv namespace delete --namespace-id "$KV_ID" -y || echo "  Failed to delete KV"
+            fi
+
             # Collect cleaned PR info as JSON
             SHA=$(echo "$PR_INFO" | jq -r '.headRefOid // ""')
             CLEANED_PRS=$(echo "$CLEANED_PRS" | jq -c --arg pr "$PR_NUM" --arg sha "$SHA" \

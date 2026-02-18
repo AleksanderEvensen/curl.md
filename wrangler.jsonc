@@ -18,7 +18,7 @@
   "ai": {
     "binding": "AI"
   },
-  "kv_namespaces": [{ "binding": "KV", "id": "curl_kv" }],
+  "kv_namespaces": [{ "binding": "KV", "id": "local" }],
   "vars": {
     "HOST": "curl.local"
   },
@@ -28,7 +28,9 @@
       "ai": {
         "binding": "AI"
       },
-      "kv_namespaces": [{ "binding": "KV", "id": "curl_kv" }],
+      "kv_namespaces": [
+        { "binding": "KV", "id": "e3a921b8d13741b99e7aa1cbb6144c9f" }
+      ],
       "vars": {
         "HOST": "curl.md"
       },
@@ -39,7 +41,7 @@
       "ai": {
         "binding": "AI"
       },
-      "kv_namespaces": [{ "binding": "KV", "id": "curl_kv" }],
+      "kv_namespaces": [{ "binding": "KV", "id": "__PREVIEW_KV_ID__" }],
       "vars": {
         "HOST": "__PREVIEW_APEX__.curl.md"
       },
