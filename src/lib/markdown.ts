@@ -164,6 +164,7 @@ function insertPreNewlines(node: Element | Root) {
     if (child.type === 'element') insertPreNewlines(child)
   if (node.type !== 'element' || node.tagName !== 'pre') return
   stripTrailingBr(node)
+  stripInterElementWhitespace(node)
   const updated: typeof node.children = []
   for (let i = 0; i < node.children.length; i++) {
     const child = node.children[i]
@@ -175,6 +176,25 @@ function insertPreNewlines(node: Element | Root) {
     if (!alreadyHasNewline) updated.push({ type: 'text', value: '\n' })
   }
   node.children = updated
+}
+
+const blockTags = new Set(['div', 'p', 'li', 'tr', 'section', 'article'])
+
+// Strip whitespace-only text nodes between block element siblings inside <pre>.
+// HTML formatting newlines between <div>s inside <pre><code> cause extra
+// blank lines in the output because rehype-remark treats them as content.
+function stripInterElementWhitespace(node: Element | Root) {
+  if (!('children' in node)) return
+  for (const child of node.children)
+    if (child.type === 'element') stripInterElementWhitespace(child)
+  node.children = node.children.filter((child, i, arr) => {
+    if (child.type !== 'text' || child.value.trim() !== '') return true
+    const prev = arr[i - 1]
+    const next = arr[i + 1]
+    const prevBlock = prev?.type === 'element' && blockTags.has(prev.tagName)
+    const nextBlock = next?.type === 'element' && blockTags.has(next.tagName)
+    return !(prevBlock || nextBlock)
+  })
 }
 
 function stripTrailingBr(node: Element | Root) {

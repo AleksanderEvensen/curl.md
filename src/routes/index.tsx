@@ -17,9 +17,13 @@ export const Route = createFileRoute('/')({
 function Home() {
   return (
     <>
-      <h1 className="text-base font-bold mb-10">curl.md</h1>
-      <h2 className="text-sm font-medium text-gray10">
-        Try It Now
+      <header className="mb-10">
+        <h1 className="text-base font-bold">curl.md</h1>
+        <p className="text-gray6">Fetch any URL as markdown</p>
+      </header>
+
+      <h2 className="text-sm text-gray10">
+        <span className="font-medium">Try It Now</span>
         <span className="ms-2 inline-block text-gray6">Just use curl</span>
       </h2>
       <pre className="mt-2 flex flex-col bg-bg2 px-3 py-2 whitespace-pre-wrap break-words">
@@ -42,8 +46,8 @@ function Home() {
         </CopyableCommand>
       </pre>
 
-      <h2 className="mt-8 text-sm font-medium text-gray10">
-        Integrate
+      <h2 className="mt-8 text-sm text-gray10">
+        <span className="font-medium">Integrate</span>
         <span className="ms-2 inline-block text-gray6">
           Enhance your agents
         </span>
@@ -59,8 +63,8 @@ function Home() {
         </CopyableCommand>
       </pre>
 
-      <h2 className="mt-8 text-sm font-medium text-gray10">
-        Playground
+      <h2 className="mt-8 text-sm text-gray10">
+        <span className="font-medium">Playground</span>
         <span className="ms-2 inline-block text-gray6">See for yourself</span>
       </h2>
       <Playground />
@@ -102,47 +106,65 @@ $ npx skills add wevm/curl.md
 # Install MCP server
 $ npx add-mcp ${host}/mcp
 \`\`\`
+
+## Playground
+
+See for yourself
+
+\`\`\`sh
+${examples.map(([url, query]) => `$ curl ${url}${query ? `?q=${query.replace(/ /g, '+')}` : ''}`).join('\n')}
+\`\`\`
 `
 }
 
+const examples = [
+  ['react.dev', 'fullstack support'],
+  ['developer.mozilla.org/en-US/docs/Web/API/Fetch_API'],
+  ['en.wikipedia.org/wiki/Linux', 'kernel history'],
+] as const
+
 function Playground() {
   const formRef = React.useRef<HTMLFormElement>(null)
+
   const [url, setUrl] = React.useState('')
   const [query, setQuery] = React.useState('')
   const freshRef = React.useRef(false)
   const refreshingRef = React.useRef(false)
-  const [result, action, pending] = React.useActionState(
-    async (_prev: { fetchedUrl: string; markdown: string } | null) => {
-      const trimmedUrl = url.trim()
-      if (!trimmedUrl) return null
-      const q = query.trim()
-      const fresh = freshRef.current
-      freshRef.current = false
-      refreshingRef.current = false
-      const params = new URLSearchParams()
-      if (q) params.set('q', q)
-      if (fresh) params.set('fresh', '')
-      const qs = params.size ? `?${params}` : ''
-      const path = `/${trimmedUrl}${qs}`
-      const displayUrl = `${__HOST__}/${trimmedUrl}${q ? `?q=${encodeURIComponent(q).replace(/%20/g, '+')}` : ''}`
-      try {
-        const res = await fetch(path)
-        const text = await res.text()
-        if (!res.ok) {
-          try {
-            return {
-              fetchedUrl: displayUrl,
-              markdown: JSON.stringify(JSON.parse(text), null, 2),
-            }
-          } catch {}
-        }
-        return { fetchedUrl: displayUrl, markdown: text }
-      } catch {
-        return { fetchedUrl: displayUrl, markdown: 'Failed to fetch.' }
+  const [resultHidden, setResultHidden] = React.useState(false)
+
+  const [result, action, pending] = React.useActionState(async () => {
+    setResultHidden(false)
+    const trimmedUrl = url.trim()
+    if (!trimmedUrl) return null
+
+    const q = query.trim()
+    const fresh = freshRef.current
+    freshRef.current = false
+    refreshingRef.current = false
+
+    const params = new URLSearchParams()
+    if (q) params.set('q', q)
+    if (fresh) params.set('fresh', '')
+    const displayUrl = `${__HOST__}/${trimmedUrl}${q ? `?q=${encodeURIComponent(q).replace(/%20/g, '+')}` : ''}`
+
+    try {
+      const res = await fetch(
+        `/${trimmedUrl}${params.size ? `?${params}` : ''}`,
+      )
+      const text = await res.text()
+      if (!res.ok) {
+        try {
+          return {
+            fetchedUrl: displayUrl,
+            markdown: JSON.stringify(JSON.parse(text), null, 2),
+          }
+        } catch {}
       }
-    },
-    null,
-  )
+      return { fetchedUrl: displayUrl, markdown: text }
+    } catch {
+      return { fetchedUrl: displayUrl, markdown: 'Failed to fetch.' }
+    }
+  }, null)
 
   return (
     <div className="mt-2">
@@ -151,10 +173,10 @@ function Playground() {
         className="group/form mb-2 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto]"
         ref={formRef}
       >
-        <label>
+        <label className="relative">
           <span className="sr-only">URL</span>
           <input
-            className="w-full bg-bg2 px-3 py-1.5 text-sm placeholder:text-gray8 outline-none"
+            className="w-full bg-bg2 pe-8 ps-3 py-1.5 text-sm placeholder:text-gray7 outline-none"
             inputMode="url"
             onChange={(e) => setUrl(e.target.value)}
             placeholder="url"
@@ -162,13 +184,26 @@ function Playground() {
             type="text"
             value={url}
           />
+          {url && (
+            <button
+              className="absolute end-2 top-1/2 -translate-y-1/2 text-gray5 hover:text-gray8"
+              onClick={() => {
+                setUrl('')
+                setQuery('')
+                setResultHidden(true)
+              }}
+              type="button"
+            >
+              <IconOcticonXCircleFill16 className="size-3.5" />
+            </button>
+          )}
         </label>
         <label
           className={`sm:col-span-2 ${url ? '' : 'hidden group-focus-within/form:block'}`}
         >
           <span className="sr-only">Query</span>
           <input
-            className="w-full bg-bg2 px-3 py-1.5 text-sm placeholder:text-gray8 outline-none"
+            className="w-full bg-bg2 px-3 py-1.5 text-sm placeholder:text-gray7 outline-none"
             onChange={(e) => setQuery(e.target.value)}
             placeholder="q (optional)"
             type="text"
@@ -180,11 +215,11 @@ function Playground() {
           disabled={pending}
           type="submit"
         >
-          {pending && !refreshingRef.current ? 'Fetching' : 'Fetch'}
+          Fetch
         </button>
       </form>
 
-      {result && (
+      {result && !resultHidden && (
         <div className="bg-bg2">
           <div className="flex items-center gap-2 px-3 py-2 text-xs text-gray8">
             <span>{result.fetchedUrl}</span>
@@ -209,28 +244,23 @@ function Playground() {
           </pre>
         </div>
       )}
-      <div className="mt-2 flex flex-wrap items-start gap-x-3 gap-y-1 text-sm">
-        {(
-          [
-            ['react.dev', 'fullstack support'],
-            ['developer.mozilla.org/en-US/docs/Web/API/Fetch_API'],
-            ['en.wikipedia.org/wiki/Linux', 'kernel history'],
-          ] as const
-        ).map(([exampleUrl, exampleQuery]) => (
+
+      <div className="mt-2 flex flex-wrap items-start gap-1.5 text-xs">
+        {examples.map(([url, q]) => (
           <button
-            className="text-start text-gray6 dark:text-gray5 hover:text-gray9 focus-visible:text-gray9"
-            key={`${exampleUrl}${exampleQuery ?? ''}`}
+            className="max-w-full truncate rounded bg-gray-a1 dark:bg-gray-a2 px-1.5 py-0.5 text-start text-gray6 hover:text-gray8 dark:text-gray5"
+            key={`${url}${q ?? ''}`}
             onClick={() => {
               flushSync(() => {
-                setUrl(exampleUrl)
-                setQuery(exampleQuery ?? '')
+                setUrl(url)
+                setQuery(q ?? '')
               })
               formRef.current?.requestSubmit()
             }}
             type="button"
           >
-            {exampleUrl}
-            {exampleQuery && <span>?q={exampleQuery.replace(/ /g, '+')}</span>}
+            {url}
+            {q && <span>?q={q.replace(/ /g, '+')}</span>}
           </button>
         ))}
       </div>

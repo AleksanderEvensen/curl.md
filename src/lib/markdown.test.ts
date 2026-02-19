@@ -344,6 +344,16 @@ describe('pre newlines', () => {
     expect(result).not.toContain('line1\n\nline2')
   })
 
+  test('strips extra blank lines from pretty-printed div code blocks', async () => {
+    const { markdown: result } = await htmlToMarkdown(
+      html({
+        body: '<pre><code>\n<div>line1</div>\n<div>line2</div>\n<div>line3</div>\n</code></pre>',
+      }),
+    )
+    expect(result).toContain('line1\nline2\nline3')
+    expect(result).not.toContain('line1\n\nline2')
+  })
+
   test('strips trailing br inside div-per-line code blocks', async () => {
     const { markdown: result } = await htmlToMarkdown(
       html({

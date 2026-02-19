@@ -33,7 +33,7 @@ export const Route = createRootRoute({
 })
 
 function RootComponent() {
-  const { label, mounted, cycle } = useTheme()
+  const { theme, mounted, cycle } = useTheme()
   return (
     <>
       <div className="mx-auto max-w-xl px-4 py-16 font-mono text-sm">
@@ -46,7 +46,7 @@ function RootComponent() {
             onClick={cycle}
             type="button"
           >
-            {label}
+            {theme}
           </button>
         )}
         <a

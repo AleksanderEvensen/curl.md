@@ -6,7 +6,6 @@
 // biome-ignore lint: disable
 export {}
 declare global {
-  const IconLucideCheck: typeof import('~icons/lucide/check.jsx').default
-  const IconLucideCopy: typeof import('~icons/lucide/copy.jsx').default
   const IconOcticonSync16: typeof import('~icons/octicon/sync16.jsx').default
+  const IconOcticonXCircleFill16: typeof import('~icons/octicon/x-circle-fill16.jsx').default
 }
