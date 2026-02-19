@@ -121,6 +121,7 @@ const examples = [
   ['react.dev', 'fullstack support'],
   ['developer.mozilla.org/en-US/docs/Web/API/Fetch_API'],
   ['en.wikipedia.org/wiki/Linux', 'kernel history'],
+  ['docs.github.com/en/rest', 'rate limiting'],
 ] as const
 
 function Playground() {
@@ -140,7 +141,6 @@ function Playground() {
     const q = query.trim()
     const fresh = freshRef.current
     freshRef.current = false
-    refreshingRef.current = false
 
     const params = new URLSearchParams()
     if (q) params.set('q', q)
@@ -160,23 +160,29 @@ function Playground() {
           }
         } catch {}
       }
+      refreshingRef.current = false
       return { fetchedUrl: displayUrl, markdown: text }
     } catch {
+      refreshingRef.current = false
       return { fetchedUrl: displayUrl, markdown: 'Failed to fetch.' }
     }
   }, null)
+
+  const trimmedUrl = url.trim()
+  const q = query.trim()
+  const pendingDisplayUrl = `${__HOST__}/${trimmedUrl}${q ? `?q=${encodeURIComponent(q).replace(/%20/g, '+')}` : ''}`
 
   return (
     <div className="mt-2">
       <form
         action={action}
-        className="group/form mb-2 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto]"
+        className="mb-2 grid grid-cols-1 gap-1.5 sm:grid-cols-2"
         ref={formRef}
       >
         <label className="relative">
           <span className="sr-only">URL</span>
           <input
-            className="w-full bg-bg2 pe-8 ps-3 py-1.5 text-sm placeholder:text-gray7 outline-none"
+            className="w-full bg-bg2 pe-7 ps-2.5 py-1.5 text-sm placeholder:text-gray7 outline-none"
             inputMode="url"
             onChange={(e) => setUrl(e.target.value)}
             placeholder="url"
@@ -198,72 +204,96 @@ function Playground() {
             </button>
           )}
         </label>
-        <label
-          className={`sm:col-span-2 ${url ? '' : 'hidden group-focus-within/form:block'}`}
-        >
-          <span className="sr-only">Query</span>
-          <input
-            className="w-full bg-bg2 px-3 py-1.5 text-sm placeholder:text-gray7 outline-none"
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="q (optional)"
-            type="text"
-            value={query}
-          />
-        </label>
-        <button
-          className="bg-bg2 px-3 py-1.5 text-sm text-gray11 hover:bg-gray-a2 hover:text-gray12 disabled:opacity-50 sm:row-start-1 sm:col-start-2"
-          disabled={pending}
-          type="submit"
-        >
-          Fetch
-        </button>
+        <div className="flex gap-1.5">
+          <label className="flex-1">
+            <span className="sr-only">Query</span>
+            <input
+              className="w-full bg-bg2 px-3 py-1.5 text-sm placeholder:text-gray7 outline-none"
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="q"
+              type="text"
+              value={query}
+            />
+          </label>
+          <button
+            className="bg-bg2 px-3 py-1.5 text-sm text-gray11 hover:bg-gray-a2 hover:text-gray12 disabled:opacity-50"
+            disabled={pending}
+            type="submit"
+          >
+            Fetch
+          </button>
+        </div>
       </form>
 
-      {result && !resultHidden && (
+      {(result && !resultHidden) || (pending && (!result || resultHidden)) ? (
         <div className="bg-bg2">
           <div className="flex items-center gap-2 px-3 py-2 text-xs text-gray8">
-            <span>{result.fetchedUrl}</span>
+            <span>{result?.fetchedUrl ?? pendingDisplayUrl}</span>
+            {result && (
+              <button
+                className={`hover:text-gray11 ${pending && refreshingRef.current ? 'animate-spin' : ''}`}
+                disabled={pending}
+                onClick={() => {
+                  freshRef.current = true
+                  refreshingRef.current = true
+                  formRef.current?.requestSubmit()
+                }}
+                type="button"
+              >
+                <IconOcticonSync16 className="size-3" />
+              </button>
+            )}
+          </div>
+          <pre
+            key={result?.fetchedUrl ?? 'pending'}
+            className="minimal-scrollbar max-h-96 overflow-auto overscroll-contain px-3 pb-2 text-sm whitespace-pre-wrap break-words"
+          >
+            {pending && !refreshingRef.current ? (
+              <span className="text-gray6 animate-pulse">Fetching...</span>
+            ) : (
+              result?.markdown
+            )}
+          </pre>
+        </div>
+      ) : null}
+
+      {(!result || resultHidden) && !pending && (
+        <div className="mt-2 grid grid-cols-1 gap-1.5 text-xs sm:grid-cols-2">
+          {examples.map(([url, q]) => (
             <button
-              className={`hover:text-gray11 ${pending && `${__HOST__}/${url.trim()}` === result.fetchedUrl.split('?')[0] ? 'animate-spin' : ''}`}
-              disabled={pending}
+              className="bg-bg2 px-3 py-2 text-start opacity-50 grayscale hover:opacity-100 hover:grayscale-0 focus:opacity-100 focus:grayscale-0"
+              key={`${url}${q ?? ''}`}
               onClick={() => {
-                freshRef.current = true
-                refreshingRef.current = true
+                flushSync(() => {
+                  setUrl(url)
+                  setQuery(q ?? '')
+                })
                 formRef.current?.requestSubmit()
               }}
               type="button"
             >
-              <IconOcticonSync16 className="size-3" />
+              <span className="block truncate text-gray10">
+                {url.split('/')[0]}
+                {q && url.includes('/') && (
+                  <span className="text-blue9">
+                    /{url.split('/').slice(1).join('/')}
+                  </span>
+                )}
+              </span>
+              {!q && url.includes('/') && (
+                <span className="block truncate text-blue9">
+                  /{url.split('/').slice(1).join('/')}
+                </span>
+              )}
+              {q && (
+                <span className="block truncate text-purple9">
+                  ?q={q.replace(/ /g, '+')}
+                </span>
+              )}
             </button>
-          </div>
-          <pre
-            key={result.fetchedUrl}
-            className="minimal-scrollbar max-h-96 overflow-auto overscroll-contain px-3 pb-2 text-sm whitespace-pre-wrap break-words"
-          >
-            {result.markdown}
-          </pre>
+          ))}
         </div>
       )}
-
-      <div className="mt-2 flex flex-wrap items-start gap-1.5 text-xs">
-        {examples.map(([url, q]) => (
-          <button
-            className="max-w-full truncate rounded bg-gray-a1 dark:bg-gray-a2 px-1.5 py-0.5 text-start text-gray6 hover:text-gray8 dark:text-gray5"
-            key={`${url}${q ?? ''}`}
-            onClick={() => {
-              flushSync(() => {
-                setUrl(url)
-                setQuery(q ?? '')
-              })
-              formRef.current?.requestSubmit()
-            }}
-            type="button"
-          >
-            {url}
-            {q && <span>?q={q.replace(/ /g, '+')}</span>}
-          </button>
-        ))}
-      </div>
     </div>
   )
 }
