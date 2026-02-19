@@ -1,6 +1,7 @@
 import type { Element, Root } from 'hast'
 import rehypeParse from 'rehype-parse'
 import rehypeRemark from 'rehype-remark'
+import remarkGfm from 'remark-gfm'
 import remarkStringify from 'remark-stringify'
 import { unified } from 'unified'
 import type { VFile } from 'vfile'
@@ -17,6 +18,7 @@ export async function htmlToMarkdown(
     .use(rehypeStripEmpty)
     .use(rehypePreNewlines)
     .use(rehypeRemark)
+    .use(remarkGfm)
     .use(remarkStringify)
     .process(html)
   const meta = (file.data.meta as Record<string, string> | undefined) ?? {}
@@ -148,6 +150,8 @@ function resolveLinks(node: Element | Root, baseUrl: string) {
 
 // Ensure elements inside <pre> are separated by newlines so
 // rehype-remark preserves line breaks in code blocks.
+// Also strips trailing <br> inside child elements to avoid
+// double newlines (e.g. <div class="cm-line">...<br/></div>).
 function rehypePreNewlines() {
   return (tree: Root) => {
     insertPreNewlines(tree)
@@ -159,12 +163,28 @@ function insertPreNewlines(node: Element | Root) {
   for (const child of node.children)
     if (child.type === 'element') insertPreNewlines(child)
   if (node.type !== 'element' || node.tagName !== 'pre') return
+  stripTrailingBr(node)
   const updated: typeof node.children = []
-  for (const child of node.children) {
+  for (let i = 0; i < node.children.length; i++) {
+    const child = node.children[i]
     updated.push(child)
-    if (child.type === 'element') updated.push({ type: 'text', value: '\n' })
+    if (child.type !== 'element') continue
+    const next = node.children[i + 1]
+    const alreadyHasNewline =
+      next?.type === 'text' && next.value.startsWith('\n')
+    if (!alreadyHasNewline) updated.push({ type: 'text', value: '\n' })
   }
   node.children = updated
+}
+
+function stripTrailingBr(node: Element | Root) {
+  if (!('children' in node)) return
+  for (const child of node.children) {
+    if (child.type !== 'element') continue
+    stripTrailingBr(child)
+    const last = child.children[child.children.length - 1]
+    if (last?.type === 'element' && last.tagName === 'br') child.children.pop()
+  }
 }
 
 const emptyStrippableTags = new Set([

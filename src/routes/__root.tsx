@@ -39,7 +39,7 @@ function RootComponent() {
       <div className="mx-auto max-w-xl px-4 py-16 font-mono text-sm">
         <Outlet />
       </div>
-      <div className="fixed end-4 bottom-4 flex gap-2 text-xs text-gray9">
+      <div className="end-4 bottom-4 flex gap-2 text-xs text-gray5 max-sm:mx-auto max-sm:justify-center max-sm:py-8 sm:fixed">
         {mounted && (
           <button
             className="cursor-pointer hover:text-gray10"

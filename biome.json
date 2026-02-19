@@ -11,6 +11,7 @@
       "!!**/dist",
       "!!**/node_modules",
       "!!src/routeTree.gen.ts",
+      "!!src/auto-imports.d.ts",
       "!!src/worker-configuration.d.ts"
     ]
   },

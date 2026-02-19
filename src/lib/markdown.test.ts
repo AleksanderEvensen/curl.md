@@ -333,6 +333,28 @@ describe('strips HTML comments', () => {
   })
 })
 
+describe('pre newlines', () => {
+  test('does not double newlines in syntax-highlighted code blocks', async () => {
+    const { markdown: result } = await htmlToMarkdown(
+      html({
+        body: '<pre><code><span>line1</span>\n<span>line2</span>\n<span>line3</span></code></pre>',
+      }),
+    )
+    expect(result).toContain('line1\nline2\nline3')
+    expect(result).not.toContain('line1\n\nline2')
+  })
+
+  test('strips trailing br inside div-per-line code blocks', async () => {
+    const { markdown: result } = await htmlToMarkdown(
+      html({
+        body: '<pre><code><div class="cm-line"><span>line1</span><br/></div><div class="cm-line"><span>line2</span><br/></div><div class="cm-line"><span>line3</span><br/></div></code></pre>',
+      }),
+    )
+    expect(result).toContain('line1\nline2\nline3')
+    expect(result).not.toContain('line1\n\nline2')
+  })
+})
+
 describe('strips form elements', () => {
   test('strips form elements', async () => {
     const { markdown: result } = await htmlToMarkdown(
