@@ -186,6 +186,7 @@ function Playground() {
             className="w-full bg-bg2 pe-7 ps-2.5 py-1.5 text-sm placeholder:text-gray7 outline-none"
             inputMode="url"
             onChange={(e) => setUrl(e.target.value)}
+            pattern="\S+\.\S+"
             placeholder="url"
             required
             type="text"
@@ -229,7 +230,7 @@ function Playground() {
       {(result && !resultHidden) || (pending && (!result || resultHidden)) ? (
         <div className="bg-bg2">
           <div className="flex items-center gap-2 px-3 py-2 text-xs text-gray8">
-            <span>{result?.fetchedUrl ?? pendingDisplayUrl}</span>
+            <span>{pending ? pendingDisplayUrl : result?.fetchedUrl}</span>
             {result && (
               <button
                 className={`hover:text-gray11 ${pending && refreshingRef.current ? 'animate-spin' : ''}`}

@@ -11,6 +11,7 @@ export const Route = createFileRoute('/$')({
         // TODO: analytics for what pages are getting fetched
         // TODO: support more content types, like PDF
         // TODO: chunk summarization if markdown is too many tokens
+        // TODO: add feedback POST endpoint to skill for agents to report bugs/quality issues
         // https://developers.cloudflare.com/workers-ai/features/markdown-conversion
 
         const url = new URL(

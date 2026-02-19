@@ -10,6 +10,8 @@ export async function fetchPage(
 ): Promise<string> {
   const { fresh, query } = options ?? {}
 
+  const mdResult = toMdUrl(url)
+
   const fetched = await (async () => {
     if (url.hostname === env.HOST) {
       const content = selfMarkdown()
@@ -21,8 +23,7 @@ export async function fetchPage(
     const cached = await env.KV.get<Cached>(cacheKey, 'json')
     if (!fresh && cached) return cached
 
-    const mdUrl = toMdUrl(url)
-    const fetchUrl = mdUrl ?? url
+    const fetchUrl = mdResult?.url ?? url
     const res = await fetch(fetchUrl, {
       headers: {
         Accept:
@@ -46,6 +47,10 @@ export async function fetchPage(
   const parsed = await (async () => {
     if (fetched.contentType === 'text/markdown')
       return { markdown: fetched.content, meta: {} }
+    if (mdResult?.parse) {
+      const result = mdResult.parse(fetched.content)
+      return { markdown: result.markdown, meta: result.meta ?? {} }
+    }
     return await htmlToMarkdown(fetched.content, { baseUrl: url.href })
   })()
   if (!query) return parsed.markdown
