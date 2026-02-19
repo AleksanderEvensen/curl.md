@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import React from 'react'
 import { flushSync } from 'react-dom'
+import { poweredByFooter } from '#lib/markdown.ts'
 
 export const Route = createFileRoute('/')({
   head: () => ({
@@ -12,7 +13,7 @@ export const Route = createFileRoute('/')({
 // TODO: add ASCII sequence diagram showing how it works (get html, convert to markdown, summarize, etc.)
 // TODO: show live incrementing usage number on home page
 // TODO: og image
-// TODO: create /changelog page
+// TODO: /changelog page
 
 function Home() {
   return (
@@ -54,8 +55,8 @@ function Home() {
       </h2>
       <pre className="mt-2 flex flex-col bg-bg2 px-3 py-2 whitespace-pre-wrap break-words">
         <span className="block text-gray8"># Install agent skill</span>
-        <CopyableCommand command="npx skills add wevm/curl.md">
-          npx skills add <span className="text-teal9">wevm/curl.md</span>
+        <CopyableCommand command={`npx skills add ${__HOST__}`}>
+          npx skills add <span className="text-teal9">{__HOST__}</span>
         </CopyableCommand>
         <span className="block mt-3 text-gray8"># Install MCP server</span>
         <CopyableCommand command={`npx add-mcp ${__HOST__}/mcp`}>
@@ -101,7 +102,7 @@ Enhance your agents
 
 \`\`\`sh
 # Install agent skill
-$ npx skills add wevm/curl.md
+$ npx skills add ${host}
 
 # Install MCP server
 $ npx add-mcp ${host}/mcp
@@ -251,7 +252,7 @@ function Playground() {
             {pending && !refreshingRef.current ? (
               <span className="text-gray6 animate-pulse">Fetching...</span>
             ) : (
-              result?.markdown
+              result?.markdown?.replace(poweredByFooter, '')
             )}
           </pre>
         </div>

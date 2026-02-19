@@ -1,5 +1,6 @@
 import { env, waitUntil } from 'cloudflare:workers'
 import { z } from 'zod'
+import { toMdUrl } from '#lib/known-md-sites.ts'
 import { htmlToMarkdown } from '#lib/markdown.ts'
 import { selfMarkdown } from '../routes/index.tsx'
 
@@ -20,7 +21,9 @@ export async function fetchPage(
     const cached = await env.KV.get<Cached>(cacheKey, 'json')
     if (!fresh && cached) return cached
 
-    const res = await fetch(url, {
+    const mdUrl = toMdUrl(url)
+    const fetchUrl = mdUrl ?? url
+    const res = await fetch(fetchUrl, {
       headers: {
         Accept:
           'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',

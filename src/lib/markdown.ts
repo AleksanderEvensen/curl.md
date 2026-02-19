@@ -6,6 +6,9 @@ import remarkStringify from 'remark-stringify'
 import { unified } from 'unified'
 import type { VFile } from 'vfile'
 
+export const poweredByFooter =
+  '\n\n---\n\nPowered by [curl.md](https://curl.md)'
+
 export async function htmlToMarkdown(
   html: string,
   options?: { baseUrl?: string },

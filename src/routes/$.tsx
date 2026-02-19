@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
 import { fetchPage } from '#lib/fetch-page.ts'
+import { poweredByFooter } from '#lib/markdown.ts'
 
 export const Route = createFileRoute('/$')({
   server: {
@@ -45,7 +46,7 @@ export const Route = createFileRoute('/$')({
             fresh: search.fresh,
             query: search.q,
           })
-          return new Response(markdown, {
+          return new Response(`${markdown}${poweredByFooter}`, {
             status: 200,
             headers: { 'content-type': 'text/markdown; charset=utf-8' },
           })
