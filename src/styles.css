@@ -7,6 +7,10 @@
   --font-mono: "Geist Mono Variable", monospace;
   --color-*: initial;
 
+  /* Geist Backgrounds */
+  --color-bg1: light-dark(hsl(0 0% 98%), hsl(0 0% 0%));
+  --color-bg2: light-dark(hsl(0 0% 100%), hsl(0 0% 4%));
+
   /* Geist Gray Scale */
   --color-gray1: light-dark(hsl(0 0% 95%), hsl(0 0% 10%));
   --color-gray2: light-dark(hsl(0 0% 92%), hsl(0 0% 12%));
@@ -128,7 +132,7 @@ input:focus-visible {
 }
 
 html {
-  background-color: light-dark(#fff, #000);
+  background-color: var(--color-bg1);
   color: var(--color-gray10);
   color-scheme: light;
   font-family: var(--font-mono);

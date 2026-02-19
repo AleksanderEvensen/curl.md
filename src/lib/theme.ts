@@ -47,7 +47,7 @@ export function useTheme() {
   }, [])
 
   const resolvedTheme = theme === 'system' ? systemTheme : theme
-  const label = theme === 'system' ? `system (${resolvedTheme})` : theme
+  const label = theme === 'system' ? 'system' : theme
 
   return { theme, resolvedTheme, label, mounted, setTheme, cycle } as const
 }

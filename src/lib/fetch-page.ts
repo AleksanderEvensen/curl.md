@@ -1,4 +1,4 @@
-import { env } from 'cloudflare:workers'
+import { env, waitUntil } from 'cloudflare:workers'
 import { z } from 'zod'
 import { htmlToMarkdown } from '#lib/markdown.ts'
 import { selfMarkdown } from '../routes/index.tsx'
@@ -34,9 +34,9 @@ export async function fetchPage(
       content: await res.text(),
       contentType: res.headers.get('content-type')?.toLowerCase() ?? '',
     } satisfies Cached
-    await env.KV.put(cacheKey, JSON.stringify(result), {
-      expirationTtl: 900,
-    })
+    waitUntil(
+      env.KV.put(cacheKey, JSON.stringify(result), { expirationTtl: 900 }),
+    )
     return result
   })()
 
@@ -65,7 +65,7 @@ export async function fetchPage(
         ],
       }),
     )
-    await env.KV.put(cacheKey, output.response, { expirationTtl: 900 })
+    waitUntil(env.KV.put(cacheKey, output.response, { expirationTtl: 900 }))
     return output.response
   })()
 
