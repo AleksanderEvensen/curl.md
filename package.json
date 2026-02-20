@@ -16,7 +16,7 @@
     "deps": "pnpx taze",
     "deps:ci": "pnpx actions-up",
     "dev": "vite dev --port 3000",
-    "gen:types": "wrangler types src/worker-configuration.d.ts",
+    "gen:types": "cp -n .env.example .env 2>/dev/null; wrangler types src/worker-configuration.d.ts",
     "preinstall": "pnpx only-allow pnpm",
     "prepare": "pnpm gen:types && simple-git-hooks",
     "preview": "pnpm run build && vite preview",
