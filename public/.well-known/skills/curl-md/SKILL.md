@@ -1,5 +1,5 @@
 ---
-name: curl.md
+name: curl-md
 description: Fetch any URL as markdown using curl.md. Use when the user needs to read, summarize, or extract content from a web page as markdown.
 ---
 

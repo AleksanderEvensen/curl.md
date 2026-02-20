@@ -121,14 +121,23 @@
 }
 
 *:focus-visible {
-  outline-color: light-dark(#93c5fd, #3b82f6);
+  outline-color: var(--color-blue9);
   outline-offset: 0.15rem;
   outline-style: solid;
   outline-width: 2px;
 }
 
+button:focus-visible {
+  outline-offset: -1px;
+}
+
+input {
+  caret-shape: block;
+}
+
 input:focus-visible {
   outline: none;
+  caret-color: var(--color-blue9);
 }
 
 html {

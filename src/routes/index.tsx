@@ -163,15 +163,18 @@ function Playground() {
           )}
         </label>
         <div className="flex gap-1.5">
-          <label className="flex-1">
+          <label className="relative flex-1">
             <span className="sr-only">Query</span>
             <input
-              className="w-full bg-bg2 px-3 py-1.5 text-sm placeholder:text-gray7 outline-none"
+              className="peer w-full bg-bg2 px-3 py-1.5 text-sm placeholder:text-gray7 outline-none"
               onChange={(e) => setQuery(e.target.value)}
               placeholder="q"
               type="text"
               value={query}
             />
+            <span className="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 text-xs text-gray5 peer-[:not(:placeholder-shown)]:hidden">
+              optional
+            </span>
           </label>
           <button
             className="bg-bg2 px-3 py-1.5 text-sm text-gray11 hover:bg-gray-a2 hover:text-gray12 disabled:opacity-50"
