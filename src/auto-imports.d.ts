@@ -9,6 +9,7 @@ declare global {
   const IconOcticonCheck16: typeof import('~icons/octicon/check16.jsx').default
   const IconOcticonClippy16: typeof import('~icons/octicon/clippy16.jsx').default
   const IconOcticonCopy16: typeof import('~icons/octicon/copy16.jsx').default
+  const IconOcticonMarkdown16: typeof import('~icons/octicon/markdown16.jsx').default
   const IconOcticonSync16: typeof import('~icons/octicon/sync16.jsx').default
   const IconOcticonXCircleFill16: typeof import('~icons/octicon/x-circle-fill16.jsx').default
 }

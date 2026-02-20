@@ -1,10 +1,9 @@
-import { waitUntil } from 'cloudflare:workers'
 import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
-import { getDb } from '#lib/db.ts'
 import { fetchPage } from '#lib/fetch-page.ts'
 import { poweredByFooter } from '#lib/markdown.ts'
 import { rateLimit } from '#lib/rate-limit.ts'
+import { trackRequest } from '#lib/track-request.ts'
 
 const staticHostnameRe =
   /\.(action|aspx?|cgi|css|eot|gif|html?|ico|jpe?g|json|jsx?|map|php|png|svg|tsx?|ttf|webp|woff2?|xml|ya?ml)$/i
@@ -13,11 +12,14 @@ export const Route = createFileRoute('/$')({
   server: {
     handlers: {
       GET: async (options) => {
-        // TODO: error handling
         // TODO: support more content types, like PDF
         // TODO: chunk summarization if markdown is too many tokens
         // TODO: add feedback POST endpoint to skill for agents to report bugs/quality issues
         // https://developers.cloudflare.com/workers-ai/features/markdown-conversion
+
+        const json = options.request.headers
+          .get('accept')
+          ?.includes('application/json')
 
         const url = new URL(
           z.parse(
@@ -41,17 +43,6 @@ export const Route = createFileRoute('/$')({
         if (staticHostnameRe.test(url.hostname))
           return new Response(null, { status: 404 })
 
-        const { limited, remaining } = await rateLimit(options.request)
-        const rateLimitHeaders = { 'x-rate-limit-remaining': String(remaining) }
-        if (limited)
-          return Response.json(
-            {
-              error:
-                'Rate limit exceeded. Limited to 1,000 requests per day per IP address.',
-            },
-            { status: 429, headers: rateLimitHeaders },
-          )
-
         const search = z.parse(
           z.object({
             fresh: z
@@ -63,51 +54,78 @@ export const Route = createFileRoute('/$')({
           Object.fromEntries(new URL(options.request.url).searchParams),
         )
 
-        const cf = (
-          options.request as Request & { cf?: IncomingRequestCfProperties }
-        ).cf
-        waitUntil(
-          getDb()
-            .insertInto('request')
-            .values({
-              id: crypto.randomUUID(),
-              city: (cf?.city as string) ?? null,
-              country: cf?.country ?? null,
-              hostname: url.hostname,
-              path: url.pathname,
-              query: search.q || null,
-              url: url.href,
-              user_agent: options.request.headers.get('user-agent'),
-            })
-            .execute()
-            .catch(() => {}),
-        )
+        let rateLimitHeaders = {}
+        if (search.q) {
+          const { limited, remaining } = await rateLimit(options.request)
+          rateLimitHeaders = { 'x-rate-limit-remaining': String(remaining) }
+          if (limited)
+            return respond(
+              {
+                error:
+                  'Rate limit exceeded. Limited to 1,000 requests per day per IP address.',
+              },
+              { status: 429, headers: rateLimitHeaders },
+              json,
+            )
+        }
 
         try {
-          const markdown = await fetchPage(url, {
+          const { markdown, tokensSaved } = await fetchPage(url, {
             fresh: search.fresh,
             query: search.q,
           })
-          return new Response(`${markdown}${poweredByFooter}`, {
-            status: 200,
-            headers: {
-              'content-type': 'text/markdown; charset=utf-8',
-              ...rateLimitHeaders,
-            },
+
+          const requestId = trackRequest(options.request, {
+            hostname: url.hostname,
+            path: url.pathname,
+            query: search.q || null,
+            tokens_saved: tokensSaved,
+            url: url.href,
           })
+
+          return respond(
+            { content: `${markdown}${poweredByFooter}` },
+            {
+              status: 200,
+              headers: {
+                'x-request-id': requestId,
+                'x-tokens-saved': String(tokensSaved),
+                ...rateLimitHeaders,
+              },
+            },
+            json,
+          )
         } catch (error) {
           const message =
             error instanceof Error ? error.message : 'Failed to fetch page'
           const status = /\d{3}/.exec(message)?.[0]
-          return Response.json(
+          return respond(
             { error: message },
             {
               status: status ? Number(status) : 502,
               headers: rateLimitHeaders,
             },
+            json,
           )
         }
       },
     },
   },
 })
+
+function respond(
+  body: { content: string } | { error: string },
+  init: ResponseInit,
+  json: boolean | undefined,
+) {
+  if (json) return Response.json(body, init)
+  const text = 'content' in body ? body.content : `# Error\n\n${body.error}\n`
+  return new Response(text, {
+    ...init,
+    headers: {
+      ...init.headers,
+      'access-control-expose-headers': 'x-request-id, x-tokens-saved',
+      'content-type': 'text/markdown; charset=utf-8',
+    },
+  })
+}

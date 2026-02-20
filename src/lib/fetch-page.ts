@@ -4,10 +4,12 @@ import { toMdUrl } from '#lib/known-md-sites.ts'
 import { htmlToMarkdown } from '#lib/markdown.ts'
 import { selfMarkdown } from '#lib/self-markdown.ts'
 
+type FetchPageResult = { markdown: string; tokensSaved: number }
+
 export async function fetchPage(
   url: URL,
   options?: { fresh?: boolean; query?: string },
-): Promise<string> {
+): Promise<FetchPageResult> {
   const { fresh, query } = options ?? {}
 
   const mdResult = toMdUrl(url)
@@ -15,7 +17,7 @@ export async function fetchPage(
   const fetched = await (async () => {
     if (url.hostname === env.HOST) {
       const content = selfMarkdown()
-      return { content, contentType: 'text/markdown' }
+      return { content, contentType: 'text/markdown', isSelf: true }
     }
 
     const cacheKey = `page:${url.href}`
@@ -46,14 +48,33 @@ export async function fetchPage(
 
   const parsed = await (async () => {
     if (fetched.contentType === 'text/markdown')
-      return { markdown: fetched.content, meta: {} }
+      return { markdown: fetched.content, meta: {}, hadHtml: false }
     if (mdResult?.parse) {
       const result = mdResult.parse(fetched.content)
-      return { markdown: result.markdown, meta: result.meta ?? {} }
+      return {
+        markdown: result.markdown,
+        meta: result.meta ?? {},
+        hadHtml: false,
+      }
     }
-    return await htmlToMarkdown(fetched.content, { baseUrl: url.href })
+    const result = await htmlToMarkdown(fetched.content, { baseUrl: url.href })
+    return { ...result, hadHtml: true }
   })()
-  if (!query) return parsed.markdown
+
+  // Approximate tokens saved vs raw curl of the HTML page.
+  // Self-hosted pages: no savings. HTML conversions: use real sizes.
+  // Markdown sources: estimate HTML as 3.5x markdown.
+  const rawSize =
+    'isSelf' in fetched && fetched.isSelf
+      ? parsed.markdown.length
+      : parsed.hadHtml
+        ? fetched.content.length
+        : parsed.markdown.length * 3.5
+
+  if (!query) {
+    const tokensSaved = Math.round((rawSize - parsed.markdown.length) / 4)
+    return { markdown: parsed.markdown, tokensSaved }
+  }
 
   const excerpt = await (async () => {
     const cacheKey = `query:${url.href}:${query}`
@@ -77,5 +98,6 @@ export async function fetchPage(
     return output.response
   })()
 
-  return excerpt
+  const tokensSaved = Math.round((rawSize - excerpt.length) / 4)
+  return { markdown: excerpt, tokensSaved }
 }

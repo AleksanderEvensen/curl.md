@@ -14,6 +14,7 @@ type request = {
   id: k.Generated<string>
   path: string
   query: string | null
+  tokens_saved: number | null
   url: string
   user_agent: string | null
 }

@@ -1,8 +1,10 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod'
 import { fetchPage } from '#lib/fetch-page.ts'
+import { rateLimit } from '#lib/rate-limit.ts'
+import { trackRequest } from '#lib/track-request.ts'
 
-export function createMcpServer(): McpServer {
+export function createMcpServer(request: Request): McpServer {
   const server = new McpServer({ name: 'curl.md', version: '1.0.0' })
 
   server.registerTool(
@@ -29,6 +31,14 @@ export function createMcpServer(): McpServer {
       },
     },
     async ({ url, query }) => {
+      if (query) {
+        const { limited } = await rateLimit(request)
+        if (limited)
+          throw new Error(
+            'Rate limit exceeded. Limited to 1,000 requests per day per IP address.',
+          )
+      }
+
       const parsedUrl = new URL(
         z.parse(
           z
@@ -45,8 +55,18 @@ export function createMcpServer(): McpServer {
         ),
       )
 
-      const result = await fetchPage(parsedUrl, { query })
-      return { content: [{ type: 'text' as const, text: result }] }
+      const { markdown, tokensSaved } = await fetchPage(parsedUrl, { query })
+
+      trackRequest(request, {
+        hostname: parsedUrl.hostname,
+        path: parsedUrl.pathname,
+        query: query ?? null,
+        tokens_saved: tokensSaved,
+        url: parsedUrl.href,
+        user_agent: 'mcp',
+      })
+
+      return { content: [{ type: 'text' as const, text: markdown }] }
     },
   )
 

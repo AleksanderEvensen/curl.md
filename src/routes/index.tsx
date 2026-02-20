@@ -1,6 +1,6 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import React from 'react'
-import { flushSync } from 'react-dom'
 import { poweredByFooter } from '#lib/markdown.ts'
 
 export const Route = createFileRoute('/')({
@@ -84,14 +84,8 @@ function Home() {
   )
 }
 
-const examples = [
-  ['react.dev', 'fullstack framework support'],
-  ['developer.mozilla.org/docs/Web/API/Fetch_API', 'Response'],
-  ['wikipedia.org/wiki/Linux', 'kernel history'],
-  ['docs.github.com/en/actions', 'workflow syntax'],
-] as const
-
 function Playground() {
+  const queryClient = useQueryClient()
   const formRef = React.useRef<HTMLFormElement>(null)
 
   const [url, setUrl] = React.useState('')
@@ -127,6 +121,16 @@ function Playground() {
           }
         } catch {}
       }
+
+      const saved = Number(res.headers.get('x-tokens-saved'))
+      if (saved > 0)
+        queryClient.setQueryData(
+          ['stats'],
+          (prev: { tokens_saved: number } | undefined) => ({
+            tokens_saved: (prev?.tokens_saved ?? 0) + saved,
+          }),
+        )
+
       refreshingRef.current = false
       return { fetchedUrl: displayUrl, markdown: text }
     } catch {
@@ -143,7 +147,7 @@ function Playground() {
     <div className="mt-2">
       <form
         action={action}
-        className="mb-2 grid grid-cols-1 gap-1.5 sm:grid-cols-2"
+        className="mb-2 flex flex-col gap-1.5"
         ref={formRef}
       >
         <label className="relative">
@@ -159,33 +163,32 @@ function Playground() {
             value={url}
           />
         </label>
-        <div className="flex gap-1.5">
-          <label className="relative flex-1">
-            <span className="sr-only">Query</span>
-            <input
-              className="peer w-full bg-bg2 px-3 py-1.5 text-sm placeholder:text-gray9 outline-none"
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="q"
-              type="text"
-              value={query}
-            />
-            <span className="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 text-xs text-gray5 peer-[:not(:placeholder-shown)]:hidden">
-              optional
-            </span>
-          </label>
-          <button
-            className="bg-gray1 dark:bg-gray1/60 px-3 py-1.5 -outline-offset-4 text-xs font-medium text-gray9 hover:bg-gray2 hover:text-gray11 disabled:opacity-50"
-            disabled={pending}
-            type="submit"
-          >
-            Fetch
-          </button>
-        </div>
+        <label className="relative">
+          <span className="sr-only">Query</span>
+          <input
+            className="peer w-full bg-bg2 px-3 py-1.5 text-sm placeholder:text-gray9 outline-none"
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="q"
+            type="text"
+            value={query}
+          />
+          <span className="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 text-xs text-gray5 peer-[:not(:placeholder-shown)]:hidden">
+            optional
+          </span>
+        </label>
+        <button
+          className="bg-gray1 dark:bg-gray1/60 px-3 py-1.5 -outline-offset-4 text-sm font-medium text-gray9 hover:bg-gray2 hover:text-gray11 disabled:opacity-50"
+          disabled={pending}
+          type="submit"
+        >
+          Fetch
+        </button>
       </form>
 
       {(result && !resultHidden) || (pending && (!result || resultHidden)) ? (
         <div className="relative bg-bg2">
-          <div className="px-3 py-2 text-xs text-gray8">
+          <div className="flex items-center gap-1.5 px-3 py-2 text-sm text-gray8">
+            <IconOcticonMarkdown16 className="size-4 shrink-0 translate-y-px" />
             <span>{pending ? pendingDisplayUrl : result?.fetchedUrl}</span>
           </div>
           <pre
@@ -199,13 +202,13 @@ function Playground() {
             )}
           </pre>
           {result && !pending && (
-            <div className="absolute end-4 bottom-2 flex items-center gap-0.5 rounded bg-bg2/80 p-0.5 backdrop-blur-sm">
+            <div className="absolute end-4 bottom-2 flex items-center gap-1 rounded bg-bg2/80 p-1 backdrop-blur-sm">
               <CopyButton
-                className="p-1 outline-offset-2 text-gray5 hover:text-gray9"
+                className="p-2 outline-offset-2 text-gray5 hover:text-gray9"
                 text={result.markdown?.replace(poweredByFooter, '') ?? ''}
               />
               <button
-                className="p-1 outline-offset-2 text-gray5 hover:text-gray9"
+                className="p-2 outline-offset-2 text-gray5 hover:text-gray9"
                 onClick={() => {
                   freshRef.current = true
                   refreshingRef.current = true
@@ -213,10 +216,10 @@ function Playground() {
                 }}
                 type="button"
               >
-                <IconOcticonSync16 className="size-3" />
+                <IconOcticonSync16 className="size-4" />
               </button>
               <button
-                className="p-1 outline-offset-2 text-gray5 hover:text-gray8"
+                className="p-2 outline-offset-2 text-gray5 hover:text-gray8"
                 onClick={() => {
                   setUrl('')
                   setQuery('')
@@ -224,44 +227,12 @@ function Playground() {
                 }}
                 type="button"
               >
-                <IconOcticonXCircleFill16 className="size-3" />
+                <IconOcticonXCircleFill16 className="size-4" />
               </button>
             </div>
           )}
         </div>
       ) : null}
-
-      {(!result || resultHidden) && !pending && (
-        <div className="mt-2 grid grid-cols-1 gap-1.5 text-xs">
-          {examples.map(([url, q]) => (
-            <button
-              className="bg-bg2/70 px-3 py-2 text-start outline-offset-0 hover:bg-bg2/90"
-              key={`${url}${q ?? ''}`}
-              onClick={() => {
-                flushSync(() => {
-                  setUrl(url)
-                  setQuery(q ?? '')
-                })
-                formRef.current?.requestSubmit()
-              }}
-              type="button"
-            >
-              <span className="block truncate">
-                <span className="text-gray6">{__HOST__}/</span>
-                <span className="text-gray8">{url.split('/')[0]}</span>
-                {url.includes('/') && (
-                  <span className="text-gray7">
-                    /{url.split('/').slice(1).join('/')}
-                  </span>
-                )}
-                {q && (
-                  <span className="text-gray6">?q={q.replace(/ /g, '+')}</span>
-                )}
-              </span>
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   )
 }
@@ -281,9 +252,9 @@ function CopyButton(props: { className?: string; text: string }) {
       type="button"
     >
       {copied ? (
-        <IconOcticonCheck16 className="size-3" />
+        <IconOcticonCheck16 className="size-4" />
       ) : (
-        <IconOcticonClippy16 className="size-3" />
+        <IconOcticonClippy16 className="size-4" />
       )}
     </button>
   )

@@ -145,7 +145,6 @@ html {
   color: var(--color-gray10);
   color-scheme: light;
   font-family: var(--font-mono);
-  scrollbar-gutter: stable;
   scrollbar-width: thin;
   scrollbar-color: var(--color-gray-a3) transparent;
 }
@@ -162,6 +161,12 @@ html::-webkit-scrollbar-track {
 html::-webkit-scrollbar-thumb {
   background: var(--color-gray-a3);
   border-radius: 3px;
+}
+
+@media (min-width: 768px) {
+  html {
+    scrollbar-gutter: stable;
+  }
 }
 
 html[data-theme="dark"] {

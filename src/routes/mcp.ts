@@ -9,7 +9,7 @@ export const Route = createFileRoute('/mcp')({
       GET: () => new Response('Method not allowed', { status: 405 }),
       POST: async (options) => {
         const transport = new WebStandardStreamableHTTPServerTransport()
-        const server = createMcpServer()
+        const server = createMcpServer(options.request)
         await server.connect(transport)
         return transport.handleRequest(options.request)
       },
