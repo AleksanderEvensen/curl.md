@@ -20,8 +20,6 @@ Fetch any URL as markdown
 
 OrbStack automatically resolves `curl.local` requests to the container.
 
-## Environment Variables
-
 ## Setup
 
 ### GitHub Actions Secrets
@@ -37,6 +35,7 @@ Add the following secrets to your GitHub repository (Settings → Secrets and va
 2. Click "Create Token"
 3. Select "Create Custom Token"
 4. Add these permissions:
+   - **Account** → **D1** → **Edit**
    - **Account** → **Workers Scripts** → **Edit**
    - **Account** → **Workers AI** → **Edit**
    - **Zone** → **Workers Routes** → **Edit**

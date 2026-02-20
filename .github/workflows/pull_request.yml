@@ -87,7 +87,7 @@ jobs:
       - name: Generate types
         run: |
           pnpm gen:types
-          pnpm gen:db --remote --env preview
+          pnpm db:codegen --remote --env preview
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
