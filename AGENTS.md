@@ -8,13 +8,17 @@ Agent guidance for this repository.
 
 - `pnpm check` - Lint with Biome
 - `pnpm check:types` - Type check with tsgo
+- `pnpm db:codegen` - Generate database types
+- `pnpm db:migrate` - Run database migrations
 - `pnpm gen:types` - Generate Cloudflare worker types
+- `pnpm test` - Run tests with Vitest
 
 ## Debugging
 
 App runs in Docker via `docker compose up`. Use these to debug:
 
 - `docker logs curl` - View app logs (add `-f` to follow)
+- `docker compose exec app pnpm db:command "SQL"` - Run SQL against local D1
 - `docker compose exec app sh` - Shell into container
 - Use Playwright MCP to visually debug the app at `https://curl.local` (navigate, snapshot, screenshot, interact with elements, network requests, console logs)
 
@@ -25,6 +29,14 @@ App runs in Docker via `docker compose up`. Use these to debug:
 ## Content
 
 - `src/lib/self-markdown.ts` is a rough markdown approximation of the home page (`src/routes/index.tsx`). Keep them roughly in sync when updating home page content.
+
+## Database
+
+- Use singular table names (`account` instead of `accounts`)
+- Use timestamps (like `deleted_at`) instead of boolean fields (`deleted`)
+- When adding enum-like TEXT columns (with a fixed set of values), add them to `customTypes` in `scripts/db-codegen.ts`
+- Use `DB.<table>` types from `src/lib/db.gen.ts` for database record types. When only a subset of fields is needed, use `Pick<DB.<table>, "field1" | "field2">` instead of defining custom types.
+- Prefer snake_case field names when data originates from the database (e.g., `credential_id` not `credentialId`)
 
 ## Code Style
 
@@ -37,6 +49,11 @@ App runs in Docker via `docker compose up`. Use these to debug:
 - Use `#` package.json import prefix (e.g., `#lib/auth.ts`)
 - Use `.ts`/`.tsx` extensions in imports (`allowImportingTsExtensions`)
 - Place internal non-exported functions at the bottom of the file
+- Prefer "account" over "user" in naming (variables, types, functions, etc.)
+
+## Tests
+
+- Don't use `describe` blocks unless required
 
 ## React Components
 
@@ -49,6 +66,7 @@ App runs in Docker via `docker compose up`. Use these to debug:
 
 ## UI
 
+- **Icons** - Auto-imported via unplugin-icons. Use `<Icon{Collection}{Name} />` (e.g., `<IconLucideArrowRight />`, `<IconOcticonMarkGithub />`).
 - **Tailwind CSS v4** - Use `@import "tailwindcss"` in CSS; utility classes in components
   - Use logical properties for RTL/LTR support (e.g. `ms-4`/`me-4` instead of `ml-4`/`mr-4`, `start-2`/`end-2` instead of `left-2`/`right-2`)
   - Do NOT concatenate class names for conditional styles. Use `data-*` attributes with Tailwind's `data-[...]` variant instead (e.g., `data-[active]:bg-blue9` + `data-active={cond ? '' : undefined}`)

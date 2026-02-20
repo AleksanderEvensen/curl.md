@@ -4,23 +4,25 @@ Fetch any URL as markdown
 
 ## Development
 
-1. **Install OrbStack**: [orbstack.dev](https://orbstack.dev)
+```bash
+# Install and start OrbStack
+brew install orbstack
+orb start
 
-2. **Set up environment**:
-   ```bash
-   cp .env.example .env
-   ```
+# Set up environment
+cp .env.example .env
 
-3. **Start dev container**:
-   ```bash
-   docker compose up -d
-   ```
+# Start dev container
+docker compose up -d
 
-4. **Request**: `curl curl.md/example.com`
+# Request or open in browser
+curl curl.local/example.com
+open https://curl.local
+```
 
 OrbStack automatically resolves `curl.local` requests to the container.
 
-## Setup
+## Deploy
 
 ### GitHub Actions Secrets
 
