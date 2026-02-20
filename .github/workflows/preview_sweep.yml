@@ -60,6 +60,9 @@ jobs:
             echo "  Deleting worker..."
             pnpm exec wrangler delete "$worker" --force || echo "  Failed to delete worker"
 
+            echo "  Deleting D1 database..."
+            pnpm exec wrangler d1 delete "curl-db-pr$PR_NUM" --skip-confirmation || echo "  Failed to delete D1"
+
             echo "  Deleting KV namespace..."
             KV_ID=$(pnpm exec wrangler kv namespace list | jq -r --arg name "curl-kv-pr$PR_NUM" '.[] | select(.title == $name) | .id')
             if [ -n "$KV_ID" ]; then

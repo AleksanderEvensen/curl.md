@@ -1,3 +1,4 @@
+import { env, waitUntil } from 'cloudflare:workers'
 import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
 import { fetchPage } from '#lib/fetch-page.ts'
@@ -15,6 +16,7 @@ export const Route = createFileRoute('/$')({
         // TODO: support more content types, like PDF
         // TODO: chunk summarization if markdown is too many tokens
         // TODO: add feedback POST endpoint to skill for agents to report bugs/quality issues
+        // TODO: tests (https://github.com/cloudflare/workers-sdk/pull/11632)
         // https://developers.cloudflare.com/workers-ai/features/markdown-conversion
 
         const json = options.request.headers
@@ -70,7 +72,7 @@ export const Route = createFileRoute('/$')({
         }
 
         try {
-          const { markdown, tokensSaved } = await fetchPage(url, {
+          const { estimated, markdown, tokensSaved } = await fetchPage(url, {
             fresh: search.fresh,
             query: search.q,
           })
@@ -82,6 +84,15 @@ export const Route = createFileRoute('/$')({
             tokens_saved: tokensSaved,
             url: url.href,
           })
+
+          if (estimated)
+            waitUntil(
+              env.TOKEN_UPDATE_QUEUE.send({
+                markdownLength: markdown.length,
+                requestId,
+                url: url.href,
+              }),
+            )
 
           return respond(
             { content: `${markdown}${poweredByFooter}` },

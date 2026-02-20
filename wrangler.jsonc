@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "curl",
-  "main": "@tanstack/react-start/server-entry",
+  "main": "src/entry-server.ts",
   "compatibility_date": "2026-02-12",
   "compatibility_flags": ["nodejs_compat"],
   "preview_urls": false,
@@ -22,6 +22,17 @@
     { "binding": "DB", "database_name": "curl-db", "database_id": "local" }
   ],
   "kv_namespaces": [{ "binding": "KV", "id": "local" }],
+  "queues": {
+    "producers": [{ "binding": "TOKEN_UPDATE_QUEUE", "queue": "curl-tokens" }],
+    "consumers": [
+      {
+        "queue": "curl-tokens",
+        "max_batch_size": 10,
+        "max_batch_timeout": 30,
+        "max_retries": 3
+      }
+    ]
+  },
   "vars": {
     "HOST": "curl.local"
   },
@@ -41,6 +52,19 @@
       "kv_namespaces": [
         { "binding": "KV", "id": "e3a921b8d13741b99e7aa1cbb6144c9f" }
       ],
+      "queues": {
+        "producers": [
+          { "binding": "TOKEN_UPDATE_QUEUE", "queue": "curl-tokens" }
+        ],
+        "consumers": [
+          {
+            "queue": "curl-tokens",
+            "max_batch_size": 10,
+            "max_batch_timeout": 30,
+            "max_retries": 3
+          }
+        ]
+      },
       "vars": {
         "HOST": "curl.md"
       },
@@ -54,11 +78,24 @@
       "d1_databases": [
         {
           "binding": "DB",
-          "database_name": "curl-db",
-          "database_id": "effd0dcd-c90e-4449-9ccc-ec920da05e04"
+          "database_name": "__PREVIEW_DB_NAME__",
+          "database_id": "__PREVIEW_DB_ID__"
         }
       ],
       "kv_namespaces": [{ "binding": "KV", "id": "__PREVIEW_KV_ID__" }],
+      "queues": {
+        "producers": [
+          { "binding": "TOKEN_UPDATE_QUEUE", "queue": "curl-tokens-preview" }
+        ],
+        "consumers": [
+          {
+            "queue": "curl-tokens-preview",
+            "max_batch_size": 10,
+            "max_batch_timeout": 30,
+            "max_retries": 3
+          }
+        ]
+      },
       "vars": {
         "HOST": "__PREVIEW_APEX__.curl.md"
       },

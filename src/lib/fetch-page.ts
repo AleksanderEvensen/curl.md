@@ -4,7 +4,11 @@ import { toMdUrl } from '#lib/known-md-sites.ts'
 import { htmlToMarkdown } from '#lib/markdown.ts'
 import { selfMarkdown } from '#lib/self-markdown.ts'
 
-type FetchPageResult = { markdown: string; tokensSaved: number }
+type FetchPageResult = {
+  estimated: boolean
+  markdown: string
+  tokensSaved: number
+}
 
 export async function fetchPage(
   url: URL,
@@ -71,9 +75,11 @@ export async function fetchPage(
         ? fetched.content.length
         : parsed.markdown.length * 3.5
 
+  const estimated = !parsed.hadHtml && !('isSelf' in fetched && fetched.isSelf)
+
   if (!query) {
     const tokensSaved = Math.round((rawSize - parsed.markdown.length) / 4)
-    return { markdown: parsed.markdown, tokensSaved }
+    return { estimated, markdown: parsed.markdown, tokensSaved }
   }
 
   const excerpt = await (async () => {
@@ -99,5 +105,5 @@ export async function fetchPage(
   })()
 
   const tokensSaved = Math.round((rawSize - excerpt.length) / 4)
-  return { markdown: excerpt, tokensSaved }
+  return { estimated, markdown: excerpt, tokensSaved }
 }

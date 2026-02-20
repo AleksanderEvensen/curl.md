@@ -6,10 +6,18 @@
 // biome-ignore lint: disable
 export {}
 declare global {
+  const IconLucideMonitor: typeof import('~icons/lucide/monitor.jsx').default
+  const IconLucideMoon: typeof import('~icons/lucide/moon.jsx').default
+  const IconLucideSun: typeof import('~icons/lucide/sun.jsx').default
+  const IconOcticonBook16: typeof import('~icons/octicon/book16.jsx').default
   const IconOcticonCheck16: typeof import('~icons/octicon/check16.jsx').default
   const IconOcticonClippy16: typeof import('~icons/octicon/clippy16.jsx').default
   const IconOcticonCopy16: typeof import('~icons/octicon/copy16.jsx').default
+  const IconOcticonGitCommit16: typeof import('~icons/octicon/git-commit16.jsx').default
+  const IconOcticonGitPullRequest16: typeof import('~icons/octicon/git-pull-request16.jsx').default
   const IconOcticonMarkdown16: typeof import('~icons/octicon/markdown16.jsx').default
+  const IconOcticonPaintbrush16: typeof import('~icons/octicon/paintbrush16.jsx').default
   const IconOcticonSync16: typeof import('~icons/octicon/sync16.jsx').default
   const IconOcticonXCircleFill16: typeof import('~icons/octicon/x-circle-fill16.jsx').default
+  const IconOcticonZap16: typeof import('~icons/octicon/zap16.jsx').default
 }

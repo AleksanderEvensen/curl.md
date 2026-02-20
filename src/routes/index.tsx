@@ -1,7 +1,12 @@
-import { useQueryClient } from '@tanstack/react-query'
+import { env, waitUntil } from 'cloudflare:workers'
+import * as Query from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import React from 'react'
+import { createServerFn, useServerFn } from '@tanstack/react-start'
+import { getRequest } from '@tanstack/react-start/server'
+import * as React from 'react'
+import { getDb } from '#lib/db.ts'
 import { poweredByFooter } from '#lib/markdown.ts'
+import { useTheme } from '#lib/theme.ts'
 
 export const Route = createFileRoute('/')({
   head: () => ({
@@ -17,18 +22,19 @@ export const Route = createFileRoute('/')({
 // TODO: status page
 
 function Home() {
+  const { theme, mounted, cycle } = useTheme()
   return (
     <>
       <header className="mb-10">
-        <h1 className="text-base font-bold">curl.md</h1>
+        <h1 className="font-bold text-base">curl.md</h1>
         <p className="mt-1 text-base text-gray6">Fetch any URL as markdown</p>
       </header>
 
-      <h2 className="text-sm text-gray10" id="try">
+      <h2 className="text-gray10 text-sm" id="try">
         <span className="font-medium">Try It Now</span>
         <span className="ms-2 inline-block text-gray6">Just use curl</span>
       </h2>
-      <pre className="mt-2 flex flex-col bg-bg2 px-3 pt-2 pb-0.5 whitespace-pre-wrap break-words">
+      <pre className="mt-2 flex flex-col whitespace-pre-wrap break-words bg-bg2 px-3 pt-2 pb-0.5">
         <CopyableCommand
           className="pb-2"
           command={`curl ${__HOST__}/react.dev`}
@@ -52,13 +58,13 @@ function Home() {
         </CopyableCommand>
       </pre>
 
-      <h2 className="mt-8 text-sm text-gray10" id="integrate">
+      <h2 className="mt-8 text-gray10 text-sm" id="integrate">
         <span className="font-medium">Integrate</span>
         <span className="ms-2 inline-block text-gray6">
           Enhance your agents
         </span>
       </h2>
-      <pre className="mt-2 flex flex-col bg-bg2 px-3 pt-2 pb-0.5 whitespace-pre-wrap break-words">
+      <pre className="mt-2 flex flex-col whitespace-pre-wrap break-words bg-bg2 px-3 pt-2 pb-0.5">
         <CopyableCommand
           className="pb-2"
           command={`npx skills add https://${__HOST__}`}
@@ -75,17 +81,50 @@ function Home() {
         </CopyableCommand>
       </pre>
 
-      <h2 className="mt-8 text-sm text-gray10" id="playground">
+      <h2 className="mt-8 text-gray10 text-sm" id="playground">
         <span className="font-medium">Playground</span>
         <span className="ms-2 inline-block text-gray6">See for yourself</span>
       </h2>
       <Playground />
+
+      <div className="-mt-1 flex items-center justify-between gap-2.5 text-gray5 text-xs">
+        <div className="flex gap-2">
+          {prNumber(__HOST__) && (
+            <a
+              className="flex items-center gap-1 hover:text-gray10"
+              href={`https://github.com/wevm/curl.md/pull/${prNumber(__HOST__)}`}
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              {prNumber(__HOST__)}
+            </a>
+          )}
+          <a
+            className="flex items-center gap-1 hover:text-gray10"
+            href={commitHref(__GIT_SHA__)}
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            {__GIT_SHA__.slice(0, 7)}
+          </a>
+          {mounted && (
+            <button
+              className="flex cursor-pointer items-center gap-1 hover:text-gray10"
+              onClick={cycle}
+              type="button"
+            >
+              {theme}
+            </button>
+          )}
+        </div>
+        <TokensSaved />
+      </div>
     </>
   )
 }
 
 function Playground() {
-  const queryClient = useQueryClient()
+  const queryClient = Query.useQueryClient()
   const formRef = React.useRef<HTMLFormElement>(null)
 
   const [url, setUrl] = React.useState('')
@@ -147,13 +186,13 @@ function Playground() {
     <div className="mt-2">
       <form
         action={action}
-        className="mb-2 flex flex-col gap-1.5"
+        className="mb-1.5 flex flex-col gap-1.5"
         ref={formRef}
       >
         <label className="relative">
           <span className="sr-only">URL</span>
           <input
-            className="w-full bg-bg2 px-2.5 py-1.5 text-sm placeholder:text-gray9 outline-none"
+            className="w-full bg-bg2 px-2.5 py-1.5 text-sm outline-none placeholder:text-gray9"
             inputMode="url"
             onChange={(e) => setUrl(e.target.value)}
             pattern="\S+\.\S+"
@@ -166,18 +205,18 @@ function Playground() {
         <label className="relative">
           <span className="sr-only">Query</span>
           <input
-            className="peer w-full bg-bg2 px-3 py-1.5 text-sm placeholder:text-gray9 outline-none"
+            className="peer w-full bg-bg2 px-3 py-1.5 text-sm outline-none placeholder:text-gray9"
             onChange={(e) => setQuery(e.target.value)}
             placeholder="q"
             type="text"
             value={query}
           />
-          <span className="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 text-xs text-gray5 peer-[:not(:placeholder-shown)]:hidden">
+          <span className="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 text-gray5 text-xs peer-[:not(:placeholder-shown)]:hidden">
             optional
           </span>
         </label>
         <button
-          className="bg-gray1 dark:bg-gray1/60 px-3 py-1.5 -outline-offset-4 text-sm font-medium text-gray9 hover:bg-gray2 hover:text-gray11 disabled:opacity-50"
+          className="bg-gray1 px-3 py-1.5 font-medium text-gray9 text-sm -outline-offset-4 hover:bg-gray2 hover:text-gray11 disabled:opacity-50 dark:bg-gray1/60"
           disabled={pending}
           type="submit"
         >
@@ -186,17 +225,17 @@ function Playground() {
       </form>
 
       {(result && !resultHidden) || (pending && (!result || resultHidden)) ? (
-        <div className="relative bg-bg2">
-          <div className="flex items-center gap-1.5 px-3 py-2 text-sm text-gray8">
+        <div className="relative mb-1.5 bg-bg2">
+          <div className="flex items-center gap-1.5 px-3 py-2 text-gray8 text-sm">
             <IconOcticonMarkdown16 className="size-4 shrink-0 translate-y-px" />
             <span>{pending ? pendingDisplayUrl : result?.fetchedUrl}</span>
           </div>
           <pre
             key={result?.fetchedUrl ?? 'pending'}
-            className="minimal-scrollbar max-h-96 overflow-auto overscroll-contain px-3 pb-2 text-sm whitespace-pre-wrap break-words"
+            className="minimal-scrollbar max-h-96 overflow-auto overscroll-contain whitespace-pre-wrap break-words px-3 pb-2 text-sm"
           >
             {pending && !refreshingRef.current ? (
-              <span className="text-gray6 animate-pulse">Fetching</span>
+              <span className="animate-pulse text-gray6">Fetching</span>
             ) : (
               result?.markdown?.replace(poweredByFooter, '')
             )}
@@ -204,11 +243,11 @@ function Playground() {
           {result && !pending && (
             <div className="absolute end-4 bottom-2 flex items-center gap-1 rounded bg-bg2/80 p-1 backdrop-blur-sm">
               <CopyButton
-                className="p-2 outline-offset-2 text-gray5 hover:text-gray9"
+                className="p-2 text-gray5 outline-offset-2 hover:text-gray9"
                 text={result.markdown?.replace(poweredByFooter, '') ?? ''}
               />
               <button
-                className="p-2 outline-offset-2 text-gray5 hover:text-gray9"
+                className="p-2 text-gray5 outline-offset-2 hover:text-gray9"
                 onClick={() => {
                   freshRef.current = true
                   refreshingRef.current = true
@@ -219,7 +258,7 @@ function Playground() {
                 <IconOcticonSync16 className="size-4" />
               </button>
               <button
-                className="p-2 outline-offset-2 text-gray5 hover:text-gray8"
+                className="p-2 text-gray5 outline-offset-2 hover:text-gray8"
                 onClick={() => {
                   setUrl('')
                   setQuery('')
@@ -282,7 +321,7 @@ function CopyableCommand(
       <span className="relative block">
         <code>{children}</code>
         <button
-          className="absolute end-0 top-1/2 -translate-y-[calc(58%-1px)] p-1 outline-offset-2 focus-visible:outline-1 focus-visible:outline-gray7 opacity-0 group-hover/cmd:opacity-100 focus-visible:opacity-100 data-[copied]:opacity-100"
+          className="absolute end-0 top-1/2 -translate-y-[calc(58%-1px)] p-1 opacity-0 outline-offset-2 focus-visible:opacity-100 focus-visible:outline-1 focus-visible:outline-gray7 group-hover/cmd:opacity-100 data-[copied]:opacity-100"
           data-copied={copied ? '' : undefined}
           onClick={copy}
           type="button"
@@ -296,4 +335,56 @@ function CopyableCommand(
       </span>
     </span>
   )
+}
+
+function TokensSaved() {
+  const getStats = useServerFn(getTokensSaved)
+  const { data } = Query.useQuery({
+    queryFn: () => getStats(),
+    queryKey: ['stats'],
+    refetchInterval: 30_000,
+  })
+  const total = data?.tokens_saved ?? 0
+  if (total <= 0) return null
+  return (
+    <span className="end-4 bottom-4 flex items-center gap-1 text-gray5 text-xs">
+      <span className="tabular-nums">{formatNumber(total)}</span> tokens saved
+    </span>
+  )
+}
+
+const getTokensSaved = createServerFn({ method: 'GET' }).handler(async () => {
+  const request = getRequest()
+  const origin = request.headers.get('origin')
+  if (origin && origin !== `https://${env.HOST}`) throw new Error('Forbidden')
+
+  const cacheKey = 'stats:tokens_saved'
+  const cached = await env.KV.get<number>(cacheKey, 'json')
+  if (cached !== null) return { tokens_saved: cached }
+
+  const db = getDb()
+  const result = await db
+    .selectFrom('request')
+    .select((eb) => eb.fn.sum<number>('tokens_saved').as('total'))
+    .executeTakeFirstOrThrow()
+  const total = result.total ?? 0
+  waitUntil(env.KV.put(cacheKey, String(total), { expirationTtl: 60 }))
+  return { tokens_saved: total }
+})
+
+function commitHref(sha: string) {
+  if (sha === 'dev') return 'https://github.com/wevm/curl.md'
+  const pr = prNumber(__HOST__)
+  if (pr) return `https://github.com/wevm/curl.md/pull/${pr}/commits/${sha}`
+  return `https://github.com/wevm/curl.md/commit/${sha}`
+}
+
+function formatNumber(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`
+  return String(n)
+}
+
+function prNumber(host: string) {
+  return host.match(/^pr(\d+)\./)?.[1]
 }
