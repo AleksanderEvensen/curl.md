@@ -24,7 +24,7 @@ function Home() {
         <p className="mt-1 text-base text-gray6">Fetch any URL as markdown</p>
       </header>
 
-      <h2 className="text-sm text-gray10">
+      <h2 className="text-sm text-gray10" id="try">
         <span className="font-medium">Try It Now</span>
         <span className="ms-2 inline-block text-gray6">Just use curl</span>
       </h2>
@@ -52,7 +52,7 @@ function Home() {
         </CopyableCommand>
       </pre>
 
-      <h2 className="mt-8 text-sm text-gray10">
+      <h2 className="mt-8 text-sm text-gray10" id="integrate">
         <span className="font-medium">Integrate</span>
         <span className="ms-2 inline-block text-gray6">
           Enhance your agents
@@ -75,7 +75,7 @@ function Home() {
         </CopyableCommand>
       </pre>
 
-      <h2 className="mt-8 text-sm text-gray10">
+      <h2 className="mt-8 text-sm text-gray10" id="playground">
         <span className="font-medium">Playground</span>
         <span className="ms-2 inline-block text-gray6">See for yourself</span>
       </h2>
@@ -149,7 +149,7 @@ function Playground() {
         <label className="relative">
           <span className="sr-only">URL</span>
           <input
-            className="w-full bg-bg2 pe-7 ps-2.5 py-1.5 text-sm placeholder:text-gray7 outline-none"
+            className="w-full bg-bg2 px-2.5 py-1.5 text-sm placeholder:text-gray9 outline-none"
             inputMode="url"
             onChange={(e) => setUrl(e.target.value)}
             pattern="\S+\.\S+"
@@ -158,25 +158,12 @@ function Playground() {
             type="text"
             value={url}
           />
-          {url && result && !resultHidden && (
-            <button
-              className="absolute end-2 top-1/2 -translate-y-1/2 p-0.5 outline-offset-2 text-gray5 hover:text-gray8"
-              onClick={() => {
-                setUrl('')
-                setQuery('')
-                setResultHidden(true)
-              }}
-              type="button"
-            >
-              <IconOcticonXCircleFill16 className="size-3.5" />
-            </button>
-          )}
         </label>
         <div className="flex gap-1.5">
           <label className="relative flex-1">
             <span className="sr-only">Query</span>
             <input
-              className="peer w-full bg-bg2 px-3 py-1.5 text-sm placeholder:text-gray7 outline-none"
+              className="peer w-full bg-bg2 px-3 py-1.5 text-sm placeholder:text-gray9 outline-none"
               onChange={(e) => setQuery(e.target.value)}
               placeholder="q"
               type="text"
@@ -197,26 +184,9 @@ function Playground() {
       </form>
 
       {(result && !resultHidden) || (pending && (!result || resultHidden)) ? (
-        <div className="bg-bg2">
-          <div className="flex items-center gap-2 px-3 py-2 text-xs text-gray8">
+        <div className="relative bg-bg2">
+          <div className="px-3 py-2 text-xs text-gray8">
             <span>{pending ? pendingDisplayUrl : result?.fetchedUrl}</span>
-            {result && (!pending || refreshingRef.current) && (
-              <button
-                className="p-0.5 outline-offset-2 hover:text-gray11 data-[spinning]:animate-spin"
-                data-spinning={
-                  pending && refreshingRef.current ? '' : undefined
-                }
-                disabled={pending}
-                onClick={() => {
-                  freshRef.current = true
-                  refreshingRef.current = true
-                  formRef.current?.requestSubmit()
-                }}
-                type="button"
-              >
-                <IconOcticonSync16 className="size-3" />
-              </button>
-            )}
           </div>
           <pre
             key={result?.fetchedUrl ?? 'pending'}
@@ -228,14 +198,44 @@ function Playground() {
               result?.markdown?.replace(poweredByFooter, '')
             )}
           </pre>
+          {result && !pending && (
+            <div className="absolute end-4 bottom-2 flex items-center gap-0.5 rounded bg-bg2/80 p-0.5 backdrop-blur-sm">
+              <CopyButton
+                className="p-1 outline-offset-2 text-gray5 hover:text-gray9"
+                text={result.markdown?.replace(poweredByFooter, '') ?? ''}
+              />
+              <button
+                className="p-1 outline-offset-2 text-gray5 hover:text-gray9"
+                onClick={() => {
+                  freshRef.current = true
+                  refreshingRef.current = true
+                  formRef.current?.requestSubmit()
+                }}
+                type="button"
+              >
+                <IconOcticonSync16 className="size-3" />
+              </button>
+              <button
+                className="p-1 outline-offset-2 text-gray5 hover:text-gray8"
+                onClick={() => {
+                  setUrl('')
+                  setQuery('')
+                  setResultHidden(true)
+                }}
+                type="button"
+              >
+                <IconOcticonXCircleFill16 className="size-3" />
+              </button>
+            </div>
+          )}
         </div>
       ) : null}
 
       {(!result || resultHidden) && !pending && (
-        <div className="mt-2 grid grid-cols-1 gap-1.5 text-xs sm:grid-cols-2">
+        <div className="mt-2 grid grid-cols-1 gap-1.5 text-xs">
           {examples.map(([url, q]) => (
             <button
-              className="bg-bg2 px-3 py-2 text-start opacity-75 grayscale outline-offset-0 hover:opacity-100 hover:grayscale-0 focus:opacity-100 focus:grayscale-0 sm:opacity-50"
+              className="bg-bg2/70 px-3 py-2 text-start outline-offset-0 hover:bg-bg2/90"
               key={`${url}${q ?? ''}`}
               onClick={() => {
                 flushSync(() => {
@@ -246,28 +246,46 @@ function Playground() {
               }}
               type="button"
             >
-              <span className="block truncate text-gray10">
-                {url.split('/')[0]}
+              <span className="block truncate">
+                <span className="text-gray6">{__HOST__}/</span>
+                <span className="text-gray8">{url.split('/')[0]}</span>
+                {url.includes('/') && (
+                  <span className="text-gray7">
+                    /{url.split('/').slice(1).join('/')}
+                  </span>
+                )}
+                {q && (
+                  <span className="text-gray6">?q={q.replace(/ /g, '+')}</span>
+                )}
               </span>
-              {(url.includes('/') || q) && (
-                <span className="block truncate">
-                  {url.includes('/') && (
-                    <span className="text-gray10">
-                      /{url.split('/').slice(1).join('/')}
-                    </span>
-                  )}
-                  {q && (
-                    <span className="text-gray9">
-                      ?q={q.replace(/ /g, '+')}
-                    </span>
-                  )}
-                </span>
-              )}
             </button>
           ))}
         </div>
       )}
     </div>
+  )
+}
+
+function CopyButton(props: { className?: string; text: string }) {
+  const { className, text } = props
+  const [copied, setCopied] = React.useState(false)
+  return (
+    <button
+      className={className}
+      data-copied={copied ? '' : undefined}
+      onClick={() => {
+        navigator.clipboard.writeText(text)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 1500)
+      }}
+      type="button"
+    >
+      {copied ? (
+        <IconOcticonCheck16 className="size-3" />
+      ) : (
+        <IconOcticonClippy16 className="size-3" />
+      )}
+    </button>
   )
 }
 
@@ -293,7 +311,7 @@ function CopyableCommand(
       <span className="relative block">
         <code>{children}</code>
         <button
-          className="absolute end-0 top-1/2 -translate-y-[calc(66.67%-1px)] p-1 outline-offset-2 focus-visible:outline-1 focus-visible:outline-gray7 opacity-0 group-hover/cmd:opacity-100 focus-visible:opacity-100 data-[copied]:opacity-100"
+          className="absolute end-0 top-1/2 -translate-y-[calc(58%-1px)] p-1 outline-offset-2 focus-visible:outline-1 focus-visible:outline-gray7 opacity-0 group-hover/cmd:opacity-100 focus-visible:opacity-100 data-[copied]:opacity-100"
           data-copied={copied ? '' : undefined}
           onClick={copy}
           type="button"

@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { getDb } from '#lib/db.ts'
 import { fetchPage } from '#lib/fetch-page.ts'
 import { poweredByFooter } from '#lib/markdown.ts'
+import { rateLimit } from '#lib/rate-limit.ts'
 
 const staticHostnameRe =
   /\.(action|aspx?|cgi|css|eot|gif|html?|ico|jpe?g|json|jsx?|map|php|png|svg|tsx?|ttf|webp|woff2?|xml|ya?ml)$/i
@@ -39,6 +40,17 @@ export const Route = createFileRoute('/$')({
         // Skip requests where hostname looks like a filename (e.g. favicon.ico, config.json)
         if (staticHostnameRe.test(url.hostname))
           return new Response(null, { status: 404 })
+
+        const { limited, remaining } = await rateLimit(options.request)
+        const rateLimitHeaders = { 'x-rate-limit-remaining': String(remaining) }
+        if (limited)
+          return Response.json(
+            {
+              error:
+                'Rate limit exceeded. Limited to 1,000 requests per day per IP address.',
+            },
+            { status: 429, headers: rateLimitHeaders },
+          )
 
         const search = z.parse(
           z.object({
@@ -78,7 +90,10 @@ export const Route = createFileRoute('/$')({
           })
           return new Response(`${markdown}${poweredByFooter}`, {
             status: 200,
-            headers: { 'content-type': 'text/markdown; charset=utf-8' },
+            headers: {
+              'content-type': 'text/markdown; charset=utf-8',
+              ...rateLimitHeaders,
+            },
           })
         } catch (error) {
           const message =
@@ -86,7 +101,10 @@ export const Route = createFileRoute('/$')({
           const status = /\d{3}/.exec(message)?.[0]
           return Response.json(
             { error: message },
-            { status: status ? Number(status) : 502 },
+            {
+              status: status ? Number(status) : 502,
+              headers: rateLimitHeaders,
+            },
           )
         }
       },
