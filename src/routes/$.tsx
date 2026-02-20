@@ -5,6 +5,9 @@ import { getDb } from '#lib/db.ts'
 import { fetchPage } from '#lib/fetch-page.ts'
 import { poweredByFooter } from '#lib/markdown.ts'
 
+const staticHostnameRe =
+  /\.(action|aspx?|cgi|css|eot|gif|html?|ico|jpe?g|json|jsx?|map|php|png|svg|tsx?|ttf|webp|woff2?|xml|ya?ml)$/i
+
 export const Route = createFileRoute('/$')({
   server: {
     handlers: {
@@ -32,6 +35,11 @@ export const Route = createFileRoute('/$')({
             options.params._splat,
           ),
         )
+
+        // Skip requests where hostname looks like a filename (e.g. favicon.ico, config.json)
+        if (staticHostnameRe.test(url.hostname))
+          return new Response(null, { status: 404 })
+
         const search = z.parse(
           z.object({
             fresh: z
@@ -55,7 +63,7 @@ export const Route = createFileRoute('/$')({
               country: cf?.country ?? null,
               hostname: url.hostname,
               path: url.pathname,
-              query: url.search || null,
+              query: search.q || null,
               url: url.href,
               user_agent: options.request.headers.get('user-agent'),
             })
