@@ -28,15 +28,19 @@ function Home() {
         <span className="font-medium">Try It Now</span>
         <span className="ms-2 inline-block text-gray6">Just use curl</span>
       </h2>
-      <pre className="mt-2 flex flex-col bg-bg2 px-3 py-2 whitespace-pre-wrap break-words">
-        <span className="block text-gray8"># Fetch any URL as markdown</span>
-        <CopyableCommand command={`curl ${__HOST__}/react.dev`}>
+      <pre className="mt-2 flex flex-col bg-bg2 px-3 pt-2 pb-0.5 whitespace-pre-wrap break-words">
+        <CopyableCommand
+          className="pb-2"
+          command={`curl ${__HOST__}/react.dev`}
+          comment="# Fetch any URL as markdown"
+        >
           curl {__HOST__}
           <span className="text-gray10">/react.dev</span>
         </CopyableCommand>
-        <span className="block mt-3 text-gray8"># Focus output with query</span>
         <CopyableCommand
+          className="pb-2"
           command={`curl ${__HOST__}/react.dev?q=fullstack+framework+support`}
+          comment="# Focus output with query"
         >
           curl {__HOST__}
           <span className="text-gray10">/react.dev</span>
@@ -54,13 +58,19 @@ function Home() {
           Enhance your agents
         </span>
       </h2>
-      <pre className="mt-2 flex flex-col bg-bg2 px-3 py-2 whitespace-pre-wrap break-words">
-        <span className="block text-gray8"># Install agent skill</span>
-        <CopyableCommand command={`npx skills add ${__HOST__}`}>
-          npx skills add <span className="text-gray10">{__HOST__}</span>
+      <pre className="mt-2 flex flex-col bg-bg2 px-3 pt-2 pb-0.5 whitespace-pre-wrap break-words">
+        <CopyableCommand
+          className="pb-2"
+          command={`npx skills add https://${__HOST__}`}
+          comment="# Install agent skill"
+        >
+          npx skills add <span className="text-gray10">https://{__HOST__}</span>
         </CopyableCommand>
-        <span className="block mt-3 text-gray8"># Install MCP server</span>
-        <CopyableCommand command={`npx add-mcp ${__HOST__}/mcp`}>
+        <CopyableCommand
+          className="pb-2"
+          command={`npx add-mcp ${__HOST__}/mcp`}
+          comment="# Install MCP server"
+        >
           npx add-mcp <span className="text-gray10">{__HOST__}/mcp</span>
         </CopyableCommand>
       </pre>
@@ -150,7 +160,7 @@ function Playground() {
           />
           {url && result && !resultHidden && (
             <button
-              className="absolute end-2 top-1/2 -translate-y-1/2 text-gray5 hover:text-gray8"
+              className="absolute end-2 top-1/2 -translate-y-1/2 p-0.5 outline-offset-2 text-gray5 hover:text-gray8"
               onClick={() => {
                 setUrl('')
                 setQuery('')
@@ -177,7 +187,7 @@ function Playground() {
             </span>
           </label>
           <button
-            className="bg-bg2 px-3 py-1.5 text-sm text-gray11 hover:bg-gray-a2 hover:text-gray12 disabled:opacity-50"
+            className="bg-gray1 dark:bg-gray1/60 px-3 py-1.5 -outline-offset-4 text-xs font-medium text-gray9 hover:bg-gray2 hover:text-gray11 disabled:opacity-50"
             disabled={pending}
             type="submit"
           >
@@ -192,7 +202,7 @@ function Playground() {
             <span>{pending ? pendingDisplayUrl : result?.fetchedUrl}</span>
             {result && (!pending || refreshingRef.current) && (
               <button
-                className="hover:text-gray11 data-[spinning]:animate-spin"
+                className="p-0.5 outline-offset-2 hover:text-gray11 data-[spinning]:animate-spin"
                 data-spinning={
                   pending && refreshingRef.current ? '' : undefined
                 }
@@ -213,7 +223,7 @@ function Playground() {
             className="minimal-scrollbar max-h-96 overflow-auto overscroll-contain px-3 pb-2 text-sm whitespace-pre-wrap break-words"
           >
             {pending && !refreshingRef.current ? (
-              <span className="text-gray6 animate-pulse">Fetching...</span>
+              <span className="text-gray6 animate-pulse">Fetching</span>
             ) : (
               result?.markdown?.replace(poweredByFooter, '')
             )}
@@ -225,7 +235,7 @@ function Playground() {
         <div className="mt-2 grid grid-cols-1 gap-1.5 text-xs sm:grid-cols-2">
           {examples.map(([url, q]) => (
             <button
-              className="bg-bg2 px-3 py-2 text-start opacity-75 grayscale hover:opacity-100 hover:grayscale-0 focus:opacity-100 focus:grayscale-0 sm:opacity-50"
+              className="bg-bg2 px-3 py-2 text-start opacity-75 grayscale outline-offset-0 hover:opacity-100 hover:grayscale-0 focus:opacity-100 focus:grayscale-0 sm:opacity-50"
               key={`${url}${q ?? ''}`}
               onClick={() => {
                 flushSync(() => {
@@ -263,10 +273,12 @@ function Playground() {
 
 function CopyableCommand(
   props: React.PropsWithChildren<{
+    className?: string
     command: string
+    comment: string
   }>,
 ) {
-  const { children, command } = props
+  const { children, className, command, comment } = props
 
   const [copied, setCopied] = React.useState(false)
   const copy = () => {
@@ -276,13 +288,23 @@ function CopyableCommand(
   }
 
   return (
-    <button className="group block text-start" onClick={copy} type="button">
-      <code>
-        <span className="group-hover:opacity-80">{children}</span>
-        {copied && (
-          <span className="ms-2 text-gray9 text-xs select-none">Copied!</span>
-        )}
-      </code>
-    </button>
+    <span className={`group/cmd relative block ${className ?? ''}`}>
+      <span className="block text-gray8">{comment}</span>
+      <span className="relative block">
+        <code>{children}</code>
+        <button
+          className="absolute end-0 top-1/2 -translate-y-[calc(66.67%-1px)] p-1 outline-offset-2 focus-visible:outline-1 focus-visible:outline-gray7 opacity-0 group-hover/cmd:opacity-100 focus-visible:opacity-100 data-[copied]:opacity-100"
+          data-copied={copied ? '' : undefined}
+          onClick={copy}
+          type="button"
+        >
+          {copied ? (
+            <IconOcticonCheck16 className="size-3.5 text-gray9" />
+          ) : (
+            <IconOcticonCopy16 className="size-3.5 text-gray6 hover:text-gray9" />
+          )}
+        </button>
+      </span>
+    </span>
   )
 }

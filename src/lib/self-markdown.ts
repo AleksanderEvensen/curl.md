@@ -34,7 +34,7 @@ Enhance your agents
 
 \`\`\`sh
 # Install agent skill
-$ npx skills add ${host}
+$ npx skills add https://${host}
 
 # Install MCP server
 $ npx add-mcp ${host}/mcp

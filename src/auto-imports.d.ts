@@ -6,6 +6,8 @@
 // biome-ignore lint: disable
 export {}
 declare global {
+  const IconOcticonCheck16: typeof import('~icons/octicon/check16.jsx').default
+  const IconOcticonCopy16: typeof import('~icons/octicon/copy16.jsx').default
   const IconOcticonSync16: typeof import('~icons/octicon/sync16.jsx').default
   const IconOcticonXCircleFill16: typeof import('~icons/octicon/x-circle-fill16.jsx').default
 }
