@@ -18,6 +18,9 @@
   "ai": {
     "binding": "AI"
   },
+  "d1_databases": [
+    { "binding": "DB", "database_name": "curl-db", "database_id": "local" }
+  ],
   "kv_namespaces": [{ "binding": "KV", "id": "local" }],
   "vars": {
     "HOST": "curl.local"
@@ -28,6 +31,13 @@
       "ai": {
         "binding": "AI"
       },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "curl-db",
+          "database_id": "effd0dcd-c90e-4449-9ccc-ec920da05e04"
+        }
+      ],
       "kv_namespaces": [
         { "binding": "KV", "id": "e3a921b8d13741b99e7aa1cbb6144c9f" }
       ],
@@ -41,6 +51,13 @@
       "ai": {
         "binding": "AI"
       },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "curl-db",
+          "database_id": "effd0dcd-c90e-4449-9ccc-ec920da05e04"
+        }
+      ],
       "kv_namespaces": [{ "binding": "KV", "id": "__PREVIEW_KV_ID__" }],
       "vars": {
         "HOST": "__PREVIEW_APEX__.curl.md"

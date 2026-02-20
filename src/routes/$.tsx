@@ -1,5 +1,7 @@
+import { waitUntil } from 'cloudflare:workers'
 import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
+import { getDb } from '#lib/db.ts'
 import { fetchPage } from '#lib/fetch-page.ts'
 import { poweredByFooter } from '#lib/markdown.ts'
 
@@ -8,7 +10,6 @@ export const Route = createFileRoute('/$')({
     handlers: {
       GET: async (options) => {
         // TODO: error handling
-        // TODO: analytics for what pages are getting fetched
         // TODO: support more content types, like PDF
         // TODO: chunk summarization if markdown is too many tokens
         // TODO: add feedback POST endpoint to skill for agents to report bugs/quality issues
@@ -40,6 +41,26 @@ export const Route = createFileRoute('/$')({
             q: z.string().optional(),
           }),
           Object.fromEntries(new URL(options.request.url).searchParams),
+        )
+
+        const cf = (
+          options.request as Request & { cf?: IncomingRequestCfProperties }
+        ).cf
+        waitUntil(
+          getDb()
+            .insertInto('request')
+            .values({
+              id: crypto.randomUUID(),
+              city: (cf?.city as string) ?? null,
+              country: cf?.country ?? null,
+              hostname: url.hostname,
+              path: url.pathname,
+              query: url.search || null,
+              url: url.href,
+              user_agent: options.request.headers.get('user-agent'),
+            })
+            .execute()
+            .catch(() => {}),
         )
 
         try {

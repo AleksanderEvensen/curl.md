@@ -2,7 +2,7 @@ import { env, waitUntil } from 'cloudflare:workers'
 import { z } from 'zod'
 import { toMdUrl } from '#lib/known-md-sites.ts'
 import { htmlToMarkdown } from '#lib/markdown.ts'
-import { selfMarkdown } from '../routes/index.tsx'
+import { selfMarkdown } from '#lib/self-markdown.ts'
 
 export async function fetchPage(
   url: URL,

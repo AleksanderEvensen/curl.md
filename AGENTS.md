@@ -22,6 +22,10 @@ App runs in Docker via `docker compose up`. Use these to debug:
 
 - Follow [Workers best practices](https://developers.cloudflare.com/workers/best-practices/workers-best-practices/index.md)
 
+## Content
+
+- `src/lib/self-markdown.ts` is a rough markdown approximation of the home page (`src/routes/index.tsx`). Keep them roughly in sync when updating home page content.
+
 ## Code Style
 
 - Component/page component should be the first thing in the file (after imports)

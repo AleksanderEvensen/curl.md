@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { selfMarkdown } from './index.tsx'
+import { selfMarkdown } from '#lib/self-markdown.ts'
 
 export const Route = createFileRoute('/llms.txt')({
   server: {

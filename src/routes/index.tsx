@@ -14,13 +14,16 @@ export const Route = createFileRoute('/')({
 // TODO: show live incrementing usage number on home page
 // TODO: og image
 // TODO: /changelog page
+// TODO: status page
 
 function Home() {
   return (
     <>
       <header className="mb-10">
-        <h1 className="text-base font-bold">curl.md</h1>
-        <p className="text-gray6">Fetch any URL as markdown</p>
+        <h1 className="text-base">
+          <span className="font-bold">curl.md</span>
+          <span className="ms-2 text-gray6">Fetch any URL as markdown</span>
+        </h1>
       </header>
 
       <h2 className="text-sm text-gray10">
@@ -71,51 +74,6 @@ function Home() {
       <Playground />
     </>
   )
-}
-
-export function selfMarkdown() {
-  const host = __HOST__
-  return `---
-title: curl.md
-description: Fetch any URL as markdown.
----
-
-# ${host}
-
-Fetch any URL as markdown.
-
-## Try It Now
-
-Just use curl
-
-\`\`\`sh
-# Fetch any URL as markdown
-$ curl ${host}/react.dev
-
-# Focus output with query
-$ curl ${host}/react.dev?q=fullstack+support
-\`\`\`
-
-## Integrate
-
-Enhance your agents
-
-\`\`\`sh
-# Install agent skill
-$ npx skills add ${host}
-
-# Install MCP server
-$ npx add-mcp ${host}/mcp
-\`\`\`
-
-## Playground
-
-See for yourself
-
-\`\`\`sh
-${examples.map(([url, query]) => `$ curl ${url}${query ? `?q=${query.replace(/ /g, '+')}` : ''}`).join('\n')}
-\`\`\`
-`
 }
 
 const examples = [
@@ -192,7 +150,7 @@ function Playground() {
             type="text"
             value={url}
           />
-          {url && (
+          {url && result && !resultHidden && (
             <button
               className="absolute end-2 top-1/2 -translate-y-1/2 text-gray5 hover:text-gray8"
               onClick={() => {
