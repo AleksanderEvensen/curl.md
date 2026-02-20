@@ -15,7 +15,7 @@ export async function htmlToMarkdown(
 ): Promise<{ markdown: string; meta: Record<string, string> }> {
   const file = await unified()
     .use(rehypeParse)
-    .use(rehypeExtractMeta)
+    .use(rehypeExtractMeta, options?.baseUrl)
     .use(rehypeStripNoise)
     .use(rehypeResolveLinks, options?.baseUrl)
     .use(rehypeStripEmpty)
@@ -45,7 +45,7 @@ const metaPropertyMap: Record<string, string> = {
   'og:site_name': 'site',
 }
 
-function rehypeExtractMeta() {
+function rehypeExtractMeta(baseUrl?: string) {
   return (tree: Root, file: VFile) => {
     const html = tree.children.find(
       (n): n is Element => n.type === 'element' && n.tagName === 'html',
@@ -75,7 +75,7 @@ function rehypeExtractMeta() {
         node.tagName === 'link' &&
         (node.properties.rel as string[] | undefined)?.includes('canonical')
       )
-        meta.url = node.properties.href as string
+        meta.url = resolveUrl(node.properties.href as string, baseUrl)
     }
 
     if (Object.keys(meta).length > 0) file.data.meta = meta
@@ -121,6 +121,15 @@ function strip(node: Element | Root) {
 }
 
 const skipPrefixes = ['http://', 'https://', '//', '#', 'mailto:', 'tel:']
+
+function resolveUrl(url: string, baseUrl?: string): string {
+  if (!baseUrl) return url
+  try {
+    return new URL(url, baseUrl).href
+  } catch {
+    return url
+  }
+}
 
 function rehypeResolveLinks(baseUrl?: string) {
   return (tree: Root) => {

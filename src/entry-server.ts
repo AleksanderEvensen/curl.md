@@ -30,6 +30,7 @@ export default {
           .set({ tokens_saved: tokensSaved })
           .where('id', '=', requestId)
           .execute()
+        await env.KV.delete('stats:tokens_saved')
         message.ack()
       } catch {
         message.retry()

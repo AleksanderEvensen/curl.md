@@ -4,16 +4,14 @@ import { toMdUrl } from '#lib/known-md-sites.ts'
 import { htmlToMarkdown } from '#lib/markdown.ts'
 import { selfMarkdown } from '#lib/self-markdown.ts'
 
-type FetchPageResult = {
-  estimated: boolean
-  markdown: string
-  tokensSaved: number
-}
-
 export async function fetchPage(
   url: URL,
   options?: { fresh?: boolean; query?: string },
-): Promise<FetchPageResult> {
+): Promise<{
+  estimated: boolean
+  markdown: string
+  tokensSaved: number
+}> {
   const { fresh, query } = options ?? {}
 
   const mdResult = toMdUrl(url)
@@ -30,14 +28,46 @@ export async function fetchPage(
     if (!fresh && cached) return cached
 
     const fetchUrl = mdResult?.url ?? url
-    const res = await fetch(fetchUrl, {
-      headers: {
-        Accept:
-          'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'User-Agent': `Mozilla/5.0 (compatible; ${env.HOST}/1.0; +https://${env.HOST})`,
-      },
-      redirect: 'follow',
-    })
+    const headers = {
+      Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      'User-Agent': `Mozilla/5.0 (compatible; ${env.HOST}/1.0; +https://${env.HOST})`,
+    }
+    let res = await fetch(fetchUrl, { headers, redirect: 'follow' })
+
+    // Retry with browser-like UA for sites that block bot User-Agents
+    if (res.status === 403) {
+      headers['User-Agent'] =
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
+      res = await fetch(fetchUrl, { headers, redirect: 'follow' })
+    }
+
+    // Fallback to Browser Rendering API for sites that still block
+    if (res.status === 403) {
+      const browserRes = await fetch(
+        `https://api.cloudflare.com/client/v4/accounts/${env.CLOUDFLARE_ACCOUNT_ID}/browser-rendering/content`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${env.CLOUDFLARE_API_TOKEN}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            url: fetchUrl.toString(),
+            rejectResourceTypes: ['image', 'font', 'media'],
+          }),
+        },
+      )
+      if (!browserRes.ok) throw new Error(`Upstream returned 403`)
+      const result = {
+        content: await browserRes.text(),
+        contentType: 'text/html',
+      } satisfies Cached
+      waitUntil(
+        env.KV.put(cacheKey, JSON.stringify(result), { expirationTtl: 900 }),
+      )
+      return result
+    }
+
     if (!res.ok) throw new Error(`Upstream returned ${res.status}`)
 
     const result = {

@@ -37,6 +37,7 @@ Add the following secrets to your GitHub repository (Settings → Secrets and va
 4. Add these permissions:
    - **Account** → **D1** → **Edit**
    - **Account** → **Workers Scripts** → **Edit**
+   - **Account** → **Browser Rendering** → **Edit**
    - **Account** → **Workers AI** → **Edit**
    - **Zone** → **Workers Routes** → **Edit**
    - **Zone** → **Zone** → **Edit**

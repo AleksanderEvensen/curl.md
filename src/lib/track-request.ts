@@ -1,4 +1,4 @@
-import { waitUntil } from 'cloudflare:workers'
+import { env, waitUntil } from 'cloudflare:workers'
 import { getDb } from '#lib/db.ts'
 
 export function trackRequest(
@@ -30,6 +30,9 @@ export function trackRequest(
         user_agent: request.headers.get('user-agent') ?? params.user_agent,
       })
       .execute()
+      .then(() => {
+        if (params.tokens_saved) env.KV.delete('stats:tokens_saved')
+      })
       .catch(() => {}),
   )
   return id

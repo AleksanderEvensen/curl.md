@@ -127,7 +127,7 @@
   outline-width: 2px;
 }
 
-button:focus-visible {
+form button:focus-visible {
   outline-offset: -1px;
 }
 

@@ -1,4 +1,4 @@
-const examples = [
+export const examples = [
   ['react.dev', 'fullstack support'],
   ['developer.mozilla.org/en-US/docs/Web/API/Fetch_API'],
   ['en.wikipedia.org/wiki/Linux', 'kernel history'],

@@ -6,6 +6,7 @@ import { getRequest } from '@tanstack/react-start/server'
 import * as React from 'react'
 import { getDb } from '#lib/db.ts'
 import { poweredByFooter } from '#lib/markdown.ts'
+import { examples } from '#lib/self-markdown.ts'
 import { useTheme } from '#lib/theme.ts'
 
 export const Route = createFileRoute('/')({
@@ -45,7 +46,7 @@ function Home() {
         </CopyableCommand>
         <CopyableCommand
           className="pb-2"
-          command={`curl ${__HOST__}/react.dev?q=fullstack+framework+support`}
+          command={`curl ${__HOST__}/react.dev?q=fullstack+support`}
           comment="# Focus output with query"
         >
           curl {__HOST__}
@@ -53,7 +54,7 @@ function Home() {
           <span className="text-gray9">
             ?q=
             <wbr />
-            fullstack+framework+support
+            fullstack+support
           </span>
         </CopyableCommand>
       </pre>
@@ -87,7 +88,7 @@ function Home() {
       </h2>
       <Playground />
 
-      <div className="-mt-1 flex items-center justify-between gap-2.5 text-gray5 text-xs">
+      <div className="mt-1 flex items-center justify-between gap-2.5 text-gray5 text-xs">
         <div className="flex gap-2">
           {prNumber(__HOST__) && (
             <a
@@ -109,7 +110,7 @@ function Home() {
           </a>
           {mounted && (
             <button
-              className="flex cursor-pointer items-center gap-1 hover:text-gray10"
+              className="flex cursor-pointer items-center gap-1 p-0 hover:text-gray10"
               onClick={cycle}
               type="button"
             >
@@ -224,11 +225,39 @@ function Playground() {
         </button>
       </form>
 
+      {(!result || resultHidden) && !pending && (
+        <div className="mb-1.5 grid grid-cols-1 gap-1.5 text-xs sm:grid-cols-2">
+          {examples.map(([exampleUrl, exampleQuery]) => {
+            const displayPath = exampleUrl.replace(/^https?:\/\//, '')
+            return (
+              <button
+                className="flex items-center gap-2 bg-bg2 px-3 py-2 text-start text-gray8 hover:bg-gray2 hover:text-gray11 dark:text-gray6"
+                key={exampleUrl}
+                onClick={() => {
+                  setUrl(displayPath)
+                  setQuery(exampleQuery ?? '')
+                  queueMicrotask(() => formRef.current?.requestSubmit())
+                }}
+                type="button"
+              >
+                <IconOcticonMarkdown16 className="mt-px size-3.5 shrink-0" />
+                <span className="truncate">{displayPath}</span>
+              </button>
+            )
+          })}
+        </div>
+      )}
+
       {(result && !resultHidden) || (pending && (!result || resultHidden)) ? (
         <div className="relative mb-1.5 bg-bg2">
-          <div className="flex items-center gap-1.5 px-3 py-2 text-gray8 text-sm">
-            <IconOcticonMarkdown16 className="size-4 shrink-0 translate-y-px" />
-            <span>{pending ? pendingDisplayUrl : result?.fetchedUrl}</span>
+          <div className="flex items-start gap-1.5 px-3 py-2 text-gray8 text-sm">
+            <IconOcticonMarkdown16 className="mt-0.75 size-4 shrink-0" />
+            <span>
+              {(pending ? pendingDisplayUrl : result?.fetchedUrl)?.replace(
+                /https?:\/\//,
+                '',
+              )}
+            </span>
           </div>
           <pre
             key={result?.fetchedUrl ?? 'pending'}
@@ -243,11 +272,11 @@ function Playground() {
           {result && !pending && (
             <div className="absolute end-4 bottom-2 flex items-center gap-1 rounded bg-bg2/80 p-1 backdrop-blur-sm">
               <CopyButton
-                className="p-2 text-gray5 outline-offset-2 hover:text-gray9"
+                className="p-2 text-gray7 outline-offset-2 hover:text-gray9 dark:text-gray5"
                 text={result.markdown?.replace(poweredByFooter, '') ?? ''}
               />
               <button
-                className="p-2 text-gray5 outline-offset-2 hover:text-gray9"
+                className="p-2 text-gray7 outline-offset-2 hover:text-gray9 dark:text-gray5"
                 onClick={() => {
                   freshRef.current = true
                   refreshingRef.current = true
@@ -258,7 +287,7 @@ function Playground() {
                 <IconOcticonSync16 className="size-4" />
               </button>
               <button
-                className="p-2 text-gray5 outline-offset-2 hover:text-gray8"
+                className="p-2 text-gray7 outline-offset-2 hover:text-gray8 dark:text-gray5"
                 onClick={() => {
                   setUrl('')
                   setQuery('')

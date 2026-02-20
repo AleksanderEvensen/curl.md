@@ -130,7 +130,10 @@ function respond(
   json: boolean | undefined,
 ) {
   if (json) return Response.json(body, init)
-  const text = 'content' in body ? body.content : `# Error\n\n${body.error}\n`
+  const text =
+    'content' in body
+      ? body.content
+      : `---\nstatus: ${(init.status ?? 500).toString()}\n---\n\n# Error\n\n${body.error}\n`
   return new Response(text, {
     ...init,
     headers: {
