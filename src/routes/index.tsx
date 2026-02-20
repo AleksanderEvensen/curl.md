@@ -32,15 +32,15 @@ function Home() {
         <span className="block text-gray8"># Fetch any URL as markdown</span>
         <CopyableCommand command={`curl ${__HOST__}/react.dev`}>
           curl {__HOST__}
-          <span className="text-blue9">/react.dev</span>
+          <span className="text-gray10">/react.dev</span>
         </CopyableCommand>
         <span className="block mt-3 text-gray8"># Focus output with query</span>
         <CopyableCommand
           command={`curl ${__HOST__}/react.dev?q=fullstack+framework+support`}
         >
           curl {__HOST__}
-          <span className="text-blue9">/react.dev</span>
-          <span className="text-purple9">
+          <span className="text-gray10">/react.dev</span>
+          <span className="text-gray9">
             ?q=
             <wbr />
             fullstack+framework+support
@@ -57,11 +57,11 @@ function Home() {
       <pre className="mt-2 flex flex-col bg-bg2 px-3 py-2 whitespace-pre-wrap break-words">
         <span className="block text-gray8"># Install agent skill</span>
         <CopyableCommand command={`npx skills add ${__HOST__}`}>
-          npx skills add <span className="text-teal9">{__HOST__}</span>
+          npx skills add <span className="text-gray10">{__HOST__}</span>
         </CopyableCommand>
         <span className="block mt-3 text-gray8"># Install MCP server</span>
         <CopyableCommand command={`npx add-mcp ${__HOST__}/mcp`}>
-          npx add-mcp <span className="text-teal9">{__HOST__}/mcp</span>
+          npx add-mcp <span className="text-gray10">{__HOST__}/mcp</span>
         </CopyableCommand>
       </pre>
 
@@ -239,12 +239,12 @@ function Playground() {
               {(url.includes('/') || q) && (
                 <span className="block truncate">
                   {url.includes('/') && (
-                    <span className="text-blue9">
+                    <span className="text-gray10">
                       /{url.split('/').slice(1).join('/')}
                     </span>
                   )}
                   {q && (
-                    <span className="text-purple9">
+                    <span className="text-gray9">
                       ?q={q.replace(/ /g, '+')}
                     </span>
                   )}
