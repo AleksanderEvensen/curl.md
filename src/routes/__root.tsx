@@ -38,7 +38,7 @@ export const Route = createRootRoute({
 function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="mx-auto max-w-xl px-4 pt-16 pb-0 font-mono text-sm">
+      <div className="font-mono text-sm">
         <Outlet />
       </div>
     </QueryClientProvider>

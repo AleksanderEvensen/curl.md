@@ -24,7 +24,7 @@ export const Route = createFileRoute('/')({
 function Home() {
   const { theme, mounted, cycle } = useTheme()
   return (
-    <>
+    <div className="mx-auto max-w-xl px-4 pt-16 pb-16">
       <header className="mb-10">
         <h1 className="font-bold text-base">curl.md</h1>
         <p className="mt-1 text-base text-gray6">Fetch any URL as markdown</p>
@@ -119,7 +119,7 @@ function Home() {
         </div>
         <TokensSaved />
       </div>
-    </>
+    </div>
   )
 }
 
