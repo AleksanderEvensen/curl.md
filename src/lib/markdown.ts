@@ -40,9 +40,11 @@ export async function htmlToMarkdown(
 const metaPropertyMap: Record<string, string> = {
   'article:published_time': 'publish_date',
   author: 'author',
+  date: 'publish_date',
   description: 'description',
   'og:description': 'description',
   'og:site_name': 'site',
+  pubdate: 'publish_date',
 }
 
 function rehypeExtractMeta(baseUrl?: string) {

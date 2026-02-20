@@ -80,6 +80,36 @@ describe('htmlToMarkdown', () => {
     expect(result).toContain('site: "My Site"')
   })
 
+  test('extracts article:published_time as publish_date', async () => {
+    const { markdown: result } = await htmlToMarkdown(
+      html({
+        head: '<meta property="article:published_time" content="2024-01-15T00:00:00Z">',
+        body: '<p>content</p>',
+      }),
+    )
+    expect(result).toContain('publish_date: "2024-01-15T00:00:00Z"')
+  })
+
+  test('extracts date as publish_date', async () => {
+    const { markdown: result } = await htmlToMarkdown(
+      html({
+        head: '<meta name="date" content="2024-03-01">',
+        body: '<p>content</p>',
+      }),
+    )
+    expect(result).toContain('publish_date: "2024-03-01"')
+  })
+
+  test('article:published_time takes priority over date', async () => {
+    const { markdown: result } = await htmlToMarkdown(
+      html({
+        head: '<meta property="article:published_time" content="2024-01-15"><meta name="date" content="2024-03-01">',
+        body: '<p>content</p>',
+      }),
+    )
+    expect(result).toContain('publish_date: "2024-01-15"')
+  })
+
   test('extracts canonical url', async () => {
     const { markdown: result } = await htmlToMarkdown(
       html({
