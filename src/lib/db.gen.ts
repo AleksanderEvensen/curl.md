@@ -12,8 +12,9 @@ type request = {
   created_at: k.Generated<string>
   hostname: string
   id: k.Generated<string>
+  keywords: string | null
+  objective: string | null
   path: string
-  query: string | null
   tokens_saved: number | null
   url: string
   user_agent: string | null

@@ -12,13 +12,19 @@ export function createMcpServer(request: Request): McpServer {
     {
       title: 'Fetch Page',
       description:
-        'Fetch a web page and convert it to markdown. Optionally narrow the content to a specific query.',
+        'Fetch a web page and convert it to markdown. Optionally narrow the content to a specific objective.',
       inputSchema: {
-        query: z
+        keywords: z
+          .array(z.string())
+          .optional()
+          .describe(
+            'Optional keywords to pre-filter content chunks before extraction',
+          ),
+        objective: z
           .string()
           .optional()
           .describe(
-            'Optional query to narrow down the returned content to relevant sections',
+            'Optional objective to narrow down the returned content to relevant sections',
           ),
         url: z
           .string()
@@ -30,8 +36,8 @@ export function createMcpServer(request: Request): McpServer {
         readOnlyHint: true,
       },
     },
-    async ({ url, query }) => {
-      if (query) {
+    async ({ url, keywords, objective }) => {
+      if (objective) {
         const { limited } = await rateLimit(request)
         if (limited)
           throw new Error(
@@ -55,12 +61,16 @@ export function createMcpServer(request: Request): McpServer {
         ),
       )
 
-      const { markdown, tokensSaved } = await fetchPage(parsedUrl, { query })
+      const { markdown, tokensSaved } = await fetchPage(parsedUrl, {
+        keywords,
+        objective,
+      })
 
       trackRequest(request, {
         hostname: parsedUrl.hostname,
+        keywords: keywords?.join(',') ?? null,
+        objective: objective ?? null,
         path: parsedUrl.pathname,
-        query: query ?? null,
         tokens_saved: tokensSaved,
         url: parsedUrl.href,
         user_agent: 'mcp',

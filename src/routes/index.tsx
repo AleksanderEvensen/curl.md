@@ -57,6 +57,17 @@ function Home() {
             fullstack+support
           </span>
         </CopyableCommand>
+        <CopyableCommand
+          className="pb-2"
+          command={`curl ${__HOST__}/react.dev?q=frameworks&k=Next,Remix,TanStack`}
+          comment="# Pre-filter with keywords"
+        >
+          curl {__HOST__}
+          <span className="text-gray10">/react.dev</span>
+          <span className="text-gray9">
+            ?q=frameworks&k=Next,Remix,TanStack
+          </span>
+        </CopyableCommand>
       </pre>
 
       <h2 className="mt-8 text-gray10 text-sm" id="integrate">
@@ -129,7 +140,8 @@ function Playground() {
   const formRef = React.useRef<HTMLFormElement>(null)
 
   const [url, setUrl] = React.useState('')
-  const [query, setQuery] = React.useState('')
+  const [objective, setObjective] = React.useState('')
+  const [keywords, setKeywords] = React.useState('')
   const freshRef = React.useRef(false)
   const refreshingRef = React.useRef(false)
   const [resultHidden, setResultHidden] = React.useState(false)
@@ -139,14 +151,16 @@ function Playground() {
     const trimmedUrl = url.trim()
     if (!trimmedUrl) return null
 
-    const q = query.trim()
+    const o = objective.trim()
+    const k = joinKeywords(keywords)
     const fresh = freshRef.current
     freshRef.current = false
 
     const params = new URLSearchParams()
-    if (q) params.set('q', q)
+    if (o) params.set('q', o)
+    if (k) params.set('k', k)
     if (fresh) params.set('fresh', '')
-    const displayUrl = `${__HOST__}/${trimmedUrl}${q ? `?q=${encodeURIComponent(q).replace(/%20/g, '+')}` : ''}`
+    const displayUrl = `${__HOST__}/${trimmedUrl}${params.size ? `?${params}` : ''}`
 
     try {
       const res = await fetch(
@@ -180,8 +194,15 @@ function Playground() {
   }, null)
 
   const trimmedUrl = url.trim()
-  const q = query.trim()
-  const pendingDisplayUrl = `${__HOST__}/${trimmedUrl}${q ? `?q=${encodeURIComponent(q).replace(/%20/g, '+')}` : ''}`
+  const pendingParams = (() => {
+    const p = new URLSearchParams()
+    const o = objective.trim()
+    const k = joinKeywords(keywords)
+    if (o) p.set('q', o)
+    if (k) p.set('k', k)
+    return p
+  })()
+  const pendingDisplayUrl = `${__HOST__}/${trimmedUrl}${pendingParams.size ? `?${pendingParams}` : ''}`
 
   return (
     <div className="mt-2">
@@ -203,19 +224,34 @@ function Playground() {
             value={url}
           />
         </label>
-        <label className="relative">
-          <span className="sr-only">Query</span>
-          <input
-            className="peer w-full bg-bg2 px-3 py-1.5 text-sm outline-none placeholder:text-gray9"
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="q"
-            type="text"
-            value={query}
-          />
-          <span className="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 text-gray5 text-xs peer-[:not(:placeholder-shown)]:hidden">
-            optional
-          </span>
-        </label>
+        <div className="flex flex-col gap-1.5 sm:flex-row">
+          <label className="relative flex-1">
+            <span className="sr-only">Objective</span>
+            <input
+              className="peer w-full bg-bg2 px-3 py-1.5 text-sm outline-none placeholder:text-gray9"
+              onChange={(e) => setObjective(e.target.value)}
+              placeholder="q"
+              type="text"
+              value={objective}
+            />
+            <span className="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 text-gray5 text-xs peer-[:not(:placeholder-shown)]:hidden">
+              optional
+            </span>
+          </label>
+          <label className="relative flex-1">
+            <span className="sr-only">Keywords</span>
+            <input
+              className="peer w-full bg-bg2 px-3 py-1.5 text-sm outline-none placeholder:text-gray9"
+              onChange={(e) => setKeywords(e.target.value)}
+              placeholder="k"
+              type="text"
+              value={keywords}
+            />
+            <span className="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 text-gray5 text-xs peer-[:not(:placeholder-shown)]:hidden">
+              optional
+            </span>
+          </label>
+        </div>
         <button
           className="bg-gray1 px-3 py-1.5 font-medium text-gray9 text-sm -outline-offset-4 hover:bg-gray2 hover:text-gray11 disabled:opacity-50 dark:bg-gray1/60"
           disabled={pending}
@@ -235,7 +271,8 @@ function Playground() {
                 key={exampleUrl}
                 onClick={() => {
                   setUrl(displayPath)
-                  setQuery(exampleQuery ?? '')
+                  setObjective(exampleQuery ?? '')
+                  setKeywords('')
                   queueMicrotask(() => formRef.current?.requestSubmit())
                 }}
                 type="button"
@@ -290,7 +327,8 @@ function Playground() {
                 className="p-2 text-gray7 outline-offset-2 hover:text-gray8 dark:text-gray5"
                 onClick={() => {
                   setUrl('')
-                  setQuery('')
+                  setObjective('')
+                  setKeywords('')
                   setResultHidden(true)
                 }}
                 type="button"
@@ -412,6 +450,13 @@ function formatNumber(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`
   return String(n)
+}
+
+function joinKeywords(input: string) {
+  return input
+    .split(/[\s,]+/)
+    .filter(Boolean)
+    .join(',')
 }
 
 function prNumber(host: string) {

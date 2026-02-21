@@ -14,7 +14,6 @@ export const Route = createFileRoute('/$')({
     handlers: {
       GET: async (options) => {
         // TODO: support more content types, like PDF
-        // TODO: chunk summarization if markdown is too many tokens
         // TODO: add feedback POST endpoint to skill for agents to report bugs/quality issues
         // TODO: tests (https://github.com/cloudflare/workers-sdk/pull/11632)
         // https://developers.cloudflare.com/workers-ai/features/markdown-conversion
@@ -51,7 +50,12 @@ export const Route = createFileRoute('/$')({
               .string()
               .transform(() => true)
               .optional(),
-            q: z.string().optional(),
+            k: z
+              .string()
+              .max(200)
+              .transform((s) => s.split(/[\s,]+/).filter(Boolean))
+              .optional(),
+            q: z.string().max(500).optional(),
           }),
           Object.fromEntries(new URL(options.request.url).searchParams),
         )
@@ -74,13 +78,15 @@ export const Route = createFileRoute('/$')({
         try {
           const { estimated, markdown, tokensSaved } = await fetchPage(url, {
             fresh: search.fresh,
-            query: search.q,
+            keywords: search.k,
+            objective: search.q,
           })
 
           const requestId = trackRequest(options.request, {
             hostname: url.hostname,
+            keywords: search.k?.join(',') || null,
+            objective: search.q || null,
             path: url.pathname,
-            query: search.q || null,
             tokens_saved: tokensSaved,
             url: url.href,
           })
@@ -109,7 +115,7 @@ export const Route = createFileRoute('/$')({
         } catch (error) {
           const message =
             error instanceof Error ? error.message : 'Failed to fetch page'
-          const status = /\d{3}/.exec(message)?.[0]
+          const status = /\b([2-5]\d{2})\b/.exec(message)?.[1]
           return respond(
             { error: message },
             {

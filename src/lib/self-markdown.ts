@@ -26,6 +26,9 @@ $ curl ${host}/react.dev
 
 # Focus output with query
 $ curl ${host}/react.dev?q=fullstack+support
+
+# Pre-filter with keywords
+$ curl ${host}/react.dev?k=Next,Remix,TanStack
 \`\`\`
 
 ## Integrate

@@ -5,8 +5,9 @@ export function trackRequest(
   request: Request,
   params: {
     hostname: string
+    keywords: string | null
+    objective: string | null
     path: string
-    query: string | null
     tokens_saved?: number
     url: string
     user_agent?: string
@@ -23,8 +24,9 @@ export function trackRequest(
         country: cf?.country ?? null,
         hostname: params.hostname,
         id,
+        keywords: params.keywords,
+        objective: params.objective,
         path: params.path,
-        query: params.query,
         tokens_saved: params.tokens_saved ?? null,
         url: params.url,
         user_agent: request.headers.get('user-agent') ?? params.user_agent,

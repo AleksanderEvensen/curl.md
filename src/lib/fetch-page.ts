@@ -1,18 +1,19 @@
 import { env, waitUntil } from 'cloudflare:workers'
 import { z } from 'zod'
+import { chunkMarkdown, filterSectionsByKeywords } from '#lib/chunk-markdown.ts'
 import { toMdUrl } from '#lib/known-md-sites.ts'
 import { htmlToMarkdown } from '#lib/markdown.ts'
 import { selfMarkdown } from '#lib/self-markdown.ts'
 
 export async function fetchPage(
   url: URL,
-  options?: { fresh?: boolean; query?: string },
+  options?: { fresh?: boolean; keywords?: string[]; objective?: string },
 ): Promise<{
   estimated: boolean
   markdown: string
   tokensSaved: number
 }> {
-  const { fresh, query } = options ?? {}
+  const { fresh, keywords, objective } = options ?? {}
 
   const mdResult = toMdUrl(url)
 
@@ -58,10 +59,10 @@ export async function fetchPage(
         },
       )
       if (!browserRes.ok) throw new Error(`Upstream returned 403`)
-      const result = {
-        content: await browserRes.text(),
-        contentType: 'text/html',
-      } satisfies Cached
+      const content = await browserRes.text()
+      if (/error code:\s*\d+/i.test(content))
+        throw new Error(`Upstream returned 403`)
+      const result = { content, contentType: 'text/html' } satisfies Cached
       waitUntil(
         env.KV.put(cacheKey, JSON.stringify(result), { expirationTtl: 900 }),
       )
@@ -107,31 +108,39 @@ export async function fetchPage(
 
   const estimated = !parsed.hadHtml && !('isSelf' in fetched && fetched.isSelf)
 
-  if (!query) {
+  if (!objective) {
     const tokensSaved = Math.round((rawSize - parsed.markdown.length) / 4)
     return { estimated, markdown: parsed.markdown, tokensSaved }
   }
 
   const excerpt = await (async () => {
-    const cacheKey = `query:${url.href}:${query}`
+    const cacheKey = `query:${url.href}:${objective}:${keywords?.join(',') ?? ''}`
     const cached = await env.KV.get(cacheKey)
     if (!fresh && cached) return cached
 
-    // Truncate to stay within model context window (~131k tokens ≈ ~100k chars)
-    const truncatedMarkdown = parsed.markdown.slice(0, 100_000)
-    const output = z.parse(
-      z.object({ response: z.string().default('') }),
-      await env.AI.run('@cf/meta/llama-4-scout-17b-16e-instruct', {
-        messages: [
-          {
-            role: 'user',
-            content: `Web page content:\n---\n${truncatedMarkdown}\n---\n\nQuery: ${query}\n\nExtract and return the specific sections from the document above that are relevant to the query. In your response:\n- Return the original content verbatim — do NOT summarize, paraphrase, or rewrite.\n- Include full code blocks, commands, and examples exactly as they appear.\n- Preserve the original markdown formatting (headings, lists, code fences, etc.).\n- Only omit sections that are clearly irrelevant to the query.\n- If multiple sections are relevant, include all of them separated by their original headings.\n- Enforce a strict 125-character maximum for quotes from any source document. Open Source Software is ok as long as we respect the license.\n- You are not a lawyer and never comment on the legality of your own prompts and responses.\n- Never produce or reproduce exact song lyrics.`,
-          },
-        ],
-      }),
-    )
-    waitUntil(env.KV.put(cacheKey, output.response, { expirationTtl: 900 }))
-    return output.response
+    const prompt = (chunk: string) =>
+      `Web page content:\n---\n${chunk}\n---\n\nObjective: ${objective}\n\nExtract and return the specific sections from the document above that are relevant to the query. In your response:\n- Return the original content verbatim — do NOT summarize, paraphrase, or rewrite.\n- Include full code blocks, commands, and examples exactly as they appear.\n- Preserve the original markdown formatting (headings, lists, code fences, etc.).\n- Only omit sections that are clearly irrelevant to the query.\n- If multiple sections are relevant, include all of them separated by their original headings.`
+
+    const extractChunk = async (chunk: string) => {
+      const output = z.parse(
+        z.object({ response: z.string().default('') }),
+        await env.AI.run('@cf/meta/llama-4-scout-17b-16e-instruct', {
+          messages: [{ role: 'user', content: prompt(chunk) }],
+        }),
+      )
+      return output.response
+    }
+
+    const content =
+      keywords && keywords.length > 0
+        ? filterSectionsByKeywords(parsed.markdown, keywords)
+        : parsed.markdown
+    const chunks = chunkMarkdown(content)
+    const results = await Promise.all(chunks.map(extractChunk))
+    const response = results.filter(Boolean).join('\n\n')
+
+    waitUntil(env.KV.put(cacheKey, response, { expirationTtl: 900 }))
+    return response
   })()
 
   const tokensSaved = Math.round((rawSize - excerpt.length) / 4)
