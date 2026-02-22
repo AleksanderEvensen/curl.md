@@ -118,14 +118,31 @@ export async function fetchPage(
     const cached = await env.KV.get(cacheKey)
     if (!fresh && cached) return cached
 
+    const system = `You extract relevant sections from web pages. Rules:
+- Return original content verbatim — do NOT summarize, paraphrase, or rewrite.
+- Include full code blocks, commands, and examples exactly as they appear.
+- Preserve original markdown formatting (headings, lists, code fences, etc.).
+- Only omit sections that are clearly irrelevant to the objective.
+- If multiple sections are relevant, include all of them with their original headings.
+- If nothing is relevant, return an empty response.
+- Do NOT add any preamble, commentary, or explanation — return only the extracted content.`
+
     const prompt = (chunk: string) =>
-      `Web page content:\n---\n${chunk}\n---\n\nObjective: ${objective}\n\nExtract and return the specific sections from the document above that are relevant to the query. In your response:\n- Return the original content verbatim — do NOT summarize, paraphrase, or rewrite.\n- Include full code blocks, commands, and examples exactly as they appear.\n- Preserve the original markdown formatting (headings, lists, code fences, etc.).\n- Only omit sections that are clearly irrelevant to the query.\n- If multiple sections are relevant, include all of them separated by their original headings.`
+      `<content>
+${chunk}
+</content>
+
+Objective: ${objective}`
 
     const extractChunk = async (chunk: string) => {
       const output = z.parse(
         z.object({ response: z.string().default('') }),
         await env.AI.run('@cf/meta/llama-4-scout-17b-16e-instruct', {
-          messages: [{ role: 'user', content: prompt(chunk) }],
+          max_tokens: 4096,
+          messages: [
+            { role: 'system', content: system },
+            { role: 'user', content: prompt(chunk) },
+          ],
         }),
       )
       return output.response

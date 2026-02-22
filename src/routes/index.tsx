@@ -171,13 +171,13 @@ function Playground() {
     const params = new URLSearchParams()
     if (o) params.set('q', o)
     if (k) params.set('k', k)
-    if (fresh) params.set('fresh', '')
-    const displayUrl = `${__HOST__}/${trimmedUrl}${params.size ? `?${params}` : ''}`
+    const query = [params.toString(), fresh ? 'fresh' : '']
+      .filter(Boolean)
+      .join('&')
+    const displayUrl = `${__HOST__}/${trimmedUrl}${query ? `?${query}` : ''}`
 
     try {
-      const res = await fetch(
-        `/${trimmedUrl}${params.size ? `?${params}` : ''}`,
-      )
+      const res = await fetch(`/${trimmedUrl}${query ? `?${query}` : ''}`)
       const text = await res.text()
       if (!res.ok) {
         try {
@@ -236,34 +236,32 @@ function Playground() {
             value={url}
           />
         </label>
-        <div className="flex flex-col gap-1.5 sm:flex-row">
-          <label className="relative flex-1">
-            <span className="sr-only">Objective</span>
-            <input
-              className="peer w-full bg-bg2 px-3 py-1.5 text-sm outline-none placeholder:text-gray9"
-              onChange={(e) => setObjective(e.target.value)}
-              placeholder="q"
-              type="text"
-              value={objective}
-            />
-            <span className="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 text-gray5 text-xs peer-[:not(:placeholder-shown)]:hidden">
-              optional
-            </span>
-          </label>
-          <label className="relative flex-1">
-            <span className="sr-only">Keywords</span>
-            <input
-              className="peer w-full bg-bg2 px-3 py-1.5 text-sm outline-none placeholder:text-gray9"
-              onChange={(e) => setKeywords(e.target.value)}
-              placeholder="k"
-              type="text"
-              value={keywords}
-            />
-            <span className="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 text-gray5 text-xs peer-[:not(:placeholder-shown)]:hidden">
-              optional
-            </span>
-          </label>
-        </div>
+        <label className="relative">
+          <span className="sr-only">Objective</span>
+          <input
+            className="peer w-full bg-bg2 px-3 py-1.5 text-sm outline-none placeholder:text-gray9"
+            onChange={(e) => setObjective(e.target.value)}
+            placeholder="q"
+            type="text"
+            value={objective}
+          />
+          <span className="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 text-gray5 text-xs peer-[:not(:placeholder-shown)]:hidden">
+            optional
+          </span>
+        </label>
+        <label className="relative">
+          <span className="sr-only">Keywords</span>
+          <input
+            className="peer w-full bg-bg2 px-3 py-1.5 text-sm outline-none placeholder:text-gray9"
+            onChange={(e) => setKeywords(e.target.value)}
+            placeholder="k"
+            type="text"
+            value={keywords}
+          />
+          <span className="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 text-gray5 text-xs peer-[:not(:placeholder-shown)]:hidden">
+            optional
+          </span>
+        </label>
         <button
           className="bg-gray1 px-3 py-1.5 font-medium text-gray9 text-sm -outline-offset-4 hover:bg-gray2 hover:text-gray11 disabled:opacity-50 dark:bg-gray1/60"
           disabled={pending}
@@ -310,7 +308,14 @@ function Playground() {
           </div>
           <pre
             key={result?.fetchedUrl ?? 'pending'}
-            className="minimal-scrollbar max-h-96 overflow-auto overscroll-contain whitespace-pre-wrap break-words px-3 pb-2 text-sm"
+            className="minimal-scrollbar max-h-96 overflow-auto overscroll-contain whitespace-pre-wrap break-words px-3 pb-2 text-sm data-[overflow]:pb-12"
+            ref={(el) => {
+              if (el)
+                el.toggleAttribute(
+                  'data-overflow',
+                  el.scrollHeight > el.clientHeight,
+                )
+            }}
           >
             {pending && !refreshingRef.current ? (
               <span className="animate-pulse text-gray6">Fetching</span>
