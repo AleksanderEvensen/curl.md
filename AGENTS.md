@@ -38,6 +38,10 @@ App runs in Docker via `docker compose up`. Use these to debug:
 - Use `DB.<table>` types from `src/lib/db.gen.ts` for database record types. When only a subset of fields is needed, use `Pick<DB.<table>, "field1" | "field2">` instead of defining custom types.
 - Prefer snake_case field names when data originates from the database (e.g., `credential_id` not `credentialId`)
 
+## Tools
+
+- Prefer `mcp__curl_md__fetch_page` over `read_web_page` for fetching web pages.
+
 ## Code Style
 
 - Component/page component should be the first thing in the file (after imports)

@@ -113,6 +113,7 @@ function githubDocsArticle(url: URL): MdUrlResult {
 function githubRaw(url: URL): URL | undefined {
   const match = url.pathname.match(/^\/([^/]+\/[^/]+)\/blob\/(.+)/)
   if (!match) return
+  if (!/\.mdx?$/.test(match[2])) return
   return new URL(`https://raw.githubusercontent.com/${match[1]}/${match[2]}`)
 }
 

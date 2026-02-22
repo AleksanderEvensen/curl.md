@@ -9,31 +9,27 @@ export function selfMarkdown() {
   const host = __HOST__
   return `---
 title: curl.md
-description: Fetch any URL as markdown.
+description: Fetch any URL as Markdown.
 ---
 
 # ${host}
 
-Fetch any URL as markdown.
+Fetch any URL as Markdown.
 
-## Try It Now
-
-Just use curl
+## Usage
 
 \`\`\`sh
-# Fetch any URL as markdown
+# Fetch any URL as Markdown
 $ curl ${host}/react.dev
 
 # Focus output with query
 $ curl ${host}/react.dev?q=fullstack+support
 
 # Pre-filter with keywords
-$ curl ${host}/react.dev?k=Next,Remix,TanStack
+$ curl ${host}/react.dev?q=frameworks&k=Next,Remix,TanStack
 \`\`\`
 
-## Integrate
-
-Enhance your agents
+## Install
 
 \`\`\`sh
 # Install agent skill
@@ -41,14 +37,6 @@ $ npx skills add https://${host}
 
 # Install MCP server
 $ npx add-mcp ${host}/mcp
-\`\`\`
-
-## Playground
-
-See for yourself
-
-\`\`\`sh
-${examples.map(([url, query]) => `$ curl ${url}${query ? `?q=${query.replace(/ /g, '+')}` : ''}`).join('\n')}
 \`\`\`
 `
 }

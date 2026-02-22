@@ -1,6 +1,6 @@
 # curl.md
 
-Fetch any URL as markdown 
+Fetch any URL as Markdown 
 
 ## Development
 

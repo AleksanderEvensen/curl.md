@@ -73,7 +73,7 @@ function indexVariant(tokensSaved: number) {
         style: { fontSize: 48, fontWeight: 900 },
       }),
       node('div', {
-        children: 'Fetch any URL as markdown',
+        children: 'Fetch any URL as Markdown',
         style: { color: '#a1a1a1', fontSize: 48, marginTop: 12 },
       }),
       ...(tokensSaved > 0
@@ -137,7 +137,7 @@ function urlVariant(urlParam: string, tokensSaved: number) {
         style: { fontSize: 48, fontWeight: 900 },
       }),
       node('div', {
-        children: 'Fetch any URL as markdown',
+        children: 'Fetch any URL as Markdown',
         style: { color: '#a1a1a1', fontSize: 48, marginTop: 12 },
       }),
       ...(tokensSaved > 0
