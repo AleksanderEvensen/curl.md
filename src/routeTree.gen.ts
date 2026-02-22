@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SkillsRouteImport } from './routes/skills'
+import { Route as OgDotpngRouteImport } from './routes/og[.]png'
 import { Route as McpRouteImport } from './routes/mcp'
 import { Route as LlmsDottxtRouteImport } from './routes/llms[.]txt'
 import { Route as SplatRouteImport } from './routes/$'
@@ -18,6 +19,11 @@ import { Route as IndexRouteImport } from './routes/index'
 const SkillsRoute = SkillsRouteImport.update({
   id: '/skills',
   path: '/skills',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OgDotpngRoute = OgDotpngRouteImport.update({
+  id: '/og.png',
+  path: '/og.png',
   getParentRoute: () => rootRouteImport,
 } as any)
 const McpRoute = McpRouteImport.update({
@@ -46,6 +52,7 @@ export interface FileRoutesByFullPath {
   '/$': typeof SplatRoute
   '/llms.txt': typeof LlmsDottxtRoute
   '/mcp': typeof McpRoute
+  '/og.png': typeof OgDotpngRoute
   '/skills': typeof SkillsRoute
 }
 export interface FileRoutesByTo {
@@ -53,6 +60,7 @@ export interface FileRoutesByTo {
   '/$': typeof SplatRoute
   '/llms.txt': typeof LlmsDottxtRoute
   '/mcp': typeof McpRoute
+  '/og.png': typeof OgDotpngRoute
   '/skills': typeof SkillsRoute
 }
 export interface FileRoutesById {
@@ -61,14 +69,15 @@ export interface FileRoutesById {
   '/$': typeof SplatRoute
   '/llms.txt': typeof LlmsDottxtRoute
   '/mcp': typeof McpRoute
+  '/og.png': typeof OgDotpngRoute
   '/skills': typeof SkillsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/$' | '/llms.txt' | '/mcp' | '/skills'
+  fullPaths: '/' | '/$' | '/llms.txt' | '/mcp' | '/og.png' | '/skills'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/$' | '/llms.txt' | '/mcp' | '/skills'
-  id: '__root__' | '/' | '/$' | '/llms.txt' | '/mcp' | '/skills'
+  to: '/' | '/$' | '/llms.txt' | '/mcp' | '/og.png' | '/skills'
+  id: '__root__' | '/' | '/$' | '/llms.txt' | '/mcp' | '/og.png' | '/skills'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -76,6 +85,7 @@ export interface RootRouteChildren {
   SplatRoute: typeof SplatRoute
   LlmsDottxtRoute: typeof LlmsDottxtRoute
   McpRoute: typeof McpRoute
+  OgDotpngRoute: typeof OgDotpngRoute
   SkillsRoute: typeof SkillsRoute
 }
 
@@ -86,6 +96,13 @@ declare module '@tanstack/react-router' {
       path: '/skills'
       fullPath: '/skills'
       preLoaderRoute: typeof SkillsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/og.png': {
+      id: '/og.png'
+      path: '/og.png'
+      fullPath: '/og.png'
+      preLoaderRoute: typeof OgDotpngRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/mcp': {
@@ -124,6 +141,7 @@ const rootRouteChildren: RootRouteChildren = {
   SplatRoute: SplatRoute,
   LlmsDottxtRoute: LlmsDottxtRoute,
   McpRoute: McpRoute,
+  OgDotpngRoute: OgDotpngRoute,
   SkillsRoute: SkillsRoute,
 }
 export const routeTree = rootRouteImport

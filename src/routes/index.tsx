@@ -11,7 +11,19 @@ import { useTheme } from '#lib/theme.ts'
 
 export const Route = createFileRoute('/')({
   head: () => ({
-    meta: [{ title: __HOST__, desription: 'Fetch any URL as markdown' }],
+    meta: [
+      { title: __HOST__ },
+      { name: 'description', content: 'Fetch any URL as markdown' },
+      { property: 'og:title', content: __HOST__ },
+      { property: 'og:description', content: 'Fetch any URL as markdown' },
+      { property: 'og:image', content: `https://${__HOST__}/og.png` },
+      { property: 'og:type', content: 'website' },
+      { property: 'og:url', content: `https://${__HOST__}` },
+      { name: 'twitter:card', content: 'summary_large_image' },
+      { name: 'twitter:title', content: __HOST__ },
+      { name: 'twitter:description', content: 'Fetch any URL as markdown' },
+      { name: 'twitter:image', content: `https://${__HOST__}/og.png` },
+    ],
   }),
   component: Home,
 })

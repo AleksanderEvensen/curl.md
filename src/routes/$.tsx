@@ -22,6 +22,30 @@ export const Route = createFileRoute('/$')({
           .get('accept')
           ?.includes('application/json')
 
+        const ua = options.request.headers.get('user-agent') ?? ''
+        if (isSocialCrawler(ua)) {
+          const raw = options.params._splat ?? ''
+          const ogUrl = `https://${__HOST__}/og.png?url=${encodeURIComponent(raw)}`
+          return new Response(
+            `<!DOCTYPE html>
+<html>
+<head>
+<meta property="og:title" content="${__HOST__}/${escapeHtml(raw)}" />
+<meta property="og:description" content="Fetch any URL as markdown" />
+<meta property="og:image" content="${ogUrl}" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://${__HOST__}/${escapeHtml(raw)}" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="${__HOST__}/${escapeHtml(raw)}" />
+<meta name="twitter:description" content="Fetch any URL as markdown" />
+<meta name="twitter:image" content="${ogUrl}" />
+</head>
+<body></body>
+</html>`,
+            { headers: { 'content-type': 'text/html; charset=utf-8' } },
+          )
+        }
+
         const url = new URL(
           z.parse(
             z
@@ -148,4 +172,19 @@ function respond(
       'content-type': 'text/markdown; charset=utf-8',
     },
   })
+}
+
+const socialCrawlerRe =
+  /Twitterbot|facebookexternalhit|LinkedInBot|Slackbot|Discordbot|WhatsApp|TelegramBot/i
+
+function isSocialCrawler(ua: string) {
+  return socialCrawlerRe.test(ua)
+}
+
+function escapeHtml(s: string) {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
 }
