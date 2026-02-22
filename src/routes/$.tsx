@@ -100,7 +100,7 @@ export const Route = createFileRoute('/$')({
         }
 
         try {
-          const { estimated, markdown, tokensSaved } = await fetchPage(url, {
+          const page = await fetchPage(url, {
             fresh: search.fresh,
             keywords: search.k,
             objective: search.q,
@@ -111,26 +111,26 @@ export const Route = createFileRoute('/$')({
             keywords: search.k?.join(',') || null,
             objective: search.q || null,
             path: url.pathname,
-            tokens_saved: tokensSaved,
+            tokens_saved: page.tokensSaved,
             url: url.href,
           })
 
-          if (estimated)
+          if (page.estimated)
             waitUntil(
               env.TOKEN_UPDATE_QUEUE.send({
-                markdownLength: markdown.length,
+                markdownLength: page.markdown.length,
                 requestId,
                 url: url.href,
               }),
             )
 
           return respond(
-            { content: `${markdown}${poweredByFooter}` },
+            { content: `${page.markdown}${poweredByFooter}` },
             {
               status: 200,
               headers: {
                 'x-request-id': requestId,
-                'x-tokens-saved': String(tokensSaved),
+                'x-tokens-saved': String(page.tokensSaved),
                 ...rateLimitHeaders,
               },
             },

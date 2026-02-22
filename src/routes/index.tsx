@@ -6,7 +6,6 @@ import { getRequest } from '@tanstack/react-start/server'
 import * as React from 'react'
 import { getDb } from '#lib/db.ts'
 import { poweredByFooter } from '#lib/markdown.ts'
-import { examples } from '#lib/self-markdown.ts'
 import { useTheme } from '#lib/theme.ts'
 
 export const Route = createFileRoute('/')({
@@ -270,30 +269,6 @@ function Playground() {
           Fetch
         </button>
       </form>
-
-      {(!result || resultHidden) && !pending && (
-        <div className="mb-1.5 grid grid-cols-1 gap-1.5 text-xs sm:grid-cols-2">
-          {examples.map(([exampleUrl, exampleQuery]) => {
-            const displayPath = exampleUrl.replace(/^https?:\/\//, '')
-            return (
-              <button
-                className="flex items-center gap-2 bg-bg2 px-3 py-2 text-start text-gray8 hover:bg-gray2 hover:text-gray11 dark:text-gray6"
-                key={exampleUrl}
-                onClick={() => {
-                  setUrl(displayPath)
-                  setObjective(exampleQuery ?? '')
-                  setKeywords('')
-                  queueMicrotask(() => formRef.current?.requestSubmit())
-                }}
-                type="button"
-              >
-                <IconOcticonMarkdown16 className="mt-px size-3.5 shrink-0" />
-                <span className="truncate">{displayPath}</span>
-              </button>
-            )
-          })}
-        </div>
-      )}
 
       {(result && !resultHidden) || (pending && (!result || resultHidden)) ? (
         <div className="relative mb-1.5 bg-bg2">
