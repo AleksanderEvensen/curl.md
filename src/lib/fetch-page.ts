@@ -109,14 +109,19 @@ export async function fetchPage(
 
   const estimated = !parsed.hadHtml && !('isSelf' in fetched && fetched.isSelf)
 
+  const { frontmatter, body } = splitFrontmatter(parsed.markdown)
+  const prependFrontmatter = (content: string) =>
+    frontmatter ? `${frontmatter}\n\n${content}` : content
+
   if (!objective) {
     const content =
       keywords && keywords.length > 0
-        ? filterSectionsByKeywords(parsed.markdown, keywords)
-        : parsed.markdown
-    const tokensCount = Math.round(content.length / 4)
-    const tokensSaved = Math.round((rawSize - content.length) / 4)
-    return { estimated, markdown: content, tokensCount, tokensSaved }
+        ? filterSectionsByKeywords(body, keywords)
+        : body
+    const markdown = prependFrontmatter(content)
+    const tokensCount = Math.round(markdown.length / 4)
+    const tokensSaved = Math.round((rawSize - markdown.length) / 4)
+    return { estimated, markdown, tokensCount, tokensSaved }
   }
 
   const excerpt = await (async () => {
@@ -158,8 +163,8 @@ Objective: ${objective}`
 
     const content =
       keywords && keywords.length > 0
-        ? filterSectionsByKeywords(parsed.markdown, keywords)
-        : parsed.markdown
+        ? filterSectionsByKeywords(body, keywords)
+        : body
     const chunks = chunkMarkdown(content)
     const results = await Promise.all(chunks.map(extractChunk))
     const response = results.filter(Boolean).join('\n\n')
@@ -168,7 +173,21 @@ Objective: ${objective}`
     return response
   })()
 
-  const tokensCount = Math.round(excerpt.length / 4)
-  const tokensSaved = Math.round((rawSize - excerpt.length) / 4)
-  return { estimated, markdown: excerpt, tokensCount, tokensSaved }
+  const markdown = prependFrontmatter(excerpt)
+  const tokensCount = Math.round(markdown.length / 4)
+  const tokensSaved = Math.round((rawSize - markdown.length) / 4)
+  return { estimated, markdown, tokensCount, tokensSaved }
+}
+
+function splitFrontmatter(markdown: string): {
+  frontmatter: string | undefined
+  body: string
+} {
+  if (!markdown.startsWith('---\n'))
+    return { frontmatter: undefined, body: markdown }
+  const end = markdown.indexOf('\n---\n', 4)
+  if (end === -1) return { frontmatter: undefined, body: markdown }
+  const frontmatter = markdown.slice(0, end + 4)
+  const body = markdown.slice(end + 5)
+  return { frontmatter, body }
 }

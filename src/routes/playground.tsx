@@ -202,7 +202,7 @@ function Playground() {
                   disabled={loading || !url.trim()}
                   type="submit"
                 >
-                  {loading ? 'Fetching' : 'Fetch'}
+                  Fetch
                 </button>
                 {hasResult && (
                   <button
@@ -234,6 +234,41 @@ function Playground() {
                     {error}
                   </pre>
                 )}
+              </div>
+            )}
+
+            {!hasResult && (
+              <div className="flex flex-col gap-3 md:hidden">
+                <p className="text-gray5">
+                  Enter a URL and click Fetch, or try an example:
+                </p>
+                {examples.map((example) => (
+                  <button
+                    className="bg-gray-a2 p-3 text-start text-gray6 not-disabled:hover:bg-gray-a3 disabled:opacity-50"
+                    disabled={loading}
+                    key={example.url}
+                    onClick={() => {
+                      setInputs(example)
+                      fetchMarkdown(example)
+                    }}
+                    type="button"
+                  >
+                    <span className="text-gray5">{__HOST__}/</span>
+                    {example.url}
+                    {example.q && (
+                      <>
+                        ?q=
+                        <span className="text-gray10">{example.q}</span>
+                      </>
+                    )}
+                    {example.k && (
+                      <>
+                        &k=
+                        <span className="text-gray10">{example.k}</span>
+                      </>
+                    )}
+                  </button>
+                ))}
               </div>
             )}
 
@@ -285,7 +320,7 @@ function Playground() {
                 <p>Enter a URL and click Fetch, or try an example:</p>
                 {examples.map((example) => (
                   <button
-                    className="text-start text-gray6 disabled:opacity-50"
+                    className="bg-gray-a2 p-3 text-start text-gray6 not-disabled:hover:bg-gray-a3 disabled:opacity-50"
                     disabled={loading}
                     key={example.url}
                     onClick={() => {
