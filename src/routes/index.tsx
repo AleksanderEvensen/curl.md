@@ -1,4 +1,4 @@
-import { env, waitUntil } from 'cloudflare:workers'
+import { env } from 'cloudflare:workers'
 import * as Query from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { createServerFn, useServerFn } from '@tanstack/react-start'
@@ -27,24 +27,48 @@ export const Route = createFileRoute('/')({
 
 function Home() {
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-2 px-6 pt-16 pb-16 text-lg">
+    <div className="mx-auto flex max-w-2xl flex-col gap-1 px-6 pt-16 pb-16 text-lg">
       <h1 className="font-bold">curl.md</h1>
-      <p className="text-gray6">Fetch any URL as Markdown</p>
+      <p className="text-gray6">
+        Fetch any URL as Markdown via{' '}
+        <code className="text-teal9">{__HOST__}/&lt;url&gt;</code>
+      </p>
       <TokensSaved />
-      <code className="mt-4">
-        <span className="select-none text-gray6">$ </span>npx skills add{' '}
-        <span className="text-gray10">https://{__HOST__}</span>
-      </code>
-      <code>
-        <span className="select-none text-gray6">$ </span>npx add-mcp{' '}
-        <span className="text-gray10">{__HOST__}/mcp</span>
-      </code>
-      <code>
-        <span className="select-none text-gray6">$ </span>curl{' '}
-        <span className="text-gray10">https://{__HOST__}/example.com</span>
-      </code>
+      <div className="mt-4">
+        <code className="block text-gray6"># Install agent skill</code>
+        <code className="block">
+          <span className="text-gray12">npx skills add</span>{' '}
+          <span className="text-gray10">https://{__HOST__}</span>
+        </code>
+      </div>
+      <div>
+        <code className="block text-gray6"># Install MCP server</code>
+        <code className="block">
+          <span className="text-gray12">npx add-mcp</span>{' '}
+          <span className="text-gray10">{__HOST__}/mcp</span>
+        </code>
+      </div>
+
+      <div className="mt-4">
+        <code className="block text-gray6"># Filter by objective</code>
+        <code className="block">
+          <span className="text-gray12">curl</span> https://{__HOST__}
+          /example.com?
+          <span className="text-gray10">q=pricing</span>
+        </code>
+      </div>
+      <div>
+        <code className="block text-gray6"># Filter by keywords</code>
+        <code className="block">
+          <span className="text-gray12">curl</span> https://{__HOST__}
+          /example.com?
+          <span className="text-gray10">k=api,auth</span>
+        </code>
+      </div>
+
       <footer className="mt-4 flex gap-3 text-gray6">
         <a
+          className="hover:underline"
           href="https://github.com/wevm/curl.md"
           target="_blank"
           rel="noopener noreferrer"
@@ -52,7 +76,9 @@ function Home() {
           GitHub
         </a>
         <span>|</span>
+
         <a
+          className="hover:underline"
           href="https://x.com/wevm_dev"
           target="_blank"
           rel="noopener noreferrer"
@@ -60,7 +86,9 @@ function Home() {
           X
         </a>
         <span>|</span>
-        <a href="/llms.txt">llms.txt</a>
+        <a className="hover:underline" href="/llms.txt">
+          llms.txt
+        </a>
       </footer>
     </div>
   )
@@ -69,24 +97,24 @@ function Home() {
 function TokensSaved() {
   const getStats = useServerFn(getTokensSaved)
   const { data } = Query.useQuery({
-    initialData: { tokens_saved: 0 },
+    initialData: { tokens_saved: __INITIAL_TOKENS_SAVED__ },
     queryFn: () => getStats(),
     queryKey: ['stats'],
-    refetchInterval: 30_000,
+    refetchInterval: 10_000,
   })
   const total = data?.tokens_saved ?? 0
   const animated = useCountUp(total)
   return (
     <p className="text-gray6">
-      <span className="tabular-nums">{formatNumber(animated, total)}</span>{' '}
-      tokens saved
+      <span className="tabular-nums">{formatNumber(animated)}</span> tokens
+      saved
     </p>
   )
 }
 
 function useCountUp(target: number, duration = 500) {
-  const [value, setValue] = React.useState(0)
-  const prev = React.useRef(0)
+  const [value, setValue] = React.useState(target)
+  const prev = React.useRef(target)
 
   React.useEffect(() => {
     if (target === 0) return
@@ -114,27 +142,17 @@ const getTokensSaved = createServerFn({ method: 'GET' }).handler(async () => {
     const origin = request.headers.get('origin')
     if (origin && origin !== `https://${env.HOST}`) throw new Error('Forbidden')
 
-    const cacheKey = 'stats:tokens_saved'
-    const cached = await env.KV.get<number>(cacheKey, 'json')
-    if (cached !== null) return { tokens_saved: cached }
-
     const db = getDb()
     const result = await db
       .selectFrom('request')
       .select((eb) => eb.fn.sum<number>('tokens_saved').as('total'))
       .executeTakeFirstOrThrow()
-    const total = result.total ?? 0
-    waitUntil(env.KV.put(cacheKey, String(total), { expirationTtl: 60 }))
-    return { tokens_saved: total }
+    return { tokens_saved: result.total ?? 0 }
   } catch {
-    return { tokens_saved: 0 }
+    return { tokens_saved: __INITIAL_TOKENS_SAVED__ }
   }
 })
 
-function formatNumber(n: number, reference?: number): string {
-  const r = reference ?? n
-  if (r === 0) return `0.00`
-  if (r >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
-  if (r >= 1_000) return `${(n / 1_000).toFixed(1)}K`
-  return String(n)
+function formatNumber(n: number): string {
+  return n.toLocaleString('en-US')
 }

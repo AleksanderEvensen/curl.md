@@ -10,38 +10,34 @@ description: Fetch any URL as Markdown
 Fetch any URL as Markdown
 
 \`\`\`sh
-$ curl https://${host}/example.com
+# Fetch a URL
+curl https://${host}/example.com
+
+# Install agent skill
+npx skills add https://${host}
+
+# Install MCP server
+npx add-mcp ${host}/mcp
 \`\`\`
 
-## Install
+## Usage
 
 \`\`\`sh
-# Agent skill
-$ npx skills add https://${host}
+# Filter by objective
+curl https://${host}/example.com?q=pricing
 
-# MCP server
-$ npx add-mcp ${host}/mcp
-\`\`\`
+# Filter by keywords
+curl https://${host}/example.com?k=api,auth
 
-- [Skill](https://${host}/skills)
-- [MCP server](https://${host}/mcp)
-
-## Query Parameters
-
-- \`q\` — objective to extract relevant content from the page
-- \`k\` — comma-separated keywords to pre-filter sections
-
-\`\`\`sh
-# Extract specific info from docs
-$ curl "${host}/docs.github.com/en/webhooks/webhook-events-and-payloads?q=pull+request+review+submitted+event+payload+and+required+headers"
-
-# Pre-filter sections by keywords, then extract
-$ curl "${host}/developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch?q=streaming+response+body&k=ReadableStream,getReader"
+# Combine both
+curl "https://${host}/example.com?q=authentication&k=oauth,jwt"
 \`\`\`
 
 ## Links
 
 - [GitHub](https://github.com/wevm/curl.md)
+- [MCP server](https://${host}/mcp)
+- [Skill](https://${host}/skills)
 - [X](https://x.com/wevm_dev)
 - [llms.txt](https://${host}/llms.txt)
 `

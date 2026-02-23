@@ -46,5 +46,20 @@ export default defineConfig({
         })(),
     ),
     __HOST__: JSON.stringify(getWranglerVar('HOST')),
+    __INITIAL_TOKENS_SAVED__: (() => {
+      try {
+        const isProduction = process.env.CLOUDFLARE_ENV === 'production'
+        const flags = isProduction ? '--remote --env production' : '--local'
+        return child
+          .execSync(
+            `node --experimental-strip-types scripts/get-tokens-saved.ts ${flags}`,
+            { stdio: 'pipe' },
+          )
+          .toString()
+          .trim()
+      } catch {
+        return '0'
+      }
+    })(),
   },
 })
