@@ -9,18 +9,11 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SkillsRouteImport } from './routes/skills'
 import { Route as OgDotpngRouteImport } from './routes/og[.]png'
 import { Route as McpRouteImport } from './routes/mcp'
-import { Route as LlmsDottxtRouteImport } from './routes/llms[.]txt'
 import { Route as SplatRouteImport } from './routes/$'
 import { Route as IndexRouteImport } from './routes/index'
 
-const SkillsRoute = SkillsRouteImport.update({
-  id: '/skills',
-  path: '/skills',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const OgDotpngRoute = OgDotpngRouteImport.update({
   id: '/og.png',
   path: '/og.png',
@@ -29,11 +22,6 @@ const OgDotpngRoute = OgDotpngRouteImport.update({
 const McpRoute = McpRouteImport.update({
   id: '/mcp',
   path: '/mcp',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LlmsDottxtRoute = LlmsDottxtRouteImport.update({
-  id: '/llms.txt',
-  path: '/llms.txt',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SplatRoute = SplatRouteImport.update({
@@ -50,54 +38,39 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
-  '/llms.txt': typeof LlmsDottxtRoute
   '/mcp': typeof McpRoute
   '/og.png': typeof OgDotpngRoute
-  '/skills': typeof SkillsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
-  '/llms.txt': typeof LlmsDottxtRoute
   '/mcp': typeof McpRoute
   '/og.png': typeof OgDotpngRoute
-  '/skills': typeof SkillsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
-  '/llms.txt': typeof LlmsDottxtRoute
   '/mcp': typeof McpRoute
   '/og.png': typeof OgDotpngRoute
-  '/skills': typeof SkillsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/$' | '/llms.txt' | '/mcp' | '/og.png' | '/skills'
+  fullPaths: '/' | '/$' | '/mcp' | '/og.png'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/$' | '/llms.txt' | '/mcp' | '/og.png' | '/skills'
-  id: '__root__' | '/' | '/$' | '/llms.txt' | '/mcp' | '/og.png' | '/skills'
+  to: '/' | '/$' | '/mcp' | '/og.png'
+  id: '__root__' | '/' | '/$' | '/mcp' | '/og.png'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SplatRoute: typeof SplatRoute
-  LlmsDottxtRoute: typeof LlmsDottxtRoute
   McpRoute: typeof McpRoute
   OgDotpngRoute: typeof OgDotpngRoute
-  SkillsRoute: typeof SkillsRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/skills': {
-      id: '/skills'
-      path: '/skills'
-      fullPath: '/skills'
-      preLoaderRoute: typeof SkillsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/og.png': {
       id: '/og.png'
       path: '/og.png'
@@ -110,13 +83,6 @@ declare module '@tanstack/react-router' {
       path: '/mcp'
       fullPath: '/mcp'
       preLoaderRoute: typeof McpRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/llms.txt': {
-      id: '/llms.txt'
-      path: '/llms.txt'
-      fullPath: '/llms.txt'
-      preLoaderRoute: typeof LlmsDottxtRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/$': {
@@ -139,10 +105,8 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SplatRoute: SplatRoute,
-  LlmsDottxtRoute: LlmsDottxtRoute,
   McpRoute: McpRoute,
   OgDotpngRoute: OgDotpngRoute,
-  SkillsRoute: SkillsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

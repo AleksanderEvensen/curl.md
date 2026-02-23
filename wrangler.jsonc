@@ -7,15 +7,14 @@
     "nodejs_compat",
     "no_handle_cross_request_promise_resolution"
   ],
+  "assets": {
+    "binding": "ASSETS"
+  },
   "preview_urls": false,
   "observability": {
     "enabled": true,
     "logs": {
       "head_sampling_rate": 1
-    },
-    "traces": {
-      "enabled": true,
-      "head_sampling_rate": 0.01
     }
   },
   "ai": {
@@ -42,6 +41,19 @@
   "env": {
     "production": {
       "name": "curl",
+      "observability": {
+        "enabled": true,
+        "logs": {
+          "head_sampling_rate": 1
+        },
+        "traces": {
+          "enabled": true,
+          "head_sampling_rate": 0.01
+        }
+      },
+      "assets": {
+        "binding": "ASSETS"
+      },
       "ai": {
         "binding": "AI"
       },
@@ -75,6 +87,9 @@
     },
     "preview": {
       "name": "__PREVIEW_NAME__",
+      "assets": {
+        "binding": "ASSETS"
+      },
       "ai": {
         "binding": "AI"
       },

@@ -50,6 +50,7 @@ function Home() {
 function TokensSaved() {
   const getStats = useServerFn(getTokensSaved)
   const { data } = Query.useQuery({
+    initialData: { tokens_saved: 0 },
     queryFn: () => getStats(),
     queryKey: ['stats'],
     refetchInterval: 30_000,
@@ -57,10 +58,7 @@ function TokensSaved() {
   const total = data?.tokens_saved ?? 0
   const animated = useCountUp(total)
   return (
-    <p
-      className="invisible text-gray6 data-[visible]:visible"
-      data-visible={total > 0 ? '' : undefined}
-    >
+    <p className="text-gray6">
       <span className="tabular-nums">{formatNumber(animated, total)}</span>{' '}
       tokens saved
     </p>
@@ -112,6 +110,7 @@ const getTokensSaved = createServerFn({ method: 'GET' }).handler(async () => {
 
 function formatNumber(n: number, reference?: number): string {
   const r = reference ?? n
+  if (r === 0) return `0.00`
   if (r >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
   if (r >= 1_000) return `${(n / 1_000).toFixed(1)}K`
   return String(n)

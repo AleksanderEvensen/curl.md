@@ -1,4 +1,4 @@
-import { env } from 'cloudflare:workers'
+import { env, waitUntil } from 'cloudflare:workers'
 
 const dailyLimit = 1_000
 
@@ -14,6 +14,6 @@ export async function rateLimit(request: Request): Promise<{
   if (count >= dailyLimit) return { limited: true, remaining: 0 }
 
   // Expire at end of day (max 24h TTL)
-  await env.KV.put(key, String(count + 1), { expirationTtl: 86_400 })
+  waitUntil(env.KV.put(key, String(count + 1), { expirationTtl: 86_400 }))
   return { limited: false, remaining: dailyLimit - count - 1 }
 }
