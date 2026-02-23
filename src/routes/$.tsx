@@ -102,6 +102,7 @@ export const Route = createFileRoute('/$')({
               status: 200,
               headers: {
                 'x-request-id': requestId,
+                'x-tokens-count': String(page.tokensCount),
                 'x-tokens-saved': String(page.tokensSaved),
                 ...rateLimitHeaders,
               },
@@ -140,7 +141,8 @@ function respond(
     ...init,
     headers: {
       ...init.headers,
-      'access-control-expose-headers': 'x-request-id, x-tokens-saved',
+      'access-control-expose-headers':
+        'x-request-id, x-tokens-count, x-tokens-saved',
       'content-type': 'text/markdown; charset=utf-8',
     },
   })

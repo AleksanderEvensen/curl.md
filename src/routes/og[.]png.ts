@@ -1,6 +1,6 @@
 import { env, waitUntil } from 'cloudflare:workers'
 import { createFileRoute } from '@tanstack/react-router'
-import { ImageResponse, loadGoogleFont } from 'workers-og'
+import { ImageResponse } from 'workers-og'
 import { getDb } from '#lib/db.ts'
 
 export const Route = createFileRoute('/og.png')({
@@ -11,8 +11,8 @@ export const Route = createFileRoute('/og.png')({
         const urlParam = url.searchParams.get('url')?.trim() || undefined
 
         const [font, fontBold] = await Promise.all([
-          loadGoogleFont({ family: 'Geist Mono', weight: 400 }),
-          loadGoogleFont({ family: 'Geist Mono', weight: 900 }),
+          loadFont(request, '/fonts/GeistMono-Regular.ttf'),
+          loadFont(request, '/fonts/GeistMono-Black.ttf'),
         ])
 
         const tokensSaved = await getTokensSaved()
@@ -226,4 +226,10 @@ function formatNumber(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`
   return String(n)
+}
+
+async function loadFont(request: Request, path: string) {
+  const url = new URL(path, request.url)
+  const response = await env.ASSETS.fetch(url)
+  return response.arrayBuffer()
 }

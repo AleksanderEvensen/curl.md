@@ -11,6 +11,7 @@ export async function fetchPage(
 ): Promise<{
   estimated: boolean
   markdown: string
+  tokensCount: number
   tokensSaved: number
 }> {
   const { fresh, keywords, objective } = options ?? {}
@@ -82,7 +83,7 @@ export async function fetchPage(
   })()
 
   const parsed = await (async () => {
-    if (fetched.contentType === 'text/markdown')
+    if (fetched.contentType.startsWith('text/markdown'))
       return { markdown: fetched.content, meta: {}, hadHtml: false }
     if (mdResult?.parse) {
       const result = mdResult.parse(fetched.content)
@@ -109,8 +110,9 @@ export async function fetchPage(
   const estimated = !parsed.hadHtml && !('isSelf' in fetched && fetched.isSelf)
 
   if (!objective) {
+    const tokensCount = Math.round(parsed.markdown.length / 4)
     const tokensSaved = Math.round((rawSize - parsed.markdown.length) / 4)
-    return { estimated, markdown: parsed.markdown, tokensSaved }
+    return { estimated, markdown: parsed.markdown, tokensCount, tokensSaved }
   }
 
   const excerpt = await (async () => {
@@ -160,6 +162,7 @@ Objective: ${objective}`
     return response
   })()
 
+  const tokensCount = Math.round(excerpt.length / 4)
   const tokensSaved = Math.round((rawSize - excerpt.length) / 4)
-  return { estimated, markdown: excerpt, tokensSaved }
+  return { estimated, markdown: excerpt, tokensCount, tokensSaved }
 }

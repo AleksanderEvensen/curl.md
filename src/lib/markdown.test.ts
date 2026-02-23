@@ -155,7 +155,8 @@ describe('strips noise elements', () => {
       html({ body: '<nav><a href="/">Home</a></nav><p>Content</p>' }),
     )
     expect(result).toContain('Content')
-    expect(result).not.toContain('Home')
+    expect(result).toContain('Sitemap:')
+    expect(result).toContain('[Home](/)')
   })
 
   test('preserves header elements', async () => {
@@ -221,11 +222,13 @@ describe('strips noise elements', () => {
         body: '<div role="navigation"><a href="/">Nav</a></div><div role="banner">Banner</div><div role="contentinfo">Info</div><div role="complementary">Side</div><p>Content</p>',
       }),
     )
-    expect(result).toContain('Content')
-    expect(result).not.toContain('Nav')
-    expect(result).not.toContain('Banner')
-    expect(result).not.toContain('Info')
-    expect(result).not.toContain('Side')
+    const [main, related] = result.split('Sitemap:')
+    expect(main).toContain('Content')
+    expect(main).not.toContain('Nav')
+    expect(main).not.toContain('Banner')
+    expect(main).not.toContain('Info')
+    expect(main).not.toContain('Side')
+    expect(related).toContain('[Nav](/)')
   })
 
   test('preserves main content', async () => {
@@ -245,9 +248,12 @@ describe('strips noise elements', () => {
         body: '<nav><ul><li><a href="/">Home</a></li><li><a href="/about">About</a></li></ul></nav><article><p>Article content</p></article>',
       }),
     )
-    expect(result).toContain('Article content')
-    expect(result).not.toContain('Home')
-    expect(result).not.toContain('About')
+    const [main, related] = result.split('Sitemap:')
+    expect(main).toContain('Article content')
+    expect(main).not.toContain('Home')
+    expect(main).not.toContain('About')
+    expect(related).toContain('[Home](/)')
+    expect(related).toContain('[About](/about)')
   })
 })
 
@@ -278,12 +284,13 @@ describe('resolves relative links', () => {
     expect(result).toContain('[Other](https://other.com)')
   })
 
-  test('strips hash-only links', async () => {
+  test('unwraps hash-only links (keeps text, removes link)', async () => {
     const { markdown: result } = await htmlToMarkdown(
       html({ body: '<a href="#section">Jump</a><p>Content</p>' }),
       { baseUrl },
     )
-    expect(result).not.toContain('Jump')
+    expect(result).toContain('Jump')
+    expect(result).not.toContain('[Jump]')
     expect(result).toContain('Content')
   })
 
@@ -404,6 +411,74 @@ describe('strips form elements', () => {
     )
     expect(result).toContain('Content')
     expect(result).not.toContain('Submit')
+  })
+
+  test('strips elements with noise class names', async () => {
+    const { markdown: result } = await htmlToMarkdown(
+      html({
+        body: '<div class="sidebar"><p>Side content</p></div><div class="ad-unit"><p>Buy now</p></div><p>Main content</p>',
+      }),
+    )
+    const [main] = result.split('Sitemap:')
+    expect(main).toContain('Main content')
+    expect(main).not.toContain('Side content')
+    expect(main).not.toContain('Buy now')
+  })
+
+  test('strips elements with noise id', async () => {
+    const { markdown: result } = await htmlToMarkdown(
+      html({
+        body: '<div id="comments-section"><p>User comment</p></div><p>Article</p>',
+      }),
+    )
+    const [main] = result.split('Sitemap:')
+    expect(main).toContain('Article')
+    expect(main).not.toContain('User comment')
+  })
+
+  test('strips hidden elements', async () => {
+    const { markdown: result } = await htmlToMarkdown(
+      html({
+        body: '<div hidden><p>Hidden</p></div><div aria-hidden="true"><p>AriaHidden</p></div><div style="display:none"><p>DisplayNone</p></div><p>Visible</p>',
+      }),
+    )
+    expect(result).toContain('Visible')
+    expect(result).not.toContain('Hidden')
+    expect(result).not.toContain('AriaHidden')
+    expect(result).not.toContain('DisplayNone')
+  })
+
+  test('strips high link density blocks', async () => {
+    const links = Array.from(
+      { length: 10 },
+      (_, i) => `<a href="/page${i}">Page ${i} link text</a>`,
+    ).join(' ')
+    const { markdown: result } = await htmlToMarkdown(
+      html({
+        body: `<div>${links}</div><p>Main content here</p>`,
+      }),
+    )
+    const [main, related] = result.split('Sitemap:')
+    expect(main).toContain('Main content')
+    expect(main).not.toContain('Page 0')
+    expect(related).toContain('[Page 0 link text](/page0)')
+  })
+
+  test('deduplicates related links', async () => {
+    const { markdown: result } = await htmlToMarkdown(
+      html({
+        body: '<nav><a href="/home">Home</a></nav><footer><a href="/home">Home</a><a href="/about">About</a></footer><p>Content</p>',
+      }),
+    )
+    const matches = result.match(/\[Home\]/g)
+    expect(matches).toHaveLength(1)
+  })
+
+  test('preserves mark elements', async () => {
+    const { markdown: result } = await htmlToMarkdown(
+      '<p>This is <mark>highlighted</mark> text</p>',
+    )
+    expect(result).toContain('<mark>highlighted</mark>')
   })
 })
 

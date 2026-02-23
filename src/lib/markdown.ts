@@ -1,4 +1,4 @@
-import type { Element, Root } from 'hast'
+import type { Element, ElementContent, Root } from 'hast'
 import rehypeParse from 'rehype-parse'
 import rehypeRemark from 'rehype-remark'
 import remarkGfm from 'remark-gfm'
@@ -16,24 +16,44 @@ export async function htmlToMarkdown(
   const file = await unified()
     .use(rehypeParse)
     .use(rehypeExtractMeta, options?.baseUrl)
-    .use(rehypeStripNoise)
+    .use(rehypeStripNoise, options?.baseUrl)
     .use(rehypeResolveLinks, options?.baseUrl)
     .use(rehypeStripEmpty)
     .use(rehypePreNewlines)
-    .use(rehypeRemark)
+    .use(rehypeRemark, {
+      handlers: {
+        mark(state, node) {
+          const result = {
+            type: 'html' as const,
+            value: `<mark>${hastToText(node)}</mark>`,
+          }
+          state.patch(node, result)
+          return result
+        },
+      },
+    })
     .use(remarkGfm)
     .use(remarkStringify)
     .process(html)
   const meta = (file.data.meta as Record<string, string> | undefined) ?? {}
+  const relatedLinks =
+    (file.data.relatedLinks as Array<{ href: string; text: string }>) ?? []
   const frontmatter =
     Object.keys(meta).length > 0
       ? Object.entries(meta)
           .map(([k, v]) => `${k}: ${JSON.stringify(v)}`)
           .join('\n')
       : undefined
-  const markdown = frontmatter
+  let markdown = frontmatter
     ? `---\n${frontmatter}\n---\n\n${String(file)}`
     : String(file)
+  if (relatedLinks.length > 0) {
+    const links = relatedLinks
+      .slice(0, 25)
+      .map((l) => `- [${l.text.replace(/[[\]]/g, '\\$&')}](${l.href})`)
+      .join('\n')
+    markdown += `\n<!--\nSitemap:\n${links}\n-->\n`
+  }
   return { markdown, meta }
 }
 
@@ -103,21 +123,147 @@ const strippedRoles = new Set([
   'navigation',
 ])
 
-function rehypeStripNoise() {
-  return (tree: Root) => {
-    strip(tree)
+// Tags that never contain useful links worth collecting
+const noLinkTags = new Set([
+  'form',
+  'iframe',
+  'noscript',
+  'script',
+  'style',
+  'svg',
+])
+
+const noiseClassIdTokens = new Set([
+  'ad',
+  'ads',
+  'advert',
+  'banner',
+  'comment',
+  'comments',
+  'cookie',
+  'menu',
+  'modal',
+  'newsletter',
+  'popup',
+  'promo',
+  'related',
+  'share',
+  'sharing',
+  'sidebar',
+  'social',
+  'sponsor',
+  'widget',
+])
+
+const linkDensityBlockTags = new Set(['div', 'ol', 'section', 'ul'])
+
+type CollectedLink = { href: string; text: string }
+
+function rehypeStripNoise(baseUrl?: string) {
+  return (tree: Root, file: VFile) => {
+    const links: CollectedLink[] = []
+    strip(tree, links, baseUrl)
+    if (links.length > 0) file.data.relatedLinks = deduplicateLinks(links)
   }
 }
 
-function strip(node: Element | Root) {
+function strip(node: Element | Root, links: CollectedLink[], baseUrl?: string) {
   if (!node.children) return
   node.children = node.children.filter((child) => {
     if (child.type === 'comment') return false
     if (child.type !== 'element') return true
-    if (strippedTagNames.has(child.tagName)) return false
+
+    if (strippedTagNames.has(child.tagName)) {
+      if (!noLinkTags.has(child.tagName)) collectLinks(child, links, baseUrl)
+      return false
+    }
+
     const role = child.properties?.role as string | undefined
-    if (role && strippedRoles.has(role)) return false
-    strip(child)
+    if (role && strippedRoles.has(role)) {
+      collectLinks(child, links, baseUrl)
+      return false
+    }
+
+    if (isHidden(child)) return false
+
+    if (matchesNoiseClassId(child)) {
+      collectLinks(child, links, baseUrl)
+      return false
+    }
+
+    if (isHighLinkDensity(child)) {
+      collectLinks(child, links, baseUrl)
+      return false
+    }
+
+    strip(child, links, baseUrl)
+    return true
+  })
+}
+
+function isHidden(node: Element): boolean {
+  if (node.properties?.hidden != null) return true
+  if (
+    node.properties?.ariaHidden === 'true' ||
+    node.properties?.ariaHidden === true
+  )
+    return true
+  const style = node.properties?.style
+  if (
+    typeof style === 'string' &&
+    /display\s*:\s*none|visibility\s*:\s*hidden/i.test(style)
+  )
+    return true
+  return false
+}
+
+function matchesNoiseClassId(node: Element): boolean {
+  const classes = node.properties?.className as string[] | undefined
+  const id = node.properties?.id as string | undefined
+  for (const value of [...(classes ?? []), ...(id ? [id] : [])]) {
+    const parts = String(value)
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+    if (parts.some((p) => noiseClassIdTokens.has(p))) return true
+  }
+  return false
+}
+
+function isHighLinkDensity(node: Element): boolean {
+  if (!linkDensityBlockTags.has(node.tagName)) return false
+  const totalLen = hastToText(node).length
+  if (totalLen < 50) return false
+  return getLinkTextLength(node) / totalLen > 0.5
+}
+
+function getLinkTextLength(node: Element): number {
+  let length = 0
+  for (const child of node.children) {
+    if (child.type !== 'element') continue
+    if (child.tagName === 'a') length += hastToText(child).length
+    else length += getLinkTextLength(child)
+  }
+  return length
+}
+
+function collectLinks(node: Element, links: CollectedLink[], baseUrl?: string) {
+  if (node.tagName === 'a') {
+    const href = node.properties?.href
+    if (typeof href !== 'string') return
+    if (href.startsWith('#') || href.startsWith('javascript:')) return
+    const text = hastToText(node).trim()
+    if (text) links.push({ href: resolveUrl(href, baseUrl), text })
+    return
+  }
+  for (const child of node.children)
+    if (child.type === 'element') collectLinks(child, links, baseUrl)
+}
+
+function deduplicateLinks(links: CollectedLink[]): CollectedLink[] {
+  const seen = new Set<string>()
+  return links.filter((link) => {
+    if (seen.has(link.href)) return false
+    seen.add(link.href)
     return true
   })
 }
@@ -142,13 +288,19 @@ function rehypeResolveLinks(baseUrl?: string) {
 
 function resolveLinks(node: Element | Root, baseUrl: string) {
   if (!('children' in node)) return
-  node.children = node.children.filter((child) => {
-    if (child.type !== 'element') return true
-    // Strip anchor elements with hash-only hrefs
-    if (child.tagName === 'a') {
-      const href = child.properties?.href
-      if (typeof href === 'string' && href.startsWith('#')) return false
-    }
+  // Unwrap anchor elements with hash-only hrefs (keep children)
+  node.children = node.children.flatMap((child) => {
+    if (
+      child.type === 'element' &&
+      child.tagName === 'a' &&
+      typeof child.properties?.href === 'string' &&
+      child.properties.href.startsWith('#')
+    )
+      return child.children
+    return [child]
+  })
+  for (const child of node.children) {
+    if (child.type !== 'element') continue
     for (const prop of ['href', 'src'] as const) {
       const value = child.properties?.[prop]
       if (typeof value !== 'string') continue
@@ -158,8 +310,7 @@ function resolveLinks(node: Element | Root, baseUrl: string) {
       } catch {}
     }
     resolveLinks(child, baseUrl)
-    return true
-  })
+  }
 }
 
 // Ensure elements inside <pre> are separated by newlines so
@@ -219,6 +370,13 @@ function stripTrailingBr(node: Element | Root) {
     const last = child.children[child.children.length - 1]
     if (last?.type === 'element' && last.tagName === 'br') child.children.pop()
   }
+}
+
+function hastToText(node: Element | ElementContent): string {
+  if (node.type === 'text') return node.value
+  if (node.type === 'element')
+    return node.children.map((c) => hastToText(c)).join('')
+  return ''
 }
 
 const emptyStrippableTags = new Set([
