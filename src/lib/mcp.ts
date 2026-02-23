@@ -2,6 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod'
 import { fetchPage } from '#lib/fetch-page.ts'
 import { rateLimit } from '#lib/rate-limit.ts'
+import { urlSchema } from '#lib/schemas.ts'
 import { trackRequest } from '#lib/track-request.ts'
 
 export function createMcpServer(request: Request): McpServer {
@@ -37,46 +38,58 @@ export function createMcpServer(request: Request): McpServer {
       },
     },
     async ({ url, keywords, objective }) => {
-      if (objective) {
-        const { limited } = await rateLimit(request)
-        if (limited)
-          throw new Error(
-            'Rate limit exceeded. Limited to 1,000 requests per day per IP address.',
-          )
+      try {
+        if (objective) {
+          const { limited } = await rateLimit(request)
+          if (limited)
+            return {
+              content: [
+                {
+                  type: 'text' as const,
+                  text: 'Rate limit exceeded. Limited to 1,000 requests per day per IP address.',
+                },
+              ],
+              isError: true,
+            }
+        }
+
+        const parsedUrl = new URL(z.parse(urlSchema, url))
+
+        const page = await fetchPage(parsedUrl, {
+          keywords,
+          objective,
+        })
+
+        const requestId = trackRequest(request, {
+          hostname: parsedUrl.hostname,
+          keywords: keywords?.join(',') ?? null,
+          objective: objective ?? null,
+          path: parsedUrl.pathname,
+          tokens_saved: page.tokensSaved,
+          url: parsedUrl.href,
+          user_agent: 'mcp',
+        })
+
+        return {
+          content: [{ type: 'text' as const, text: page.markdown }],
+          _meta: {
+            requestId,
+            tokensCount: page.tokensCount,
+            tokensSaved: page.tokensSaved,
+          },
+        }
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text:
+                error instanceof Error ? error.message : 'Failed to fetch page',
+            },
+          ],
+          isError: true,
+        }
       }
-
-      const parsedUrl = new URL(
-        z.parse(
-          z
-            .string()
-            .transform((arg) => (arg.includes('://') ? arg : `https://${arg}`))
-            .pipe(
-              z.url({
-                hostname: z.regexes.domain,
-                normalize: true,
-                protocol: /^https?$/,
-              }),
-            ),
-          url,
-        ),
-      )
-
-      const { markdown, tokensSaved } = await fetchPage(parsedUrl, {
-        keywords,
-        objective,
-      })
-
-      trackRequest(request, {
-        hostname: parsedUrl.hostname,
-        keywords: keywords?.join(',') ?? null,
-        objective: objective ?? null,
-        path: parsedUrl.pathname,
-        tokens_saved: tokensSaved,
-        url: parsedUrl.href,
-        user_agent: 'mcp',
-      })
-
-      return { content: [{ type: 'text' as const, text: markdown }] }
     },
   )
 

@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { fetchPage } from '#lib/fetch-page.ts'
 import { poweredByFooter } from '#lib/markdown.ts'
 import { rateLimit } from '#lib/rate-limit.ts'
+import { urlSchema } from '#lib/schemas.ts'
 import { trackRequest } from '#lib/track-request.ts'
 
 export const Route = createFileRoute('/$')({
@@ -20,23 +21,7 @@ export const Route = createFileRoute('/$')({
 
         let rateLimitHeaders = {}
         try {
-          const url = new URL(
-            z.parse(
-              z
-                .string()
-                .transform((arg) =>
-                  arg.includes('://') ? arg : `https://${arg}`,
-                )
-                .pipe(
-                  z.url({
-                    protocol: /^https?$/,
-                    hostname: z.regexes.domain,
-                    normalize: true,
-                  }),
-                ),
-              options.params._splat,
-            ),
-          )
+          const url = new URL(z.parse(urlSchema, options.params._splat))
 
           // Skip requests where hostname looks like a filename (e.g. config.json)
           if (staticHostnameRe.test(url.hostname))
