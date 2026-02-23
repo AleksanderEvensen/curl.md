@@ -11,12 +11,6 @@
     "binding": "ASSETS"
   },
   "preview_urls": false,
-  "observability": {
-    "enabled": true,
-    "logs": {
-      "head_sampling_rate": 1
-    }
-  },
   "ai": {
     "binding": "AI"
   },

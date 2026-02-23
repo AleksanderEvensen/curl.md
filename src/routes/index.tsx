@@ -43,6 +43,25 @@ function Home() {
         <span className="select-none text-gray6">$ </span>curl{' '}
         <span className="text-gray10">https://{__HOST__}/example.com</span>
       </code>
+      <footer className="mt-4 flex gap-3 text-gray6">
+        <a
+          href="https://github.com/wevm/curl.md"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          GitHub
+        </a>
+        <span>|</span>
+        <a
+          href="https://x.com/wevm_dev"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          X
+        </a>
+        <span>|</span>
+        <a href="/llms.txt">llms.txt</a>
+      </footer>
     </div>
   )
 }
@@ -90,22 +109,26 @@ function useCountUp(target: number, duration = 500) {
 }
 
 const getTokensSaved = createServerFn({ method: 'GET' }).handler(async () => {
-  const request = getRequest()
-  const origin = request.headers.get('origin')
-  if (origin && origin !== `https://${env.HOST}`) throw new Error('Forbidden')
+  try {
+    const request = getRequest()
+    const origin = request.headers.get('origin')
+    if (origin && origin !== `https://${env.HOST}`) throw new Error('Forbidden')
 
-  const cacheKey = 'stats:tokens_saved'
-  const cached = await env.KV.get<number>(cacheKey, 'json')
-  if (cached !== null) return { tokens_saved: cached }
+    const cacheKey = 'stats:tokens_saved'
+    const cached = await env.KV.get<number>(cacheKey, 'json')
+    if (cached !== null) return { tokens_saved: cached }
 
-  const db = getDb()
-  const result = await db
-    .selectFrom('request')
-    .select((eb) => eb.fn.sum<number>('tokens_saved').as('total'))
-    .executeTakeFirstOrThrow()
-  const total = result.total ?? 0
-  waitUntil(env.KV.put(cacheKey, String(total), { expirationTtl: 60 }))
-  return { tokens_saved: total }
+    const db = getDb()
+    const result = await db
+      .selectFrom('request')
+      .select((eb) => eb.fn.sum<number>('tokens_saved').as('total'))
+      .executeTakeFirstOrThrow()
+    const total = result.total ?? 0
+    waitUntil(env.KV.put(cacheKey, String(total), { expirationTtl: 60 }))
+    return { tokens_saved: total }
+  } catch {
+    return { tokens_saved: 0 }
+  }
 })
 
 function formatNumber(n: number, reference?: number): string {
