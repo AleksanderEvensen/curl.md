@@ -110,9 +110,13 @@ export async function fetchPage(
   const estimated = !parsed.hadHtml && !('isSelf' in fetched && fetched.isSelf)
 
   if (!objective) {
-    const tokensCount = Math.round(parsed.markdown.length / 4)
-    const tokensSaved = Math.round((rawSize - parsed.markdown.length) / 4)
-    return { estimated, markdown: parsed.markdown, tokensCount, tokensSaved }
+    const content =
+      keywords && keywords.length > 0
+        ? filterSectionsByKeywords(parsed.markdown, keywords)
+        : parsed.markdown
+    const tokensCount = Math.round(content.length / 4)
+    const tokensSaved = Math.round((rawSize - content.length) / 4)
+    return { estimated, markdown: content, tokensCount, tokensSaved }
   }
 
   const excerpt = await (async () => {
@@ -121,13 +125,15 @@ export async function fetchPage(
     if (!fresh && cached) return cached
 
     const system = `You extract relevant sections from web pages. Rules:
-- Return original content verbatim — do NOT summarize, paraphrase, or rewrite.
+- Return ONLY content that exists verbatim in the provided content — do NOT generate, synthesize, summarize, paraphrase, or rewrite anything.
+- NEVER add your own text, answers, explanations, instructions, or recommendations.
 - Include full code blocks, commands, and examples exactly as they appear.
 - Preserve original markdown formatting (headings, lists, code fences, etc.).
 - Only omit sections that are clearly irrelevant to the objective.
 - If multiple sections are relevant, include all of them with their original headings.
 - If nothing is relevant, return an empty response.
-- Do NOT add any preamble, commentary, or explanation — return only the extracted content.`
+- Do NOT add any preamble, commentary, or explanation — return only the extracted content.
+- Do NOT answer the objective — just extract content relevant to it.`
 
     const prompt = (chunk: string) =>
       `<content>

@@ -9,11 +9,17 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as PlaygroundRouteImport } from './routes/playground'
 import { Route as OgDotpngRouteImport } from './routes/og[.]png'
 import { Route as McpRouteImport } from './routes/mcp'
 import { Route as SplatRouteImport } from './routes/$'
 import { Route as IndexRouteImport } from './routes/index'
 
+const PlaygroundRoute = PlaygroundRouteImport.update({
+  id: '/playground',
+  path: '/playground',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OgDotpngRoute = OgDotpngRouteImport.update({
   id: '/og.png',
   path: '/og.png',
@@ -40,12 +46,14 @@ export interface FileRoutesByFullPath {
   '/$': typeof SplatRoute
   '/mcp': typeof McpRoute
   '/og.png': typeof OgDotpngRoute
+  '/playground': typeof PlaygroundRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
   '/mcp': typeof McpRoute
   '/og.png': typeof OgDotpngRoute
+  '/playground': typeof PlaygroundRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -53,13 +61,14 @@ export interface FileRoutesById {
   '/$': typeof SplatRoute
   '/mcp': typeof McpRoute
   '/og.png': typeof OgDotpngRoute
+  '/playground': typeof PlaygroundRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/$' | '/mcp' | '/og.png'
+  fullPaths: '/' | '/$' | '/mcp' | '/og.png' | '/playground'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/$' | '/mcp' | '/og.png'
-  id: '__root__' | '/' | '/$' | '/mcp' | '/og.png'
+  to: '/' | '/$' | '/mcp' | '/og.png' | '/playground'
+  id: '__root__' | '/' | '/$' | '/mcp' | '/og.png' | '/playground'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -67,10 +76,18 @@ export interface RootRouteChildren {
   SplatRoute: typeof SplatRoute
   McpRoute: typeof McpRoute
   OgDotpngRoute: typeof OgDotpngRoute
+  PlaygroundRoute: typeof PlaygroundRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/playground': {
+      id: '/playground'
+      path: '/playground'
+      fullPath: '/playground'
+      preLoaderRoute: typeof PlaygroundRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/og.png': {
       id: '/og.png'
       path: '/og.png'
@@ -107,6 +124,7 @@ const rootRouteChildren: RootRouteChildren = {
   SplatRoute: SplatRoute,
   McpRoute: McpRoute,
   OgDotpngRoute: OgDotpngRoute,
+  PlaygroundRoute: PlaygroundRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

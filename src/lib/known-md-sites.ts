@@ -3,6 +3,7 @@ export const knownMdSites = new Map<
   string,
   (url: URL) => MdUrlResult | URL | undefined
 >([
+  ['ai-sdk.dev', appendMd],
   ['bun.sh', prefixedWithIndex('/docs')],
   ['code.claude.com', appendMd],
   ['developers.cloudflare.com', appendIndexMd],

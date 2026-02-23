@@ -86,6 +86,10 @@ function Home() {
           X
         </a>
         <span>|</span>
+        <a className="hover:underline" href="/playground">
+          Playground
+        </a>
+        <span>|</span>
         <a className="hover:underline" href="/llms.txt">
           llms.txt
         </a>
