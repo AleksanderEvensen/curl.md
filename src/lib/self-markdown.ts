@@ -36,10 +36,10 @@ curl "https://${host}/example.com?q=authentication&k=oauth,jwt"
 ## Links
 
 - [GitHub](https://github.com/wevm/curl.md)
-- [MCP server](https://${host}/mcp)
 - [Playground](https://${host}/playground)
-- [Skill](https://${host}/skills)
 - [X](https://x.com/wevm_dev)
 - [llms.txt](https://${host}/llms.txt)
+- [Skill](https://${host}/skills)
+- [MCP server](https://${host}/mcp)
 `
 }

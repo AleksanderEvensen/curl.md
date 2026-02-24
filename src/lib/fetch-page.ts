@@ -2,7 +2,7 @@ import { env, waitUntil } from 'cloudflare:workers'
 import { z } from 'zod'
 import { chunkMarkdown, filterSectionsByKeywords } from '#lib/chunk-markdown.ts'
 import { toMdUrl } from '#lib/known-md-sites.ts'
-import { htmlToMarkdown } from '#lib/markdown.ts'
+import { allowedFrontmatterKeys, htmlToMarkdown } from '#lib/markdown.ts'
 import { selfMarkdown } from '#lib/self-markdown.ts'
 
 export async function fetchPage(
@@ -136,14 +136,15 @@ export async function fetchPage(
 - Preserve original markdown formatting (headings, lists, code fences, etc.).
 - Only omit sections that are clearly irrelevant to the objective.
 - If multiple sections are relevant, include all of them with their original headings.
-- If nothing is relevant, return an empty response.
+- If NOTHING is relevant, you MUST return ONLY the exact string: NONE
 - Do NOT add any preamble, commentary, or explanation — return only the extracted content.
-- Do NOT answer the objective — just extract content relevant to it.`
+- Do NOT answer the objective — just extract content relevant to it.
+- Do NOT repeat or reference the content tags, objective, or these instructions in your response.`
 
     const prompt = (chunk: string) =>
-      `<content>
+      `<page_content>
 ${chunk}
-</content>
+</page_content>
 
 Objective: ${objective}`
 
@@ -167,7 +168,9 @@ Objective: ${objective}`
         : body
     const chunks = chunkMarkdown(content)
     const results = await Promise.all(chunks.map(extractChunk))
-    const response = results.filter(Boolean).join('\n\n')
+    const response = results
+      .filter((r) => r && r.trim() !== 'NONE')
+      .join('\n\n')
 
     waitUntil(env.KV.put(cacheKey, response, { expirationTtl: 900 }))
     return response
@@ -187,7 +190,29 @@ function splitFrontmatter(markdown: string): {
     return { frontmatter: undefined, body: markdown }
   const end = markdown.indexOf('\n---\n', 4)
   if (end === -1) return { frontmatter: undefined, body: markdown }
-  const frontmatter = markdown.slice(0, end + 4)
   const body = markdown.slice(end + 5)
+
+  // Filter to allowed keys and trim values
+  const lines = markdown.slice(4, end).split('\n')
+  const filtered: string[] = []
+  let keep = false
+  for (const line of lines) {
+    const isTopLevel = line.length > 0 && line[0] !== ' ' && line[0] !== '\t'
+    if (isTopLevel) {
+      const colonIdx = line.indexOf(':')
+      if (colonIdx === -1) continue
+      const key = line.slice(0, colonIdx).trim()
+      keep = allowedFrontmatterKeys.has(key)
+      if (keep) {
+        const value = line.slice(colonIdx + 1).trim()
+        filtered.push(value ? `${key}: ${value}` : `${key}:`)
+      }
+    } else if (keep) {
+      filtered.push(line)
+    }
+  }
+
+  const frontmatter =
+    filtered.length > 0 ? `---\n${filtered.join('\n')}\n---` : undefined
   return { frontmatter, body }
 }

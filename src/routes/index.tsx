@@ -52,7 +52,7 @@ function Home() {
       <div className="mt-4">
         <code className="block text-gray6"># Filter by objective</code>
         <code className="block">
-          <span className="text-gray12">curl</span> https://{__HOST__}
+          <span className="text-gray12">curl</span> {__HOST__}
           /example.com?
           <span className="text-gray10">q=pricing</span>
         </code>
@@ -60,13 +60,13 @@ function Home() {
       <div>
         <code className="block text-gray6"># Filter by keywords</code>
         <code className="block">
-          <span className="text-gray12">curl</span> https://{__HOST__}
+          <span className="text-gray12">curl</span> {__HOST__}
           /example.com?
           <span className="text-gray10">k=api,auth</span>
         </code>
       </div>
 
-      <footer className="mt-4 flex gap-3 text-gray6">
+      <footer className="mt-4 flex flex-wrap gap-x-3 gap-y-1 text-gray6">
         <a
           className="hover:underline"
           href="https://github.com/wevm/curl.md"

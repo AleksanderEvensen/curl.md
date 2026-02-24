@@ -38,12 +38,12 @@ export async function htmlToMarkdown(
   const meta = (file.data.meta as Record<string, string> | undefined) ?? {}
   const relatedLinks =
     (file.data.relatedLinks as Array<{ href: string; text: string }>) ?? []
-  const frontmatter =
-    Object.keys(meta).length > 0
-      ? Object.entries(meta)
-          .map(([k, v]) => `${k}: ${JSON.stringify(v)}`)
-          .join('\n')
-      : undefined
+  const frontmatter = (() => {
+    const entries = Object.entries(meta)
+      .filter(([k]) => allowedFrontmatterKeys.has(k))
+      .map(([k, v]) => `${k}: ${JSON.stringify(v.trim())}`)
+    return entries.length > 0 ? entries.join('\n') : undefined
+  })()
   let markdown = frontmatter
     ? `---\n${frontmatter}\n---\n\n${String(file)}`
     : String(file)
@@ -56,6 +56,15 @@ export async function htmlToMarkdown(
   }
   return { markdown, meta }
 }
+
+export const allowedFrontmatterKeys = new Set([
+  'author',
+  'description',
+  'publish_date',
+  'site',
+  'title',
+  'url',
+])
 
 const metaPropertyMap: Record<string, string> = {
   'article:published_time': 'publish_date',

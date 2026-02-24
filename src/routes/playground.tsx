@@ -30,6 +30,7 @@ function Playground() {
   const [markdown, setMarkdown] = React.useState('')
   const [error, setError] = React.useState('')
   const [loading, setLoading] = React.useState(false)
+  const abortRef = React.useRef<AbortController | null>(null)
   const [stats, setStats] = React.useState<{
     tokensCount: number
     tokensSaved: number
@@ -74,6 +75,9 @@ function Playground() {
     q?: string
     url: string
   }) => {
+    abortRef.current?.abort()
+    const controller = new AbortController()
+    abortRef.current = controller
     setLoading(true)
     setError('')
     setMarkdown('')
@@ -90,6 +94,7 @@ function Playground() {
 
       const res = await fetch(path, {
         headers: { accept: 'application/json' },
+        signal: controller.signal,
       })
       const data: { content: string } | { error: string } = await res.json()
       if ('error' in data) {
@@ -107,6 +112,7 @@ function Playground() {
         })
       }
     } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return
       setError(
         err instanceof z.ZodError ? 'Invalid URL' : 'Failed to fetch page',
       )
@@ -124,6 +130,11 @@ function Playground() {
   const hasResult = (markdown || error) && fetchedUrl
 
   const examples = [
+    {
+      k: 'pull_request,pull request',
+      q: 'pull request webhook event payload and actions',
+      url: 'docs.github.com/en/webhooks/webhook-events-and-payloads',
+    },
     {
       k: 'claude code',
       q: 'how do i install for claude code',
@@ -152,15 +163,15 @@ function Playground() {
   ]
 
   return (
-    <div className="flex h-dvh flex-col px-6 pt-16 pb-6 text-lg">
-      <div className="mx-auto flex w-full max-w-7xl grow flex-col gap-4">
+    <div className="flex h-dvh flex-col px-6 pt-16 pb-16 text-lg md:pb-6">
+      <div className="mx-auto flex min-h-0 w-full max-w-7xl grow flex-col gap-4">
         <div className="flex flex-col gap-1">
           <h1 className="font-bold">Playground</h1>
           <p className="text-gray6">Try fetching any URL as Markdown</p>
         </div>
 
         <div className="flex min-h-0 grow flex-col gap-6 md:flex-row">
-          <div className="flex w-full flex-col gap-4 md:max-w-lg">
+          <div className="flex w-full flex-col gap-4 md:basis-2/5">
             <form onSubmit={handleSubmit} className="flex flex-col gap-3">
               <div className="flex items-center">
                 <span className="shrink-0 text-gray6">{__HOST__}/</span>
@@ -198,12 +209,21 @@ function Playground() {
               </div>
               <div className="flex gap-2">
                 <button
-                  className="bg-gray10 px-3 py-1 text-bg1 hover:bg-gray9 disabled:opacity-50"
+                  className="bg-gray10 px-3 py-1 text-bg1 not-disabled:hover:bg-gray9 disabled:opacity-50"
                   disabled={loading || !url.trim()}
                   type="submit"
                 >
-                  Fetch
+                  {loading ? 'Fetching' : 'Fetch'}
                 </button>
+                {loading && (
+                  <button
+                    className="px-3 py-1 text-gray6 hover:text-gray10"
+                    onClick={() => abortRef.current?.abort()}
+                    type="button"
+                  >
+                    Cancel
+                  </button>
+                )}
                 {hasResult && (
                   <button
                     className="px-3 py-1 text-gray6 hover:text-gray10"
@@ -244,7 +264,7 @@ function Playground() {
                 </p>
                 {examples.map((example) => (
                   <button
-                    className="bg-gray-a2 p-3 text-start text-gray6 not-disabled:hover:bg-gray-a3 disabled:opacity-50"
+                    className="break-all bg-gray-a2 p-3 text-start text-gray6 not-disabled:hover:bg-gray-a3 disabled:opacity-50"
                     disabled={loading}
                     key={example.url}
                     onClick={() => {
@@ -289,19 +309,31 @@ function Playground() {
                       </span>{' '}
                       tokens saved
                     </span>
+                    <span>
+                      <span className="text-green9">
+                        ${formatCost(stats.tokensSaved, 3)}
+                      </span>{' '}
+                      saved (frontier)
+                    </span>
+                    <span>
+                      <span className="text-green9">
+                        ${formatCost(stats.tokensSaved, 0.5)}
+                      </span>{' '}
+                      saved (budget)
+                    </span>
                   </>
                 )}
               </div>
             )}
 
-            <footer className="mt-auto text-gray6">
+            <footer className="mt-auto pb-10 text-gray6 md:pb-0">
               <a className="hover:underline" href="/">
                 &larr; Home
               </a>
             </footer>
           </div>
 
-          <div className="relative hidden max-h-[calc(100dvh-10rem)] w-full flex-col gap-2 md:flex">
+          <div className="relative hidden max-h-[calc(100dvh-10rem)] min-h-[calc(100dvh-10rem)] w-full min-w-0 flex-col gap-2 md:flex md:basis-3/5">
             {error ? (
               <pre className="overflow-x-auto whitespace-pre-wrap text-red9 [scrollbar-gutter:stable]">
                 {error}
@@ -379,4 +411,9 @@ function CopyButton(props: { text: string }) {
       )}
     </button>
   )
+}
+
+function formatCost(tokens: number, perMillionDollars: number) {
+  const cost = (tokens / 1_000_000) * perMillionDollars
+  return cost < 0.01 ? cost.toFixed(4).replace(/0+$/, '0') : cost.toFixed(2)
 }
