@@ -1,7 +1,10 @@
 import { env } from 'cloudflare:workers'
+import rehypeParse from 'rehype-parse'
+import rehypeRemark from 'rehype-remark'
+import remarkGfm from 'remark-gfm'
+import remarkStringify from 'remark-stringify'
+import { unified } from 'unified'
 import { selfMarkdown } from '#lib/self-markdown.ts'
-import { filterSectionsByKeywords } from './chunk-markdown.ts'
-import { htmlToMarkdown } from './markdown.ts'
 
 export async function fetchPage(
   url: URL,
@@ -12,7 +15,7 @@ export async function fetchPage(
   tokensCount: number
   tokensSaved: number
 }> {
-  const { keywords } = options ?? {}
+  const { keywords, objective } = options ?? {}
 
   if (url.hostname === env.HOST) {
     const markdown = selfMarkdown()
@@ -20,31 +23,51 @@ export async function fetchPage(
     return { estimated: false, markdown, tokensCount, tokensSaved: 0 }
   }
 
-  const res = await fetch(url, {
-    headers: {
-      Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-    },
-    redirect: 'follow',
-  })
+  const res = await fetch(url)
   if (!res.ok) throw new Error(`Upstream returned ${res.status}`)
 
-  const content = await res.text()
-  const contentType = res.headers.get('content-type')?.toLowerCase() ?? ''
+  const html = await res.text()
+  const file = await unified()
+    .use(rehypeParse)
+    .use(rehypeRemark)
+    .use(remarkGfm)
+    .use(remarkStringify)
+    .process(html)
+  let markdown = String(file)
 
-  let markdown: string
-  let hadHtml = false
-  if (contentType.startsWith('text/markdown')) {
-    markdown = content
-  } else {
-    const result = await htmlToMarkdown(content, { baseUrl: url.href })
-    markdown = result.markdown
-    hadHtml = true
+  if (keywords?.length) {
+    const sections = markdown.split(/(?=^## )/m)
+    if (sections.length > 1) {
+      const matched = sections.filter((section) =>
+        keywords.some((k) => section.toLowerCase().includes(k.toLowerCase())),
+      )
+      if (matched.length > 0) markdown = matched.join('')
+    }
   }
 
-  if (keywords?.length) markdown = filterSectionsByKeywords(markdown, keywords)
+  if (objective) {
+    const result = (await env.AI.run(
+      '@cf/meta/llama-4-scout-17b-16e-instruct',
+      {
+        max_tokens: 4096,
+        messages: [
+          {
+            role: 'system',
+            content:
+              'Return only the sections from the provided content relevant to the objective. Preserve original formatting. Do not summarize or add commentary. If nothing is relevant, return "NONE".',
+          },
+          {
+            role: 'user',
+            content: `<content>\n${markdown}\n</content>\n\nObjective: ${objective}`,
+          },
+        ],
+      },
+    )) as { response?: string }
+    const response = result.response?.trim()
+    if (response && response !== 'NONE') markdown = response
+  }
 
-  const rawSize = hadHtml ? content.length : markdown.length * 3.5
   const tokensCount = Math.round(markdown.length / 4)
-  const tokensSaved = Math.round((rawSize - markdown.length) / 4)
-  return { estimated: !hadHtml, markdown, tokensCount, tokensSaved }
+  const tokensSaved = Math.round((html.length - markdown.length) / 4)
+  return { estimated: false, markdown, tokensCount, tokensSaved }
 }
