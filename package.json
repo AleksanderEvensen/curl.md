@@ -77,6 +77,6 @@
     }
   },
   "simple-git-hooks": {
-    "pre-commit": "pnpm biome check --write --staged --no-errors-on-unmatched && git update-index --again"
+    "pre-commit": "pnpm biome check --write --unsafe --staged --no-errors-on-unmatched && git update-index --again"
   }
 }

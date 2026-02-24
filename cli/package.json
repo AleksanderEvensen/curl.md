@@ -2,6 +2,7 @@
   "name": "curl-md",
   "version": "0.0.1",
   "description": "Fetch any URL as Markdown",
+  "license": "MIT",
   "type": "module",
   "bin": {
     "curl-md": "./dist/cli.js",
