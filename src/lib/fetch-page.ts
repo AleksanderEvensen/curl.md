@@ -190,7 +190,7 @@ function splitFrontmatter(markdown: string): {
     return { frontmatter: undefined, body: markdown }
   const end = markdown.indexOf('\n---\n', 4)
   if (end === -1) return { frontmatter: undefined, body: markdown }
-  const body = markdown.slice(end + 5)
+  const body = markdown.slice(end + 5).replace(/^\n+/, '')
 
   // Filter to allowed keys and trim values
   const lines = markdown.slice(4, end).split('\n')

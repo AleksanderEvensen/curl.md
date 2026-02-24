@@ -1,3 +1,4 @@
+import * as Query from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import * as React from 'react'
 import { z } from 'zod'
@@ -12,8 +13,23 @@ const searchSchema = z.object({
 export const Route = createFileRoute('/playground')({
   head: () => ({
     meta: [
-      { title: `Playground | ${__HOST__}` },
-      { name: 'description', content: 'Try fetching any URL as Markdown' },
+      { title: `${__HOST__}/playground` },
+      { name: 'description', content: 'Fetch any URL as Markdown' },
+      { property: 'og:title', content: `${__HOST__}/playground` },
+      { property: 'og:description', content: 'Fetch any URL as Markdown' },
+      {
+        property: 'og:image',
+        content: `https://${__HOST__}/og.png?page=playground`,
+      },
+      { property: 'og:type', content: 'website' },
+      { property: 'og:url', content: `https://${__HOST__}/playground` },
+      { name: 'twitter:card', content: 'summary_large_image' },
+      { name: 'twitter:title', content: `${__HOST__}/playground` },
+      { name: 'twitter:description', content: 'Fetch any URL as Markdown' },
+      {
+        name: 'twitter:image',
+        content: `https://${__HOST__}/og.png?page=playground`,
+      },
     ],
   }),
   validateSearch: searchSchema,
@@ -26,15 +42,40 @@ function Playground() {
   const [url, setUrl] = React.useState(search.url ?? '')
   const [objective, setObjective] = React.useState(search.q ?? '')
   const [keywords, setKeywords] = React.useState(search.k ?? '')
-  const [fetchedUrl, setFetchedUrl] = React.useState('')
-  const [markdown, setMarkdown] = React.useState('')
-  const [error, setError] = React.useState('')
-  const [loading, setLoading] = React.useState(false)
   const abortRef = React.useRef<AbortController | null>(null)
-  const [stats, setStats] = React.useState<{
-    tokensCount: number
-    tokensSaved: number
-  } | null>(null)
+
+  const mutation = Query.useMutation({
+    mutationFn: async (input: { k?: string; q?: string; url: string }) => {
+      abortRef.current?.abort()
+      const controller = new AbortController()
+      abortRef.current = controller
+
+      const validatedUrl = new URL(z.parse(urlSchema, input.url.trim()))
+      const params = new URLSearchParams()
+      if (input.q?.trim()) params.set('q', input.q.trim())
+      if (input.k?.trim()) params.set('k', input.k.trim())
+      const query = params.toString()
+      const path = `/${validatedUrl.host}${validatedUrl.pathname}${query ? `?${query}` : ''}`
+
+      const res = await fetch(path, {
+        headers: { accept: 'application/json' },
+        signal: controller.signal,
+      })
+      const data: { content: string } | { error: string } = await res.json()
+      if ('error' in data) throw new Error(data.error)
+      return {
+        fetchedUrl: `${__HOST__}${path}`,
+        markdown: data.content.replace(
+          /\n\n---\n\nPowered by \[curl\.md\]\(https:\/\/curl\.md\)$/,
+          '',
+        ),
+        stats: {
+          tokensCount: Number(res.headers.get('x-tokens-count') ?? 0),
+          tokensSaved: Number(res.headers.get('x-tokens-saved') ?? 0),
+        },
+      }
+    },
+  })
 
   const syncToUrl = React.useCallback(
     (values: { k?: string; q?: string; url?: string }) => {
@@ -61,7 +102,7 @@ function Playground() {
   // biome-ignore lint/correctness/useExhaustiveDependencies: run once on mount
   React.useEffect(() => {
     if (search.url?.trim())
-      fetchMarkdown({ url: search.url, q: search.q, k: search.k })
+      mutation.mutate({ url: search.url, q: search.q, k: search.k })
   }, [])
 
   const setInputs = (values: { k?: string; q?: string; url?: string }) => {
@@ -70,64 +111,21 @@ function Playground() {
     if (values.k !== undefined) setKeywords(values.k)
   }
 
-  const fetchMarkdown = async (input: {
-    k?: string
-    q?: string
-    url: string
-  }) => {
-    abortRef.current?.abort()
-    const controller = new AbortController()
-    abortRef.current = controller
-    setLoading(true)
-    setError('')
-    setMarkdown('')
-    setStats(null)
-
-    try {
-      const validatedUrl = new URL(z.parse(urlSchema, input.url.trim()))
-      const params = new URLSearchParams()
-      if (input.q?.trim()) params.set('q', input.q.trim())
-      if (input.k?.trim()) params.set('k', input.k.trim())
-      const query = params.toString()
-      const path = `/${validatedUrl.host}${validatedUrl.pathname}${query ? `?${query}` : ''}`
-      setFetchedUrl(`${__HOST__}${path}`)
-
-      const res = await fetch(path, {
-        headers: { accept: 'application/json' },
-        signal: controller.signal,
-      })
-      const data: { content: string } | { error: string } = await res.json()
-      if ('error' in data) {
-        setError(data.error)
-      } else {
-        setMarkdown(
-          data.content.replace(
-            /\n\n---\n\nPowered by \[curl\.md\]\(https:\/\/curl\.md\)$/,
-            '',
-          ),
-        )
-        setStats({
-          tokensCount: Number(res.headers.get('x-tokens-count') ?? 0),
-          tokensSaved: Number(res.headers.get('x-tokens-saved') ?? 0),
-        })
-      }
-    } catch (err) {
-      if (err instanceof DOMException && err.name === 'AbortError') return
-      setError(
-        err instanceof z.ZodError ? 'Invalid URL' : 'Failed to fetch page',
-      )
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!url.trim()) return
-    fetchMarkdown({ url, q: objective, k: keywords })
+    mutation.mutate({ url, q: objective, k: keywords })
   }
 
-  const hasResult = (markdown || error) && fetchedUrl
+  const error = (() => {
+    const err = mutation.error
+    if (!err) return ''
+    if (err instanceof DOMException && err.name === 'AbortError') return ''
+    if (err instanceof z.ZodError) return 'Invalid URL'
+    return err.message || 'Failed to fetch page'
+  })()
+  const { fetchedUrl = '', markdown = '', stats = null } = mutation.data ?? {}
+  const hasResult = (markdown || error) && (fetchedUrl || error)
 
   const examples = [
     {
@@ -210,12 +208,12 @@ function Playground() {
               <div className="flex gap-2">
                 <button
                   className="bg-gray10 px-3 py-1 text-bg1 not-disabled:hover:bg-gray9 disabled:opacity-50"
-                  disabled={loading || !url.trim()}
+                  disabled={mutation.isPending || !url.trim()}
                   type="submit"
                 >
-                  {loading ? 'Fetching' : 'Fetch'}
+                  {mutation.isPending ? 'Fetching' : 'Fetch'}
                 </button>
-                {loading && (
+                {mutation.isPending && (
                   <button
                     className="px-3 py-1 text-gray6 hover:text-gray10"
                     onClick={() => abortRef.current?.abort()}
@@ -228,10 +226,7 @@ function Playground() {
                   <button
                     className="px-3 py-1 text-gray6 hover:text-gray10"
                     onClick={() => {
-                      setFetchedUrl('')
-                      setMarkdown('')
-                      setError('')
-                      setStats(null)
+                      mutation.reset()
                       setInputs({ url: '', q: '', k: '' })
                     }}
                     type="button"
@@ -265,11 +260,11 @@ function Playground() {
                 {examples.map((example) => (
                   <button
                     className="break-all bg-gray-a2 p-3 text-start text-gray6 not-disabled:hover:bg-gray-a3 disabled:opacity-50"
-                    disabled={loading}
+                    disabled={mutation.isPending}
                     key={example.url}
                     onClick={() => {
                       setInputs(example)
-                      fetchMarkdown(example)
+                      mutation.mutate(example)
                     }}
                     type="button"
                   >
@@ -303,24 +298,28 @@ function Playground() {
                       </span>{' '}
                       tokens
                     </span>
-                    <span>
-                      <span className="text-green9">
-                        {stats.tokensSaved.toLocaleString('en-US')}
-                      </span>{' '}
-                      tokens saved
-                    </span>
-                    <span>
-                      <span className="text-green9">
-                        ${formatCost(stats.tokensSaved, 3)}
-                      </span>{' '}
-                      saved (frontier)
-                    </span>
-                    <span>
-                      <span className="text-green9">
-                        ${formatCost(stats.tokensSaved, 0.5)}
-                      </span>{' '}
-                      saved (budget)
-                    </span>
+                    {stats.tokensSaved > 0 && (
+                      <>
+                        <span>
+                          <span className="text-green9">
+                            {stats.tokensSaved.toLocaleString('en-US')}
+                          </span>{' '}
+                          tokens saved
+                        </span>
+                        <span>
+                          <span className="text-green9">
+                            ${formatCost(stats.tokensSaved, 3)}
+                          </span>{' '}
+                          saved (frontier)
+                        </span>
+                        <span>
+                          <span className="text-green9">
+                            ${formatCost(stats.tokensSaved, 0.5)}
+                          </span>{' '}
+                          saved (budget)
+                        </span>
+                      </>
+                    )}
                   </>
                 )}
               </div>
@@ -353,11 +352,11 @@ function Playground() {
                 {examples.map((example) => (
                   <button
                     className="bg-gray-a2 p-3 text-start text-gray6 not-disabled:hover:bg-gray-a3 disabled:opacity-50"
-                    disabled={loading}
+                    disabled={mutation.isPending}
                     key={example.url}
                     onClick={() => {
                       setInputs(example)
-                      fetchMarkdown(example)
+                      mutation.mutate(example)
                     }}
                     type="button"
                   >

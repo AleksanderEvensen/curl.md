@@ -8,6 +8,7 @@ export const Route = createFileRoute('/og.png')({
     handlers: {
       GET: async ({ request }) => {
         const url = new URL(request.url)
+        const page = url.searchParams.get('page')?.trim() || undefined
         const urlParam = url.searchParams.get('url')?.trim() || undefined
 
         const [font, fontBold] = await Promise.all([
@@ -18,7 +19,9 @@ export const Route = createFileRoute('/og.png')({
         const tokensSaved = await getTokensSaved()
         const element = urlParam
           ? urlVariant(urlParam, tokensSaved)
-          : indexVariant(tokensSaved)
+          : page === 'playground'
+            ? playgroundVariant(tokensSaved)
+            : indexVariant(tokensSaved)
 
         if (url.searchParams.has('html'))
           return new Response(toHtmlPreview(element), {
@@ -109,6 +112,57 @@ function indexVariant(tokensSaved: number) {
           }),
         ],
         style: { display: 'flex', fontSize: 48, marginTop: 8 },
+      }),
+    ],
+  })
+}
+
+function playgroundVariant(tokensSaved: number) {
+  return node('div', {
+    style: {
+      alignItems: 'flex-start',
+      background: '#000000',
+      color: '#ededed',
+      display: 'flex',
+      flexDirection: 'column',
+      fontFamily: 'Geist Mono',
+      height: '100%',
+      justifyContent: 'center',
+      paddingBottom: 140,
+      paddingLeft: 80,
+      paddingRight: 80,
+      paddingTop: 80,
+      width: '100%',
+    },
+    children: [
+      node('div', {
+        children: `${__HOST__}/playground`,
+        style: { fontSize: 48, fontWeight: 900 },
+      }),
+      node('div', {
+        children: 'Fetch any URL as Markdown',
+        style: { color: '#a1a1a1', fontSize: 48, marginTop: 12 },
+      }),
+      ...(tokensSaved > 0
+        ? [
+            node('div', {
+              children: `${formatNumber(tokensSaved)} tokens saved`,
+              style: { color: '#a1a1a1', fontSize: 48, marginTop: 8 },
+            }),
+          ]
+        : []),
+      node('div', {
+        children: [
+          node('span', {
+            children: '$',
+            style: { color: '#a1a1a1', marginRight: 16 },
+          }),
+          node('span', {
+            children: `open ${__HOST__}/playground`,
+            style: { color: '#ededed' },
+          }),
+        ],
+        style: { display: 'flex', fontSize: 48, marginTop: 48 },
       }),
     ],
   })
