@@ -16,7 +16,7 @@ export const Route = createFileRoute('/og.png')({
           loadFont(request, '/fonts/GeistMono-Black.ttf'),
         ])
 
-        const tokensSaved = await getTokensSaved()
+        const tokensSaved = await getTokensSaved(urlParam)
         const element = urlParam
           ? urlVariant(urlParam, tokensSaved)
           : page === 'playground'
@@ -54,6 +54,7 @@ export const Route = createFileRoute('/og.png')({
 })
 
 function indexVariant(tokensSaved: number) {
+  const teal = '#0cc0aa'
   return node('div', {
     style: {
       alignItems: 'flex-start',
@@ -72,8 +73,17 @@ function indexVariant(tokensSaved: number) {
     },
     children: [
       node('div', {
-        children: __HOST__,
-        style: { fontSize: 48, fontWeight: 900 },
+        children: [
+          node('span', {
+            children: `${__HOST__}/`,
+            style: { color: '#ededed' },
+          }),
+          node('span', {
+            children: '<url>',
+            style: { color: teal },
+          }),
+        ],
+        style: { display: 'flex', fontSize: 48, fontWeight: 900 },
       }),
       node('div', {
         children: 'Fetch any URL as Markdown',
@@ -82,37 +92,33 @@ function indexVariant(tokensSaved: number) {
       ...(tokensSaved > 0
         ? [
             node('div', {
-              children: `${formatNumber(tokensSaved)} tokens saved`,
-              style: { color: '#a1a1a1', fontSize: 48, marginTop: 8 },
+              children: [
+                node('span', {
+                  children: formatNumber(tokensSaved),
+                  style: { color: teal },
+                }),
+                node('span', {
+                  children: '\u00a0tokens saved',
+                  style: { color: '#a1a1a1' },
+                }),
+              ],
+              style: { display: 'flex', fontSize: 48, marginTop: 8 },
+            }),
+            node('div', {
+              children: [
+                node('span', {
+                  children: `$${formatCost(tokensSaved, 3)}`,
+                  style: { color: teal },
+                }),
+                node('span', {
+                  children: '\u00a0saved @ $3/M input tokens',
+                  style: { color: '#a1a1a1' },
+                }),
+              ],
+              style: { display: 'flex', fontSize: 48, marginTop: 8 },
             }),
           ]
         : []),
-      node('div', {
-        children: [
-          node('span', {
-            children: '$',
-            style: { color: '#a1a1a1', marginRight: 16 },
-          }),
-          node('span', {
-            children: `curl ${__HOST__}/react.dev`,
-            style: { color: '#ededed' },
-          }),
-        ],
-        style: { display: 'flex', fontSize: 48, marginTop: 48 },
-      }),
-      node('div', {
-        children: [
-          node('span', {
-            children: '$',
-            style: { color: '#a1a1a1', marginRight: 16 },
-          }),
-          node('span', {
-            children: `npx skills add https://${__HOST__}`,
-            style: { color: '#ededed' },
-          }),
-        ],
-        style: { display: 'flex', fontSize: 48, marginTop: 8 },
-      }),
     ],
   })
 }
@@ -169,6 +175,10 @@ function playgroundVariant(tokensSaved: number) {
 }
 
 function urlVariant(urlParam: string, tokensSaved: number) {
+  const teal = '#0cc0aa'
+  const hostname = new URL(
+    /^https?:\/\//.test(urlParam) ? urlParam : `https://${urlParam}`,
+  ).hostname
   return node('div', {
     style: {
       alignItems: 'flex-start',
@@ -187,8 +197,17 @@ function urlVariant(urlParam: string, tokensSaved: number) {
     },
     children: [
       node('div', {
-        children: __HOST__,
-        style: { fontSize: 48, fontWeight: 900 },
+        children: [
+          node('span', {
+            children: `${__HOST__}/`,
+            style: { color: '#ededed' },
+          }),
+          node('span', {
+            children: hostname,
+            style: { color: teal },
+          }),
+        ],
+        style: { display: 'flex', fontSize: 48, fontWeight: 900 },
       }),
       node('div', {
         children: 'Fetch any URL as Markdown',
@@ -197,24 +216,33 @@ function urlVariant(urlParam: string, tokensSaved: number) {
       ...(tokensSaved > 0
         ? [
             node('div', {
-              children: `${formatNumber(tokensSaved)} tokens saved`,
-              style: { color: '#a1a1a1', fontSize: 48, marginTop: 8 },
+              children: [
+                node('span', {
+                  children: formatNumber(tokensSaved),
+                  style: { color: teal },
+                }),
+                node('span', {
+                  children: '\u00a0tokens saved',
+                  style: { color: '#a1a1a1' },
+                }),
+              ],
+              style: { display: 'flex', fontSize: 48, marginTop: 8 },
+            }),
+            node('div', {
+              children: [
+                node('span', {
+                  children: `$${formatCost(tokensSaved, 3)}`,
+                  style: { color: teal },
+                }),
+                node('span', {
+                  children: '\u00a0saved @ $3/M input tokens',
+                  style: { color: '#a1a1a1' },
+                }),
+              ],
+              style: { display: 'flex', fontSize: 48, marginTop: 8 },
             }),
           ]
         : []),
-      node('div', {
-        children: [
-          node('span', {
-            children: '$',
-            style: { color: '#a1a1a1', marginRight: 16 },
-          }),
-          node('span', {
-            children: `curl ${__HOST__}/${new URL(/^https?:\/\//.test(urlParam) ? urlParam : `https://${urlParam}`).hostname}`,
-            style: { color: '#ededed' },
-          }),
-        ],
-        style: { display: 'flex', fontSize: 48, marginTop: 48 },
-      }),
     ],
   })
 }
@@ -223,17 +251,33 @@ function node(type: string, props: Record<string, unknown>): React.ReactNode {
   return { type, props } as unknown as React.ReactNode
 }
 
-async function getTokensSaved() {
-  const cacheKey = 'stats:tokens_saved'
+async function getTokensSaved(urlParam?: string) {
+  const hostname = urlParam
+    ? new URL(/^https?:\/\//.test(urlParam) ? urlParam : `https://${urlParam}`)
+        .hostname
+    : undefined
+  const cacheKey = hostname
+    ? `stats:tokens_saved:${hostname}`
+    : 'stats:tokens_saved'
   const cached = await env.KV.get<number>(cacheKey, 'json')
   if (cached !== null) return cached
 
   const db = getDb()
-  const result = await db
-    .selectFrom('request')
-    .select((eb) => eb.fn.sum<number>('tokens_saved').as('total'))
-    .executeTakeFirstOrThrow()
-  const total = result.total ?? 0
+  let total: number
+  if (hostname) {
+    const result = await db
+      .selectFrom('request')
+      .select((eb) => eb.fn.sum<number>('tokens_saved').as('total'))
+      .where('hostname', '=', hostname)
+      .executeTakeFirstOrThrow()
+    total = result.total ?? 0
+  } else {
+    const result = await db
+      .selectFrom('request')
+      .select((eb) => eb.fn.sum<number>('tokens_saved').as('total'))
+      .executeTakeFirstOrThrow()
+    total = result.total ?? 0
+  }
   waitUntil(env.KV.put(cacheKey, String(total), { expirationTtl: 60 }))
   return total
 }
@@ -274,6 +318,11 @@ function styleToString(style: Record<string, unknown>) {
         `${k.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}:${typeof v === 'number' ? `${v}${unitless.has(k) ? '' : 'px'}` : v}`,
     )
     .join(';')
+}
+
+function formatCost(tokens: number, perMillionDollars: number) {
+  const cost = (tokens / 1_000_000) * perMillionDollars
+  return cost < 0.01 ? cost.toFixed(4).replace(/0+$/, '0') : cost.toFixed(2)
 }
 
 function formatNumber(n: number): string {

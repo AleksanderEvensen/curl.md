@@ -1,0 +1,20 @@
+{
+  "name": "curl-md",
+  "version": "0.0.1",
+  "description": "Fetch any URL as Markdown",
+  "type": "module",
+  "bin": {
+    "curl-md": "./dist/cli.js",
+    "curlmd": "./dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "catalog:",
+    "zod": "catalog:"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}

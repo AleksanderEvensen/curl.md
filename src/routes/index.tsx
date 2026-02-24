@@ -109,11 +109,26 @@ function TokensSaved() {
   const total = data?.tokens_saved ?? 0
   const animated = useCountUp(total)
   return (
-    <p className="text-gray6">
-      <span className="tabular-nums">{formatNumber(animated)}</span> tokens
-      saved
-    </p>
+    <>
+      <p className="text-gray6">
+        <span className="text-teal9 tabular-nums">
+          {formatNumber(animated)}
+        </span>{' '}
+        tokens saved
+      </p>
+      <p className="text-gray6">
+        <span className="text-teal9 tabular-nums">
+          ${formatCost(animated, 3)}
+        </span>{' '}
+        saved @ $3/M input tokens
+      </p>
+    </>
   )
+}
+
+function formatCost(tokens: number, perMillionDollars: number) {
+  const cost = (tokens / 1_000_000) * perMillionDollars
+  return cost < 0.01 ? cost.toFixed(4).replace(/0+$/, '0') : cost.toFixed(2)
 }
 
 function useCountUp(target: number, duration = 500) {

@@ -118,3 +118,19 @@ jobs:
           sha: ${{ github.event.pull_request.head.sha }}
           status: ${{ job.status == 'success' && 'ready' || 'error' }}
           run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+  publish-preview:
+    name: Publish Preview
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+      - name: Setup pnpm
+        uses: ./.github/actions/setup-pnpm
+
+      - name: Build CLI
+        run: pnpm build:cli
+
+      - name: Publish preview
+        run: pnpx pkg-pr-new publish --only-changed ./cli

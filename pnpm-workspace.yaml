@@ -1,0 +1,14 @@
+packages:
+  - cli
+
+catalog:
+  "@modelcontextprotocol/sdk": ^1.26.0
+  "@types/node": ^25.2.3
+  zod: ^4.3.6
+
+minimumReleaseAge: 1440
+
+onlyBuiltDependencies:
+  - "simple-git-hooks"
+
+trustPolicy: no-downgrade
