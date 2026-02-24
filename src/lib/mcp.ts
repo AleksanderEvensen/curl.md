@@ -1,6 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod'
-import { fetchPage } from '#lib/fetch-page.ts'
+import { fetchPage } from '#lib/core/fetch-page.ts'
 import { rateLimit } from '#lib/rate-limit.ts'
 import { urlSchema } from '#lib/schemas.ts'
 import { trackRequest } from '#lib/track-request.ts'

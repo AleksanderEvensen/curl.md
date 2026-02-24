@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "paths": {
+      "#lib/core/*": ["./../pro/*", "./../src/lib/basic/*"],
       "#*": ["./../src/*"]
     },
     "tsBuildInfoFile": "../node_modules/.tmp/tsconfig.app.tsbuildinfo",
@@ -26,5 +27,5 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["../src"]
+  "include": ["../pro", "../src"]
 }
