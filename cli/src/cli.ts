@@ -17,7 +17,7 @@ const { values, positionals } = parseArgs({
   allowPositionals: true,
 })
 
-const { version } = pkg
+const version = process.env.CURL_MD_VERSION ?? pkg.version
 
 if (values.version) {
   console.log(version)

@@ -36,25 +36,6 @@ function Home() {
       <TokensSaved />
       <div className="mt-4">
         <code className="block text-gray9 dark:text-gray6">
-          # Install agent skill
-        </code>
-        <code className="block">
-          <span className="text-gray12">npx skills add</span>{' '}
-          <span className="text-gray10">https://{__HOST__}</span>
-        </code>
-      </div>
-      <div>
-        <code className="block text-gray9 dark:text-gray6">
-          # Install MCP server
-        </code>
-        <code className="block">
-          <span className="text-gray12">npx add-mcp</span>{' '}
-          <span className="text-gray10">{__HOST__}/mcp</span>
-        </code>
-      </div>
-
-      <div className="mt-4">
-        <code className="block text-gray9 dark:text-gray6">
           # Filter by objective
         </code>
         <code className="block">
@@ -71,6 +52,25 @@ function Home() {
           <span className="text-gray12">curl</span> {__HOST__}
           /example.com?
           <span className="text-gray10">k=api,auth</span>
+        </code>
+      </div>
+
+      <div className="mt-4">
+        <code className="block text-gray9 dark:text-gray6">
+          # Install agent skill
+        </code>
+        <code className="block">
+          <span className="text-gray12">npx skills add</span>{' '}
+          <span className="text-gray10">https://{__HOST__}</span>
+        </code>
+      </div>
+      <div>
+        <code className="block text-gray9 dark:text-gray6">
+          # Install MCP server
+        </code>
+        <code className="block">
+          <span className="text-gray12">npx add-mcp</span>{' '}
+          <span className="text-gray10">{__HOST__}/mcp</span>
         </code>
       </div>
 

@@ -30,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
       - name: Setup pnpm
         uses: ./.github/actions/setup-pnpm
@@ -124,7 +124,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
       - name: Setup pnpm
         uses: ./.github/actions/setup-pnpm
@@ -133,4 +133,9 @@ jobs:
         run: pnpm build:cli
 
       - name: Publish preview
-        run: pnpx pkg-pr-new publish --only-changed ./cli
+        run: |
+          if git diff --quiet origin/${{ github.base_ref }}...HEAD -- cli/; then
+            echo "No changes to publish"
+          else
+            pnpx pkg-pr-new publish ./cli
+          fi

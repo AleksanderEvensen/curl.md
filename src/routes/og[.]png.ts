@@ -124,6 +124,7 @@ function indexVariant(tokensSaved: number) {
 }
 
 function playgroundVariant(tokensSaved: number) {
+  const teal = '#0cc0aa'
   return node('div', {
     style: {
       alignItems: 'flex-start',
@@ -142,8 +143,17 @@ function playgroundVariant(tokensSaved: number) {
     },
     children: [
       node('div', {
-        children: `${__HOST__}/playground`,
-        style: { fontSize: 48, fontWeight: 900 },
+        children: [
+          node('span', {
+            children: `${__HOST__}/`,
+            style: { color: '#ededed' },
+          }),
+          node('span', {
+            children: 'playground',
+            style: { color: '#ededed' },
+          }),
+        ],
+        style: { display: 'flex', fontSize: 48, fontWeight: 900 },
       }),
       node('div', {
         children: 'Fetch any URL as Markdown',
@@ -152,24 +162,33 @@ function playgroundVariant(tokensSaved: number) {
       ...(tokensSaved > 0
         ? [
             node('div', {
-              children: `${formatNumber(tokensSaved)} tokens saved`,
-              style: { color: '#a1a1a1', fontSize: 48, marginTop: 8 },
+              children: [
+                node('span', {
+                  children: formatNumber(tokensSaved),
+                  style: { color: teal },
+                }),
+                node('span', {
+                  children: '\u00a0tokens saved',
+                  style: { color: '#a1a1a1' },
+                }),
+              ],
+              style: { display: 'flex', fontSize: 48, marginTop: 8 },
+            }),
+            node('div', {
+              children: [
+                node('span', {
+                  children: `$${formatCost(tokensSaved, 3)}`,
+                  style: { color: teal },
+                }),
+                node('span', {
+                  children: '\u00a0saved @ $3/M input tokens',
+                  style: { color: '#a1a1a1' },
+                }),
+              ],
+              style: { display: 'flex', fontSize: 48, marginTop: 8 },
             }),
           ]
         : []),
-      node('div', {
-        children: [
-          node('span', {
-            children: '$',
-            style: { color: '#a1a1a1', marginRight: 16 },
-          }),
-          node('span', {
-            children: `open ${__HOST__}/playground`,
-            style: { color: '#ededed' },
-          }),
-        ],
-        style: { display: 'flex', fontSize: 48, marginTop: 48 },
-      }),
     ],
   })
 }

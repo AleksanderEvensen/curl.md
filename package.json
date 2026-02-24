@@ -1,4 +1,5 @@
 {
+  "name": "root",
   "private": true,
   "type": "module",
   "imports": {
@@ -46,12 +47,12 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.3.13",
-    "@changesets/changelog-github": "^0.5.2",
     "@changesets/cli": "^2.29.8",
     "@iconify-json/lucide": "^1.2.91",
     "@iconify-json/octicon": "^1.2.21",
     "@svgr/core": "^8.1.0",
     "@svgr/plugin-jsx": "^8.1.0",
+    "@svitejs/changesets-changelog-github-compact": "^1.2.0",
     "@tailwindcss/vite": "^4.1.18",
     "@types/hast": "^3.0.4",
     "@types/node": "catalog:",

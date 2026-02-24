@@ -2,7 +2,10 @@
   "$schema": "https://unpkg.com/@changesets/config@3.1.2/schema.json",
   "access": "public",
   "baseBranch": "main",
-  "changelog": ["@changesets/changelog-github", { "repo": "wevm/curl.md" }],
+  "changelog": [
+    "@svitejs/changesets-changelog-github-compact",
+    { "repo": "wevm/curl.md" }
+  ],
   "commit": false,
   "fixed": [],
   "ignore": [],

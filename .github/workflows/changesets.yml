@@ -30,6 +30,8 @@ jobs:
       - name: Create release PR or publish
         uses: changesets/action@6a0a831ff30acef54f2c6aa1cbbc1096b066edaf # v1.7.0
         with:
+          commit: "chore: version packages"
+          title: "chore: version packages"
           version: pnpm changeset version
           publish: pnpm changeset publish
         env:
@@ -38,4 +40,9 @@ jobs:
           # NPM_CONFIG_PROVENANCE: true
 
       - name: Publish preview release
-        run: pnpx pkg-pr-new publish --only-changed ./cli
+        run: |
+          if git diff --quiet HEAD~1 HEAD -- cli/; then
+            echo "No changes to publish"
+          else
+            pnpx pkg-pr-new publish ./cli
+          fi

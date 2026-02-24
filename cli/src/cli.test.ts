@@ -7,9 +7,11 @@ import { afterEach, expect, test } from 'vitest'
 
 const exec = promisify(execFile)
 const cli = resolve(import.meta.dirname, '..', 'dist', 'cli.js')
+const env = { ...process.env, CURL_MD_VERSION: 'x.y.z' }
 
 test('fetches example.com as markdown', async () => {
   const { stdout } = await exec('node', [cli, 'example.com'], {
+    env,
     timeout: 30_000,
   })
   expect(stdout).toContain('Example Domain')
@@ -17,6 +19,7 @@ test('fetches example.com as markdown', async () => {
 
 test('fetches example.com as json', async () => {
   const { stdout } = await exec('node', [cli, 'example.com', '--json'], {
+    env,
     timeout: 30_000,
   })
   const json = JSON.parse(stdout)
@@ -24,15 +27,15 @@ test('fetches example.com as json', async () => {
 })
 
 test('prints version', async () => {
-  const { stdout } = await exec('node', [cli, '--version'])
-  expect(stdout.trim()).toMatch(/^\d+\.\d+\.\d+/)
+  const { stdout } = await exec('node', [cli, '--version'], { env })
+  expect(stdout.trim()).toBe('x.y.z')
 })
 
 test('prints help', async () => {
-  const { stdout } = await exec('node', [cli, '--help'])
+  const { stdout } = await exec('node', [cli, '--help'], { env })
   expect(stdout).toMatchInlineSnapshot(`
     "curl.md — Fetch any URL as Markdown
-    v0.0.1
+    vx.y.z
 
     Usage:
       curl-md <url> [options]
@@ -95,7 +98,7 @@ test('prints help', async () => {
 })
 
 test('exits with error for invalid url', async () => {
-  await expect(exec('node', [cli, '!!!invalid'])).rejects.toThrow()
+  await expect(exec('node', [cli, '!!!invalid'], { env })).rejects.toThrow()
 })
 
 // MCP
@@ -110,6 +113,7 @@ async function createMcpClient() {
   const transport = new StdioClientTransport({
     command: 'node',
     args: [cli, '--mcp'],
+    env,
   })
   client = new Client({ name: 'test', version: '0.0.0' })
   await client.connect(transport)
