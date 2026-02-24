@@ -13,22 +13,22 @@ export function useTheme() {
     setMounted(true)
   }, [])
 
-  React.useEffect(() => {
-    if (!mounted) return
-    applyTheme(theme)
-    setStoredTheme(theme)
-  }, [theme, mounted])
-
   const [systemTheme, setSystemTheme] =
     React.useState<Exclude<Theme, 'system'>>(getSystemTheme)
+
+  const resolvedTheme = theme === 'system' ? systemTheme : theme
+
+  React.useEffect(() => {
+    if (!mounted) return
+    applyTheme(resolvedTheme)
+    setStoredTheme(theme)
+  }, [resolvedTheme, theme, mounted])
 
   React.useEffect(() => {
     if (!mounted) return
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
     function handleChange() {
-      const next = mediaQuery.matches ? 'dark' : 'light'
-      setSystemTheme(next)
-      if (getStoredTheme() === 'system') applyTheme('system')
+      setSystemTheme(mediaQuery.matches ? 'dark' : 'light')
     }
     mediaQuery.addEventListener('change', handleChange)
     return () => mediaQuery.removeEventListener('change', handleChange)
@@ -46,7 +46,6 @@ export function useTheme() {
     })
   }, [])
 
-  const resolvedTheme = theme === 'system' ? systemTheme : theme
   const label = theme === 'system' ? `system (${resolvedTheme})` : theme
 
   return { theme, resolvedTheme, label, mounted, setTheme, cycle } as const
@@ -68,10 +67,9 @@ function setStoredTheme(theme: Theme) {
   localStorage.setItem(THEME_STORAGE_KEY, theme)
 }
 
-function applyTheme(theme: Theme) {
-  const resolved = theme === 'system' ? getSystemTheme() : theme
+function applyTheme(theme: Exclude<Theme, 'system'>) {
   disableTransitions(() => {
-    document.documentElement.dataset.theme = resolved
+    document.documentElement.dataset.theme = theme
   })
 }
 
@@ -98,11 +96,13 @@ function disableTransitions(callback: () => void) {
 // Inline script to prevent flash - runs before React hydrates
 export const themeScript = `
 (function() {
-  var theme = localStorage.getItem('${THEME_STORAGE_KEY}') || 'system';
-  var resolved = theme;
-  if (theme === 'system') {
-    resolved = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  var mq = window.matchMedia('(prefers-color-scheme: dark)');
+  function apply() {
+    var theme = localStorage.getItem('${THEME_STORAGE_KEY}') || 'system';
+    document.documentElement.dataset.theme =
+      theme === 'system' ? (mq.matches ? 'dark' : 'light') : theme;
   }
-  document.documentElement.dataset.theme = resolved;
+  apply();
+  mq.addEventListener('change', apply);
 })();
 `

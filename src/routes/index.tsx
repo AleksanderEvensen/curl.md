@@ -29,20 +29,24 @@ function Home() {
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-1 px-6 pt-16 pb-16 text-lg">
       <h1 className="font-bold">curl.md</h1>
-      <p className="text-gray6">
+      <p className="text-gray9 dark:text-gray6">
         Fetch any URL as Markdown via{' '}
         <code className="text-teal9">{__HOST__}/&lt;url&gt;</code>
       </p>
       <TokensSaved />
       <div className="mt-4">
-        <code className="block text-gray6"># Install agent skill</code>
+        <code className="block text-gray9 dark:text-gray6">
+          # Install agent skill
+        </code>
         <code className="block">
           <span className="text-gray12">npx skills add</span>{' '}
           <span className="text-gray10">https://{__HOST__}</span>
         </code>
       </div>
       <div>
-        <code className="block text-gray6"># Install MCP server</code>
+        <code className="block text-gray9 dark:text-gray6">
+          # Install MCP server
+        </code>
         <code className="block">
           <span className="text-gray12">npx add-mcp</span>{' '}
           <span className="text-gray10">{__HOST__}/mcp</span>
@@ -50,7 +54,9 @@ function Home() {
       </div>
 
       <div className="mt-4">
-        <code className="block text-gray6"># Filter by objective</code>
+        <code className="block text-gray9 dark:text-gray6">
+          # Filter by objective
+        </code>
         <code className="block">
           <span className="text-gray12">curl</span> {__HOST__}
           /example.com?
@@ -58,7 +64,9 @@ function Home() {
         </code>
       </div>
       <div>
-        <code className="block text-gray6"># Filter by keywords</code>
+        <code className="block text-gray9 dark:text-gray6">
+          # Filter by keywords
+        </code>
         <code className="block">
           <span className="text-gray12">curl</span> {__HOST__}
           /example.com?
@@ -66,7 +74,7 @@ function Home() {
         </code>
       </div>
 
-      <footer className="mt-4 flex flex-wrap gap-x-3 gap-y-1 text-gray6">
+      <footer className="mt-4 flex flex-wrap gap-x-3 gap-y-1 text-gray9 dark:text-gray6">
         <a
           className="hover:underline"
           href="https://github.com/wevm/curl.md"
@@ -110,13 +118,13 @@ function TokensSaved() {
   const animated = useCountUp(total)
   return (
     <>
-      <p className="text-gray6">
+      <p className="text-gray9 dark:text-gray6">
         <span className="text-teal9 tabular-nums">
           {formatNumber(animated)}
         </span>{' '}
         tokens saved
       </p>
-      <p className="text-gray6">
+      <p className="text-gray9 dark:text-gray6">
         <span className="text-teal9 tabular-nums">
           ${formatCost(animated, 3)}
         </span>{' '}

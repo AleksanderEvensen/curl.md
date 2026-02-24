@@ -165,16 +165,24 @@ function Playground() {
       <div className="mx-auto flex min-h-0 w-full max-w-7xl grow flex-col gap-4">
         <div className="flex flex-col gap-1">
           <h1 className="font-bold">Playground</h1>
-          <p className="text-gray6">Try fetching any URL as Markdown</p>
+          <p className="text-gray9 dark:text-gray6">
+            Try fetching any URL as Markdown
+          </p>
         </div>
 
         <div className="flex min-h-0 grow flex-col gap-6 md:flex-row">
           <div className="flex w-full flex-col gap-4 md:basis-2/5">
             <form onSubmit={handleSubmit} className="flex flex-col gap-3">
               <div className="flex items-center">
-                <span className="shrink-0 text-gray6">{__HOST__}/</span>
+                <label
+                  className="shrink-0 text-gray9 dark:text-gray6"
+                  htmlFor="url"
+                >
+                  {__HOST__}/
+                </label>
                 <input
-                  className="w-full bg-gray-a1 px-2 py-1 text-gray10 placeholder:text-gray5"
+                  className="w-full bg-gray-a1 px-2 py-1 text-gray10 placeholder:text-gray9 dark:placeholder:text-gray6"
+                  id="url"
                   onBlur={() => {
                     const stripped = url.replace(/^https?:\/\//, '')
                     if (stripped !== url) setUrl(stripped)
@@ -186,9 +194,15 @@ function Playground() {
                 />
               </div>
               <div className="flex items-center">
-                <span className="shrink-0 text-gray6">q=</span>
+                <label
+                  className="shrink-0 text-gray9 dark:text-gray6"
+                  htmlFor="objective"
+                >
+                  q=
+                </label>
                 <input
-                  className="w-full bg-gray-a1 px-2 py-1 text-gray10 placeholder:text-gray5"
+                  className="w-full bg-gray-a1 px-2 py-1 text-gray10 placeholder:text-gray9 dark:placeholder:text-gray6"
+                  id="objective"
                   onChange={(e) => setObjective(e.target.value)}
                   placeholder="objective (optional)"
                   type="text"
@@ -196,9 +210,15 @@ function Playground() {
                 />
               </div>
               <div className="flex items-center">
-                <span className="shrink-0 text-gray6">k=</span>
+                <label
+                  className="shrink-0 text-gray9 dark:text-gray6"
+                  htmlFor="keywords"
+                >
+                  k=
+                </label>
                 <input
-                  className="w-full bg-gray-a1 px-2 py-1 text-gray10 placeholder:text-gray5"
+                  className="w-full bg-gray-a1 px-2 py-1 text-gray10 placeholder:text-gray9 dark:placeholder:text-gray6"
+                  id="keywords"
                   onChange={(e) => setKeywords(e.target.value)}
                   placeholder="keywords (optional)"
                   type="text"
@@ -215,7 +235,7 @@ function Playground() {
                 </button>
                 {mutation.isPending && (
                   <button
-                    className="px-3 py-1 text-gray6 hover:text-gray10"
+                    className="px-3 py-1 text-gray9 hover:text-gray10 dark:text-gray6"
                     onClick={() => abortRef.current?.abort()}
                     type="button"
                   >
@@ -224,7 +244,7 @@ function Playground() {
                 )}
                 {hasResult && (
                   <button
-                    className="px-3 py-1 text-gray6 hover:text-gray10"
+                    className="px-3 py-1 text-gray9 hover:text-gray10 dark:text-gray6"
                     onClick={() => {
                       mutation.reset()
                       setInputs({ url: '', q: '', k: '' })
@@ -238,7 +258,7 @@ function Playground() {
             </form>
 
             {hasResult && (
-              <div className="flex flex-col gap-1 text-gray6 md:hidden">
+              <div className="flex flex-col gap-1 text-gray9 md:hidden dark:text-gray6">
                 {markdown && (
                   <pre className="minimal-scrollbar max-h-[50vh] overflow-auto whitespace-pre-wrap break-words bg-bg2 p-4 text-gray10">
                     {markdown}
@@ -254,12 +274,12 @@ function Playground() {
 
             {!hasResult && (
               <div className="flex flex-col gap-3 md:hidden">
-                <p className="text-gray5">
+                <p className="text-gray9 dark:text-gray6">
                   Enter a URL and click Fetch, or try an example:
                 </p>
                 {examples.map((example) => (
                   <button
-                    className="break-all bg-gray-a2 p-3 text-start text-gray6 not-disabled:hover:bg-gray-a3 disabled:opacity-50"
+                    className="break-all bg-gray-a2 p-3 text-start text-gray9 not-disabled:hover:bg-gray-a3 disabled:opacity-50 dark:text-gray6"
                     disabled={mutation.isPending}
                     key={example.url}
                     onClick={() => {
@@ -268,8 +288,14 @@ function Playground() {
                     }}
                     type="button"
                   >
-                    <span className="text-gray5">{__HOST__}/</span>
-                    {example.url}
+                    <span className="text-gray9 dark:text-gray6">
+                      {__HOST__}/
+                    </span>
+                    <span className="text-gray10">
+                      {example.url.split('/')[0]}
+                    </span>
+                    {example.url.includes('/') &&
+                      `/${example.url.split('/').slice(1).join('/')}`}
                     {example.q && (
                       <>
                         ?q=
@@ -288,7 +314,7 @@ function Playground() {
             )}
 
             {hasResult && (
-              <div className="flex flex-col gap-1 text-gray6">
+              <div className="flex flex-col gap-1 text-gray9 dark:text-gray6">
                 <code className="break-all">{fetchedUrl}</code>
                 {stats && (
                   <>
@@ -325,7 +351,7 @@ function Playground() {
               </div>
             )}
 
-            <footer className="mt-auto pb-10 text-gray6 md:pb-0">
+            <footer className="mt-auto pb-10 text-gray9 md:pb-0 dark:text-gray6">
               <a className="hover:underline" href="/">
                 &larr; Home
               </a>
@@ -347,11 +373,11 @@ function Playground() {
                 </pre>
               </>
             ) : (
-              <div className="flex min-h-0 grow flex-col gap-4 bg-bg2 p-4 text-gray5 [scrollbar-gutter:stable]">
+              <div className="flex min-h-0 grow flex-col gap-4 bg-bg2 p-4 text-gray9 [scrollbar-gutter:stable] dark:text-gray6">
                 <p>Enter a URL and click Fetch, or try an example:</p>
                 {examples.map((example) => (
                   <button
-                    className="bg-gray-a2 p-3 text-start text-gray6 not-disabled:hover:bg-gray-a3 disabled:opacity-50"
+                    className="bg-gray-a2 p-3 text-start text-gray9 not-disabled:hover:bg-gray-a3 disabled:opacity-50 dark:text-gray6"
                     disabled={mutation.isPending}
                     key={example.url}
                     onClick={() => {
@@ -360,8 +386,14 @@ function Playground() {
                     }}
                     type="button"
                   >
-                    <span className="text-gray5">{__HOST__}/</span>
-                    {example.url}
+                    <span className="text-gray9 dark:text-gray6">
+                      {__HOST__}/
+                    </span>
+                    <span className="text-gray10">
+                      {example.url.split('/')[0]}
+                    </span>
+                    {example.url.includes('/') &&
+                      `/${example.url.split('/').slice(1).join('/')}`}
                     {example.q && (
                       <>
                         ?q=
@@ -391,7 +423,7 @@ function CopyButton(props: { text: string }) {
 
   return (
     <button
-      className="flex items-center gap-1 text-gray6 hover:text-gray10"
+      className="flex items-center gap-1 text-gray9 hover:text-gray10 dark:text-gray6"
       onClick={() => {
         navigator.clipboard.writeText(text)
         setCopied(true)
