@@ -9,7 +9,7 @@ import { getDb } from '#lib/db.ts'
 export const Route = createFileRoute('/')({
   head: () => ({
     meta: [
-      { title: __HOST__ },
+      { title: `${__HOST__}: Fetch any URL as Markdown` },
       { name: 'description', content: 'Fetch any URL as Markdown' },
       { property: 'og:title', content: __HOST__ },
       { property: 'og:description', content: 'Fetch any URL as Markdown' },

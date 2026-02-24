@@ -13,7 +13,7 @@ const searchSchema = z.object({
 export const Route = createFileRoute('/playground')({
   head: () => ({
     meta: [
-      { title: `${__HOST__}/playground` },
+      { title: `Playground - ${__HOST__}` },
       { name: 'description', content: 'Fetch any URL as Markdown' },
       { property: 'og:title', content: `${__HOST__}/playground` },
       { property: 'og:description', content: 'Fetch any URL as Markdown' },
