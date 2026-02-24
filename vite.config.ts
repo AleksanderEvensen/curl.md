@@ -48,8 +48,13 @@ export default defineConfig({
     __HOST__: JSON.stringify(getWranglerVar('HOST')),
     __INITIAL_TOKENS_SAVED__: (() => {
       try {
-        const isProduction = process.env.CLOUDFLARE_ENV === 'production'
-        const flags = isProduction ? '--remote --env production' : '--local'
+        const env = process.env.CLOUDFLARE_ENV
+        const flags =
+          env === 'production'
+            ? '--remote --env production'
+            : env === 'preview'
+              ? '--remote --env preview'
+              : '--local'
         return child
           .execSync(
             `node --experimental-strip-types scripts/get-tokens-saved.ts ${flags}`,
