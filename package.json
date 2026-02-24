@@ -7,7 +7,7 @@
   "scripts": {
     "build": "vite build",
     "build:cli": "tsgo -p cli",
-    "curlmd": "CURL_MD_BASE_URL=https://curl.local NODE_TLS_REJECT_UNAUTHORIZED=0 node --experimental-strip-types --no-warnings cli/src/cli.ts",
+    "curl": "CURL_MD_BASE_URL=https://curl.local NODE_TLS_REJECT_UNAUTHORIZED=0 node --experimental-strip-types --no-warnings cli/src/cli.ts",
     "check": "biome check .",
     "check:types": "tsgo -b",
     "db": "sqlite3 $(find .wrangler -name '*.sqlite' -path '*/d1/*' | head -1)",
