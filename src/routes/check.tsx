@@ -23,6 +23,9 @@ export const Route = createFileRoute('/check')({
         { property: 'og:title', content: `${__HOST__}/check` },
         { property: 'og:description', content: description },
         { property: 'og:image', content: ogImage },
+        { property: 'og:image:width', content: '1200' },
+        { property: 'og:image:height', content: '630' },
+        { property: 'og:image:type', content: 'image/png' },
         { property: 'og:type', content: 'website' },
         { property: 'og:url', content: `https://${__HOST__}/check` },
         { name: 'twitter:card', content: 'summary_large_image' },
@@ -242,12 +245,12 @@ function Check() {
             </div>
 
             {markdown && (
-              <div className="relative w-full min-w-0 md:flex md:max-h-[calc(100dvh-14rem)] md:min-h-0 md:basis-3/5 md:flex-col">
+              <div className="relative -mx-6 w-auto min-w-0 md:mx-0 md:flex md:max-h-[calc(100dvh-14rem)] md:min-h-0 md:basis-3/5 md:flex-col">
                 <div className="absolute end-2 top-2 z-10 hidden md:block">
                   <CopyButton text={markdown} />
                 </div>
                 <div className="flex min-h-0 grow flex-col bg-bg2">
-                  <pre className="minimal-scrollbar max-h-[50vh] overflow-auto whitespace-pre-wrap break-words p-4 text-gray10 leading-relaxed md:max-h-none md:min-h-0 md:grow md:p-6 md:leading-normal md:[scrollbar-gutter:stable]">
+                  <pre className="minimal-scrollbar whitespace-pre-wrap break-words px-6 py-4 text-gray10 leading-relaxed md:max-h-none md:min-h-0 md:grow md:overflow-auto md:p-6 md:leading-normal md:[scrollbar-gutter:stable]">
                     {markdown}
                   </pre>
                 </div>

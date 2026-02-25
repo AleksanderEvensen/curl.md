@@ -82,6 +82,9 @@ function socialCrawlerResponse(url: URL) {
 <meta property="og:title" content="${__HOST__}/${escaped}" />
 <meta property="og:description" content="Fetch any URL as Markdown" />
 <meta property="og:image" content="${ogUrl}" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:type" content="image/png" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://${__HOST__}/${escaped}" />
 <meta name="twitter:card" content="summary_large_image" />

@@ -21,6 +21,9 @@ export const Route = createFileRoute('/playground')({
         property: 'og:image',
         content: `https://${__HOST__}/og.png?page=playground`,
       },
+      { property: 'og:image:width', content: '1200' },
+      { property: 'og:image:height', content: '630' },
+      { property: 'og:image:type', content: 'image/png' },
       { property: 'og:type', content: 'website' },
       { property: 'og:url', content: `https://${__HOST__}/playground` },
       { name: 'twitter:card', content: 'summary_large_image' },
@@ -269,21 +272,6 @@ function Playground() {
               </div>
             </form>
 
-            {hasResult && (
-              <div className="flex flex-col gap-1 text-gray9 md:hidden dark:text-gray6">
-                {markdown && (
-                  <pre className="minimal-scrollbar max-h-[50vh] overflow-auto whitespace-pre-wrap break-words bg-bg2 p-4 text-gray10">
-                    {markdown}
-                  </pre>
-                )}
-                {error && (
-                  <pre className="overflow-x-auto whitespace-pre-wrap text-red9">
-                    {error}
-                  </pre>
-                )}
-              </div>
-            )}
-
             {!hasResult && (
               <div className="flex flex-col gap-3 md:hidden">
                 <p className="text-gray9 dark:text-gray6">
@@ -359,6 +347,21 @@ function Playground() {
                       </>
                     )}
                   </>
+                )}
+              </div>
+            )}
+
+            {hasResult && (
+              <div className="-mx-6 flex flex-col gap-1 text-gray9 md:hidden dark:text-gray6">
+                {markdown && (
+                  <pre className="minimal-scrollbar whitespace-pre-wrap break-words bg-bg2 px-6 py-4 text-gray10">
+                    {markdown}
+                  </pre>
+                )}
+                {error && (
+                  <pre className="overflow-x-auto whitespace-pre-wrap text-red9">
+                    {error}
+                  </pre>
                 )}
               </div>
             )}
