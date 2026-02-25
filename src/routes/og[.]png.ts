@@ -1,7 +1,9 @@
 import { env, waitUntil } from 'cloudflare:workers'
 import { createFileRoute } from '@tanstack/react-router'
 import { ImageResponse } from 'workers-og'
+import { fetchPage } from '#lib/core/fetch-page.ts'
 import { getDb } from '#lib/db.ts'
+import { computeScore } from '#lib/score.ts'
 
 export const Route = createFileRoute('/og.png')({
   server: {
@@ -17,11 +19,14 @@ export const Route = createFileRoute('/og.png')({
         ])
 
         const tokensSaved = await getTokensSaved(urlParam)
-        const element = urlParam
-          ? urlVariant(urlParam, tokensSaved)
-          : page === 'playground'
-            ? playgroundVariant(tokensSaved)
-            : indexVariant(tokensSaved)
+        const element =
+          page === 'check'
+            ? await checkVariant(url.searchParams)
+            : urlParam
+              ? urlVariant(urlParam, tokensSaved)
+              : page === 'playground'
+                ? playgroundVariant(tokensSaved)
+                : indexVariant(tokensSaved)
 
         if (url.searchParams.has('html'))
           return new Response(toHtmlPreview(element), {
@@ -193,6 +198,255 @@ function playgroundVariant(tokensSaved: number) {
   })
 }
 
+async function checkVariant(params: URLSearchParams) {
+  const green = '#46a758'
+  const gray = '#a1a1a1'
+  const checkedUrl = params.get('url')?.trim()
+  let score = Number(params.get('score') || 0)
+  let tokens = Number(params.get('tokens') || 0)
+  let saved = Number(params.get('saved') || 0)
+
+  if (checkedUrl && score === 0) {
+    try {
+      const validatedUrl = new URL(
+        checkedUrl.includes('://') ? checkedUrl : `https://${checkedUrl}`,
+      )
+      const page = await fetchPage(validatedUrl, {})
+      tokens = page.tokensCount
+      saved = page.tokensSaved
+      const result = computeScore({
+        markdown: page.markdown,
+        rawHtmlLength: (tokens + saved) * 4,
+        tokensCount: tokens,
+        tokensSaved: saved,
+      })
+      score = result.overall
+    } catch {}
+  }
+
+  const scoreColor =
+    score >= 90 ? '#46a758' : score >= 50 ? '#f0a000' : '#e5484d'
+
+  const hostname = checkedUrl
+    ? new URL(checkedUrl.includes('://') ? checkedUrl : `https://${checkedUrl}`)
+        .hostname
+    : undefined
+
+  return node('div', {
+    style: {
+      background: '#000000',
+      color: '#ededed',
+      display: 'flex',
+      fontFamily: 'Geist Mono',
+      height: '100%',
+      padding: 80,
+      paddingBottom: 140,
+      position: 'relative',
+      width: '100%',
+    },
+    children: [
+      node('div', {
+        children: __HOST__,
+        style: {
+          bottom: 60,
+          color: '#666',
+          fontSize: 28,
+          left: 80,
+          position: 'absolute',
+        },
+      }),
+      // Left column: favicon + url, stats
+      node('div', {
+        style: {
+          display: 'flex',
+          flex: 1,
+          flexDirection: 'column',
+          height: '100%',
+          justifyContent: 'center',
+        },
+        children: [
+          ...(hostname
+            ? [
+                node('div', {
+                  children: [
+                    node('img', {
+                      src: `https://www.google.com/s2/favicons?domain=${hostname}&sz=128`,
+                      width: '72',
+                      height: '72',
+                      style: { borderRadius: 8, marginRight: 22 },
+                    }),
+                    node('span', {
+                      children: checkedUrl,
+                      style: { color: '#ededed', fontSize: 52 },
+                    }),
+                  ],
+                  style: {
+                    alignItems: 'center',
+                    display: 'flex',
+                    fontWeight: 900,
+                  },
+                }),
+              ]
+            : [
+                node('div', {
+                  children:
+                    'Check how well your site converts to Markdown for AI agents',
+                  style: { color: gray, fontSize: 36 },
+                }),
+              ]),
+          ...(tokens > 0
+            ? [
+                node('div', {
+                  children: [
+                    node('span', {
+                      children: formatNumber(tokens),
+                      style: { color: '#ededed' },
+                    }),
+                    node('span', {
+                      children: '\u00a0tokens',
+                      style: { color: gray },
+                    }),
+                  ],
+                  style: { display: 'flex', fontSize: 36, marginTop: 24 },
+                }),
+              ]
+            : []),
+          ...(saved > 0
+            ? [
+                node('div', {
+                  children: [
+                    node('span', {
+                      children: formatNumber(saved),
+                      style: { color: green },
+                    }),
+                    node('span', {
+                      children: '\u00a0tokens saved',
+                      style: { color: gray },
+                    }),
+                  ],
+                  style: { display: 'flex', fontSize: 36, marginTop: 8 },
+                }),
+                node('div', {
+                  children: [
+                    node('span', {
+                      children: `$${formatCost(saved, 3)}`,
+                      style: { color: green },
+                    }),
+                    node('span', {
+                      children: '\u00a0saved (frontier)',
+                      style: { color: gray },
+                    }),
+                  ],
+                  style: { display: 'flex', fontSize: 36, marginTop: 8 },
+                }),
+                node('div', {
+                  children: [
+                    node('span', {
+                      children: `$${formatCost(saved, 0.5)}`,
+                      style: { color: green },
+                    }),
+                    node('span', {
+                      children: '\u00a0saved (budget)',
+                      style: { color: gray },
+                    }),
+                  ],
+                  style: { display: 'flex', fontSize: 36, marginTop: 8 },
+                }),
+              ]
+            : []),
+        ],
+      }),
+      // Right column: score gauge + label
+      node('div', {
+        style: {
+          alignItems: 'center',
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100%',
+          justifyContent: 'center',
+          paddingLeft: 60,
+        },
+        children: [
+          ...(score > 0 ? [scoreGauge(score, scoreColor)] : []),
+          node('div', {
+            children: [
+              node('span', { children: 'Agent Readability' }),
+              node('span', { children: 'Score' }),
+            ],
+            style: {
+              color: score > 0 ? gray : '#ededed',
+              display: 'flex',
+              flexDirection: 'column',
+              fontSize: 36,
+              fontWeight: 900,
+              marginTop: score > 0 ? 16 : 0,
+              textAlign: 'center',
+            },
+          }),
+        ],
+      }),
+    ],
+  })
+}
+
+function scoreGauge(score: number, color: string) {
+  const size = 320
+  const radius = 140
+  const circumference = 2 * Math.PI * radius
+  const offset = circumference - (score / 100) * circumference
+  const center = size / 2
+
+  return node('div', {
+    style: {
+      alignItems: 'center',
+      display: 'flex',
+      height: size,
+      justifyContent: 'center',
+      position: 'relative',
+      width: size,
+    },
+    children: [
+      node('svg', {
+        viewBox: `0 0 ${size} ${size}`,
+        width: String(size),
+        height: String(size),
+        style: { position: 'absolute' },
+        children: [
+          node('circle', {
+            cx: String(center),
+            cy: String(center),
+            r: String(radius),
+            fill: 'none',
+            stroke: '#333',
+            'stroke-width': '14',
+          }),
+          node('circle', {
+            cx: String(center),
+            cy: String(center),
+            r: String(radius),
+            fill: 'none',
+            stroke: color,
+            'stroke-width': '14',
+            'stroke-dasharray': String(circumference),
+            'stroke-dashoffset': String(offset),
+            'stroke-linecap': 'round',
+            transform: `rotate(-90 ${center} ${center})`,
+          }),
+        ],
+      }),
+      node('span', {
+        children: String(score),
+        style: {
+          color,
+          fontFamily: 'Geist Mono',
+          fontSize: 108,
+          fontWeight: 900,
+        },
+      }),
+    ],
+  })
+}
+
 function urlVariant(urlParam: string, tokensSaved: number) {
   const teal = '#0cc0aa'
   const hostname = new URL(
@@ -310,11 +564,16 @@ function toHtmlPreview(element: React.ReactNode) {
       type: string
       props: Record<string, unknown>
     }
-    const style = props.style
-      ? ` style="${styleToString(props.style as Record<string, unknown>)}"`
-      : ''
+    const attrs = Object.entries(props)
+      .filter(([k]) => k !== 'children')
+      .map(([k, v]) =>
+        k === 'style'
+          ? ` style="${styleToString(v as Record<string, unknown>)}"`
+          : ` ${k}="${v}"`,
+      )
+      .join('')
     const children = props.children ? renderNode(props.children) : ''
-    return `<${type}${style}>${children}</${type}>`
+    return `<${type}${attrs}>${children}</${type}>`
   }
   const body = renderNode(element)
   return `<!DOCTYPE html>

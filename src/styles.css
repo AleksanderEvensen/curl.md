@@ -173,20 +173,20 @@ html[data-theme="dark"] {
   color-scheme: dark;
 }
 
-.minimal-scrollbar {
+@utility minimal-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: var(--color-gray-a3) transparent;
-}
 
-.minimal-scrollbar::-webkit-scrollbar {
-  height: 6px;
-}
+  &::-webkit-scrollbar {
+    height: 6px;
+  }
 
-.minimal-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
 
-.minimal-scrollbar::-webkit-scrollbar-thumb {
-  background: var(--color-gray-a3);
-  border-radius: 3px;
+  &::-webkit-scrollbar-thumb {
+    background: var(--color-gray-a3);
+    border-radius: 3px;
+  }
 }

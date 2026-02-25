@@ -43,6 +43,11 @@ function Playground() {
   const [objective, setObjective] = React.useState(search.q ?? '')
   const [keywords, setKeywords] = React.useState(search.k ?? '')
   const abortRef = React.useRef<AbortController | null>(null)
+  const inputRef = React.useRef<HTMLInputElement>(null)
+
+  React.useEffect(() => {
+    inputRef.current?.focus()
+  }, [])
 
   const mutation = Query.useMutation({
     mutationFn: async (input: { k?: string; q?: string; url: string }) => {
@@ -161,10 +166,16 @@ function Playground() {
   ]
 
   return (
-    <div className="flex h-dvh flex-col px-6 pt-16 pb-16 text-lg md:pb-6">
+    <div className="relative flex min-h-dvh flex-col px-6 pt-6 pb-24 text-lg md:h-dvh md:pb-6">
       <div className="mx-auto flex min-h-0 w-full max-w-7xl grow flex-col gap-4">
         <div className="flex flex-col gap-1">
-          <h1 className="font-bold">Playground</h1>
+          <a
+            className="text-gray9 hover:text-gray10 hover:underline dark:text-gray6"
+            href="/"
+          >
+            &larr; Home
+          </a>
+          <h1 className="mt-4 font-bold">Playground</h1>
           <p className="text-gray9 dark:text-gray6">
             Try fetching any URL as Markdown
           </p>
@@ -181,6 +192,7 @@ function Playground() {
                   {__HOST__}/
                 </label>
                 <input
+                  ref={inputRef}
                   className="w-full bg-gray-a1 px-2 py-1 text-gray10 placeholder:text-gray9 dark:placeholder:text-gray6"
                   id="url"
                   onBlur={() => {
@@ -350,12 +362,6 @@ function Playground() {
                 )}
               </div>
             )}
-
-            <footer className="mt-auto pb-10 text-gray9 md:pb-0 dark:text-gray6">
-              <a className="hover:underline" href="/">
-                &larr; Home
-              </a>
-            </footer>
           </div>
 
           <div className="relative hidden max-h-[calc(100dvh-10rem)] min-h-[calc(100dvh-10rem)] w-full min-w-0 flex-col gap-2 md:flex md:basis-3/5">

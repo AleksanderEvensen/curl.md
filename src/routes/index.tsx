@@ -3,7 +3,7 @@ import * as Query from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { createServerFn, useServerFn } from '@tanstack/react-start'
 import { getRequest } from '@tanstack/react-start/server'
-import * as React from 'react'
+import { useAnimatedValue } from '#hooks/use-animated-value.ts'
 import { getDb } from '#lib/db.ts'
 
 export const Route = createFileRoute('/')({
@@ -98,6 +98,10 @@ function Home() {
           Playground
         </a>
         <span>|</span>
+        <a className="hover:underline" href="/check">
+          Check
+        </a>
+        <span>|</span>
         <a className="hover:underline" href="/llms.txt">
           llms.txt
         </a>
@@ -115,12 +119,15 @@ function TokensSaved() {
     refetchInterval: 10_000,
   })
   const total = data?.tokens_saved ?? 0
-  const animated = useCountUp(total)
+  const animated = useAnimatedValue(total, {
+    duration: 500,
+    from: 'previous',
+  })
   return (
     <>
       <p className="text-gray9 dark:text-gray6">
         <span className="text-teal9 tabular-nums">
-          {formatNumber(animated)}
+          {formatNumber(Math.round(animated))}
         </span>{' '}
         tokens saved
       </p>
@@ -137,30 +144,6 @@ function TokensSaved() {
 function formatCost(tokens: number, perMillionDollars: number) {
   const cost = (tokens / 1_000_000) * perMillionDollars
   return cost < 0.01 ? cost.toFixed(4).replace(/0+$/, '0') : cost.toFixed(2)
-}
-
-function useCountUp(target: number, duration = 500) {
-  const [value, setValue] = React.useState(target)
-  const prev = React.useRef(target)
-
-  React.useEffect(() => {
-    if (target === 0) return
-    const from = prev.current
-    prev.current = target
-    const start = performance.now()
-
-    let raf: number
-    function tick(now: number) {
-      const t = Math.min((now - start) / duration, 1)
-      const eased = 1 - (1 - t) ** 3 // ease-out cubic
-      setValue(Math.round(from + (target - from) * eased))
-      if (t < 1) raf = requestAnimationFrame(tick)
-    }
-    raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
-  }, [target, duration])
-
-  return value
 }
 
 const getTokensSaved = createServerFn({ method: 'GET' }).handler(async () => {
