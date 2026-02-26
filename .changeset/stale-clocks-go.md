@@ -1,5 +1,5 @@
 ---
-"curl-md": patch
+"curl.md": patch
 ---
 
 Initial release

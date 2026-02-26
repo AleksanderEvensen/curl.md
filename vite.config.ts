@@ -14,8 +14,8 @@ import { getWranglerVar } from './config/wrangler.ts'
 export default defineConfig({
   resolve: {
     alias: {
-      '#lib/core': existsSync('pro')
-        ? resolve(__dirname, 'pro')
+      '#lib/core': existsSync('pro/src')
+        ? resolve(__dirname, 'pro/src')
         : resolve(__dirname, 'src/lib/basic'),
     },
   },
