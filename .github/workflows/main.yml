@@ -14,9 +14,6 @@ env:
 jobs:
   verify:
     name: Verify
-    permissions:
-      contents: read
-      checks: write
     uses: ./.github/workflows/verify.yml
     with:
       dispatch_pro_sha: ${{ github.sha }}

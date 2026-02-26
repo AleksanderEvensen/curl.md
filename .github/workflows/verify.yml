@@ -16,7 +16,6 @@ on:
 
 permissions:
   contents: read
-  checks: write
 
 env:
   WRANGLER_SEND_METRICS: false
@@ -87,63 +86,17 @@ jobs:
 
       - name: Dispatch test
         if: inputs.dispatch_pro_sha
-        id: dispatch-test
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
-          BEFORE_ID=$(gh run list --repo wevm/curl.md.pro --event repository_dispatch --limit 1 --json databaseId --jq '.[0].databaseId // 0')
           printf '{"event_type":"parent-pr-test","client_payload":{"sha":"%s"}}' "${{ inputs.dispatch_pro_sha }}" \
             | gh api repos/wevm/curl.md.pro/dispatches --method POST --input -
-          for i in $(seq 1 15); do
-            sleep 4
-            URL=$(gh run list --repo wevm/curl.md.pro --event repository_dispatch --limit 5 \
-              --json databaseId,url --jq "[.[] | select(.databaseId > $BEFORE_ID)] | .[0].url // empty")
-            if [ -n "$URL" ]; then
-              echo "url=$URL" >> "$GITHUB_OUTPUT"
-              break
-            fi
-          done
-
-      - name: Set test check
-        if: inputs.dispatch_pro_sha && steps.dispatch-test.outputs.url
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh api "repos/${{ github.repository }}/check-runs" \
-            --method POST \
-            -f name="Pro / Test" \
-            -f head_sha="${{ inputs.dispatch_pro_sha }}" \
-            -f status=in_progress \
-            -f details_url="${{ steps.dispatch-test.outputs.url }}"
 
       - name: Dispatch preview
         if: inputs.dispatch_preview_pr
-        id: dispatch-preview
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
-          BEFORE_ID=$(gh run list --repo wevm/curl.md.pro --event repository_dispatch --limit 1 --json databaseId --jq '.[0].databaseId // 0')
           printf '{"event_type":"preview-deploy","client_payload":{"sha":"%s","pr_number":"%s"}}' \
             "${{ inputs.dispatch_pro_sha }}" "${{ inputs.dispatch_preview_pr }}" \
             | gh api repos/wevm/curl.md.pro/dispatches --method POST --input -
-          for i in $(seq 1 15); do
-            sleep 4
-            URL=$(gh run list --repo wevm/curl.md.pro --event repository_dispatch --limit 5 \
-              --json databaseId,url --jq "[.[] | select(.databaseId > $BEFORE_ID)] | .[0].url // empty")
-            if [ -n "$URL" ]; then
-              echo "url=$URL" >> "$GITHUB_OUTPUT"
-              break
-            fi
-          done
-
-      - name: Set preview check
-        if: inputs.dispatch_preview_pr && steps.dispatch-preview.outputs.url
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh api "repos/${{ github.repository }}/check-runs" \
-            --method POST \
-            -f name="Pro / Preview" \
-            -f head_sha="${{ inputs.dispatch_pro_sha }}" \
-            -f status=in_progress \
-            -f details_url="${{ steps.dispatch-preview.outputs.url }}"
