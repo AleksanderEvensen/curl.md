@@ -3,10 +3,16 @@ name: Verify
 on:
   workflow_call:
     inputs:
+      dispatch_pro_sha:
+        description: If set, dispatches pro tests for this commit SHA
+        type: string
       submodules:
         type: boolean
         default: false
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 env:
   WRANGLER_SEND_METRICS: false
@@ -56,7 +62,15 @@ jobs:
         run: pnpm check:types
 
       - name: Test
-        run: pnpm test
+        run: pnpm vitest --project app --project cli
 
       - name: Build
         run: pnpm build
+
+      - name: Dispatch curl.md.pro
+        if: inputs.dispatch_pro_sha
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          printf '{"event_type":"parent-pr-test","client_payload":{"sha":"%s"}}' "${{ inputs.dispatch_pro_sha }}" \
+            | gh api repos/wevm/curl.md.pro/dispatches --method POST --input -
