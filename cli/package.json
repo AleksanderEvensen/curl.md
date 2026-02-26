@@ -14,7 +14,7 @@
     "dist"
   ],
   "dependencies": {
-    "incur": "https://pkg.pr.new/wevm/incur@600f691"
+    "incur": "https://pkg.pr.new/wevm/incur@ec734e6"
   },
   "engines": {
     "node": ">=22.0.0"
