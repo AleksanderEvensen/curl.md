@@ -9,14 +9,15 @@ export default defineConfig({
         resolve: {
           alias: {
             '#lib/core': existsSync('pro')
-              ? new URL('./pro/', import.meta.url).pathname
+              ? new URL('./pro/src/', import.meta.url).pathname
               : new URL('./src/lib/basic/', import.meta.url).pathname,
             '#': new URL('./src/', import.meta.url).pathname,
           },
         },
         test: {
           name: 'app',
-          include: ['src/**/*.test.ts', 'pro/**/*.test.ts'],
+          exclude: ['**/node_modules/**'],
+          include: ['src/**/*.test.ts', 'pro/src/**/*.test.ts'],
           root: path.resolve(import.meta.dirname),
         },
       },

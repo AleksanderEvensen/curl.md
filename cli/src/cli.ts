@@ -88,12 +88,12 @@ function printHelp(version: string) {
 v${version}
 
 Usage:
-  curl-md <url> [options]
-  echo <url> | curl-md [options]
-  curl-md --mcp
+  curl.md <url> [options]
+  echo <url> | curl.md [options]
+  curl.md --mcp
 
-Alias:
-  curlmd
+Aliases:
+  curl-md, curlmd
 
 Options:
   -q, --objective <text>  Narrow content to a specific objective
@@ -105,25 +105,25 @@ Options:
   -h, --help              Show this help
 
 Examples:
-  curl-md example.com
-  curl-md example.com -q "pricing plans"
-  curl-md example.com -k "api,auth"
-  curl-md example.com -q "authentication" -k "oauth,jwt"
+  curl.md example.com
+  curl.md example.com -q "pricing plans"
+  curl.md example.com -k "api,auth"
+  curl.md example.com -q "authentication" -k "oauth,jwt"
 
-  curl-md docs.github.com/en/webhooks/webhook-events-and-payloads -q "pull request webhook event payload and actions" -k "pull_request"
-  curl-md developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch -q "streaming response body" -k "ReadableStream,getReader"
-  curl-md developers.cloudflare.com/d1/get-started -q "how to query D1 from a worker" -k "D1,bindings"
-  curl-md ai-sdk.dev/docs/ai-sdk-core/generating-text -q "how to stream text with the ai sdk" -k "streamText,generateText"
+  curl.md docs.github.com/en/webhooks/webhook-events-and-payloads -q "pull request webhook event payload and actions" -k "pull_request"
+  curl.md developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch -q "streaming response body" -k "ReadableStream,getReader"
+  curl.md developers.cloudflare.com/d1/get-started -q "how to query D1 from a worker" -k "D1,bindings"
+  curl.md ai-sdk.dev/docs/ai-sdk-core/generating-text -q "how to stream text with the ai sdk" -k "streamText,generateText"
 
 MCP:
-  curl-md --mcp
+  curl.md --mcp
 
   Configure in your MCP client:
   {
     "mcpServers": {
-      "curl-md": {
+      "curl.md": {
         "command": "npx",
-        "args": ["-y", "curl-md", "--mcp"]
+        "args": ["-y", "curl.md", "--mcp"]
       }
     }
   }

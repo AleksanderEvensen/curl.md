@@ -12,6 +12,7 @@ Agent guidance for this repository.
 - `pnpm db:migrate` - Run database migrations
 - `pnpm gen:types` - Generate Cloudflare worker types
 - `pnpm test` - Run tests with Vitest
+- `pnpm test:pro` - Run pro tests (uses `@cloudflare/vitest-pool-workers` with Vitest v3)
 
 ## Debugging
 

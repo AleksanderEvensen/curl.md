@@ -7,7 +7,7 @@ import { rateLimit } from '#lib/rate-limit.ts'
 import { urlSchema } from '#lib/schemas.ts'
 import { trackRequest } from '#lib/track-request.ts'
 
-export const Route = createFileRoute('/$')({
+export const Route = createFileRoute('/(url)/$')({
   server: {
     handlers: {
       GET: async (options) => {

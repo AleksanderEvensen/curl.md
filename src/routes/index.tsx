@@ -39,6 +39,15 @@ function Home() {
       <TokensSaved />
       <div className="mt-4">
         <code className="block text-gray9 dark:text-gray6">
+          # Fetch full page
+        </code>
+        <code className="block">
+          <span className="text-gray12">curl</span> {__HOST__}
+          /example.com
+        </code>
+      </div>
+      <div>
+        <code className="block text-gray9 dark:text-gray6">
           # Filter by objective
         </code>
         <code className="block">
@@ -74,6 +83,13 @@ function Home() {
         <code className="block">
           <span className="text-gray12">npx add-mcp</span>{' '}
           <span className="text-gray10">{__HOST__}/mcp</span>
+        </code>
+      </div>
+      <div>
+        <code className="block text-gray9 dark:text-gray6"># Use via CLI</code>
+        <code className="block">
+          <span className="text-gray12">npx curl.md</span>{' '}
+          <span className="text-gray10">example.com</span>
         </code>
       </div>
 

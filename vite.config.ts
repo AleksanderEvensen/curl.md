@@ -11,13 +11,13 @@ import icons from 'unplugin-icons/vite'
 import { defineConfig } from 'vite'
 import { getWranglerVar } from './config/wrangler.ts'
 
-const coreDir = existsSync('pro')
-  ? resolve(__dirname, 'pro')
-  : resolve(__dirname, 'src/lib/basic')
-
 export default defineConfig({
   resolve: {
-    alias: { '#lib/core': coreDir },
+    alias: {
+      '#lib/core': existsSync('pro')
+        ? resolve(__dirname, 'pro')
+        : resolve(__dirname, 'src/lib/basic'),
+    },
   },
   server: {
     allowedHosts: ['curl.local'],

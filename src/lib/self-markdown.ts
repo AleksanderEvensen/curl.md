@@ -20,7 +20,7 @@ npx skills add https://${host}
 npx add-mcp ${host}/mcp
 
 # Install MCP server (cli)
-npx add-mcp curl-md -- --mcp
+npx add-mcp curl.md -- --mcp
 \`\`\`
 
 ## Usage
@@ -62,25 +62,25 @@ curl "https://${host}/ai-sdk.dev/docs/ai-sdk-core/generating-text?q=how+to+strea
 
 \`\`\`sh
 # Run with npx
-npx curl-md example.com
+npx curl.md example.com
 
 # Or install globally
-npm i -g curl-md
+npm i -g curl.md
 
 # Filter by objective
-curl-md example.com -q "pricing plans"
+curl.md example.com -q "pricing plans"
 
 # Filter by keywords
-curl-md example.com -k "api,auth"
+curl.md example.com -k "api,auth"
 
 # Combine both
-curl-md example.com -q "authentication" -k "oauth,jwt"
+curl.md example.com -q "authentication" -k "oauth,jwt"
 
 # Pipe from stdin
-echo "example.com" | curl-md
+echo "example.com" | curl.md
 
 # Show all options
-curl-md --help
+curl.md --help
 \`\`\`
 
 ## Links

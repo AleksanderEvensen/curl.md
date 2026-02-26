@@ -13,8 +13,8 @@ import { Route as PlaygroundRouteImport } from './routes/playground'
 import { Route as OgDotpngRouteImport } from './routes/og[.]png'
 import { Route as McpRouteImport } from './routes/mcp'
 import { Route as CheckRouteImport } from './routes/check'
-import { Route as SplatRouteImport } from './routes/$'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as urlSplatRouteImport } from './routes/(url)/$'
 
 const PlaygroundRoute = PlaygroundRouteImport.update({
   id: '/playground',
@@ -36,57 +36,64 @@ const CheckRoute = CheckRouteImport.update({
   path: '/check',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SplatRoute = SplatRouteImport.update({
-  id: '/$',
-  path: '/$',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const urlSplatRoute = urlSplatRouteImport.update({
+  id: '/(url)/$',
+  path: '/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/$': typeof SplatRoute
   '/check': typeof CheckRoute
   '/mcp': typeof McpRoute
   '/og.png': typeof OgDotpngRoute
   '/playground': typeof PlaygroundRoute
+  '/$': typeof urlSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/$': typeof SplatRoute
   '/check': typeof CheckRoute
   '/mcp': typeof McpRoute
   '/og.png': typeof OgDotpngRoute
   '/playground': typeof PlaygroundRoute
+  '/$': typeof urlSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/$': typeof SplatRoute
   '/check': typeof CheckRoute
   '/mcp': typeof McpRoute
   '/og.png': typeof OgDotpngRoute
   '/playground': typeof PlaygroundRoute
+  '/(url)/$': typeof urlSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/$' | '/check' | '/mcp' | '/og.png' | '/playground'
+  fullPaths: '/' | '/check' | '/mcp' | '/og.png' | '/playground' | '/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/$' | '/check' | '/mcp' | '/og.png' | '/playground'
-  id: '__root__' | '/' | '/$' | '/check' | '/mcp' | '/og.png' | '/playground'
+  to: '/' | '/check' | '/mcp' | '/og.png' | '/playground' | '/$'
+  id:
+    | '__root__'
+    | '/'
+    | '/check'
+    | '/mcp'
+    | '/og.png'
+    | '/playground'
+    | '/(url)/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  SplatRoute: typeof SplatRoute
   CheckRoute: typeof CheckRoute
   McpRoute: typeof McpRoute
   OgDotpngRoute: typeof OgDotpngRoute
   PlaygroundRoute: typeof PlaygroundRoute
+  urlSplatRoute: typeof urlSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -119,13 +126,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CheckRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/$': {
-      id: '/$'
-      path: '/$'
-      fullPath: '/$'
-      preLoaderRoute: typeof SplatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
@@ -133,16 +133,23 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/(url)/$': {
+      id: '/(url)/$'
+      path: '/$'
+      fullPath: '/$'
+      preLoaderRoute: typeof urlSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  SplatRoute: SplatRoute,
   CheckRoute: CheckRoute,
   McpRoute: McpRoute,
   OgDotpngRoute: OgDotpngRoute,
   PlaygroundRoute: PlaygroundRoute,
+  urlSplatRoute: urlSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

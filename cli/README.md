@@ -1,21 +1,21 @@
-# curl-md
+# curl.md
 
 CLI and MCP server for [curl.md](https://curl.md) — fetch any URL as Markdown.
 
 ## Install
 
 ```sh
-npm install -g curl-md
+npm install -g curl.md
 ```
 
 ## Usage
 
 ```sh
-curl-md <url> [options]
-echo <url> | curl-md [options]
+curl.md <url> [options]
+echo <url> | curl.md [options]
 ```
 
-Also available as `curlmd`.
+Also available as `curl-md` and `curlmd`.
 
 ### Options
 
@@ -33,34 +33,34 @@ Also available as `curlmd`.
 
 ```sh
 # Basic fetch
-curl-md example.com
+curl.md example.com
 
 # Filter by objective
-curl-md example.com -q "pricing plans"
+curl.md example.com -q "pricing plans"
 
 # Filter by keywords
-curl-md example.com -k "api,auth"
+curl.md example.com -k "api,auth"
 
 # Combine objective and keywords
-curl-md example.com -q "authentication" -k "oauth,jwt"
+curl.md example.com -q "authentication" -k "oauth,jwt"
 
 # GitHub webhook payload docs
-curl-md docs.github.com/en/webhooks/webhook-events-and-payloads -q "pull request webhook event payload and actions" -k "pull_request"
+curl.md docs.github.com/en/webhooks/webhook-events-and-payloads -q "pull request webhook event payload and actions" -k "pull_request"
 
 # MDN streaming fetch
-curl-md developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch -q "streaming response body" -k "ReadableStream,getReader"
+curl.md developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch -q "streaming response body" -k "ReadableStream,getReader"
 
 # Cloudflare D1 getting started
-curl-md developers.cloudflare.com/d1/get-started -q "how to query D1 from a worker" -k "D1,bindings"
+curl.md developers.cloudflare.com/d1/get-started -q "how to query D1 from a worker" -k "D1,bindings"
 
 # AI SDK text generation
-curl-md ai-sdk.dev/docs/ai-sdk-core/generating-text -q "how to stream text with the ai sdk" -k "streamText,generateText"
+curl.md ai-sdk.dev/docs/ai-sdk-core/generating-text -q "how to stream text with the ai sdk" -k "streamText,generateText"
 
 # JSON output
-curl-md example.com -j
+curl.md example.com -j
 
 # Force fresh fetch
-curl-md example.com -f
+curl.md example.com -f
 ```
 
 ## MCP Server
@@ -68,7 +68,7 @@ curl-md example.com -f
 Run as an MCP stdio server for tools that don't support MCP URLs:
 
 ```sh
-curl-md --mcp
+curl.md --mcp
 ```
 
 ### Configuration
@@ -78,9 +78,9 @@ Add to your MCP client config:
 ```json
 {
   "mcpServers": {
-    "curl-md": {
+    "curl.md": {
       "command": "npx",
-      "args": ["-y", "curl-md", "--mcp"]
+      "args": ["-y", "curl.md", "--mcp"]
     }
   }
 }

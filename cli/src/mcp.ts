@@ -4,7 +4,7 @@ import { z } from 'zod'
 import pkg from '../package.json' with { type: 'json' }
 
 export async function startMcp() {
-  const server = new McpServer({ name: 'curl-md', version: pkg.version })
+  const server = new McpServer({ name: 'curl.md', version: pkg.version })
 
   server.registerTool(
     'fetch_page',
