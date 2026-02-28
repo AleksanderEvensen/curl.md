@@ -74,7 +74,7 @@ export default defineConfig({
       try {
         return child
           .execSync(
-            'node --experimental-strip-types scripts/get-tokens-saved.ts',
+            'node --experimental-strip-types scripts/getTokensSaved.ts',
             { stdio: 'pipe' },
           )
           .toString()
