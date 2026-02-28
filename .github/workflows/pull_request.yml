@@ -11,9 +11,9 @@ env:
   WRANGLER_SEND_METRICS: false
 
 jobs:
-  verify:
-    name: Verify
-    uses: ./.github/workflows/verify.yml
+  check:
+    name: Check
+    uses: ./.github/workflows/check.yml
     with:
       dispatch_pro_sha: ${{ contains(fromJSON('["COLLABORATOR", "MEMBER", "OWNER"]'), github.event.pull_request.author_association) && github.event.pull_request.head.sha || '' }}
       dispatch_preview_pr: ${{ contains(fromJSON('["COLLABORATOR", "MEMBER", "OWNER"]'), github.event.pull_request.author_association) && github.event.pull_request.number || '' }}

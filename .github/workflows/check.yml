@@ -1,4 +1,4 @@
-name: Verify
+name: Check
 
 on:
   workflow_call:
@@ -21,9 +21,22 @@ env:
   WRANGLER_SEND_METRICS: false
 
 jobs:
-  check:
-    name: Check
+  verify:
+    name: verify
     runs-on: ubuntu-latest
+    env:
+      DB_URL: postgres://postgres:postgres@localhost:5432/postgres
+    services:
+      db:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-retries 5
+          --health-timeout 5s
+        ports: ['5432:5432']
     steps:
       - name: Generate token
         if: inputs.submodules
@@ -54,7 +67,7 @@ jobs:
         run: pnpm check
 
       - name: Run migrations
-        run: pnpm exec wrangler d1 migrations apply DB --local
+        run: pnpm db:migrate latest
 
       - name: Write .env
         env:
@@ -64,13 +77,14 @@ jobs:
           {
             echo "CLOUDFLARE_ACCOUNT_ID=$CLOUDFLARE_ACCOUNT_ID"
             echo "CLOUDFLARE_API_TOKEN=$CLOUDFLARE_API_TOKEN"
+            echo "DB_URL=$DB_URL"
             echo "GH_CLIENT_ID=dummy"
             echo "COOKIE_SECRET=dummy"
             echo "GH_CLIENT_SECRET=dummy"
             echo "WRANGLER_SEND_METRICS=false"
           } | tee .env pro/.env > /dev/null
 
-      - name: Generate types
+      - name: Generate code
         run: |
           pnpm gen:types
           ${{ inputs.submodules && 'pnpm --filter pro gen:types' || '' }}
@@ -107,7 +121,7 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
-          printf '{"event_type":"parent-pr-test","client_payload":{"sha":"%s"}}' "${{ inputs.dispatch_pro_sha }}" \
+          printf '{"event_type":"parent-check","client_payload":{"sha":"%s"}}' "${{ inputs.dispatch_pro_sha }}" \
             | gh api repos/wevm/curl.md.pro/dispatches --method POST --input -
 
       - name: Dispatch preview

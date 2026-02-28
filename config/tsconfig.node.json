@@ -29,6 +29,7 @@
   "include": [
     "../config/wrangler.ts",
     "../test",
+    "../kysely.config.ts",
     "../vite.config.ts",
     "../vitest.config.ts"
   ]

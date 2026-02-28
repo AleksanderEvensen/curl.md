@@ -2,7 +2,7 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "curl",
   "main": "src/entry-server.ts",
-  "compatibility_date": "2026-02-12",
+  "compatibility_date": "2025-09-06",
   "compatibility_flags": [
     "nodejs_compat",
     "no_handle_cross_request_promise_resolution"
@@ -58,7 +58,7 @@
       "hyperdrive": [
         {
           "binding": "DB",
-          "id": "effd0dcd-c90e-4449-9ccc-ec920da05e04"
+          "id": "96d641bd374842d784a128d7de0428af"
         }
       ],
       "kv_namespaces": [

@@ -54,7 +54,7 @@ export default defineConfig({
                 isolatedStorage: false,
                 miniflare: {
                   bindings: env,
-                  compatibilityDate: '2026-02-12',
+                  compatibilityDate: '2025-09-06',
                   compatibilityFlags: ['nodejs_compat'],
                   hyperdrives: { DB: env.DB_URL },
                   kvNamespaces: ['KV'],
@@ -83,7 +83,7 @@ export default defineConfig({
                       isolatedStorage: false,
                       miniflare: {
                         bindings: env,
-                        compatibilityDate: '2026-02-12',
+                        compatibilityDate: '2025-09-06',
                         compatibilityFlags: ['nodejs_compat'],
                         hyperdrives: { DB: env.DB_URL },
                         kvNamespaces: ['KV'],

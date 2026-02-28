@@ -24,6 +24,27 @@ OrbStack automatically resolves `curl.local` requests to the container.
 
 ## Deploy
 
+### Database (PlanetScale)
+
+1. Create a [PlanetScale](https://planetscale.com) account and organization
+2. Create a new database with the **Postgres** engine:
+   ```bash
+   pscale database create curl --region <REGION_SLUG> --engine postgres
+   ```
+3. Create two roles on the `main` branch:
+   - **App role** (for Hyperdrive/production) — select `pg_read_all_data` + `pg_write_all_data`
+   - **Migrations role** (for CI) — select `postgres` (full DDL access for `kysely migrate`)
+4. Record the connection strings (`postgres://<user>:<password>@<host>:5432/postgres?sslmode=require`)
+
+### Cloudflare Hyperdrive
+
+Connect PlanetScale to Cloudflare Workers via [Hyperdrive](https://developers.cloudflare.com/hyperdrive/):
+
+1. Go to [Hyperdrive](https://dash.cloudflare.com/?to=/:account/workers/hyperdrive) in the Cloudflare dashboard
+2. Click "Create Configuration"
+3. Paste the PlanetScale connection string
+4. Copy the Hyperdrive ID into `wrangler.jsonc` under `env.production.hyperdrive[0].id`
+
 ### GitHub Actions Secrets
 
 Add the following secrets to your GitHub repository (Settings → Secrets and variables → Actions):
@@ -31,6 +52,7 @@ Add the following secrets to your GitHub repository (Settings → Secrets and va
 * `CLOUDFLARE_ACCOUNT_ID` - Cloudflare account ID (found in the Workers dashboard URL)
 * `CLOUDFLARE_API_TOKEN` - Cloudflare API token for deployments (see [below](#creating-a-cloudflare-api-token))
 * `COOKIE_SECRET` - Secret for signing session cookies
+* `DB_URL` - PlanetScale Postgres connection string (for CI migrations)
 * `GH_CLIENT_ID` - GitHub App client ID (see [GitHub App Setup](#github-app-setup))
 * `GH_CLIENT_SECRET` - GitHub App client secret (see [GitHub App Setup](#github-app-setup))
 
@@ -40,7 +62,7 @@ Add the following secrets to your GitHub repository (Settings → Secrets and va
 2. Click "Create Token"
 3. Select "Create Custom Token"
 4. Add these permissions:
-   - **Account** → **D1** → **Edit**
+   - **Account** → **Hyperdrive** → **Edit**
    - **Account** → **Workers Scripts** → **Edit**
    - **Account** → **Browser Rendering** → **Edit**
    - **Account** → **Workers AI** → **Edit**

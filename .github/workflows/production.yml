@@ -1,4 +1,4 @@
-name: Main
+name: Production
 
 on:
   push:
@@ -12,9 +12,9 @@ env:
   WRANGLER_SEND_METRICS: false
 
 jobs:
-  verify:
-    name: Verify
-    uses: ./.github/workflows/verify.yml
+  check:
+    name: Check
+    uses: ./.github/workflows/check.yml
     with:
       dispatch_pro_sha: ${{ github.sha }}
       submodules: true
@@ -22,7 +22,7 @@ jobs:
 
   deploy:
     name: Deploy
-    needs: verify
+    needs: check
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -51,18 +51,18 @@ jobs:
         uses: ./.github/actions/setup-pnpm
 
       - name: Run migrations
-        run: pnpm exec wrangler d1 migrations apply DB --remote --env production
+        run: pnpm db:migrate latest
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          DB_URL: ${{ secrets.DB_URL }}
 
       - name: Generate types
         run: |
           pnpm gen:types
-          pnpm db:codegen --remote --env production
+          pnpm db:codegen
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          DB_URL: ${{ secrets.DB_URL }}
 
       - name: Build
         run: pnpm build
@@ -88,7 +88,7 @@ jobs:
 
   changesets:
     name: Changesets
-    needs: verify
+    needs: check
     runs-on: ubuntu-latest
     permissions:
       contents: write
