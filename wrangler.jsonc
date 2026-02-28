@@ -14,15 +14,19 @@
   "ai": {
     "binding": "AI"
   },
-  "d1_databases": [
-    { "binding": "DB", "database_name": "curl-db", "database_id": "local" }
+  "hyperdrive": [
+    {
+      "binding": "DB",
+      "id": "local",
+      "localConnectionString": "postgresql://postgres:postgres@db.curl.local:5432/curl_dev"
+    }
   ],
   "kv_namespaces": [{ "binding": "KV", "id": "local" }],
   "queues": {
-    "producers": [{ "binding": "TOKEN_UPDATE_QUEUE", "queue": "curl-tokens" }],
+    "producers": [{ "binding": "REQUEST_QUEUE", "queue": "curl-request" }],
     "consumers": [
       {
-        "queue": "curl-tokens",
+        "queue": "curl-request",
         "max_batch_size": 10,
         "max_batch_timeout": 30,
         "max_retries": 3
@@ -51,23 +55,20 @@
       "ai": {
         "binding": "AI"
       },
-      "d1_databases": [
+      "hyperdrive": [
         {
           "binding": "DB",
-          "database_name": "curl-db",
-          "database_id": "effd0dcd-c90e-4449-9ccc-ec920da05e04"
+          "id": "effd0dcd-c90e-4449-9ccc-ec920da05e04"
         }
       ],
       "kv_namespaces": [
         { "binding": "KV", "id": "e3a921b8d13741b99e7aa1cbb6144c9f" }
       ],
       "queues": {
-        "producers": [
-          { "binding": "TOKEN_UPDATE_QUEUE", "queue": "curl-tokens" }
-        ],
+        "producers": [{ "binding": "REQUEST_QUEUE", "queue": "curl-request" }],
         "consumers": [
           {
-            "queue": "curl-tokens",
+            "queue": "curl-request",
             "max_batch_size": 10,
             "max_batch_timeout": 30,
             "max_retries": 3
@@ -87,24 +88,23 @@
       "ai": {
         "binding": "AI"
       },
-      "d1_databases": [
+      "hyperdrive": [
         {
           "binding": "DB",
-          "database_name": "__PREVIEW_DB_NAME__",
-          "database_id": "__PREVIEW_DB_ID__"
+          "id": "__PREVIEW_HYPERDRIVE_ID__"
         }
       ],
       "kv_namespaces": [{ "binding": "KV", "id": "__PREVIEW_KV_ID__" }],
       "queues": {
         "producers": [
           {
-            "binding": "TOKEN_UPDATE_QUEUE",
-            "queue": "curl-tokens-__PREVIEW_APEX__"
+            "binding": "REQUEST_QUEUE",
+            "queue": "curl-request-__PREVIEW_APEX__"
           }
         ],
         "consumers": [
           {
-            "queue": "curl-tokens-__PREVIEW_APEX__",
+            "queue": "curl-request-__PREVIEW_APEX__",
             "max_batch_size": 10,
             "max_batch_timeout": 30,
             "max_retries": 3

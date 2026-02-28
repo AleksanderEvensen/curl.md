@@ -11,8 +11,7 @@ Agent guidance for this repository.
 - `pnpm db:codegen` - Generate database types
 - `pnpm db:migrate` - Run database migrations
 - `pnpm gen:types` - Generate Cloudflare worker types
-- `pnpm test` - Run tests with Vitest
-- `pnpm test:pro` - Run pro tests (uses `@cloudflare/vitest-pool-workers` with Vitest v3)
+- `pnpm test` - Run tests with Vitest (includes app, cli, workers, and pro projects)
 
 ## Debugging
 
@@ -59,6 +58,8 @@ The `pro/` directory is a git submodule (`wevm/curl.md.pro`) containing pro/prem
 - Use `.ts`/`.tsx` extensions in imports (`allowImportingTsExtensions`)
 - Place internal non-exported functions at the bottom of the file
 - Prefer "account" over "user" in naming (variables, types, functions, etc.)
+- Don't destructure unless necessary (e.g. prefer `const json = c.req.valid('json')` over `const { name, slug } = c.req.valid('json')`)
+- Avoid creating variables for basic things unless necessary (e.g. prefer using `c.var.db` over `const db = c.var.db`)
 
 ## Tests
 

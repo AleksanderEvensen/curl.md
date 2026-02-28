@@ -1,37 +1,132 @@
-// Auto-generated from D1 database schema
+// Auto-generated from database schema
 
 import type * as k from 'kysely'
 
+type Timestamp = k.ColumnType<Date, Date | string, Date | string>
+type GeneratedTimestamp = k.ColumnType<
+  Date,
+  Date | string | undefined,
+  Date | string
+>
+
 export interface DB {
+  account: account
+  account_provider: account_provider
+  api_key: api_key
+  organization: organization
+  organization_member: organization_member
   request: request
+  session: session
+}
+
+type account = {
+  avatar_url: string | null
+  created_at: GeneratedTimestamp
+  deleted_at: Timestamp | null
+  email: string
+  id: k.Generated<string>
+  name: string | null
+  role: k.Generated<'crew' | 'user'>
+}
+
+type account_provider = {
+  access_token: string | null
+  access_token_expires_at: Timestamp | null
+  account_id: string
+  created_at: GeneratedTimestamp
+  id: k.Generated<string>
+  provider: string
+  provider_account_id: string
+  refresh_token: string | null
+  refresh_token_expires_at: Timestamp | null
+}
+
+type api_key = {
+  account_id: string
+  created_at: GeneratedTimestamp
+  deleted_at: Timestamp | null
+  id: k.Generated<string>
+  key_hash: string
+  key_prefix: string
+  last_used_at: Timestamp | null
+  name: string
+  organization_id: string
+}
+
+type organization = {
+  created_at: GeneratedTimestamp
+  deleted_at: Timestamp | null
+  id: k.Generated<string>
+  name: string
+  slug: string
+}
+
+type organization_member = {
+  account_id: string
+  created_at: GeneratedTimestamp
+  id: k.Generated<string>
+  organization_id: string
+  role: k.Generated<'admin' | 'member' | 'owner'>
 }
 
 type request = {
-  city: string | null
-  country: string | null
-  created_at: k.Generated<string>
+  account_id: string | null
+  api_key_id: string | null
+  created_at: GeneratedTimestamp
   hostname: string
   id: k.Generated<string>
   keywords: string | null
   objective: string | null
+  organization_id: string | null
   path: string
   tokens_saved: number | null
   url: string
   user_agent: string | null
 }
 
+type session = {
+  account_id: string
+  created_at: GeneratedTimestamp
+  expires_at: Timestamp
+  id: k.Generated<string>
+}
+
 export declare namespace DB {
+  type account = k.Selectable<DB['account']>
+  type account_provider = k.Selectable<DB['account_provider']>
+  type api_key = k.Selectable<DB['api_key']>
+  type organization = k.Selectable<DB['organization']>
+  type organization_member = k.Selectable<DB['organization_member']>
   type request = k.Selectable<DB['request']>
+  type session = k.Selectable<DB['session']>
 
   export namespace Insertable {
+    type account = k.Insertable<DB['account']>
+    type account_provider = k.Insertable<DB['account_provider']>
+    type api_key = k.Insertable<DB['api_key']>
+    type organization = k.Insertable<DB['organization']>
+    type organization_member = k.Insertable<DB['organization_member']>
     type request = k.Insertable<DB['request']>
+    type session = k.Insertable<DB['session']>
   }
 
   export namespace Selectable {
+    type account = k.Selectable<DB['account']>
+    type account_provider = k.Selectable<DB['account_provider']>
+    type api_key = k.Selectable<DB['api_key']>
+    type organization = k.Selectable<DB['organization']>
+    type organization_member = k.Selectable<DB['organization_member']>
     type request = k.Selectable<DB['request']>
+    type session = k.Selectable<DB['session']>
   }
 
   export namespace Updateable {
+    type account = k.Updateable<DB['account']>
+    type account_provider = k.Updateable<DB['account_provider']>
+    type api_key = k.Updateable<DB['api_key']>
+    type organization = k.Updateable<DB['organization']>
+    type organization_member = k.Updateable<DB['organization_member']>
     type request = k.Updateable<DB['request']>
+    type session = k.Updateable<DB['session']>
   }
 }

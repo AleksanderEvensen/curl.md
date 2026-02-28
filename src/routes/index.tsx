@@ -5,26 +5,32 @@ import { createServerFn, useServerFn } from '@tanstack/react-start'
 import { getRequest } from '@tanstack/react-start/server'
 import { useAnimatedValue } from '#hooks/use-animated-value.ts'
 import { getDb } from '#lib/db.ts'
+import { rpc } from '#lib/rpc.ts'
 
 export const Route = createFileRoute('/')({
-  head: () => ({
-    meta: [
-      { title: `${__HOST__}: Fetch any URL as Markdown` },
-      { name: 'description', content: 'Fetch any URL as Markdown' },
-      { property: 'og:title', content: __HOST__ },
-      { property: 'og:description', content: 'Fetch any URL as Markdown' },
-      { property: 'og:image', content: `https://${__HOST__}/og.png` },
-      { property: 'og:image:width', content: '1200' },
-      { property: 'og:image:height', content: '630' },
-      { property: 'og:image:type', content: 'image/png' },
-      { property: 'og:type', content: 'website' },
-      { property: 'og:url', content: `https://${__HOST__}` },
-      { name: 'twitter:card', content: 'summary_large_image' },
-      { name: 'twitter:title', content: __HOST__ },
-      { name: 'twitter:description', content: 'Fetch any URL as Markdown' },
-      { name: 'twitter:image', content: `https://${__HOST__}/og.png` },
-    ],
-  }),
+  head: () => {
+    const ogImage = rpc.api['og.png']
+      .$url({ query: { page: 'index' } })
+      .toString()
+    return {
+      meta: [
+        { title: `${__HOST__}: Fetch any URL as Markdown` },
+        { name: 'description', content: 'Fetch any URL as Markdown' },
+        { property: 'og:title', content: __HOST__ },
+        { property: 'og:description', content: 'Fetch any URL as Markdown' },
+        { property: 'og:image', content: ogImage },
+        { property: 'og:image:width', content: '1200' },
+        { property: 'og:image:height', content: '630' },
+        { property: 'og:image:type', content: 'image/png' },
+        { property: 'og:type', content: 'website' },
+        { property: 'og:url', content: `https://${__HOST__}` },
+        { name: 'twitter:card', content: 'summary_large_image' },
+        { name: 'twitter:title', content: __HOST__ },
+        { name: 'twitter:description', content: 'Fetch any URL as Markdown' },
+        { name: 'twitter:image', content: ogImage },
+      ],
+    }
+  },
   component: Home,
 })
 
@@ -74,15 +80,6 @@ function Home() {
         <code className="block">
           <span className="text-gray12">npx curl.md</span>{' '}
           <span className="text-gray10">skills add</span>
-        </code>
-      </div>
-      <div>
-        <code className="block text-gray9 dark:text-gray6">
-          # Install MCP server
-        </code>
-        <code className="block">
-          <span className="text-gray12">npx curl.md</span>{' '}
-          <span className="text-gray10">mcp add</span>
         </code>
       </div>
       <div>
@@ -171,7 +168,7 @@ const getTokensSaved = createServerFn({ method: 'GET' }).handler(async () => {
     const origin = request.headers.get('origin')
     if (origin && origin !== `https://${env.HOST}`) throw new Error('Forbidden')
 
-    const db = getDb()
+    const db = getDb(env.DB.connectionString)
     const result = await db
       .selectFrom('request')
       .select((eb) => eb.fn.sum<number>('tokens_saved').as('total'))
