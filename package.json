@@ -8,6 +8,8 @@
   "scripts": {
     "build": "vite build",
     "build:cli": "pnpm --filter curl.md build",
+    "pkg:format": "node --experimental-strip-types scripts/formatPackageJson.ts",
+    "pkg:restore": "node --experimental-strip-types scripts/restorePackageJson.ts",
     "curl": "CURL_MD_BASE_URL=https://curl.local NODE_TLS_REJECT_UNAUTHORIZED=0 node --experimental-strip-types --no-warnings cli/src/cli.ts",
     "check": "biome check .",
     "check:types": "tsgo -b && pnpm --filter curl.md check:types",

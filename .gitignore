@@ -7,4 +7,5 @@ node_modules
 .output
 .vinxi
 incur.generated.ts
+test/**/*.js
 tsconfig.tsbuildinfo

@@ -127,7 +127,7 @@ jobs:
           commit: "chore: version packages"
           title: "chore: version packages"
           version: pnpm changeset version
-          publish: pnpm changeset publish
+          publish: pnpm pkg:format && pnpm changeset publish && pnpm pkg:restore
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # TODO: uncomment when repo is public
