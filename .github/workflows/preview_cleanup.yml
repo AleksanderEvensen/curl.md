@@ -2,7 +2,7 @@ name: Pull Request Cleanup
 
 on:
   pull_request:
-    types: [closed]
+    types: [closed, converted_to_draft]
 
 permissions:
   contents: read
