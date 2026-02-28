@@ -6,6 +6,8 @@ Agent guidance for this repository.
 
 ## Commands
 
+Prefer running these scripts instead of using `npx`.
+
 - `pnpm check` - Lint with Biome
 - `pnpm check:types` - Type check with tsgo
 - `pnpm db:codegen` - Generate database types

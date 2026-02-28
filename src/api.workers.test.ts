@@ -1,7 +1,7 @@
 import { env, fetchMock } from 'cloudflare:test'
 import { testClient } from 'hono/testing'
 import { Kysely } from 'kysely'
-import { afterEach, beforeAll, describe, expect, test } from 'vitest'
+import { describe, expect, test } from 'vitest'
 import { api } from '#api.ts'
 import * as Cookie from '#lib/cookie.ts'
 import type { DB } from '#lib/db.gen.ts'
@@ -12,16 +12,6 @@ const client = testClient(api, env)
 // Workers tests use D1 via miniflare; env.DB is a Hyperdrive stub with connectionString
 const db = new Kysely<DB>({ dialect: dialect(env.DB.connectionString) })
 const factory = createFactory(db)
-
-beforeAll(() => {
-  fetchMock.activate()
-  fetchMock.disableNetConnect()
-  return () => fetchMock.deactivate()
-})
-
-afterEach(() => {
-  fetchMock.assertNoPendingInterceptors()
-})
 
 describe('GET /api/auth/github', () => {
   test('redirects to GitHub', async () => {
@@ -355,14 +345,14 @@ describe('POST /api/organizations', () => {
 
 test('GET /api/:url fetches URL and returns markdown', async () => {
   fetchMock
-    .get('https://example.com')
+    .get('https://api-test.example.com')
     .intercept({ path: '/' })
     .reply(200, '<html><body><h1>Hello</h1><p>World</p></body></html>', {
       headers: { 'content-type': 'text/html' },
     })
 
   const res = await client.api[':url{.+}'].$get({
-    param: { url: 'example.com' },
+    param: { url: 'api-test.example.com' },
     query: {},
   })
   expect(res.status).toBe(200)

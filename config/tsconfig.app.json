@@ -27,10 +27,6 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "exclude": [
-    "../pro/src/fetch-page.workers.test.ts",
-    "../pro/src/worker-configuration.d.ts",
-    "../src/**/*.workers.test.ts"
-  ],
+  "exclude": ["../pro/src/**/*.workers.test.ts", "../src/**/*.workers.test.ts"],
   "include": ["../pro/src", "../src"]
 }

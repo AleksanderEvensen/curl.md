@@ -22,7 +22,7 @@ env:
 
 jobs:
   verify:
-    name: verify
+    name: Verify
     runs-on: ubuntu-latest
     env:
       DB_URL: postgres://postgres:postgres@localhost:5432/postgres
@@ -82,19 +82,18 @@ jobs:
             echo "COOKIE_SECRET=dummy"
             echo "GH_CLIENT_SECRET=dummy"
             echo "WRANGLER_SEND_METRICS=false"
-          } | tee .env pro/.env > /dev/null
+          } > .env
 
       - name: Generate code
         run: |
           pnpm gen:types
-          ${{ inputs.submodules && 'pnpm --filter pro gen:types' || '' }}
           pnpm db:codegen
 
       - name: Check types
         run: pnpm check:types
 
       - name: Test
-        run: pnpm test --project '!pro:*' --exclude 'pro/**'
+        run: pnpm test --exclude 'pro/**'
 
       - name: Build
         run: pnpm build
@@ -104,7 +103,7 @@ jobs:
 
   dispatch:
     name: Dispatch
-    needs: check
+    needs: verify
     if: inputs.dispatch_pro_sha || inputs.dispatch_preview_pr
     runs-on: ubuntu-latest
     steps:

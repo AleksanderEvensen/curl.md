@@ -29,8 +29,10 @@
   "include": [
     "../config/wrangler.ts",
     "../test",
+    "../scripts",
     "../kysely.config.ts",
     "../vite.config.ts",
     "../vitest.config.ts"
-  ]
+  ],
+  "exclude": ["../test/workers.setup.ts"]
 }

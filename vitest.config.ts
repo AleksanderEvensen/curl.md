@@ -4,15 +4,15 @@ import { defineWorkersProject } from '@cloudflare/vitest-pool-workers/config'
 import { defineConfig } from 'vitest/config'
 import { Env } from './test/env.ts'
 
+const hasPro = existsSync('pro/src')
+
 const aliases: Record<string, string> = {
   '#': new URL('./src/', import.meta.url).pathname,
+  ...(hasPro && {
+    '#lib/core': new URL('./pro/src/', import.meta.url).pathname,
+  }),
 }
-if (existsSync('pro'))
-  aliases['#lib/core'] = new URL('./pro/src/', import.meta.url).pathname
-
-const hasPro = existsSync('pro/src')
 const root = path.resolve(import.meta.dirname)
-const globalSetup = ['test/globalSetup.ts']
 
 export default defineConfig({
   test: {
@@ -21,10 +21,9 @@ export default defineConfig({
         resolve: { alias: aliases },
         test: {
           name: 'app',
-          exclude: ['**/node_modules/**', '**/*.workers.test.ts'],
           include: [
-            'src/**/*.test.ts',
-            ...(hasPro ? ['pro/src/**/*.test.ts'] : []),
+            'src/**/!(*workers).test.ts',
+            ...(hasPro ? ['pro/src/**/!(*workers).test.ts'] : []),
           ],
           root,
         },
@@ -32,7 +31,7 @@ export default defineConfig({
       {
         test: {
           name: 'cli',
-          globalSetup,
+          globalSetup: ['test/globalSetup.ts'],
           hookTimeout: 120_000,
           include: ['cli/src/**/*.test.ts'],
           root,
@@ -44,9 +43,13 @@ export default defineConfig({
         resolve: { alias: aliases },
         test: {
           name: 'workers',
-          include: ['src/**/*.workers.test.ts'],
+          include: [
+            'src/**/*.workers.test.ts',
+            ...(hasPro ? ['pro/src/**/*.workers.test.ts'] : []),
+          ],
           root,
-          globalSetup,
+          globalSetup: ['test/globalSetup.ts'],
+          setupFiles: ['test/workers.setup.ts'],
           poolOptions: {
             async workers(config) {
               const env = Env.parse(config.inject('env'))
@@ -59,6 +62,9 @@ export default defineConfig({
                   hyperdrives: { DB: env.DB_URL },
                   kvNamespaces: ['KV'],
                   queueProducers: { REQUEST_QUEUE: 'test-queue' },
+                  serviceBindings: {
+                    ASSETS: () => new Response(null, { status: 404 }),
+                  },
                 },
                 singleWorker: true,
               }
@@ -66,40 +72,6 @@ export default defineConfig({
           },
         },
       }),
-      ...(hasPro
-        ? [
-            defineWorkersProject({
-              define: { __HOST__: JSON.stringify('curl.local') },
-              resolve: { alias: aliases },
-              test: {
-                name: 'pro:workers',
-                include: ['pro/src/**/*.workers.test.ts'],
-                root,
-                globalSetup,
-                poolOptions: {
-                  async workers(config) {
-                    const env = Env.parse(config.inject('env'))
-                    return {
-                      isolatedStorage: false,
-                      miniflare: {
-                        bindings: env,
-                        compatibilityDate: '2025-09-06',
-                        compatibilityFlags: ['nodejs_compat'],
-                        hyperdrives: { DB: env.DB_URL },
-                        kvNamespaces: ['KV'],
-                        queueProducers: { REQUEST_QUEUE: 'test-queue' },
-                        serviceBindings: {
-                          ASSETS: () => new Response(null, { status: 404 }),
-                        },
-                      },
-                      singleWorker: true,
-                    }
-                  },
-                },
-              },
-            }),
-          ]
-        : []),
     ],
   },
 })

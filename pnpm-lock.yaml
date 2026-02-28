@@ -4,51 +4,6 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-catalogs:
-  default:
-    '@biomejs/biome':
-      specifier: 2.3.13
-      version: 2.3.13
-    '@cloudflare/vitest-pool-workers':
-      specifier: ~0.8.71
-      version: 0.8.71
-    '@types/hast':
-      specifier: ^3.0.4
-      version: 3.0.4
-    '@types/node':
-      specifier: ^25.2.3
-      version: 25.3.2
-    '@typescript/native-preview':
-      specifier: 7.0.0-dev.20260216.1
-      version: 7.0.0-dev.20260216.1
-    rehype-parse:
-      specifier: ^9.0.1
-      version: 9.0.1
-    rehype-remark:
-      specifier: ^10.0.1
-      version: 10.0.1
-    remark-gfm:
-      specifier: ^4.0.1
-      version: 4.0.1
-    remark-stringify:
-      specifier: ^11.0.0
-      version: 11.0.0
-    unified:
-      specifier: ^11.0.5
-      version: 11.0.5
-    vfile:
-      specifier: ^6.0.3
-      version: 6.0.3
-    vitest:
-      specifier: ~3.2.4
-      version: 3.2.4
-    wrangler:
-      specifier: ^4.68.0
-      version: 4.69.0
-    zod:
-      specifier: ^4.3.6
-      version: 4.3.6
-
 importers:
 
   .:
@@ -99,38 +54,38 @@ importers:
         specifier: ^19.2.0
         version: 19.2.4(react@19.2.4)
       rehype-parse:
-        specifier: 'catalog:'
+        specifier: ^9.0.1
         version: 9.0.1
       rehype-remark:
-        specifier: 'catalog:'
+        specifier: ^10.0.1
         version: 10.0.1
       remark-gfm:
-        specifier: 'catalog:'
+        specifier: ^4.0.1
         version: 4.0.1
       remark-stringify:
-        specifier: 'catalog:'
+        specifier: ^11.0.0
         version: 11.0.0
       unified:
-        specifier: 'catalog:'
+        specifier: ^11.0.5
         version: 11.0.5
       vfile:
-        specifier: 'catalog:'
+        specifier: ^6.0.3
         version: 6.0.3
       workers-og:
         specifier: ^0.0.27
         version: 0.0.27
       zod:
-        specifier: 'catalog:'
+        specifier: ^4.3.6
         version: 4.3.6
     devDependencies:
       '@biomejs/biome':
-        specifier: 'catalog:'
+        specifier: 2.3.13
         version: 2.3.13
       '@changesets/cli':
         specifier: ^2.29.8
         version: 2.29.8(@types/node@25.3.2)
       '@cloudflare/vitest-pool-workers':
-        specifier: 'catalog:'
+        specifier: ~0.8.71
         version: 0.8.71(@vitest/runner@3.2.4)(@vitest/snapshot@3.2.4)(vitest@3.2.4(@types/debug@4.1.12)(@types/node@25.3.2)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))
       '@iconify/json':
         specifier: ^2.2.344
@@ -151,10 +106,10 @@ importers:
         specifier: ^11.12.0
         version: 11.12.0
       '@types/hast':
-        specifier: 'catalog:'
+        specifier: ^3.0.4
         version: 3.0.4
       '@types/node':
-        specifier: 'catalog:'
+        specifier: ^25.2.3
         version: 25.3.2
       '@types/react':
         specifier: ^19.2.0
@@ -163,7 +118,7 @@ importers:
         specifier: ^19.2.0
         version: 19.2.3(@types/react@19.2.14)
       '@typescript/native-preview':
-        specifier: 'catalog:'
+        specifier: 7.0.0-dev.20260216.1
         version: 7.0.0-dev.20260216.1
       '@vitejs/plugin-react':
         specifier: ^5.0.4
@@ -196,10 +151,10 @@ importers:
         specifier: ^7.1.7
         version: 7.3.1(@types/node@25.3.2)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2)
       vitest:
-        specifier: 'catalog:'
+        specifier: ~3.2.4
         version: 3.2.4(@types/debug@4.1.12)(@types/node@25.3.2)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2)
       wrangler:
-        specifier: 'catalog:'
+        specifier: ^4.68.0
         version: 4.69.0
 
   cli:
@@ -210,51 +165,6 @@ importers:
       incur:
         specifier: ^0.1.7
         version: 0.1.7
-
-  pro:
-    devDependencies:
-      '@cloudflare/vitest-pool-workers':
-        specifier: 'catalog:'
-        version: 0.8.71(@vitest/runner@3.2.4)(@vitest/snapshot@3.2.4)(vitest@3.2.4(@types/debug@4.1.12)(@types/node@25.3.2)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))
-      '@types/hast':
-        specifier: 'catalog:'
-        version: 3.0.4
-      '@types/node':
-        specifier: 'catalog:'
-        version: 25.3.2
-      '@typescript/native-preview':
-        specifier: 'catalog:'
-        version: 7.0.0-dev.20260216.1
-      node:
-        specifier: runtime:^24.5.1
-        version: runtime:24.14.0
-      rehype-parse:
-        specifier: 'catalog:'
-        version: 9.0.1
-      rehype-remark:
-        specifier: 'catalog:'
-        version: 10.0.1
-      remark-gfm:
-        specifier: 'catalog:'
-        version: 4.0.1
-      remark-stringify:
-        specifier: 'catalog:'
-        version: 11.0.0
-      unified:
-        specifier: 'catalog:'
-        version: 11.0.5
-      vfile:
-        specifier: 'catalog:'
-        version: 6.0.3
-      vitest:
-        specifier: 'catalog:'
-        version: 3.2.4(@types/debug@4.1.12)(@types/node@25.3.2)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2)
-      wrangler:
-        specifier: 'catalog:'
-        version: 4.69.0
-      zod:
-        specifier: 'catalog:'
-        version: 4.3.6
 
 packages:
 

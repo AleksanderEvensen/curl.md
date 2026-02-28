@@ -1,18 +1,16 @@
-import { execSync } from 'node:child_process'
-import path from 'node:path'
+import { Kysely } from 'kysely'
+import { z } from 'zod'
+import { dialect } from '../src/lib/pg.ts'
 
-const isRemote = process.argv.includes('--remote')
-const env = process.argv.includes('--env')
-  ? process.argv[process.argv.indexOf('--env') + 1]
-  : undefined
+const env = z.parse(z.object({ DB_URL: z.string() }), process.env)
+const db = new Kysely<{
+  request: { tokens_saved: number | null }
+}>({ dialect: dialect(env.DB_URL) })
 
-const envFlag = env ? `--env ${env}` : ''
-const remoteFlag = isRemote ? '--remote' : '--local'
-const cmd = `pnpm exec wrangler d1 execute curl-db ${remoteFlag} ${envFlag} --command "SELECT SUM(tokens_saved) as total FROM request" --json`
-const output = execSync(cmd, {
-  encoding: 'utf-8',
-  cwd: path.resolve(import.meta.dirname, '..'),
-})
-const result = JSON.parse(output)
-const total = result[0]?.results?.[0]?.total ?? 0
-process.stdout.write(String(total))
+const result = await db
+  .selectFrom('request')
+  .select((eb) => eb.fn.sum<number>('tokens_saved').as('total'))
+  .executeTakeFirst()
+
+process.stdout.write(String(result?.total ?? 0))
+process.exit()
