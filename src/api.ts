@@ -70,7 +70,10 @@ export const api = new Hono<{
       if (query.next) {
         try {
           const nextUrl = new URL(query.next, origin)
-          if (nextUrl.origin === origin)
+          if (
+            nextUrl.origin === origin ||
+            nextUrl.hostname.endsWith(Cookie.getDomain(c.env.HOST))
+          )
             callbackUrl.searchParams.set('next', query.next)
         } catch {}
       }
@@ -95,34 +98,33 @@ export const api = new Hono<{
     async (c) => {
       const query = c.req.valid('query')
 
-      const errorUrl = new URL('/auth/error', `https://${c.env.HOST}`)
+      // Redirect to preview callback before reading/destroying the state cookie
+      // so the preview worker can validate it
+      if (query.next) {
+        const nextUrl = new URL(query.next)
+        if (
+          nextUrl.hostname !== c.env.HOST &&
+          nextUrl.hostname.endsWith(Cookie.getDomain(c.env.HOST))
+        ) {
+          const previewCallback = new URL(
+            '/api/auth/github/callback',
+            nextUrl.origin,
+          )
+          previewCallback.searchParams.set('code', query.code)
+          previewCallback.searchParams.set('state', query.state)
+          return c.redirect(previewCallback.toString())
+        }
+      }
 
       const cookieState = Cookie.get(c, 'curl.state')
       Cookie.destroy(c, 'curl.state', {
         domain: Cookie.getDomain(c.env.HOST),
       })
+      const errorUrl = new URL('/auth/error', `https://${c.env.HOST}`)
       if (!cookieState || cookieState !== query.state) {
         errorUrl.searchParams.set('error', 'invalid_request')
         errorUrl.searchParams.set('error_description', 'State mismatch')
         return c.redirect(errorUrl.toString())
-      }
-
-      if (query.next) {
-        try {
-          const nextUrl = new URL(query.next)
-          if (
-            nextUrl.hostname !== c.env.HOST &&
-            nextUrl.hostname.endsWith('.curl.md')
-          ) {
-            const previewCallback = new URL(
-              '/api/auth/github/callback',
-              nextUrl.origin,
-            )
-            previewCallback.searchParams.set('code', query.code)
-            previewCallback.searchParams.set('state', query.state)
-            return c.redirect(previewCallback.toString())
-          }
-        } catch {}
       }
 
       const tokenUrl = new URL('https://github.com/login/oauth/access_token')
