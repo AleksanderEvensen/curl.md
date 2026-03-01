@@ -3,9 +3,12 @@ import { z } from 'zod'
 import { dialect } from '../src/lib/pg.ts'
 
 const env = z.parse(z.object({ DB_URL: z.string() }), process.env)
+const dbUrl = new URL(env.DB_URL)
+dbUrl.searchParams.delete('sslrootcert')
+
 const db = new Kysely<{
   request: { tokens_saved: number | null }
-}>({ dialect: dialect(env.DB_URL) })
+}>({ dialect: dialect(dbUrl.toString()) })
 
 const result = await db
   .selectFrom('request')
