@@ -3,6 +3,8 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import * as React from 'react'
 import { z } from 'zod'
 import { useAnimatedValue } from '#hooks/use-animated-value.ts'
+import { attribution } from '#lib/constants.ts'
+import { formatCost } from '#lib/format.ts'
 import { rpc } from '#lib/rpc.ts'
 import { urlSchema } from '#lib/schemas.ts'
 import { computeScore } from '#lib/score.ts'
@@ -67,10 +69,7 @@ function Check() {
       const data: { content: string } | { error: string } = await res.json()
       if ('error' in data) throw new Error(data.error)
 
-      const markdown = data.content.replace(
-        /\n\n---\n\nPowered by \[curl\.md\]\(https:\/\/curl\.md\)$/,
-        '',
-      )
+      const markdown = data.content.replace(attribution.pattern, '')
       const tokensCount = Number(res.headers.get('x-tokens-count') ?? 0)
       const tokensSaved = Number(res.headers.get('x-tokens-saved') ?? 0)
       const rawHtmlLength = (tokensCount + tokensSaved) * 4
@@ -371,9 +370,4 @@ function CopyButton(props: { text: string }) {
       )}
     </button>
   )
-}
-
-function formatCost(tokens: number, perMillionDollars: number) {
-  const cost = (tokens / 1_000_000) * perMillionDollars
-  return cost < 0.01 ? cost.toFixed(4).replace(/0+$/, '0') : cost.toFixed(2)
 }

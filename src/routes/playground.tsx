@@ -2,6 +2,8 @@ import * as Query from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import * as React from 'react'
 import { z } from 'zod'
+import { attribution } from '#lib/constants.ts'
+import { formatCost } from '#lib/format.ts'
 import { rpc } from '#lib/rpc.ts'
 import { urlSchema } from '#lib/schemas.ts'
 
@@ -73,10 +75,7 @@ function Playground() {
       if ('error' in data) throw new Error(data.error)
       return {
         fetchedUrl: `${__HOST__}${path}`,
-        markdown: data.content.replace(
-          /\n\n---\n\nPowered by \[curl\.md\]\(https:\/\/curl\.md\)$/,
-          '',
-        ),
+        markdown: data.content.replace(attribution.pattern, ''),
         stats: {
           tokensCount: Number(res.headers.get('x-tokens-count') ?? 0),
           tokensSaved: Number(res.headers.get('x-tokens-saved') ?? 0),
@@ -451,9 +450,4 @@ function CopyButton(props: { text: string }) {
       )}
     </button>
   )
-}
-
-function formatCost(tokens: number, perMillionDollars: number) {
-  const cost = (tokens / 1_000_000) * perMillionDollars
-  return cost < 0.01 ? cost.toFixed(4).replace(/0+$/, '0') : cost.toFixed(2)
 }

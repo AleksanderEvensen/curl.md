@@ -4,21 +4,28 @@ import { Hono } from 'hono'
 import { html, raw } from 'hono/html'
 import { Kysely, sql } from 'kysely'
 import { jsonArrayFrom } from 'kysely/helpers/postgres'
+import { customAlphabet } from 'nanoid'
 import { ImageResponse } from 'workers-og'
 import { z } from 'zod'
+import * as ApiKey from '#lib/api-key.ts'
+import { attribution } from '#lib/constants.ts'
 import * as Cookie from '#lib/cookie.ts'
 import { fetchPage } from '#lib/core/fetch-page.ts'
+import * as Crypto from '#lib/crypto.ts'
 import type { DB } from '#lib/db.gen.ts'
 import * as Nanoid from '#lib/nanoid.ts'
 import * as Og from '#lib/og.tsx'
 import { dialect } from '#lib/pg.ts'
+import { knownRoutes } from '#lib/routes.ts'
 import { urlSchema } from '#lib/schemas.ts'
 import type { OneOf } from '#lib/types.ts'
 
 export const api = new Hono<{
   Bindings: Cloudflare.Env
   Variables: {
+    api_key_id: string | null
     db: Kysely<DB>
+    organization_id: string | null
     session: Pick<DB.session, 'account_id'> | null
   }
 }>()
@@ -29,22 +36,75 @@ export const api = new Hono<{
         dialect: dialect(c.env.DB.connectionString),
       }),
     )
-    const sessionId = await Cookie.getSigned(
+
+    c.set('api_key_id', null)
+    c.set('organization_id', null)
+    c.set('session', null)
+
+    // Try cookie → session lookup
+    const cookie = await Cookie.getSigned(
       c,
       c.env.COOKIE_SECRET,
       'curl.session',
     )
-    c.set(
-      'session',
-      sessionId
-        ? ((await c.var.db
-            .selectFrom('session')
-            .where('id', '=', sessionId)
-            .where('expires_at', '>', new Date())
-            .select('account_id')
-            .executeTakeFirst()) ?? null)
-        : null,
-    )
+    const sessionId =
+      cookie ??
+      (() => {
+        const authorizationHeader = c.req.header('authorization')
+        return authorizationHeader?.startsWith('Bearer ')
+          ? authorizationHeader.replace('Bearer ', '')
+          : undefined
+      })()
+
+    // Try API key (curl_ prefix)
+    if (!cookie && sessionId?.startsWith('curl_')) {
+      const keyHash = await ApiKey.hash(sessionId)
+      const apiKey = await c.var.db
+        .selectFrom('api_key')
+        .where('key_hash', '=', keyHash)
+        .where('deleted_at', 'is', null)
+        .select(['id', 'account_id', 'organization_id'])
+        .executeTakeFirst()
+      if (apiKey) {
+        c.set('api_key_id', apiKey.id)
+        c.set('organization_id', apiKey.organization_id)
+        c.set('session', { account_id: apiKey.account_id })
+        c.executionCtx.waitUntil(
+          c.var.db
+            .updateTable('api_key')
+            .set('last_used_at', new Date())
+            .where('id', '=', apiKey.id)
+            .execute(),
+        )
+        await next()
+        return
+      }
+    }
+
+    // Try session lookup (cookie or bearer token)
+    if (sessionId) {
+      const session =
+        (await c.var.db
+          .selectFrom('session')
+          .where('id', '=', sessionId)
+          .where('expires_at', '>', new Date())
+          .select('account_id')
+          .executeTakeFirst()) ?? null
+      c.set('session', session)
+    }
+
+    // Resolve organization membership
+    const orgHeader = c.req.header('x-organization-id')
+    if (c.var.session && orgHeader) {
+      const member = await c.var.db
+        .selectFrom('organization_member')
+        .where('organization_id', '=', orgHeader)
+        .where('account_id', '=', c.var.session.account_id)
+        .select('id')
+        .executeTakeFirst()
+      if (member) c.set('organization_id', orgHeader)
+    }
+
     await next()
   })
   .get(
@@ -57,7 +117,7 @@ export const api = new Hono<{
     ),
     (c) => {
       const query = c.req.valid('query')
-      const state = Math.random().toString(36).substring(2)
+      const state = crypto.randomUUID()
       Cookie.set(c, 'curl.state', state, {
         domain: Cookie.getDomain(c.env.HOST),
         httpOnly: true,
@@ -148,7 +208,11 @@ export const api = new Hono<{
             token_type: 'bearer'
           }
         | {
-            error: string
+            error:
+              | 'bad_verification_code'
+              | 'incorrect_client_credentials'
+              | 'redirect_uri_mismatch'
+              | 'unverified_user_email'
             error_description: string
             error_uri: string
           }
@@ -248,21 +312,31 @@ export const api = new Hono<{
                 now.getTime() + tokenData.refresh_token_expires_in * 1000,
               )
             : null
+          const encryptedAccessToken = await Crypto.encrypt(
+            tokenData.access_token,
+            c.env.TOKEN_ENCRYPTION_KEY,
+          )
+          const encryptedRefreshToken = tokenData.refresh_token
+            ? await Crypto.encrypt(
+                tokenData.refresh_token,
+                c.env.TOKEN_ENCRYPTION_KEY,
+              )
+            : null
           await tx
             .insertInto('account_provider')
             .values({
               account_id: accountId,
               provider: 'github',
               provider_account_id: String(ghUser.id),
-              access_token: tokenData.access_token,
-              refresh_token: tokenData.refresh_token ?? null,
+              access_token: encryptedAccessToken,
+              refresh_token: encryptedRefreshToken,
               access_token_expires_at,
               refresh_token_expires_at,
             })
             .onConflict((oc) =>
               oc.constraint('unique_account_provider_provider').doUpdateSet({
-                access_token: tokenData.access_token,
-                refresh_token: tokenData.refresh_token ?? null,
+                access_token: encryptedAccessToken,
+                refresh_token: encryptedRefreshToken,
                 access_token_expires_at,
                 refresh_token_expires_at,
               }),
@@ -273,7 +347,7 @@ export const api = new Hono<{
             .insertInto('session')
             .values({
               account_id: accountId,
-              expires_at: sql<Date>`now() + interval '1 day'`,
+              expires_at: sql<Date>`now() + interval '30 days'`,
             })
             .returning('id')
             .executeTakeFirstOrThrow()
@@ -298,7 +372,7 @@ export const api = new Hono<{
         {
           domain: Cookie.getDomain(c.env.HOST),
           httpOnly: true,
-          maxAge: 86400,
+          maxAge: 2592000, // 30 days
           sameSite: 'Lax',
           secure: true,
         },
@@ -376,6 +450,126 @@ export const api = new Hono<{
 
     return c.json({ account })
   })
+  .get('/api/orgs', async (c) => {
+    if (!c.var.session) return c.json({ error: 'Unauthorized' }, 401)
+
+    const organizations = await c.var.db
+      .selectFrom('organization_member')
+      .innerJoin(
+        'organization',
+        'organization.id',
+        'organization_member.organization_id',
+      )
+      .where('organization_member.account_id', '=', c.var.session.account_id)
+      .where('organization.deleted_at', 'is', null)
+      .select([
+        'organization.id',
+        'organization.login',
+        'organization.name',
+        'organization_member.role',
+      ])
+      .execute()
+
+    return c.json({ organizations })
+  })
+  .get('/api/orgs/:id', async (c) => {
+    if (!c.var.session) return c.json({ error: 'Unauthorized' }, 401)
+
+    const organization = await c.var.db
+      .selectFrom('organization')
+      .innerJoin(
+        'organization_member',
+        'organization_member.organization_id',
+        'organization.id',
+      )
+      .where('organization.id', '=', c.req.param('id'))
+      .where('organization_member.account_id', '=', c.var.session.account_id)
+      .where('organization.deleted_at', 'is', null)
+      .select([
+        'organization.id',
+        'organization.login',
+        'organization.name',
+        'organization_member.role',
+      ])
+      .executeTakeFirst()
+
+    if (!organization) return c.json({ error: 'Not found' }, 404)
+    return c.json({ organization })
+  })
+  .post('/api/auth/device', async (c) => {
+    const code = Nanoid.generate()
+    const user_code = customAlphabet('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 8)()
+    await c.var.db
+      .insertInto('device_code')
+      .values({
+        code,
+        expires_at: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes
+        status: 'pending',
+        user_code,
+      })
+      .execute()
+    return c.json({
+      code,
+      interval: 1,
+      user_code,
+      verification_uri: `https://${c.env.HOST}/auth/device`,
+    })
+  })
+  .post(
+    '/api/auth/device/token',
+    validator('json', z.object({ code: z.string() })),
+    async (c) => {
+      const json = c.req.valid('json')
+      const deviceCode = await c.var.db
+        .selectFrom('device_code')
+        .where('code', '=', json.code)
+        .select(['account_id', 'expires_at', 'id', 'status'])
+        .executeTakeFirst()
+      if (!deviceCode || deviceCode.expires_at <= new Date())
+        return c.json({ error: 'expired_token' }, 400)
+      if (deviceCode.status === 'pending')
+        return c.json({ error: 'authorization_pending' }, 400)
+      if (!deviceCode.account_id) return c.json({ error: 'expired_token' }, 400)
+      const session = await c.var.db
+        .insertInto('session')
+        .values({
+          account_id: deviceCode.account_id,
+          expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+        })
+        .returning('id')
+        .executeTakeFirstOrThrow()
+      await c.var.db
+        .deleteFrom('device_code')
+        .where('id', '=', deviceCode.id)
+        .execute()
+      return c.json({ session_id: session.id })
+    },
+  )
+  .post(
+    '/api/auth/device/confirm',
+    validator('json', z.object({ user_code: z.string() })),
+    async (c) => {
+      if (!c.var.session) return c.json({ error: 'Unauthorized' }, 401)
+      const json = c.req.valid('json')
+      const row = await c.var.db
+        .selectFrom('device_code')
+        .where('user_code', '=', json.user_code)
+        .where('status', '=', 'pending')
+        .where('expires_at', '>', new Date())
+        .select('id')
+        .executeTakeFirst()
+      if (!row) return c.json({ error: 'Invalid or expired code' }, 404)
+      await c.var.db
+        .updateTable('device_code')
+        .set({
+          account_id: c.var.session.account_id,
+          status: 'approved',
+        })
+        .where('id', '=', row.id)
+        .execute()
+      return c.json({ ok: true })
+    },
+  )
   .get('/api/health', (c) => c.json({ ok: true }))
   .get('/api/og.png', validator('query', Og.schema), async (c) => {
     const query = c.req.valid('query')
@@ -399,7 +593,7 @@ export const api = new Hono<{
     })
   })
   .post(
-    '/api/organizations',
+    '/api/orgs',
     validator(
       'json',
       z.object({
@@ -420,11 +614,11 @@ export const api = new Hono<{
       const json = c.req.valid('json')
 
       const reservedLogins = new Set([
+        ...knownRoutes,
         'api',
-        'check',
-        'login',
-        'new',
-        'playground',
+        'curl',
+        'dash',
+        'org',
       ])
       if (reservedLogins.has(json.login))
         return c.json({ error: 'This login is reserved' }, 409)
@@ -488,7 +682,6 @@ export const api = new Hono<{
         q: z.string().optional(),
       }),
     ),
-    // TODO: add rate limiting back
     // TODO: add error handling back
     async (c) => {
       const url = new URL(c.req.valid('param').url)
@@ -521,6 +714,56 @@ export const api = new Hono<{
         )
       }
 
+      // Rate limit: two tiers (fetch = abuse prevention, query = cost protection)
+      // TODO: use metered billing for authenticated accounts so no limits
+      const identity = c.var.session
+        ? c.var.session.account_id
+        : (c.req.header('cf-connecting-ip') ?? 'unknown')
+      const isAuthed = !!c.var.session
+      const limit = query.q
+        ? {
+            key: `query:${identity}` as const,
+            max: isAuthed ? 100 : 10,
+            window: 3600,
+          }
+        : {
+            key: `fetch:${identity}` as const,
+            max: isAuthed ? 1000 : 100,
+            window: 3600,
+          }
+
+      const kvKey = `ratelimit:${limit.key}` as const
+      const now = Math.floor(Date.now() / 1000)
+      const record = await c.env.KV.get(kvKey, 'json')
+
+      const reset =
+        record && record.reset > now ? record.reset : now + limit.window
+      const count = record && record.reset > now ? record.count + 1 : 1
+
+      const rateLimitHeaders = {
+        'x-ratelimit-limit': String(limit.max),
+        'x-ratelimit-remaining': String(Math.max(0, limit.max - count)),
+        'x-ratelimit-reset': String(reset),
+      }
+
+      if (count > limit.max)
+        return c.json(
+          { error: 'Rate limit exceeded' },
+          {
+            status: 429,
+            headers: {
+              ...rateLimitHeaders,
+              'retry-after': String(reset - now),
+            },
+          },
+        )
+
+      c.executionCtx.waitUntil(
+        c.env.KV.put(kvKey, JSON.stringify({ count, reset }), {
+          expirationTtl: limit.window,
+        }),
+      )
+
       const page = await fetchPage(url, {
         fresh: query.fresh !== undefined ? true : undefined,
         keywords: query.k,
@@ -529,22 +772,28 @@ export const api = new Hono<{
 
       const requestId = Nanoid.generate()
       c.env.REQUEST_QUEUE.send({
+        account_id: c.var.session?.account_id ?? null,
+        api_key_id: c.var.api_key_id,
         estimated: page.estimated,
         hostname: url.hostname,
         id: requestId,
         keywords: query.k?.join(',') || null,
         markdownLength: page.markdown.length,
         objective: query.q || null,
+        organization_id: c.var.organization_id,
         path: url.pathname,
         tokens_saved: page.tokensSaved ?? null,
         url: url.href,
         user_agent: c.req.header('user-agent'),
       })
 
-      const content = `${page.markdown.trimEnd()}\n\n---\n\nPowered by [${c.env.HOST}](https://${c.env.HOST})`
+      const content = c.var.session
+        ? page.markdown.trimEnd()
+        : `${page.markdown.trimEnd()}${attribution.suffix}`
       const commonHeaders = {
+        ...rateLimitHeaders,
         'access-control-expose-headers':
-          'x-request-id, x-tokens-count, x-tokens-saved',
+          'retry-after, x-ratelimit-limit, x-ratelimit-remaining, x-ratelimit-reset, x-request-id, x-tokens-count, x-tokens-saved',
         'x-request-id': requestId,
         'x-tokens-count': String(page.tokensCount),
         'x-tokens-saved': String(page.tokensSaved),
