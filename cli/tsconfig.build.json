@@ -8,5 +8,5 @@
     "rewriteRelativeImportExtensions": true,
     "rootDir": "src"
   },
-  "exclude": ["src/**/*.test.*"]
+  "exclude": ["src/**/*.test.*", "test"]
 }

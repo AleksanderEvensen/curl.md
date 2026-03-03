@@ -10,11 +10,25 @@ const env = Env.parse(inject('env'))
 export function useTempHome() {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'curl-md-test-'))
   const spy = vi.spyOn(os, 'homedir').mockReturnValue(tmpDir)
+  const origXdgData = process.env.XDG_DATA_HOME
+  const origXdgConfig = process.env.XDG_CONFIG_HOME
+  delete process.env.XDG_DATA_HOME
+  delete process.env.XDG_CONFIG_HOME
   return {
     dir: tmpDir,
-    sessionPath: path.join(tmpDir, '.config', 'curl-md', 'session.json'),
+    sessionPath: path.join(
+      tmpDir,
+      '.local',
+      'share',
+      'curl-md',
+      'session.json',
+    ),
     cleanup() {
       spy.mockRestore()
+      if (origXdgData === undefined) delete process.env.XDG_DATA_HOME
+      else process.env.XDG_DATA_HOME = origXdgData
+      if (origXdgConfig === undefined) delete process.env.XDG_CONFIG_HOME
+      else process.env.XDG_CONFIG_HOME = origXdgConfig
       fs.rmSync(tmpDir, { recursive: true, force: true })
     },
   }

@@ -1,32 +1,25 @@
-import readline from 'node:readline'
 import { hc } from 'hono/client'
 import { Cli, middleware, z } from 'incur'
 import type { api } from '../../src/api.ts'
 import pkg from '../package.json' with { type: 'json' }
 import { pc } from './picocolors.ts'
-import { createSpinner, openUrl, Session, type SessionData } from './utils.ts'
+import {
+  type Command,
+  compareVersions,
+  createSpinner,
+  fetchLatestVersion,
+  installGlobal,
+  openUrl,
+  relativeTime,
+  Session,
+  select,
+  UpdateCache,
+} from './utils.ts'
 
 const vars = z.object({
   client: z.custom<ReturnType<typeof hc<typeof api>>>(),
-  session: z.custom<SessionData | null>(),
-})
-
-const requireAuth = middleware<typeof vars>((c, next) => {
-  if (!c.var.session)
-    return c.error({
-      code: 'NOT_AUTHENTICATED',
-      message: 'You are not authenticated.',
-      cta: {
-        description: 'Log in:',
-        commands: [
-          {
-            command: `${c.name} auth login`,
-            description: `Authenticate with ${c.name}`,
-          },
-        ],
-      },
-    })
-  return next()
+  commands: z.custom<Command[]>(),
+  session: z.custom<Session.Data | null>(),
 })
 
 const cli = Cli.create('curl.md', {
@@ -57,18 +50,6 @@ const cli = Cli.create('curl.md', {
   alias: { fresh: 'f', keywords: 'k', objective: 'q' },
   examples: [
     { args: { url: 'example.com' } },
-    {
-      args: { url: 'example.com' },
-      options: { objective: 'pricing plans' },
-    },
-    {
-      args: { url: 'example.com' },
-      options: { keywords: ['api,auth'] },
-    },
-    {
-      args: { url: 'example.com' },
-      options: { objective: 'authentication', keywords: ['oauth,jwt'] },
-    },
     {
       args: {
         url: 'docs.github.com/en/webhooks/webhook-events-and-payloads',
@@ -137,6 +118,7 @@ const cli = Cli.create('curl.md', {
               args: { url: 'https://example.com/path' },
               description: 'Full URL with protocol',
             },
+            ...c.var.commands,
           ],
         },
       })
@@ -165,11 +147,14 @@ const cli = Cli.create('curl.md', {
               options: { objective: true },
               description: 'Focus on a specific topic',
             },
+            ...c.var.commands,
           ],
         },
       })
 
-    return text
+    return c.ok(text, {
+      cta: { commands: c.var.commands },
+    })
   },
 })
 
@@ -186,12 +171,83 @@ cli.use(async (c, next) => {
   return next()
 })
 
+// Non-blocking update check: read cache from a previous run, spawn background
+// refresh if stale, set commands var for CTA — never blocks on network.
+const staleMs = 1000 * 60 * 60 // 1 hour
+cli.use((c, next) => {
+  const cache = UpdateCache.read()
+  const stale = !cache || Date.now() - cache.checked_at > staleMs
+  if (stale) UpdateCache.spawnCheck()
+
+  const commands = c.var.commands ?? []
+  if (cache && compareVersions(cache.latest, pkg.version) > 0) {
+    let description = `Update available: ${pkg.version} → ${cache.latest}`
+    if (cache.released_at) {
+      const ago = relativeTime(new Date(cache.released_at))
+      if (ago) description += ` (released ${ago})`
+    }
+    commands.push({ command: `${c.name} update`, description })
+  }
+  c.set('commands', commands)
+
+  return next()
+})
+
+const requireAuth = middleware<typeof vars>((c, next) => {
+  if (!c.var.session)
+    return c.error({
+      ...notAuthenticated,
+      cta: {
+        description: 'Log in:',
+        commands: [
+          {
+            command: `${c.name} auth login`,
+            description: `Authenticate with ${c.name}`,
+          },
+          ...c.var.commands,
+        ],
+      },
+    })
+  return next()
+})
+const notAuthenticated = {
+  code: 'NOT_AUTHENTICATED',
+  message: 'You are not authenticated.',
+}
+
 const auth = Cli.create('auth', {
   description: 'Authentication commands',
   vars,
 })
+  .command('check', {
+    description: 'Check if you are authenticated',
+    middleware: [requireAuth],
+    output: z.string(),
+    format: 'md',
+    async run(c) {
+      const res = await c.var.client.api.auth.me.$get()
+      const data = await res.json()
+      if (!data.account) {
+        Session.delete()
+        return c.error({
+          ...notAuthenticated,
+          cta: {
+            description: 'Log in:',
+            commands: [
+              {
+                command: `${c.name} auth login`,
+                description: `Authenticate with ${c.name}`,
+              },
+              ...c.var.commands,
+            ],
+          },
+        })
+      }
+      return 'You are authenticated.'
+    },
+  })
   .command('login', {
-    description: 'Log in to curl.md',
+    description: 'Authenticate with the curl.md API',
     output: z.string(),
     format: 'md',
     async run(c) {
@@ -247,7 +303,7 @@ const auth = Cli.create('auth', {
     },
   })
   .command('logout', {
-    description: 'Log out of curl.md',
+    description: 'Log out of the curl.md API',
     output: z.string(),
     format: 'md',
     async run(c) {
@@ -266,43 +322,13 @@ const auth = Cli.create('auth', {
       return 'Successfully logged out.'
     },
   })
-  .command('check', {
-    description: 'Check authentication status',
-    output: z.string(),
-    format: 'md',
-    async run(c) {
-      const notAuthenticated = {
-        code: 'NOT_AUTHENTICATED',
-        message: 'You are not authenticated.',
-        cta: {
-          description: 'Log in:',
-          commands: [
-            {
-              command: `${c.name} auth login`,
-              description: `Authenticate with ${c.name}`,
-            },
-          ],
-        },
-      }
-
-      if (!c.var.session) return c.error(notAuthenticated)
-
-      const res = await c.var.client.api.auth.me.$get()
-      const data = await res.json()
-      if (!data.account) {
-        Session.delete()
-        return c.error(notAuthenticated)
-      }
-      return 'You are authenticated.'
-    },
-  })
 
 const org = Cli.create('org', {
-  description: 'List, show, and switch organizations',
+  description: 'Create, list, show, switch organizations',
   vars,
 })
   .command('create', {
-    description: 'Create an organization',
+    description: 'Create organization',
     middleware: [requireAuth],
     args: z.object({
       login: z.string().describe('Organization login (e.g. "wevm")'),
@@ -332,6 +358,7 @@ const org = Cli.create('org', {
               command: `${c.name} org switch ${c.args.login}`,
               description: `Switch to ${c.args.login}`,
             },
+            ...c.var.commands,
           ],
         },
       })
@@ -362,7 +389,7 @@ const org = Cli.create('org', {
     },
   })
   .command('show', {
-    description: 'Show current organization',
+    description: 'Show active organization',
     middleware: [requireAuth],
     output: z.string(),
     format: 'md',
@@ -381,7 +408,7 @@ const org = Cli.create('org', {
     },
   })
   .command('switch', {
-    description: 'Switch organization',
+    description: 'Switch active organization',
     middleware: [requireAuth],
     args: z.object({
       login: z
@@ -416,38 +443,57 @@ const org = Cli.create('org', {
         { label: `personal ${pc.dim('(no organization)')}`, id: undefined },
         ...data.organizations.map((o) => ({ label: o.login, id: o.id })),
       ]
-      console.log('\nSwitch to:')
-      for (let i = 0; i < choices.length; i++)
-        console.log(`  ${i + 1}. ${choices[i]?.label}`)
 
-      const answer = await prompt('Enter number: ')
-      const num = Number.parseInt(answer, 10)
-      if (Number.isNaN(num) || num < 1 || num > choices.length)
+      const index = await select(
+        'Switch to:',
+        choices.map((c) => c.label),
+      )
+      if (index === -1)
+        return c.error({
+          code: 'INVALID_SELECTION',
+          message: 'Selection cancelled.',
+        })
+
+      const selected = choices[index]
+      if (!selected)
         return c.error({
           code: 'INVALID_SELECTION',
           message: 'Invalid selection.',
         })
-
-      const selected = choices[num - 1]!
       Session.write({ organization_id: selected.id })
       return `Switched to ${selected.id ? selected.label : 'personal (no organization)'}.`
     },
   })
 
+const update = Cli.create('update', {
+  description: 'Update curl.md CLI',
+  vars,
+  options: z.object({
+    target: z.string().optional().describe('Update to specific version'),
+  }),
+  output: z.string(),
+  format: 'md',
+  async run(c) {
+    const version = c.options.target ?? (await fetchLatestVersion('curl.md'))
+    if (
+      !version.startsWith('http') &&
+      compareVersions(version, pkg.version) <= 0
+    )
+      return `Already up-to-date (${pkg.version}).`
+    try {
+      await installGlobal(c.name, version)
+      return `Updated ${c.name} to ${version}.`
+    } catch (error) {
+      return c.error({
+        code: 'UPDATE_FAILED',
+        message: error instanceof Error ? error.message : 'Update failed.',
+      })
+    }
+  },
+})
+
 cli.command(auth)
 cli.command(org)
+cli.command(update)
 
 export default cli
-
-function prompt(question: string): Promise<string> {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stderr,
-  })
-  return new Promise((resolve) => {
-    rl.question(question, (answer) => {
-      rl.close()
-      resolve(answer.trim())
-    })
-  })
-}
