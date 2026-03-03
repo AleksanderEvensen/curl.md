@@ -2,6 +2,7 @@ import serverEntry from '@tanstack/react-start/server-entry'
 import { z } from 'zod'
 import { api } from '#api.ts'
 import { getDb } from '#lib/db.ts'
+import { isApiPath } from '#lib/routes.ts'
 import { processRequestMessage } from '#queues/request.ts'
 
 export default {
@@ -10,9 +11,8 @@ export default {
     // Route API requests to the Hono API handler
     if (url.pathname.startsWith('/api/'))
       return api.fetch(new Request(url, request), env, ctx)
-    // Route dot-segment paths (e.g. curl.md/example.com) to the API handler under /api prefix
-    const firstSegment = url.pathname.split('/')[1] ?? ''
-    if (firstSegment.includes('.')) {
+    // Route dot-segment paths (e.g. curl.md/example.com) or protocol-prefixed paths (e.g. curl.md/https://example.com) to the API handler under /api prefix
+    if (isApiPath(url.pathname)) {
       url.pathname = `/api${url.pathname}`
       return api.fetch(new Request(url, request), env, ctx)
     }

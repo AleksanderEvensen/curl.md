@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { knownRoutes } from '#lib/routes.ts'
+import { isApiPath, knownRoutes } from '#lib/routes.ts'
 import type { FileRoutesByTo } from '../routeTree.gen.ts'
 
 type FirstSegment<path> = path extends `/${infer segment}`
@@ -19,4 +19,22 @@ test('knownRoutes is exhaustive', () => {
   for (const route of expected) {
     expect(knownRoutes.has(route)).toBe(true)
   }
+})
+
+test('isApiPath matches domain paths', () => {
+  expect(isApiPath('/example.com')).toBe(true)
+  expect(isApiPath('/zod.dev/error-formatting')).toBe(true)
+  expect(isApiPath('/docs.example.com/page')).toBe(true)
+})
+
+test('isApiPath matches protocol-prefixed paths', () => {
+  expect(isApiPath('/https://zod.dev/error-formatting')).toBe(true)
+  expect(isApiPath('/http://example.com')).toBe(true)
+})
+
+test('isApiPath rejects app routes', () => {
+  expect(isApiPath('/')).toBe(false)
+  expect(isApiPath('/login')).toBe(false)
+  expect(isApiPath('/auth')).toBe(false)
+  expect(isApiPath('/playground')).toBe(false)
 })

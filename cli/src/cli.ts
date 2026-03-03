@@ -271,7 +271,7 @@ const auth = Cli.create('auth', {
         `\n${pc.bold('Confirmation Code:')} ${pc.green(device.user_code)}\n`,
       )
       console.log(
-        `If something goes wrong, copy and paste this URL into your browser: ${pc.bold(url)}\n`,
+        `If something goes wrong, copy and paste this URL into your browser:\n${pc.bold(url)}\n`,
       )
 
       const spinner = createSpinner('Waiting for authentication...')
