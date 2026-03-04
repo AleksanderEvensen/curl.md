@@ -39,9 +39,9 @@ test('prints version', async () => {
 })
 
 test('prints help', async () => {
-  const { output } = await serve(['--help'])
+  const { output } = await serve(['--help'], { CURL_MD_BASE_URL: undefined })
   expect(output).toMatchInlineSnapshot(`
-    "curl.md — Fetch any web page and convert it to markdown.
+    "curl.md — Fetch any URL as Markdown
     vx.y.z
 
     Usage: curl.md <url> [options]
@@ -53,9 +53,6 @@ test('prints help', async () => {
       --fresh, -f <boolean>     Force fresh fetch (bypass cache)
       --keywords, -k <array>    Pre-filter by keywords (comma-separated)
       --objective, -q <string>  Narrow content to a specific objective
-
-    Environment Variables:
-      CURL_MD_BASE_URL  Base URL (default: https://curl.md)
 
     Examples:
       $ curl.md example.com
@@ -80,6 +77,9 @@ test('prints help', async () => {
       --mcp                               Start as MCP stdio server
       --verbose                           Show full output envelope
       --version                           Show version
+
+    Environment Variables:
+      CURL_MD_BASE_URL  Base URL (default: https://curl.md)
     "
   `)
 })

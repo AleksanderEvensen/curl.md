@@ -23,7 +23,7 @@ const vars = z.object({
 })
 
 const cli = Cli.create('curl.md', {
-  description: 'Fetch any web page and convert it to markdown.',
+  description: 'Fetch any URL as Markdown',
   version: pkg.version,
   env: z.object({
     CURL_MD_BASE_URL: z
@@ -247,7 +247,7 @@ const auth = Cli.create('auth', {
     },
   })
   .command('login', {
-    description: 'Authenticate with the curl.md API',
+    description: 'Authenticate with the curl.md CLI',
     output: z.string(),
     format: 'md',
     async run(c) {
@@ -303,14 +303,14 @@ const auth = Cli.create('auth', {
     },
   })
   .command('logout', {
-    description: 'Log out of the curl.md API',
+    description: 'Log out of the curl.md CLI',
     output: z.string(),
     format: 'md',
     async run(c) {
       if (!c.var.session) return 'Already logged out.'
 
       await new Promise<void>((resolve) => {
-        process.stdout.write(`Press Enter to log out of ${c.name} CLI.`)
+        process.stdout.write(`Press Enter to log out of ${c.name} CLI`)
         process.stdin.once('data', () => {
           process.stdin.pause()
           resolve()

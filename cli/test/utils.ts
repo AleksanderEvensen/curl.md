@@ -34,6 +34,12 @@ export function useTempHome() {
   }
 }
 
+function stripUndefined(obj: Record<string, string | undefined>) {
+  return Object.fromEntries(
+    Object.entries(obj).filter(([, v]) => v !== undefined),
+  )
+}
+
 export async function serve(
   argv: string[],
   overrides?: Record<string, string | undefined>,
@@ -41,7 +47,10 @@ export async function serve(
   let output = ''
   let exitCode: number | undefined
   await cli.serve(argv, {
-    env: { CURL_MD_BASE_URL: env.CURL_MD_BASE_URL, ...overrides },
+    env: stripUndefined({
+      CURL_MD_BASE_URL: env.CURL_MD_BASE_URL,
+      ...overrides,
+    }),
     stdout(s: string) {
       output += s
     },

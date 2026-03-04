@@ -8,6 +8,7 @@ import { assert } from '#lib/assert.ts'
 import * as Cookie from '#lib/cookie.ts'
 import * as Crypto from '#lib/crypto.ts'
 import type { DB } from '#lib/db.gen.ts'
+import * as Nanoid from '#lib/nanoid.ts'
 import { dialect } from '#lib/pg.ts'
 import { createFactory } from '../test/factory.ts'
 
@@ -107,6 +108,9 @@ describe('GET /api/auth/github/callback', () => {
   })
 
   test('creates account and redirects to account login', async () => {
+    const login = `user-${Nanoid.generate()}`
+    const ghId = Math.floor(Math.random() * 1_000_000)
+    const email = `${login}@example.com`
     const query = { code: 'good', state: 'test-state' }
 
     fetchMock
@@ -127,9 +131,9 @@ describe('GET /api/auth/github/callback', () => {
       .reply(
         200,
         {
-          avatar_url: 'https://avatars.githubusercontent.com/u/1234',
-          id: 1234,
-          login: 'testuser',
+          avatar_url: `https://avatars.githubusercontent.com/u/${ghId}`,
+          id: ghId,
+          login,
           name: 'Test User',
         },
         { headers: { 'content-type': 'application/json' } },
@@ -137,18 +141,16 @@ describe('GET /api/auth/github/callback', () => {
     fetchMock
       .get('https://api.github.com')
       .intercept({ method: 'GET', path: '/user/emails' })
-      .reply(
-        200,
-        [{ email: 'test@example.com', primary: true, verified: true }],
-        { headers: { 'content-type': 'application/json' } },
-      )
+      .reply(200, [{ email, primary: true, verified: true }], {
+        headers: { 'content-type': 'application/json' },
+      })
 
     const res = await client.api.auth.github.callback.$get(
       { query },
       { headers: { Cookie: `curl.state=${query.state}` } },
     )
     expect(res.status).toBe(302)
-    expect(res.headers.get('location')).toBe('https://curl.local/testuser')
+    expect(res.headers.get('location')).toBe(`https://curl.local/${login}`)
     expect(
       res.headers.getSetCookie().some((c) => c.startsWith('curl.session=')),
     ).toBe(true)
@@ -157,7 +159,7 @@ describe('GET /api/auth/github/callback', () => {
     const provider = await db
       .selectFrom('account_provider')
       .where('provider', '=', 'github')
-      .where('provider_account_id', '=', '1234')
+      .where('provider_account_id', '=', String(ghId))
       .selectAll()
       .executeTakeFirstOrThrow()
     const account = await db
@@ -165,8 +167,8 @@ describe('GET /api/auth/github/callback', () => {
       .where('id', '=', provider.account_id)
       .selectAll()
       .executeTakeFirstOrThrow()
-    expect(account.email).toBe('test@example.com')
-    expect(account.login).toBe('testuser')
+    expect(account.email).toBe(email)
+    expect(account.login).toBe(login)
     expect(account.name).toBe('Test User')
 
     // Verify tokens are encrypted (not stored as plaintext)
@@ -180,11 +182,12 @@ describe('GET /api/auth/github/callback', () => {
   })
 
   test('logs in existing account', async () => {
-    const account = await factory.account.insert({ login: 'existinguser' })
+    const account = await factory.account.insert({})
+    const ghId = String(Math.floor(Math.random() * 1_000_000))
     await factory.account_provider.insert({
       account_id: account.id,
       provider: 'github',
-      provider_account_id: '9999',
+      provider_account_id: ghId,
     })
 
     const query = { code: 'existing', state: 'test-state' }
@@ -207,9 +210,9 @@ describe('GET /api/auth/github/callback', () => {
       .reply(
         200,
         {
-          avatar_url: 'https://avatars.githubusercontent.com/u/9999',
-          id: 9999,
-          login: 'existinguser',
+          avatar_url: `https://avatars.githubusercontent.com/u/${ghId}`,
+          id: Number(ghId),
+          login: account.login,
           name: 'Existing User',
         },
         { headers: { 'content-type': 'application/json' } },
@@ -217,11 +220,9 @@ describe('GET /api/auth/github/callback', () => {
     fetchMock
       .get('https://api.github.com')
       .intercept({ method: 'GET', path: '/user/emails' })
-      .reply(
-        200,
-        [{ email: 'existing@example.com', primary: true, verified: true }],
-        { headers: { 'content-type': 'application/json' } },
-      )
+      .reply(200, [{ email: account.email, primary: true, verified: true }], {
+        headers: { 'content-type': 'application/json' },
+      })
 
     const res = await client.api.auth.github.callback.$get(
       { query },
@@ -240,7 +241,7 @@ describe('GET /api/auth/github/callback', () => {
       .execute()
     expect(accounts).toHaveLength(1)
     expect(accounts[0]?.name).toBe('Existing User')
-    expect(accounts[0]?.email).toBe('existing@example.com')
+    expect(accounts[0]?.email).toBe(account.email)
   })
 })
 
@@ -471,14 +472,8 @@ describe('GET /api/orgs', () => {
   test('lists organizations for authenticated account', async () => {
     const account = await factory.account.insert({})
     const session = await factory.session.insert({ account_id: account.id })
-    const org1 = await factory.organization.insert({
-      login: 'org-a',
-      name: 'Org A',
-    })
-    const org2 = await factory.organization.insert({
-      login: 'org-b',
-      name: 'Org B',
-    })
+    const org1 = await factory.organization.insert({})
+    const org2 = await factory.organization.insert({})
     await factory.organization_member.insert({
       organization_id: org1.id,
       account_id: account.id,
@@ -508,10 +503,14 @@ describe('GET /api/orgs', () => {
     expect(data.organizations).toHaveLength(2)
     expect(data.organizations).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ id: org1.id, login: 'org-a', role: 'owner' }),
+        expect.objectContaining({
+          id: org1.id,
+          login: org1.login,
+          role: 'owner',
+        }),
         expect.objectContaining({
           id: org2.id,
-          login: 'org-b',
+          login: org2.login,
           role: 'member',
         }),
       ]),
@@ -528,10 +527,7 @@ describe('GET /api/orgs/:id', () => {
   test('returns org for member', async () => {
     const account = await factory.account.insert({})
     const session = await factory.session.insert({ account_id: account.id })
-    const org = await factory.organization.insert({
-      login: 'show-org',
-      name: 'Show Org',
-    })
+    const org = await factory.organization.insert({})
     await factory.organization_member.insert({
       organization_id: org.id,
       account_id: account.id,
@@ -556,8 +552,8 @@ describe('GET /api/orgs/:id', () => {
     expect(data.organization).toEqual(
       expect.objectContaining({
         id: org.id,
-        login: 'show-org',
-        name: 'Show Org',
+        login: org.login,
+        name: org.name,
         role: 'owner',
       }),
     )
@@ -595,9 +591,10 @@ describe('POST /api/orgs', () => {
   test('creates organization and membership', async () => {
     const account = await factory.account.insert({})
     const session = await factory.session.insert({ account_id: account.id })
+    const login = `org-${Nanoid.generate()}`
 
     const res = await client.api.orgs.$post(
-      { json: { login: 'my-org', name: 'My Org' } },
+      { json: { login, name: 'My Org' } },
       {
         headers: {
           Cookie: await Cookie.generateSigned(
@@ -609,11 +606,11 @@ describe('POST /api/orgs', () => {
       },
     )
     expect(res.status).toBe(200)
-    expect(await res.json()).toEqual({ login: 'my-org' })
+    expect(await res.json()).toEqual({ login })
 
     const org = await db
       .selectFrom('organization')
-      .where('login', '=', 'my-org')
+      .where('login', '=', login)
       .selectAll()
       .executeTakeFirstOrThrow()
     expect(org.name).toBe('My Org')
@@ -630,9 +627,10 @@ describe('POST /api/orgs', () => {
   test('uses login as name when name is omitted', async () => {
     const account = await factory.account.insert({})
     const session = await factory.session.insert({ account_id: account.id })
+    const login = `org-${Nanoid.generate()}`
 
     const res = await client.api.orgs.$post(
-      { json: { login: 'cli-org' } },
+      { json: { login } },
       {
         headers: {
           Cookie: await Cookie.generateSigned(
@@ -647,19 +645,19 @@ describe('POST /api/orgs', () => {
 
     const org = await db
       .selectFrom('organization')
-      .where('login', '=', 'cli-org')
+      .where('login', '=', login)
       .selectAll()
       .executeTakeFirstOrThrow()
-    expect(org.name).toBe('cli-org')
+    expect(org.name).toBe(login)
   })
 
   test('rejects duplicate login', async () => {
     const account = await factory.account.insert({})
     const session = await factory.session.insert({ account_id: account.id })
-    await factory.organization.insert({ login: 'taken', name: 'Taken' })
+    const existing = await factory.organization.insert({})
 
     const res = await client.api.orgs.$post(
-      { json: { login: 'taken' } },
+      { json: { login: existing.login } },
       {
         headers: {
           Cookie: await Cookie.generateSigned(
