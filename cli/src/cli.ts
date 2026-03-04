@@ -82,6 +82,13 @@ const cli = Cli.create('curl.md', {
         keywords: ['streamText,generateText'],
       },
     },
+    {
+      args: { url: 'zod.dev/error-formatting' },
+      options: {
+        objective: 'tree error formatting',
+        keywords: ['treeifyError'],
+      },
+    },
   ],
   output: z.string().describe('Page content as markdown'),
   format: 'md',
