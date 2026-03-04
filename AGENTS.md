@@ -47,11 +47,21 @@ The `pro/` directory is a git submodule (`wevm/curl.md.pro`) containing pro/prem
 
 ## Database
 
+Follow [PlanetScale Postgres skill](https://github.com/planetscale/database-skills/tree/main/skills/postgres) for general Postgres best practices (schema design, indexing, query patterns, optimization).
+
 - Use singular table names (`account` instead of `accounts`)
 - Use timestamps (like `deleted_at`) instead of boolean fields (`deleted`)
-- When adding enum-like TEXT columns (with a fixed set of values), add them to `customTypes` in `scripts/db-codegen.ts`
+- Use CHECK constraints instead of Postgres ENUMs for enum-like columns
+- When adding enum-like TEXT columns (with a fixed set of values), add them to `customTypes` in `scripts/dbCodegen.ts`
 - Use `DB.<table>` types from `src/lib/db.gen.ts` for database record types. When only a subset of fields is needed, use `Pick<DB.<table>, "field1" | "field2">` instead of defining custom types.
 - Prefer snake_case field names when data originates from the database (e.g., `credential_id` not `credentialId`)
+- Naming conventions:
+  - Tables: singular snake_case (`account`, `api_key`)
+  - Columns: singular snake_case (`created_at`, `account_id`)
+  - Indexes: `{table}_{column}_idx`
+  - Unique constraints: `{table}_{column(s)}_uq`
+  - Check constraints: `{table}_{column}_chk`
+  - Foreign keys: `{table}_{column}_fkey`
 
 ## Code Style
 

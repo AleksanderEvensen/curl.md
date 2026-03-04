@@ -11,14 +11,18 @@
   "type": "module",
   "bin": {
     "curl.md": "./dist/bin.js",
-    "curl.md.src": "./src/cli.ts"
+    "curl.md.src": "./src/cli.ts",
+    "curlmd": "./dist/bin.js",
+    "curlmd.src": "./src/cli.ts",
+    "md": "./dist/bin.js",
+    "md.src": "./src/cli.ts"
   },
   "files": [
     "dist"
   ],
   "dependencies": {
     "hono": "^4.12.2",
-    "incur": "^0.1.15"
+    "incur": "^0.1.16"
   },
   "engines": {
     "node": ">=22.0.0"

@@ -361,7 +361,7 @@ export const api = new Hono<{
               refresh_token_expires_at,
             })
             .onConflict((oc) =>
-              oc.constraint('unique_account_provider_provider').doUpdateSet({
+              oc.columns(['provider', 'provider_account_id']).doUpdateSet({
                 access_token: encryptedAccessToken,
                 refresh_token: encryptedRefreshToken,
                 access_token_expires_at,

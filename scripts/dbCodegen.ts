@@ -41,7 +41,9 @@ const enums = await db
 
 // Override types for varchar columns with known enum-like values
 const customTypes: Record<string, Record<string, string>> = {
+  account: { role: "'crew' | 'user'" },
   device_code: { status: "'approved' | 'pending'" },
+  organization_member: { role: "'admin' | 'member' | 'owner'" },
 }
 
 const timestampTypes = new Set([

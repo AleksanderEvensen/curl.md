@@ -1,10 +1,13 @@
 import { type Kysely, sql } from 'kysely'
-import {
-  account_role,
-  nanoid,
-  now,
-  organization_member_role,
-} from '../src/lib/pg.ts'
+import { nanoid, now } from '../src/lib/pg.ts'
+
+function account_role() {
+  return sql`account_role`
+}
+
+function organization_member_role() {
+  return sql`organization_member_role`
+}
 
 export async function up(db: Kysely<unknown>): Promise<void> {
   await sql`CREATE TYPE account_role AS ENUM ('crew', 'user')`.execute(db)

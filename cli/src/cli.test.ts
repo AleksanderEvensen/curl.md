@@ -64,12 +64,13 @@ test('prints help', async () => {
 
     Commands:
       auth    Authentication commands
-      org     Create, list, show, switch organizations
+      org     Manage organizations (create, list, show, switch)
       update  Update curl.md CLI
 
     Built-in Commands:
-      mcp add     Register as an MCP server
-      skills add  Sync skill files to your agent
+      completions  Generate shell completion script
+      mcp add      Register as an MCP server
+      skills add   Sync skill files to your agent
 
     Global Options:
       --format <toon|json|yaml|md|jsonl>  Output format

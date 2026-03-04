@@ -391,7 +391,7 @@ const auth = Cli.create('auth', {
   })
 
 const org = Cli.create('org', {
-  description: 'Create, list, show, switch organizations',
+  description: 'Manage organizations (create, list, show, switch)',
   vars,
 })
   .command('create', {
