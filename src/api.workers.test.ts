@@ -243,6 +243,59 @@ describe('GET /api/auth/github/callback', () => {
     expect(accounts[0]?.name).toBe('Existing User')
     expect(accounts[0]?.email).toBe(account.email)
   })
+
+  test('with no email redirects to error page', async () => {
+    const ghId = Math.floor(Math.random() * 1_000_000)
+    const query = { code: 'no-email', state: 'test-state' }
+
+    fetchMock
+      .get('https://github.com')
+      .intercept({
+        method: 'POST',
+        path: `/login/oauth/access_token?client_id=${env.GH_CLIENT_ID}&client_secret=${env.GH_CLIENT_SECRET}&code=${query.code}`,
+      })
+      .reply(
+        200,
+        { access_token: 'ghu_noemail', token_type: 'bearer' },
+        { headers: { 'content-type': 'application/json' } },
+      )
+
+    fetchMock
+      .get('https://api.github.com')
+      .intercept({ method: 'GET', path: '/user' })
+      .reply(
+        200,
+        {
+          avatar_url: `https://avatars.githubusercontent.com/u/${ghId}`,
+          id: ghId,
+          login: 'noemail-user',
+          name: 'No Email',
+        },
+        { headers: { 'content-type': 'application/json' } },
+      )
+    fetchMock
+      .get('https://api.github.com')
+      .intercept({ method: 'GET', path: '/user/emails' })
+      .reply(200, [], {
+        headers: { 'content-type': 'application/json' },
+      })
+
+    const res = await client.api.auth.github.callback.$get(
+      { query },
+      { headers: { Cookie: `curl.state=${query.state}` } },
+    )
+    expect(res.status).toBe(302)
+    const location = new URL(res.headers.get('location')!)
+    expect(location.pathname).toBe('/auth/error')
+    expect(location.searchParams.get('error')).toBe('no_email')
+    expect(location.searchParams.get('error_description')).toBe(
+      'No email found on GitHub account',
+    )
+  })
+
+  test.todo(
+    'with transaction failure redirects to error page with server_error',
+  )
 })
 
 describe('POST /api/auth/logout', () => {
@@ -559,6 +612,14 @@ describe('GET /api/orgs/:id', () => {
     )
   })
 
+  test('returns 401 when not authenticated', async () => {
+    const org = await factory.organization.insert({})
+    const res = await client.api.orgs[':id'].$get({
+      param: { id: org.id },
+    })
+    expect(res.status).toBe(401)
+  })
+
   test('returns 404 for non-member', async () => {
     const account = await factory.account.insert({})
     const session = await factory.session.insert({ account_id: account.id })
@@ -651,6 +712,47 @@ describe('POST /api/orgs', () => {
     expect(org.name).toBe(login)
   })
 
+  test('rejects reserved login', async () => {
+    const account = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: account.id })
+
+    const res = await client.api.orgs.$post(
+      { json: { login: 'dash' } },
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned(
+            'curl.session',
+            session.id,
+            env.COOKIE_SECRET,
+          ),
+        },
+      },
+    )
+    expect(res.status).toBe(409)
+    expect(await res.json()).toEqual({ error: 'This login is reserved' })
+  })
+
+  test('rejects login taken by account', async () => {
+    const account = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: account.id })
+    const other = await factory.account.insert({})
+
+    const res = await client.api.orgs.$post(
+      { json: { login: other.login } },
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned(
+            'curl.session',
+            session.id,
+            env.COOKIE_SECRET,
+          ),
+        },
+      },
+    )
+    expect(res.status).toBe(409)
+    expect(await res.json()).toEqual({ error: 'Login already taken' })
+  })
+
   test('rejects duplicate login', async () => {
     const account = await factory.account.insert({})
     const session = await factory.session.insert({ account_id: account.id })
@@ -673,6 +775,28 @@ describe('POST /api/orgs', () => {
       error: 'Login already taken',
     })
   })
+})
+
+test('GET /api/:url returns 403 for invalid x-organization-id', async () => {
+  const account = await factory.account.insert({})
+  const session = await factory.session.insert({ account_id: account.id })
+  const org = await factory.organization.insert({})
+
+  const res = await client.api[':url{.+}'].$get(
+    { param: { url: 'example.com' }, query: {} },
+    {
+      headers: {
+        Cookie: await Cookie.generateSigned(
+          'curl.session',
+          session.id,
+          env.COOKIE_SECRET,
+        ),
+        'x-organization-id': org.id,
+      },
+    },
+  )
+  expect(res.status).toBe(403)
+  expect(await res.json()).toEqual({ error: 'organization_access_denied' })
 })
 
 test('GET /api/:url fetches URL and returns markdown', async () => {
@@ -771,7 +895,7 @@ test('GET /api/:url returns 429 when fetch limit exceeded', async () => {
   )
   expect(res.status).toBe(429)
   expect(res.headers.get('retry-after')).toBeTruthy()
-  expect(await res.json()).toEqual({ error: 'Rate limit exceeded' })
+  expect(await res.json()).toEqual({ error: 'rate_limit_exceeded' })
 })
 
 test('GET /api/:url returns 429 when query limit exceeded', async () => {
@@ -787,5 +911,5 @@ test('GET /api/:url returns 429 when query limit exceeded', async () => {
   )
   expect(res.status).toBe(429)
   expect(res.headers.get('retry-after')).toBeTruthy()
-  expect(await res.json()).toEqual({ error: 'Rate limit exceeded' })
+  expect(await res.json()).toEqual({ error: 'rate_limit_exceeded' })
 })

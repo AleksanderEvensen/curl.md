@@ -32,6 +32,13 @@ The `pro/` directory is a git submodule (`wevm/curl.md.pro`) containing pro/prem
 - Do not commit submodule pointer changes unless intentional
 - When working on pro features, ensure the submodule is initialized (`git submodule update --init`)
 
+## API (Hono RPC)
+
+- Always specify explicit status codes in `c.json()` responses (e.g., `c.json({ error: 'not_found' }, 404)`, `c.json({ data }, 200)`)
+- Use `res.status` to narrow response types on the client instead of `'error' in data` checks
+- Prefer route-level error responses over global middleware errors — keeps RPC types precise per-endpoint
+- Use string literal error codes in API responses (e.g., `'organization_access_denied'`, `'expired_token'`) for type-safe client matching
+
 ## Cloudflare Workers
 
 - Follow [Workers best practices](https://developers.cloudflare.com/workers/best-practices/workers-best-practices/index.md)

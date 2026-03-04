@@ -93,8 +93,6 @@ const cli = Cli.create('curl.md', {
   output: z.string().describe('Page content as markdown'),
   format: 'md',
   async run(c) {
-    const url = c.args.url
-
     const result = z.safeParse(
       z
         .string()
@@ -106,12 +104,12 @@ const cli = Cli.create('curl.md', {
             protocol: /^https?$/,
           }),
         ),
-      url,
+      c.args.url,
     )
     if (!result.success)
       return c.error({
         code: 'INVALID_URL',
-        message: `Invalid URL: ${url}`,
+        message: `Invalid URL: ${c.args.url}`,
         cta: {
           description: 'URL must be a valid HTTP(S) address:',
           commands: [
@@ -132,15 +130,59 @@ const cli = Cli.create('curl.md', {
 
     const keywords = c.options.keywords?.flatMap((k: string) => k.split(','))
     const res = await c.var.client.api[':url{.+}'].$get({
-      param: { url: url },
+      param: { url: result.data },
       query: {
         fresh: c.options.fresh ? '' : undefined,
         k: keywords?.join(','),
         q: c.options.objective,
       },
     })
-    const text = await res.text()
 
+    if (res.status === 403) {
+      Session.write({ organization_id: undefined })
+      return c.error({
+        code: 'ORG_ACCESS_DENIED',
+        message:
+          'Active organization no longer accessible. Switched to personal.',
+        cta: {
+          description: 'Switch organization:',
+          commands: [
+            {
+              command: `${c.name} org switch`,
+              description: 'Switch active organization',
+            },
+            ...c.var.commands,
+          ],
+        },
+      })
+    }
+
+    if (res.status === 429) {
+      const retryAfter = res.headers.get('retry-after')
+      const message = retryAfter
+        ? `Rate limit exceeded. Try again in ${retryAfter}s.`
+        : 'Rate limit exceeded. Try again later.'
+      return c.error({
+        code: 'RATE_LIMITED',
+        message,
+        cta: {
+          description: 'Authenticate for higher limits:',
+          commands: [
+            ...(!c.var.session
+              ? [
+                  {
+                    command: `${c.name} auth login`,
+                    description: 'Log in for higher rate limits',
+                  },
+                ]
+              : []),
+            ...c.var.commands,
+          ],
+        },
+      })
+    }
+
+    const text = await res.text()
     if (!res.ok) return c.error({ code: 'FETCH_FAILED', message: text })
 
     if (!c.options.objective)
@@ -150,7 +192,7 @@ const cli = Cli.create('curl.md', {
           commands: [
             {
               command: c.name,
-              args: { url },
+              args: { url: result.data },
               options: { objective: true },
               description: 'Focus on a specific topic',
             },
@@ -233,8 +275,8 @@ const auth = Cli.create('auth', {
     format: 'md',
     async run(c) {
       const res = await c.var.client.api.auth.me.$get()
-      const data = await res.json()
-      if (!data.account) {
+      const json = await res.json()
+      if (!json.account) {
         Session.delete()
         return c.error({
           ...notAuthenticated,
@@ -260,8 +302,8 @@ const auth = Cli.create('auth', {
     async run(c) {
       if (c.var.session) {
         const res = await c.var.client.api.auth.me.$get()
-        const data = await res.json()
-        if (data.account)
+        const json = await res.json()
+        if (json.account)
           return c.error({
             code: 'ALREADY_LOGGED_IN',
             message: 'You are already authenticated.',
@@ -285,23 +327,22 @@ const auth = Cli.create('auth', {
       const interval = (device.interval ?? 5) * 1000
       try {
         while (true) {
-          const tokenRes = await c.var.client.api.auth.device.token.$post({
+          const res = await c.var.client.api.auth.device.token.$post({
             json: { code: device.code },
           })
-          const tokenData = await tokenRes.json()
-          if ('error' in tokenData) {
-            if (tokenData.error === 'authorization_pending') {
+          if (res.status === 400) {
+            const json = await res.json()
+            if (json.error === 'authorization_pending') {
               await new Promise((r) => setTimeout(r, interval))
               continue
             }
             spinner.stop()
-            return c.error({ code: 'AUTH_FAILED', message: tokenData.error })
+            return c.error({ code: 'AUTH_FAILED', message: json.error })
           }
-          if ('session_id' in tokenData) {
-            spinner.stop()
-            Session.write({ session_id: tokenData.session_id })
-            return 'Successfully logged in.'
-          }
+          const json = await res.json()
+          spinner.stop()
+          Session.write({ session_id: json.session_id })
+          return 'Successfully logged in.'
         }
       } catch (error) {
         spinner.stop()
@@ -349,21 +390,36 @@ const org = Cli.create('org', {
       const res = await c.var.client.api.orgs.$post({
         json: { login: c.args.login, name: c.options.name },
       })
-      const data = await res.json()
-      if (!res.ok)
+      if (res.status === 401) {
+        Session.delete()
         return c.error({
-          code: 'CREATE_FAILED',
-          message:
-            'error' in data ? data.error : 'Failed to create organization.',
+          ...notAuthenticated,
+          cta: {
+            description: 'Log in:',
+            commands: [
+              {
+                command: `${c.name} auth login`,
+                description: `Authenticate with ${c.name}`,
+              },
+              ...c.var.commands,
+            ],
+          },
         })
+      }
 
-      return c.ok(`Created organization ${c.args.login}.`, {
+      if (res.status === 409) {
+        const json = await res.json()
+        return c.error({ code: 'CREATE_FAILED', message: json.error })
+      }
+
+      const json = await res.json()
+      return c.ok(`Created organization ${json.login}.`, {
         cta: {
           description: 'Switch to it:',
           commands: [
             {
-              command: `${c.name} org switch ${c.args.login}`,
-              description: `Switch to ${c.args.login}`,
+              command: `${c.name} org switch ${json.login}`,
+              description: `Switch to ${json.login}`,
             },
             ...c.var.commands,
           ],
@@ -378,17 +434,42 @@ const org = Cli.create('org', {
     format: 'md',
     async run(c) {
       const res = await c.var.client.api.orgs.$get()
-      const data = await res.json()
-      if ('error' in data)
-        return c.error({ code: 'FETCH_FAILED', message: data.error })
+      if (res.status === 401) {
+        Session.delete()
+        return c.error({
+          ...notAuthenticated,
+          cta: {
+            description: 'Log in:',
+            commands: [
+              {
+                command: `${c.name} auth login`,
+                description: `Authenticate with ${c.name}`,
+              },
+              ...c.var.commands,
+            ],
+          },
+        })
+      }
+
+      const json = await res.json()
       // biome-ignore lint/style/noNonNullAssertion: middleware handles
-      const activeId = c.var.session!.organization_id
+      let activeId = c.var.session!.organization_id
 
       const lines: string[] = []
+      if (activeId && !json.organizations.some((org) => org.id === activeId)) {
+        Session.write({ organization_id: undefined })
+        activeId = undefined
+        lines.push(
+          pc.yellow(
+            'Active organization no longer accessible. Switched to personal.',
+          ),
+        )
+      }
+
       if (activeId) lines.push(`  personal ${pc.dim('(no organization)')}`)
       else lines.push(`${pc.bold('*')} personal ${pc.dim('(no organization)')}`)
 
-      for (const org of data.organizations) {
+      for (const org of json.organizations) {
         if (org.id === activeId) lines.push(`${pc.bold('*')} ${org.login}`)
         else lines.push(`  ${org.login}`)
       }
@@ -408,10 +489,30 @@ const org = Cli.create('org', {
       const res = await c.var.client.api.orgs[':id'].$get({
         param: { id: orgId },
       })
-      const data = await res.json()
-      if ('error' in data)
-        return c.error({ code: 'FETCH_FAILED', message: data.error })
-      return `${data.organization.login} (${data.organization.name})`
+      if (res.status === 401) {
+        Session.delete()
+        return c.error({
+          ...notAuthenticated,
+          cta: {
+            description: 'Log in:',
+            commands: [
+              {
+                command: `${c.name} auth login`,
+                description: `Authenticate with ${c.name}`,
+              },
+              ...c.var.commands,
+            ],
+          },
+        })
+      }
+
+      if (res.status === 404) {
+        Session.write({ organization_id: undefined })
+        return 'Active organization no longer accessible. Switched to personal.'
+      }
+
+      const json = await res.json()
+      return `${json.organization.login} (${json.organization.name})`
     },
   })
   .command('switch', {
@@ -427,16 +528,30 @@ const org = Cli.create('org', {
     format: 'md',
     async run(c) {
       const res = await c.var.client.api.orgs.$get()
-      const data = await res.json()
-      if ('error' in data)
-        return c.error({ code: 'FETCH_FAILED', message: data.error })
+      if (res.status === 401) {
+        Session.delete()
+        return c.error({
+          ...notAuthenticated,
+          cta: {
+            description: 'Log in:',
+            commands: [
+              {
+                command: `${c.name} auth login`,
+                description: `Authenticate with ${c.name}`,
+              },
+              ...c.var.commands,
+            ],
+          },
+        })
+      }
 
+      const json = await res.json()
       if (c.args.login) {
         if (c.args.login === 'personal') {
           Session.write({ organization_id: undefined })
           return 'Switched to personal (no organization).'
         }
-        const match = data.organizations.find((o) => o.login === c.args.login)
+        const match = json.organizations.find((o) => o.login === c.args.login)
         if (!match)
           return c.error({
             code: 'ORG_NOT_FOUND',
@@ -448,7 +563,7 @@ const org = Cli.create('org', {
 
       const choices = [
         { label: `personal ${pc.dim('(no organization)')}`, id: undefined },
-        ...data.organizations.map((o) => ({ label: o.login, id: o.id })),
+        ...json.organizations.map((o) => ({ label: o.login, id: o.id })),
       ]
 
       const index = await select(
@@ -481,7 +596,7 @@ const update = Cli.create('update', {
   output: z.string(),
   format: 'md',
   async run(c) {
-    const version = c.options.target ?? (await fetchLatestVersion('curl.md'))
+    const version = c.options.target ?? (await fetchLatestVersion(c.name))
     if (
       !version.startsWith('http') &&
       compareVersions(version, pkg.version) <= 0

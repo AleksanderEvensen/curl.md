@@ -413,10 +413,10 @@ export const api = new Hono<{
       sameSite: 'Lax',
       secure: true,
     })
-    return c.json({ ok: true })
+    return c.json({ ok: true }, 200)
   })
   .get('/api/auth/me', async (c) => {
-    if (!c.var.session) return c.json({ account: null })
+    if (!c.var.session) return c.json({ account: null }, 200)
 
     const account = await c.var.db
       .selectFrom('account')
@@ -446,9 +446,9 @@ export const api = new Hono<{
         ).as('organizations'),
       ])
       .executeTakeFirst()
-    if (!account) return c.json({ account: null })
+    if (!account) return c.json({ account: null }, 200)
 
-    return c.json({ account })
+    return c.json({ account }, 200)
   })
   .get('/api/orgs', async (c) => {
     if (!c.var.session) return c.json({ error: 'Unauthorized' }, 401)
@@ -470,7 +470,7 @@ export const api = new Hono<{
       ])
       .execute()
 
-    return c.json({ organizations })
+    return c.json({ organizations }, 200)
   })
   .get('/api/orgs/:id', async (c) => {
     if (!c.var.session) return c.json({ error: 'Unauthorized' }, 401)
@@ -494,7 +494,7 @@ export const api = new Hono<{
       .executeTakeFirst()
 
     if (!organization) return c.json({ error: 'Not found' }, 404)
-    return c.json({ organization })
+    return c.json({ organization }, 200)
   })
   .post('/api/auth/device', async (c) => {
     const code = Nanoid.generate()
@@ -508,12 +508,15 @@ export const api = new Hono<{
         user_code,
       })
       .execute()
-    return c.json({
-      code,
-      interval: 1,
-      user_code,
-      verification_uri: `https://${c.env.HOST}/auth/device`,
-    })
+    return c.json(
+      {
+        code,
+        interval: 1,
+        user_code,
+        verification_uri: `https://${c.env.HOST}/auth/device`,
+      },
+      200,
+    )
   })
   .post(
     '/api/auth/device/token',
@@ -542,7 +545,7 @@ export const api = new Hono<{
         .deleteFrom('device_code')
         .where('id', '=', deviceCode.id)
         .execute()
-      return c.json({ session_id: session.id })
+      return c.json({ session_id: session.id }, 200)
     },
   )
   .post(
@@ -567,10 +570,10 @@ export const api = new Hono<{
         })
         .where('id', '=', row.id)
         .execute()
-      return c.json({ ok: true })
+      return c.json({ ok: true }, 200)
     },
   )
-  .get('/api/health', (c) => c.json({ ok: true }))
+  .get('/api/health', (c) => c.json({ ok: true }, 200))
   .get('/api/og.png', validator('query', Og.schema), async (c) => {
     const query = c.req.valid('query')
     const element = await Og.getElement(c.env.HOST, c.env, c.var.db, query)
@@ -655,7 +658,7 @@ export const api = new Hono<{
           .execute()
       })
 
-      return c.json({ login: json.login })
+      return c.json({ login: json.login }, 200)
     },
   )
   .get(
@@ -711,8 +714,13 @@ export const api = new Hono<{
 <meta name="twitter:title" content="${`${c.env.HOST}/${url}`}" />
 <meta name="twitter:description" content="Fetch any URL as Markdown" />
 <meta name="twitter:image" content="${ogUrl}" />`,
+          200,
         )
       }
+
+      const orgHeader = c.req.header('x-organization-id')
+      if (orgHeader && !c.var.organization_id)
+        return c.json({ error: 'organization_access_denied' }, 403)
 
       // Rate limit: two tiers (fetch = abuse prevention, query = cost protection)
       // TODO: use metered billing for authenticated accounts so no limits
@@ -747,16 +755,10 @@ export const api = new Hono<{
       }
 
       if (count > limit.max)
-        return c.json(
-          { error: 'Rate limit exceeded' },
-          {
-            status: 429,
-            headers: {
-              ...rateLimitHeaders,
-              'retry-after': String(reset - now),
-            },
-          },
-        )
+        return c.json({ error: 'rate_limit_exceeded' }, 429, {
+          ...rateLimitHeaders,
+          'retry-after': String(reset - now),
+        })
 
       c.executionCtx.waitUntil(
         c.env.KV.put(kvKey, JSON.stringify({ count, reset }), {
@@ -800,13 +802,11 @@ export const api = new Hono<{
       }
 
       if (c.req.header('accept')?.includes('application/json'))
-        return c.json({ content }, { headers: commonHeaders })
+        return c.json({ content }, 200, commonHeaders)
 
-      return new Response(content, {
-        headers: {
-          ...commonHeaders,
-          'content-type': 'text/markdown; charset=utf-8',
-        },
+      return c.text(content, 200, {
+        ...commonHeaders,
+        'content-type': 'text/markdown; charset=utf-8',
       })
     },
   )

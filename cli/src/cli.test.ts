@@ -60,6 +60,7 @@ test('prints help', async () => {
       $ curl.md developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch --objective streaming response body --keywords ReadableStream,getReader
       $ curl.md developers.cloudflare.com/d1/get-started --objective how to query D1 from a worker --keywords D1,bindings
       $ curl.md ai-sdk.dev/docs/ai-sdk-core/generating-text --objective how to stream text with the ai sdk --keywords streamText,generateText
+      $ curl.md zod.dev/error-formatting --objective tree error formatting --keywords treeifyError
 
     Commands:
       auth    Authentication commands
@@ -129,6 +130,71 @@ describe('fetch', () => {
     const { exitCode, output } = await serve([])
     expect(exitCode).toBe(1)
     expect(output).toContain('VALIDATION_ERROR')
+  })
+
+  test('shows rate limit error on 429', async () => {
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = async () =>
+      new Response(JSON.stringify({ error: 'rate_limit_exceeded' }), {
+        status: 429,
+        headers: {
+          'content-type': 'application/json',
+          'retry-after': '3600',
+        },
+      })
+    onTestFinished(() => {
+      globalThis.fetch = originalFetch
+    })
+
+    const { exitCode, output } = await serve(['example.com'])
+    expect(exitCode).toBe(1)
+    expect(output).toContain('RATE_LIMITED')
+    expect(output).toContain('3600s')
+  })
+
+  test('shows rate limit error without retry-after', async () => {
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = async () =>
+      new Response(JSON.stringify({ error: 'rate_limit_exceeded' }), {
+        status: 429,
+        headers: { 'content-type': 'application/json' },
+      })
+    onTestFinished(() => {
+      globalThis.fetch = originalFetch
+    })
+
+    const { exitCode, output } = await serve(['example.com'])
+    expect(exitCode).toBe(1)
+    expect(output).toContain('RATE_LIMITED')
+    expect(output).toContain('Try again later')
+  })
+
+  test('shows login cta on 429 when unauthenticated', async () => {
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = async () =>
+      new Response(JSON.stringify({ error: 'rate_limit_exceeded' }), {
+        status: 429,
+        headers: { 'content-type': 'application/json' },
+      })
+    onTestFinished(() => {
+      globalThis.fetch = originalFetch
+    })
+
+    const { output } = await serve(['example.com'])
+    expect(output).toContain('auth login')
+  })
+
+  test('shows generic error on unexpected failure', async () => {
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = async () =>
+      new Response('Internal Server Error', { status: 500 })
+    onTestFinished(() => {
+      globalThis.fetch = originalFetch
+    })
+
+    const { exitCode, output } = await serve(['example.com'])
+    expect(exitCode).toBe(1)
+    expect(output).toContain('FETCH_FAILED')
   })
 })
 
@@ -255,6 +321,56 @@ describe('auth', () => {
     expect(Session.read()).toBeNull()
   })
 
+  test('login when already authenticated', async () => {
+    const account = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: account.id })
+    Session.write({ session_id: session.id })
+
+    const { exitCode, output } = await serve(['auth', 'login'])
+    expect(exitCode).toBe(1)
+    expect(output).toContain('ALREADY_LOGGED_IN')
+  })
+
+  test('login with expired device code', async () => {
+    vi.mock('node:child_process', () => ({
+      default: { exec: vi.fn(), spawn: vi.fn(() => ({ unref: vi.fn() })) },
+      exec: vi.fn(),
+      spawn: vi.fn(() => ({ unref: vi.fn() })),
+    }))
+
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    onTestFinished(() => consoleSpy.mockRestore())
+
+    const originalFetch = globalThis.fetch
+    let callCount = 0
+    globalThis.fetch = async () => {
+      callCount++
+      // First call: POST /api/auth/device
+      if (callCount === 1)
+        return new Response(
+          JSON.stringify({
+            code: 'test-code',
+            interval: 0,
+            user_code: 'TESTCODE',
+            verification_uri: 'https://curl.local/auth/device',
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        )
+      // Second call: POST /api/auth/device/token
+      return new Response(JSON.stringify({ error: 'expired_token' }), {
+        status: 400,
+        headers: { 'content-type': 'application/json' },
+      })
+    }
+    onTestFinished(() => {
+      globalThis.fetch = originalFetch
+    })
+
+    const { exitCode, output } = await serve(['auth', 'login'])
+    expect(exitCode).toBe(1)
+    expect(output).toContain('AUTH_FAILED')
+  })
+
   test('login full device flow', async () => {
     vi.mock('node:child_process', () => ({
       default: { exec: vi.fn(), spawn: vi.fn(() => ({ unref: vi.fn() })) },
@@ -351,6 +467,45 @@ describe('org', () => {
     expect(switchBackOutput).toContain('Switched to personal')
   })
 
+  test('create with expired session deletes session', async () => {
+    Session.write({ session_id: 'expired-session-id' })
+
+    const { exitCode, output } = await serve(['org', 'create', 'my-org'])
+    expect(exitCode).toBe(1)
+    expect(output).toContain('NOT_AUTHENTICATED')
+    expect(Session.read()).toBeNull()
+  })
+
+  test('list with expired session deletes session', async () => {
+    Session.write({ session_id: 'expired-session-id' })
+
+    const { exitCode, output } = await serve(['org', 'list'])
+    expect(exitCode).toBe(1)
+    expect(output).toContain('NOT_AUTHENTICATED')
+    expect(Session.read()).toBeNull()
+  })
+
+  test('show with expired session deletes session', async () => {
+    Session.write({
+      session_id: 'expired-session-id',
+      organization_id: 'stale',
+    })
+
+    const { exitCode, output } = await serve(['org', 'show'])
+    expect(exitCode).toBe(1)
+    expect(output).toContain('NOT_AUTHENTICATED')
+    expect(Session.read()).toBeNull()
+  })
+
+  test('switch with expired session deletes session', async () => {
+    Session.write({ session_id: 'expired-session-id' })
+
+    const { exitCode, output } = await serve(['org', 'switch', 'some-org'])
+    expect(exitCode).toBe(1)
+    expect(output).toContain('NOT_AUTHENTICATED')
+    expect(Session.read()).toBeNull()
+  })
+
   test('switch to nonexistent org', async () => {
     const account = await factory.account.insert({})
     const session = await factory.session.insert({ account_id: account.id })
@@ -364,4 +519,58 @@ describe('org', () => {
     expect(exitCode).toBe(1)
     expect(output).toContain('ORG_NOT_FOUND')
   })
+
+  test('list detects stale organization and resets to personal', async () => {
+    const account = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: account.id })
+    const org = await factory.organization.insert({})
+    Session.write({ session_id: session.id, organization_id: org.id })
+
+    const { output } = await serve(['org', 'list'])
+    expect(output).toContain('no longer accessible')
+    expect(Session.read()?.organization_id).toBeUndefined()
+  })
+
+  test('show detects stale organization and resets to personal', async () => {
+    const account = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: account.id })
+    const org = await factory.organization.insert({})
+    Session.write({ session_id: session.id, organization_id: org.id })
+
+    const { output } = await serve(['org', 'show'])
+    expect(output).toContain('no longer accessible')
+    expect(Session.read()?.organization_id).toBeUndefined()
+  })
+
+  test('fetch clears stale organization on 403', async () => {
+    const account = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: account.id })
+    const org = await factory.organization.insert({})
+    Session.write({ session_id: session.id, organization_id: org.id })
+
+    const { exitCode, output } = await serve(['example.com'])
+    expect(exitCode).toBe(1)
+    expect(output).toContain('no longer accessible')
+    expect(Session.read()?.organization_id).toBeUndefined()
+  })
+})
+
+test('update shows error when install fails', async () => {
+  const spy = vi
+    .spyOn(utils, 'installGlobal')
+    .mockRejectedValue(new Error('permission denied'))
+  const fetchSpy = vi
+    .spyOn(utils, 'fetchLatestVersion')
+    .mockResolvedValue('99.0.0')
+  const compareSpy = vi.spyOn(utils, 'compareVersions').mockReturnValue(1)
+  onTestFinished(() => {
+    spy.mockRestore()
+    fetchSpy.mockRestore()
+    compareSpy.mockRestore()
+  })
+
+  const { exitCode, output } = await serve(['update'])
+  expect(exitCode).toBe(1)
+  expect(output).toContain('UPDATE_FAILED')
+  expect(output).toContain('permission denied')
 })
