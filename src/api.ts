@@ -1,4 +1,3 @@
-import { zValidator as validator } from '@hono/zod-validator'
 import { Octokit } from '@octokit/core'
 import { Hono } from 'hono'
 import { html, raw } from 'hono/html'
@@ -13,6 +12,7 @@ import * as Cookie from '#lib/cookie.ts'
 import { fetchPage } from '#lib/core/fetch-page.ts'
 import * as Crypto from '#lib/crypto.ts'
 import type { DB } from '#lib/db.gen.ts'
+import { narrowValidation, validationError, validator } from '#lib/hono.ts'
 import * as Nanoid from '#lib/nanoid.ts'
 import * as Og from '#lib/og.tsx'
 import { dialect } from '#lib/pg.ts'
@@ -116,6 +116,7 @@ export const api = new Hono<{
       }),
     ),
     (c) => {
+      if (narrowValidation) return validationError(c)
       const query = c.req.valid('query')
       const state = crypto.randomUUID()
       Cookie.set(c, 'curl.state', state, {
@@ -157,6 +158,7 @@ export const api = new Hono<{
       }),
     ),
     async (c) => {
+      if (narrowValidation) return validationError(c)
       const query = c.req.valid('query')
 
       // Redirect to preview callback before reading/destroying the state cookie
@@ -190,49 +192,74 @@ export const api = new Hono<{
         return c.redirect(errorUrl.toString())
       }
 
-      const tokenUrl = new URL('https://github.com/login/oauth/access_token')
-      tokenUrl.searchParams.set('client_id', c.env.GH_CLIENT_ID)
-      tokenUrl.searchParams.set('client_secret', c.env.GH_CLIENT_SECRET)
-      tokenUrl.searchParams.set('code', query.code)
-      const tokenRes = await fetch(tokenUrl.toString(), {
-        method: 'POST',
-        headers: { Accept: 'application/json' },
-      })
-      const tokenData = (await tokenRes.json()) as OneOf<
-        | {
-            access_token: string
-            expires_in?: number
-            refresh_token?: string
-            refresh_token_expires_in?: number
-            scope: string
-            token_type: 'bearer'
-          }
-        | {
-            error:
-              | 'bad_verification_code'
-              | 'incorrect_client_credentials'
-              | 'redirect_uri_mismatch'
-              | 'unverified_user_email'
-            error_description: string
-            error_uri: string
-          }
-      >
-      if (tokenData.error) {
-        errorUrl.searchParams.set('error', tokenData.error)
-        errorUrl.searchParams.set(
-          'error_description',
-          'Failed to get access token',
-        )
+      let tokenData: {
+        access_token: string
+        expires_in?: number
+        refresh_token?: string
+        refresh_token_expires_in?: number
+        scope: string
+        token_type: 'bearer'
+      }
+      try {
+        const tokenUrl = new URL('https://github.com/login/oauth/access_token')
+        tokenUrl.searchParams.set('client_id', c.env.GH_CLIENT_ID)
+        tokenUrl.searchParams.set('client_secret', c.env.GH_CLIENT_SECRET)
+        tokenUrl.searchParams.set('code', query.code)
+        const tokenRes = await fetch(tokenUrl.toString(), {
+          method: 'POST',
+          headers: { Accept: 'application/json' },
+        })
+        const json = (await tokenRes.json()) as OneOf<
+          | typeof tokenData
+          | {
+              error:
+                | 'bad_verification_code'
+                | 'incorrect_client_credentials'
+                | 'redirect_uri_mismatch'
+                | 'unverified_user_email'
+              error_description: string
+              error_uri: string
+            }
+        >
+        if (json.error) {
+          errorUrl.searchParams.set('error', json.error)
+          errorUrl.searchParams.set(
+            'error_description',
+            'Failed to get access token',
+          )
+          return c.redirect(errorUrl.toString())
+        }
+        tokenData = json
+      } catch {
+        errorUrl.searchParams.set('error', 'server_error')
+        errorUrl.searchParams.set('error_description', 'Failed to reach GitHub')
         return c.redirect(errorUrl.toString())
       }
 
       const octokit = new Octokit({ auth: tokenData.access_token })
-      const [{ data: ghUser }, { data: ghEmails }] = await Promise.all([
-        octokit.request('GET /user'),
-        octokit.request('GET /user/emails'),
+      const [userRes, emailsRes] = await Promise.all([
+        octokit.request('GET /user').catch((e: Error) => e),
+        octokit.request('GET /user/emails').catch((e: Error) => e),
       ])
+      if (userRes instanceof Error) {
+        errorUrl.searchParams.set('error', 'server_error')
+        errorUrl.searchParams.set(
+          'error_description',
+          `Failed to fetch GitHub profile: ${userRes.message}`,
+        )
+        return c.redirect(errorUrl.toString())
+      }
+      if (emailsRes instanceof Error) {
+        errorUrl.searchParams.set('error', 'server_error')
+        errorUrl.searchParams.set(
+          'error_description',
+          `Failed to fetch GitHub emails: ${emailsRes.message}`,
+        )
+        return c.redirect(errorUrl.toString())
+      }
+
       const primaryEmail =
-        ghEmails.find((e) => e.primary)?.email ?? ghEmails[0]?.email
+        emailsRes.data.find((e) => e.primary)?.email ?? emailsRes.data[0]?.email
       if (!primaryEmail) {
         errorUrl.searchParams.set('error', 'no_email')
         errorUrl.searchParams.set(
@@ -243,7 +270,7 @@ export const api = new Hono<{
       }
 
       const crewGitHubIds = new Set([6759464, 7336481])
-      const role = crewGitHubIds.has(ghUser.id) ? 'crew' : 'user'
+      const role = crewGitHubIds.has(userRes.data.id) ? 'crew' : 'user'
 
       let result: { accountId: string; sessionId: string }
       try {
@@ -251,7 +278,7 @@ export const api = new Hono<{
           const existing = await tx
             .selectFrom('account_provider')
             .where('provider', '=', 'github')
-            .where('provider_account_id', '=', String(ghUser.id))
+            .where('provider_account_id', '=', String(userRes.data.id))
             .select('account_id')
             .executeTakeFirst()
 
@@ -260,9 +287,9 @@ export const api = new Hono<{
                 await tx
                   .updateTable('account')
                   .set({
-                    avatar_url: ghUser.avatar_url,
+                    avatar_url: userRes.data.avatar_url,
                     email: primaryEmail,
-                    name: ghUser.name,
+                    name: userRes.data.name,
                     role,
                   })
                   .where('id', '=', existing.account_id)
@@ -271,10 +298,10 @@ export const api = new Hono<{
               ).id
             : await (async () => {
                 const values = {
-                  avatar_url: ghUser.avatar_url,
+                  avatar_url: userRes.data.avatar_url,
                   email: primaryEmail,
-                  login: ghUser.login,
-                  name: ghUser.name,
+                  login: userRes.data.login,
+                  name: userRes.data.name,
                   role,
                 } satisfies DB.Insertable.account
                 const inserted =
@@ -288,7 +315,7 @@ export const api = new Hono<{
                     .insertInto('account')
                     .values({
                       ...values,
-                      login: `${ghUser.login}-${Nanoid.generate()}`,
+                      login: `${userRes.data.login}-${Nanoid.generate()}`,
                     })
                     .returning('id')
                     .executeTakeFirstOrThrow())
@@ -297,7 +324,7 @@ export const api = new Hono<{
                   .values({
                     account_id: inserted.id,
                     provider: 'github',
-                    provider_account_id: String(ghUser.id),
+                    provider_account_id: String(userRes.data.id),
                   })
                   .execute()
                 return inserted.id
@@ -327,7 +354,7 @@ export const api = new Hono<{
             .values({
               account_id: accountId,
               provider: 'github',
-              provider_account_id: String(ghUser.id),
+              provider_account_id: String(userRes.data.id),
               access_token: encryptedAccessToken,
               refresh_token: encryptedRefreshToken,
               access_token_expires_at,
@@ -398,6 +425,85 @@ export const api = new Hono<{
       return c.redirect(`${origin}/${accountRow.login}`)
     },
   )
+  .post('/api/auth/device', async (c) => {
+    const code = Nanoid.generate()
+    const user_code = customAlphabet('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 8)()
+    await c.var.db
+      .insertInto('device_code')
+      .values({
+        code,
+        expires_at: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes
+        status: 'pending',
+        user_code,
+      })
+      .execute()
+    return c.json(
+      {
+        code,
+        interval: 1,
+        user_code,
+        verification_uri: `https://${c.env.HOST}/auth/device`,
+      },
+      200,
+    )
+  })
+  .post(
+    '/api/auth/device/confirm',
+    validator('json', z.object({ user_code: z.string() })),
+    async (c) => {
+      if (narrowValidation) return validationError(c)
+      if (!c.var.session) return c.json({ error: 'Unauthorized' }, 401)
+      const json = c.req.valid('json')
+      const row = await c.var.db
+        .selectFrom('device_code')
+        .where('user_code', '=', json.user_code)
+        .where('status', '=', 'pending')
+        .where('expires_at', '>', new Date())
+        .select('id')
+        .executeTakeFirst()
+      if (!row) return c.json({ error: 'Invalid or expired code' }, 404)
+      await c.var.db
+        .updateTable('device_code')
+        .set({
+          account_id: c.var.session.account_id,
+          status: 'approved',
+        })
+        .where('id', '=', row.id)
+        .execute()
+      return c.json({ ok: true }, 200)
+    },
+  )
+  .post(
+    '/api/auth/device/token',
+    validator('json', z.object({ code: z.string() })),
+    async (c) => {
+      if (narrowValidation) return validationError(c)
+      const json = c.req.valid('json')
+      const deviceCode = await c.var.db
+        .selectFrom('device_code')
+        .where('code', '=', json.code)
+        .select(['account_id', 'expires_at', 'id', 'status'])
+        .executeTakeFirst()
+      if (!deviceCode || deviceCode.expires_at <= new Date())
+        return c.json({ error: 'expired_token' }, 400)
+      if (deviceCode.status === 'pending')
+        return c.json({ error: 'authorization_pending' }, 400)
+      if (!deviceCode.account_id) return c.json({ error: 'expired_token' }, 400)
+      const session = await c.var.db
+        .insertInto('session')
+        .values({
+          account_id: deviceCode.account_id,
+          expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+        })
+        .returning('id')
+        .executeTakeFirstOrThrow()
+      await c.var.db
+        .deleteFrom('device_code')
+        .where('id', '=', deviceCode.id)
+        .execute()
+      return c.json({ session_id: session.id }, 200)
+    },
+  )
   .post('/api/auth/logout', async (c) => {
     const sessionId = await Cookie.getSigned(
       c,
@@ -450,6 +556,36 @@ export const api = new Hono<{
 
     return c.json({ account }, 200)
   })
+  .get('/api/health', (c) => c.json({ ok: true }, 200))
+  .get('/api/og.png', validator('query', Og.schema), async (c) => {
+    if (narrowValidation) return validationError(c)
+    const query = c.req.valid('query')
+    try {
+      const element = await Og.getElement(c.env.HOST, c.env, c.var.db, query)
+      const [font, fontBold] = await Promise.all([
+        Og.loadFont(c.req.raw, c.env, '/fonts/GeistMono-Regular.ttf'),
+        Og.loadFont(c.req.raw, c.env, '/fonts/GeistMono-Black.ttf'),
+      ])
+      return new ImageResponse(element, {
+        fonts: [
+          { data: font, name: 'Geist Mono', style: 'normal', weight: 400 },
+          { data: fontBold, name: 'Geist Mono', style: 'normal', weight: 900 },
+        ],
+        format: 'png',
+        headers: {
+          'cache-control':
+            query.page === 'url'
+              ? 'public, max-age=3600'
+              : 'public, max-age=300',
+        },
+        height: 630,
+        width: 1200,
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      return c.json({ error: 'og_generation_failed', message }, 500)
+    }
+  })
   .get('/api/orgs', async (c) => {
     if (!c.var.session) return c.json({ error: 'Unauthorized' }, 401)
 
@@ -496,105 +632,6 @@ export const api = new Hono<{
     if (!organization) return c.json({ error: 'Not found' }, 404)
     return c.json({ organization }, 200)
   })
-  .post('/api/auth/device', async (c) => {
-    const code = Nanoid.generate()
-    const user_code = customAlphabet('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 8)()
-    await c.var.db
-      .insertInto('device_code')
-      .values({
-        code,
-        expires_at: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes
-        status: 'pending',
-        user_code,
-      })
-      .execute()
-    return c.json(
-      {
-        code,
-        interval: 1,
-        user_code,
-        verification_uri: `https://${c.env.HOST}/auth/device`,
-      },
-      200,
-    )
-  })
-  .post(
-    '/api/auth/device/token',
-    validator('json', z.object({ code: z.string() })),
-    async (c) => {
-      const json = c.req.valid('json')
-      const deviceCode = await c.var.db
-        .selectFrom('device_code')
-        .where('code', '=', json.code)
-        .select(['account_id', 'expires_at', 'id', 'status'])
-        .executeTakeFirst()
-      if (!deviceCode || deviceCode.expires_at <= new Date())
-        return c.json({ error: 'expired_token' }, 400)
-      if (deviceCode.status === 'pending')
-        return c.json({ error: 'authorization_pending' }, 400)
-      if (!deviceCode.account_id) return c.json({ error: 'expired_token' }, 400)
-      const session = await c.var.db
-        .insertInto('session')
-        .values({
-          account_id: deviceCode.account_id,
-          expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-        })
-        .returning('id')
-        .executeTakeFirstOrThrow()
-      await c.var.db
-        .deleteFrom('device_code')
-        .where('id', '=', deviceCode.id)
-        .execute()
-      return c.json({ session_id: session.id }, 200)
-    },
-  )
-  .post(
-    '/api/auth/device/confirm',
-    validator('json', z.object({ user_code: z.string() })),
-    async (c) => {
-      if (!c.var.session) return c.json({ error: 'Unauthorized' }, 401)
-      const json = c.req.valid('json')
-      const row = await c.var.db
-        .selectFrom('device_code')
-        .where('user_code', '=', json.user_code)
-        .where('status', '=', 'pending')
-        .where('expires_at', '>', new Date())
-        .select('id')
-        .executeTakeFirst()
-      if (!row) return c.json({ error: 'Invalid or expired code' }, 404)
-      await c.var.db
-        .updateTable('device_code')
-        .set({
-          account_id: c.var.session.account_id,
-          status: 'approved',
-        })
-        .where('id', '=', row.id)
-        .execute()
-      return c.json({ ok: true }, 200)
-    },
-  )
-  .get('/api/health', (c) => c.json({ ok: true }, 200))
-  .get('/api/og.png', validator('query', Og.schema), async (c) => {
-    const query = c.req.valid('query')
-    const element = await Og.getElement(c.env.HOST, c.env, c.var.db, query)
-    const [font, fontBold] = await Promise.all([
-      Og.loadFont(c.req.raw, c.env, '/fonts/GeistMono-Regular.ttf'),
-      Og.loadFont(c.req.raw, c.env, '/fonts/GeistMono-Black.ttf'),
-    ])
-    return new ImageResponse(element, {
-      fonts: [
-        { data: font, name: 'Geist Mono', style: 'normal', weight: 400 },
-        { data: fontBold, name: 'Geist Mono', style: 'normal', weight: 900 },
-      ],
-      format: 'png',
-      headers: {
-        'cache-control':
-          query.page === 'url' ? 'public, max-age=3600' : 'public, max-age=300',
-      },
-      height: 630,
-      width: 1200,
-    })
-  })
   .post(
     '/api/orgs',
     validator(
@@ -612,6 +649,7 @@ export const api = new Hono<{
       }),
     ),
     async (c) => {
+      if (narrowValidation) return validationError(c)
       if (!c.var.session) return c.json({ error: 'Unauthorized' }, 401)
 
       const json = c.req.valid('json')
@@ -642,21 +680,25 @@ export const api = new Hono<{
         return c.json({ error: 'Login already taken' }, 409)
 
       const accountId = c.var.session.account_id
-      await c.var.db.transaction().execute(async (tx) => {
-        const org = await tx
-          .insertInto('organization')
-          .values({ name: json.name ?? json.login, login: json.login })
-          .returning('id')
-          .executeTakeFirstOrThrow()
-        await tx
-          .insertInto('organization_member')
-          .values({
-            account_id: accountId,
-            organization_id: org.id,
-            role: 'owner',
-          })
-          .execute()
-      })
+      try {
+        await c.var.db.transaction().execute(async (tx) => {
+          const org = await tx
+            .insertInto('organization')
+            .values({ name: json.name ?? json.login, login: json.login })
+            .returning('id')
+            .executeTakeFirstOrThrow()
+          await tx
+            .insertInto('organization_member')
+            .values({
+              account_id: accountId,
+              organization_id: org.id,
+              role: 'owner',
+            })
+            .execute()
+        })
+      } catch {
+        return c.json({ error: 'Login already taken' }, 409)
+      }
 
       return c.json({ login: json.login }, 200)
     },
@@ -685,8 +727,8 @@ export const api = new Hono<{
         q: z.string().optional(),
       }),
     ),
-    // TODO: add error handling back
     async (c) => {
+      if (narrowValidation) return validationError(c)
       const url = new URL(c.req.valid('param').url)
       const query = c.req.valid('query')
 
@@ -766,11 +808,17 @@ export const api = new Hono<{
         }),
       )
 
-      const page = await fetchPage(url, {
-        fresh: query.fresh !== undefined ? true : undefined,
-        keywords: query.k,
-        objective: query.q,
-      })
+      let page: Awaited<ReturnType<typeof fetchPage>>
+      try {
+        page = await fetchPage(url, {
+          fresh: query.fresh !== undefined ? true : undefined,
+          keywords: query.k,
+          objective: query.q,
+        })
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error'
+        return c.json({ error: 'fetch_failed', message }, 502)
+      }
 
       const requestId = Nanoid.generate()
       c.env.REQUEST_QUEUE.send({
