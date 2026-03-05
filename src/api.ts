@@ -674,13 +674,19 @@ export const api = new Hono<{
       .executeTakeFirst()
     if (!invite) return c.json({ error: 'not_found' }, 404)
 
-    const existing = await c.var.db
-      .selectFrom('organization_member')
-      .where('organization_id', '=', invite.organization_id)
-      .where('account_id', '=', c.var.session.account_id)
-      .select('id')
+    const inserted = await c.var.db
+      .insertInto('organization_member')
+      .values({
+        account_id: c.var.session.account_id,
+        organization_id: invite.organization_id,
+        role: invite.role,
+      })
+      .onConflict((oc) =>
+        oc.columns(['organization_id', 'account_id']).doNothing(),
+      )
+      .returning('id')
       .executeTakeFirst()
-    if (existing) return c.json({ error: 'already_member' }, 409)
+    if (!inserted) return c.json({ error: 'already_member' }, 409)
 
     await c.var.db
       .updateTable('organization_invite')
@@ -692,15 +698,6 @@ export const api = new Hono<{
           eb('use_count', '<', eb.ref('max_uses')),
         ]),
       )
-      .execute()
-
-    await c.var.db
-      .insertInto('organization_member')
-      .values({
-        account_id: c.var.session.account_id,
-        organization_id: invite.organization_id,
-        role: invite.role,
-      })
       .execute()
 
     const organization = await c.var.db
@@ -963,6 +960,160 @@ export const api = new Hono<{
       .executeTakeFirst()
 
     if (!result.numUpdatedRows) return c.json({ error: 'not_found' }, 404)
+    return c.json({ ok: true }, 200)
+  })
+  .get('/api/orgs/:id/members', async (c) => {
+    if (!c.var.session) return c.json({ error: 'unauthorized' }, 401)
+
+    const member = await c.var.db
+      .selectFrom('organization_member')
+      .where('organization_id', '=', c.req.param('id'))
+      .where('account_id', '=', c.var.session.account_id)
+      .where('role', 'in', ['owner', 'admin'])
+      .select('id')
+      .executeTakeFirst()
+    if (!member) return c.json({ error: 'forbidden' }, 403)
+
+    const members = await c.var.db
+      .selectFrom('organization_member')
+      .where('organization_member.organization_id', '=', c.req.param('id'))
+      .innerJoin('account', 'account.id', 'organization_member.account_id')
+      .select([
+        'organization_member.id',
+        'organization_member.role',
+        'organization_member.created_at',
+        'account.login',
+        'account.name',
+        'account.email',
+      ])
+      .orderBy('organization_member.created_at', 'asc')
+      .execute()
+
+    return c.json({ members }, 200)
+  })
+  .post(
+    '/api/orgs/:id/members',
+    validator(
+      'json',
+      z.object({
+        login: z.string(),
+        role: z.enum(['member', 'admin']).default('member'),
+      }),
+    ),
+    async (c) => {
+      if (narrowValidation) return validationError(c)
+      if (!c.var.session) return c.json({ error: 'unauthorized' }, 401)
+
+      const currentMember = await c.var.db
+        .selectFrom('organization_member')
+        .where('organization_id', '=', c.req.param('id'))
+        .where('account_id', '=', c.var.session.account_id)
+        .where('role', 'in', ['owner', 'admin'])
+        .select('role')
+        .executeTakeFirst()
+      if (!currentMember) return c.json({ error: 'forbidden' }, 403)
+
+      const json = c.req.valid('json')
+      if (currentMember.role === 'admin' && json.role === 'admin')
+        return c.json({ error: 'forbidden' }, 403)
+
+      const account = await c.var.db
+        .selectFrom('account')
+        .where('login', '=', json.login)
+        .where('deleted_at', 'is', null)
+        .select('id')
+        .executeTakeFirst()
+      if (!account) return c.json({ error: 'account_not_found' }, 404)
+
+      const member = await c.var.db
+        .insertInto('organization_member')
+        .values({
+          account_id: account.id,
+          organization_id: c.req.param('id'),
+          role: json.role,
+        })
+        .onConflict((oc) =>
+          oc.columns(['organization_id', 'account_id']).doNothing(),
+        )
+        .returning('id')
+        .executeTakeFirst()
+      if (!member) return c.json({ error: 'already_member' }, 409)
+
+      return c.json(
+        { member: { id: member.id, login: json.login, role: json.role } },
+        201,
+      )
+    },
+  )
+  .patch(
+    '/api/orgs/:id/members/:memberId',
+    validator('json', z.object({ role: z.enum(['member', 'admin']) })),
+    async (c) => {
+      if (narrowValidation) return validationError(c)
+      if (!c.var.session) return c.json({ error: 'unauthorized' }, 401)
+
+      const currentMember = await c.var.db
+        .selectFrom('organization_member')
+        .where('organization_id', '=', c.req.param('id'))
+        .where('account_id', '=', c.var.session.account_id)
+        .where('role', 'in', ['owner', 'admin'])
+        .select(['id', 'role'])
+        .executeTakeFirst()
+      if (!currentMember) return c.json({ error: 'forbidden' }, 403)
+      if (currentMember.id === c.req.param('memberId'))
+        return c.json({ error: 'forbidden' }, 403)
+
+      const member = await c.var.db
+        .selectFrom('organization_member')
+        .where('id', '=', c.req.param('memberId'))
+        .where('organization_id', '=', c.req.param('id'))
+        .select('role')
+        .executeTakeFirst()
+      if (!member) return c.json({ error: 'not_found' }, 404)
+      if (member.role === 'owner')
+        return c.json({ error: 'cannot_change_owner' }, 403)
+
+      const json = c.req.valid('json')
+      await c.var.db
+        .updateTable('organization_member')
+        .set({ role: json.role })
+        .where('id', '=', c.req.param('memberId'))
+        .where('organization_id', '=', c.req.param('id'))
+        .execute()
+
+      return c.json({ ok: true }, 200)
+    },
+  )
+  .delete('/api/orgs/:id/members/:memberId', async (c) => {
+    if (!c.var.session) return c.json({ error: 'unauthorized' }, 401)
+
+    const currentMember = await c.var.db
+      .selectFrom('organization_member')
+      .where('organization_id', '=', c.req.param('id'))
+      .where('account_id', '=', c.var.session.account_id)
+      .where('role', 'in', ['owner', 'admin'])
+      .select(['id', 'role'])
+      .executeTakeFirst()
+    if (!currentMember) return c.json({ error: 'forbidden' }, 403)
+    if (currentMember.id === c.req.param('memberId'))
+      return c.json({ error: 'cannot_remove_self' }, 403)
+
+    const member = await c.var.db
+      .selectFrom('organization_member')
+      .where('id', '=', c.req.param('memberId'))
+      .where('organization_id', '=', c.req.param('id'))
+      .select('role')
+      .executeTakeFirst()
+    if (!member) return c.json({ error: 'not_found' }, 404)
+    if (member.role === 'owner')
+      return c.json({ error: 'cannot_remove_owner' }, 403)
+
+    await c.var.db
+      .deleteFrom('organization_member')
+      .where('id', '=', c.req.param('memberId'))
+      .where('organization_id', '=', c.req.param('id'))
+      .execute()
+
     return c.json({ ok: true }, 200)
   })
   .post(

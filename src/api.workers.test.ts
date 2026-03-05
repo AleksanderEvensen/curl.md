@@ -1926,3 +1926,834 @@ describe('DELETE /api/orgs/:id/invites/:inviteId', () => {
     expect(res.status).toBe(403)
   })
 })
+
+describe('GET /api/orgs/:id/members', () => {
+  test('lists members as owner', async () => {
+    const owner = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: owner.id })
+    const org = await factory.organization.insert({})
+    await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: owner.id,
+      role: 'owner',
+    })
+    const member = await factory.account.insert({})
+    await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: member.id,
+      role: 'member',
+    })
+
+    const res = await client.api.orgs[':id'].members.$get(
+      { param: { id: org.id } },
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned(
+            'curl.session',
+            session.id,
+            env.COOKIE_SECRET,
+          ),
+        },
+      },
+    )
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    assert('members' in json, 'expected members')
+    expect(json.members).toHaveLength(2)
+    expect(json.members[0]).toMatchObject({
+      login: owner.login,
+      name: owner.name,
+      email: owner.email,
+      role: 'owner',
+    })
+    expect(json.members[0].id).toBeDefined()
+    expect(json.members[0].created_at).toBeDefined()
+    expect(json.members[1]).toMatchObject({
+      login: member.login,
+      role: 'member',
+    })
+  })
+
+  test('lists members as admin', async () => {
+    const admin = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: admin.id })
+    const org = await factory.organization.insert({})
+    await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: admin.id,
+      role: 'admin',
+    })
+
+    const res = await client.api.orgs[':id'].members.$get(
+      { param: { id: org.id } },
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned(
+            'curl.session',
+            session.id,
+            env.COOKIE_SECRET,
+          ),
+        },
+      },
+    )
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    assert('members' in json, 'expected members')
+    expect(json.members).toHaveLength(1)
+  })
+
+  test('returns 401 when unauthenticated', async () => {
+    const org = await factory.organization.insert({})
+    const res = await client.api.orgs[':id'].members.$get({
+      param: { id: org.id },
+    })
+    expect(res.status).toBe(401)
+  })
+
+  test('returns 403 when regular member', async () => {
+    const account = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: account.id })
+    const org = await factory.organization.insert({})
+    await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: account.id,
+      role: 'member',
+    })
+
+    const res = await client.api.orgs[':id'].members.$get(
+      { param: { id: org.id } },
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned(
+            'curl.session',
+            session.id,
+            env.COOKIE_SECRET,
+          ),
+        },
+      },
+    )
+    expect(res.status).toBe(403)
+  })
+
+  test('returns 403 when not a member', async () => {
+    const account = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: account.id })
+    const org = await factory.organization.insert({})
+
+    const res = await client.api.orgs[':id'].members.$get(
+      { param: { id: org.id } },
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned(
+            'curl.session',
+            session.id,
+            env.COOKIE_SECRET,
+          ),
+        },
+      },
+    )
+    expect(res.status).toBe(403)
+  })
+})
+
+describe('POST /api/orgs/:id/members', () => {
+  test('adds member as owner', async () => {
+    const owner = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: owner.id })
+    const org = await factory.organization.insert({})
+    await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: owner.id,
+      role: 'owner',
+    })
+    const target = await factory.account.insert({})
+
+    const res = await client.api.orgs[':id'].members.$post(
+      { param: { id: org.id }, json: { login: target.login, role: 'member' } },
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned(
+            'curl.session',
+            session.id,
+            env.COOKIE_SECRET,
+          ),
+        },
+      },
+    )
+    expect(res.status).toBe(201)
+    const json = await res.json()
+    assert('member' in json, 'expected member')
+    expect(json.member.login).toBe(target.login)
+    expect(json.member.role).toBe('member')
+
+    const dbMember = await db
+      .selectFrom('organization_member')
+      .where('organization_id', '=', org.id)
+      .where('account_id', '=', target.id)
+      .select('role')
+      .executeTakeFirst()
+    expect(dbMember?.role).toBe('member')
+  })
+
+  test('adds member as admin with member role', async () => {
+    const admin = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: admin.id })
+    const org = await factory.organization.insert({})
+    await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: admin.id,
+      role: 'admin',
+    })
+    const target = await factory.account.insert({})
+
+    const res = await client.api.orgs[':id'].members.$post(
+      { param: { id: org.id }, json: { login: target.login, role: 'member' } },
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned(
+            'curl.session',
+            session.id,
+            env.COOKIE_SECRET,
+          ),
+        },
+      },
+    )
+    expect(res.status).toBe(201)
+    const json = await res.json()
+    assert('member' in json, 'expected member')
+    expect(json.member.role).toBe('member')
+  })
+
+  test('returns 403 when admin assigns admin role', async () => {
+    const admin = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: admin.id })
+    const org = await factory.organization.insert({})
+    await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: admin.id,
+      role: 'admin',
+    })
+    const target = await factory.account.insert({})
+
+    const res = await client.api.orgs[':id'].members.$post(
+      { param: { id: org.id }, json: { login: target.login, role: 'admin' } },
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned(
+            'curl.session',
+            session.id,
+            env.COOKIE_SECRET,
+          ),
+        },
+      },
+    )
+    expect(res.status).toBe(403)
+  })
+
+  test('owner can assign admin role', async () => {
+    const owner = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: owner.id })
+    const org = await factory.organization.insert({})
+    await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: owner.id,
+      role: 'owner',
+    })
+    const target = await factory.account.insert({})
+
+    const res = await client.api.orgs[':id'].members.$post(
+      { param: { id: org.id }, json: { login: target.login, role: 'admin' } },
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned(
+            'curl.session',
+            session.id,
+            env.COOKIE_SECRET,
+          ),
+        },
+      },
+    )
+    expect(res.status).toBe(201)
+    const json = await res.json()
+    assert('member' in json, 'expected member')
+    expect(json.member.role).toBe('admin')
+  })
+
+  test('returns 401 when unauthenticated', async () => {
+    const org = await factory.organization.insert({})
+    const target = await factory.account.insert({})
+    const res = await client.api.orgs[':id'].members.$post({
+      param: { id: org.id },
+      json: { login: target.login, role: 'member' },
+    })
+    expect(res.status).toBe(401)
+  })
+
+  test('returns 403 when regular member', async () => {
+    const account = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: account.id })
+    const org = await factory.organization.insert({})
+    await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: account.id,
+      role: 'member',
+    })
+    const target = await factory.account.insert({})
+
+    const res = await client.api.orgs[':id'].members.$post(
+      { param: { id: org.id }, json: { login: target.login, role: 'member' } },
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned(
+            'curl.session',
+            session.id,
+            env.COOKIE_SECRET,
+          ),
+        },
+      },
+    )
+    expect(res.status).toBe(403)
+  })
+
+  test('returns 404 when account not found', async () => {
+    const owner = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: owner.id })
+    const org = await factory.organization.insert({})
+    await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: owner.id,
+      role: 'owner',
+    })
+
+    const res = await client.api.orgs[':id'].members.$post(
+      {
+        param: { id: org.id },
+        json: { login: 'nonexistent_login', role: 'member' },
+      },
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned(
+            'curl.session',
+            session.id,
+            env.COOKIE_SECRET,
+          ),
+        },
+      },
+    )
+    expect(res.status).toBe(404)
+  })
+
+  test('returns 409 when already a member', async () => {
+    const owner = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: owner.id })
+    const org = await factory.organization.insert({})
+    await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: owner.id,
+      role: 'owner',
+    })
+    const target = await factory.account.insert({})
+    await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: target.id,
+      role: 'member',
+    })
+
+    const res = await client.api.orgs[':id'].members.$post(
+      { param: { id: org.id }, json: { login: target.login, role: 'member' } },
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned(
+            'curl.session',
+            session.id,
+            env.COOKIE_SECRET,
+          ),
+        },
+      },
+    )
+    expect(res.status).toBe(409)
+  })
+})
+
+describe('PATCH /api/orgs/:id/members/:memberId', () => {
+  test('owner changes member to admin', async () => {
+    const owner = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: owner.id })
+    const org = await factory.organization.insert({})
+    await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: owner.id,
+      role: 'owner',
+    })
+    const target = await factory.account.insert({})
+    const targetMember = await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: target.id,
+      role: 'member',
+    })
+
+    const res = await client.api.orgs[':id'].members[':memberId'].$patch(
+      {
+        param: { id: org.id, memberId: targetMember.id },
+        json: { role: 'admin' },
+      },
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned(
+            'curl.session',
+            session.id,
+            env.COOKIE_SECRET,
+          ),
+        },
+      },
+    )
+    expect(res.status).toBe(200)
+    await expect(res.json()).resolves.toEqual({ ok: true })
+
+    const dbMember = await db
+      .selectFrom('organization_member')
+      .where('id', '=', targetMember.id)
+      .select('role')
+      .executeTakeFirst()
+    expect(dbMember?.role).toBe('admin')
+  })
+
+  test('admin changes member to admin', async () => {
+    const admin = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: admin.id })
+    const org = await factory.organization.insert({})
+    await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: admin.id,
+      role: 'admin',
+    })
+    const target = await factory.account.insert({})
+    const targetMember = await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: target.id,
+      role: 'member',
+    })
+
+    const res = await client.api.orgs[':id'].members[':memberId'].$patch(
+      {
+        param: { id: org.id, memberId: targetMember.id },
+        json: { role: 'admin' },
+      },
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned(
+            'curl.session',
+            session.id,
+            env.COOKIE_SECRET,
+          ),
+        },
+      },
+    )
+    expect(res.status).toBe(200)
+  })
+
+  test('admin changes admin to member', async () => {
+    const admin = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: admin.id })
+    const org = await factory.organization.insert({})
+    await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: admin.id,
+      role: 'admin',
+    })
+    const otherAdmin = await factory.account.insert({})
+    const otherAdminMember = await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: otherAdmin.id,
+      role: 'admin',
+    })
+
+    const res = await client.api.orgs[':id'].members[':memberId'].$patch(
+      {
+        param: { id: org.id, memberId: otherAdminMember.id },
+        json: { role: 'member' },
+      },
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned(
+            'curl.session',
+            session.id,
+            env.COOKIE_SECRET,
+          ),
+        },
+      },
+    )
+    expect(res.status).toBe(200)
+
+    const dbMember = await db
+      .selectFrom('organization_member')
+      .where('id', '=', otherAdminMember.id)
+      .select('role')
+      .executeTakeFirst()
+    expect(dbMember?.role).toBe('member')
+  })
+
+  test('returns 401 when unauthenticated', async () => {
+    const org = await factory.organization.insert({})
+    const res = await client.api.orgs[':id'].members[':memberId'].$patch({
+      param: { id: org.id, memberId: 'nonexistent' },
+      json: { role: 'admin' },
+    })
+    expect(res.status).toBe(401)
+  })
+
+  test('returns 403 when regular member', async () => {
+    const account = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: account.id })
+    const org = await factory.organization.insert({})
+    await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: account.id,
+      role: 'member',
+    })
+    const target = await factory.account.insert({})
+    const targetMember = await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: target.id,
+      role: 'member',
+    })
+
+    const res = await client.api.orgs[':id'].members[':memberId'].$patch(
+      {
+        param: { id: org.id, memberId: targetMember.id },
+        json: { role: 'admin' },
+      },
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned(
+            'curl.session',
+            session.id,
+            env.COOKIE_SECRET,
+          ),
+        },
+      },
+    )
+    expect(res.status).toBe(403)
+  })
+
+  test('returns 403 when changing own role', async () => {
+    const owner = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: owner.id })
+    const org = await factory.organization.insert({})
+    const ownerMember = await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: owner.id,
+      role: 'owner',
+    })
+
+    const res = await client.api.orgs[':id'].members[':memberId'].$patch(
+      {
+        param: { id: org.id, memberId: ownerMember.id },
+        json: { role: 'admin' },
+      },
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned(
+            'curl.session',
+            session.id,
+            env.COOKIE_SECRET,
+          ),
+        },
+      },
+    )
+    expect(res.status).toBe(403)
+  })
+
+  test('returns 403 when changing owner role', async () => {
+    const admin = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: admin.id })
+    const org = await factory.organization.insert({})
+    await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: admin.id,
+      role: 'admin',
+    })
+    const owner = await factory.account.insert({})
+    const ownerMember = await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: owner.id,
+      role: 'owner',
+    })
+
+    const res = await client.api.orgs[':id'].members[':memberId'].$patch(
+      {
+        param: { id: org.id, memberId: ownerMember.id },
+        json: { role: 'member' },
+      },
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned(
+            'curl.session',
+            session.id,
+            env.COOKIE_SECRET,
+          ),
+        },
+      },
+    )
+    expect(res.status).toBe(403)
+    await expect(res.json()).resolves.toEqual({ error: 'cannot_change_owner' })
+  })
+
+  test('returns 404 when member not found', async () => {
+    const owner = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: owner.id })
+    const org = await factory.organization.insert({})
+    await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: owner.id,
+      role: 'owner',
+    })
+
+    const res = await client.api.orgs[':id'].members[':memberId'].$patch(
+      {
+        param: { id: org.id, memberId: 'nonexistent' },
+        json: { role: 'admin' },
+      },
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned(
+            'curl.session',
+            session.id,
+            env.COOKIE_SECRET,
+          ),
+        },
+      },
+    )
+    expect(res.status).toBe(404)
+  })
+})
+
+describe('DELETE /api/orgs/:id/members/:memberId', () => {
+  test('owner removes member', async () => {
+    const owner = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: owner.id })
+    const org = await factory.organization.insert({})
+    await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: owner.id,
+      role: 'owner',
+    })
+    const target = await factory.account.insert({})
+    const targetMember = await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: target.id,
+      role: 'member',
+    })
+
+    const res = await client.api.orgs[':id'].members[':memberId'].$delete(
+      { param: { id: org.id, memberId: targetMember.id } },
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned(
+            'curl.session',
+            session.id,
+            env.COOKIE_SECRET,
+          ),
+        },
+      },
+    )
+    expect(res.status).toBe(200)
+    await expect(res.json()).resolves.toEqual({ ok: true })
+
+    const dbMember = await db
+      .selectFrom('organization_member')
+      .where('id', '=', targetMember.id)
+      .executeTakeFirst()
+    expect(dbMember).toBeUndefined()
+  })
+
+  test('admin removes member', async () => {
+    const admin = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: admin.id })
+    const org = await factory.organization.insert({})
+    await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: admin.id,
+      role: 'admin',
+    })
+    const target = await factory.account.insert({})
+    const targetMember = await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: target.id,
+      role: 'member',
+    })
+
+    const res = await client.api.orgs[':id'].members[':memberId'].$delete(
+      { param: { id: org.id, memberId: targetMember.id } },
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned(
+            'curl.session',
+            session.id,
+            env.COOKIE_SECRET,
+          ),
+        },
+      },
+    )
+    expect(res.status).toBe(200)
+  })
+
+  test('admin removes admin', async () => {
+    const admin = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: admin.id })
+    const org = await factory.organization.insert({})
+    await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: admin.id,
+      role: 'admin',
+    })
+    const otherAdmin = await factory.account.insert({})
+    const otherAdminMember = await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: otherAdmin.id,
+      role: 'admin',
+    })
+
+    const res = await client.api.orgs[':id'].members[':memberId'].$delete(
+      { param: { id: org.id, memberId: otherAdminMember.id } },
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned(
+            'curl.session',
+            session.id,
+            env.COOKIE_SECRET,
+          ),
+        },
+      },
+    )
+    expect(res.status).toBe(200)
+
+    const dbMember = await db
+      .selectFrom('organization_member')
+      .where('id', '=', otherAdminMember.id)
+      .executeTakeFirst()
+    expect(dbMember).toBeUndefined()
+  })
+
+  test('returns 401 when unauthenticated', async () => {
+    const org = await factory.organization.insert({})
+    const res = await client.api.orgs[':id'].members[':memberId'].$delete({
+      param: { id: org.id, memberId: 'nonexistent' },
+    })
+    expect(res.status).toBe(401)
+  })
+
+  test('returns 403 when regular member', async () => {
+    const account = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: account.id })
+    const org = await factory.organization.insert({})
+    await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: account.id,
+      role: 'member',
+    })
+    const target = await factory.account.insert({})
+    const targetMember = await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: target.id,
+      role: 'member',
+    })
+
+    const res = await client.api.orgs[':id'].members[':memberId'].$delete(
+      { param: { id: org.id, memberId: targetMember.id } },
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned(
+            'curl.session',
+            session.id,
+            env.COOKIE_SECRET,
+          ),
+        },
+      },
+    )
+    expect(res.status).toBe(403)
+  })
+
+  test('returns 403 when removing self', async () => {
+    const owner = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: owner.id })
+    const org = await factory.organization.insert({})
+    const ownerMember = await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: owner.id,
+      role: 'owner',
+    })
+
+    const res = await client.api.orgs[':id'].members[':memberId'].$delete(
+      { param: { id: org.id, memberId: ownerMember.id } },
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned(
+            'curl.session',
+            session.id,
+            env.COOKIE_SECRET,
+          ),
+        },
+      },
+    )
+    expect(res.status).toBe(403)
+    await expect(res.json()).resolves.toEqual({ error: 'cannot_remove_self' })
+  })
+
+  test('returns 403 when removing owner', async () => {
+    const admin = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: admin.id })
+    const org = await factory.organization.insert({})
+    await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: admin.id,
+      role: 'admin',
+    })
+    const owner = await factory.account.insert({})
+    const ownerMember = await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: owner.id,
+      role: 'owner',
+    })
+
+    const res = await client.api.orgs[':id'].members[':memberId'].$delete(
+      { param: { id: org.id, memberId: ownerMember.id } },
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned(
+            'curl.session',
+            session.id,
+            env.COOKIE_SECRET,
+          ),
+        },
+      },
+    )
+    expect(res.status).toBe(403)
+    await expect(res.json()).resolves.toEqual({ error: 'cannot_remove_owner' })
+  })
+
+  test('returns 404 when member not found', async () => {
+    const owner = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: owner.id })
+    const org = await factory.organization.insert({})
+    await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: owner.id,
+      role: 'owner',
+    })
+
+    const res = await client.api.orgs[':id'].members[':memberId'].$delete(
+      { param: { id: org.id, memberId: 'nonexistent' } },
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned(
+            'curl.session',
+            session.id,
+            env.COOKIE_SECRET,
+          ),
+        },
+      },
+    )
+    expect(res.status).toBe(404)
+  })
+})

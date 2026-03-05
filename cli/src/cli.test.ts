@@ -64,7 +64,7 @@ test('help', async () => {
 
     Commands:
       auth    Authentication commands (check, login, logout)
-      org     Manage organizations (create, invite, list, show, switch)
+      org     Manage organizations (create, invite, list, members, show, switch)
       token   Manage API tokens (create, list, delete)
       update  Update curl.md CLI
 
@@ -1024,6 +1024,552 @@ describe('org invite', () => {
       ])
       expect(exitCode).toBe(1)
       expect(output).toContain('NOT_FOUND')
+    })
+  })
+})
+
+describe('org member', () => {
+  describe('add', () => {
+    test('requires active org', async () => {
+      const account = await factory.account.insert({})
+      const session = await factory.session.insert({ account_id: account.id })
+      Session.write({ session_id: session.id })
+
+      const { exitCode, output } = await serve([
+        'org',
+        'member',
+        'add',
+        'someone',
+      ])
+      expect(exitCode).toBe(1)
+      expect(output).toContain('NO_ACTIVE_ORG')
+    })
+
+    test('expired session deletes session', async () => {
+      Session.write({
+        session_id: 'expired-session-id',
+        organization_id: 'stale',
+      })
+
+      const { exitCode, output } = await serve([
+        'org',
+        'member',
+        'add',
+        'someone',
+      ])
+      expect(exitCode).toBe(1)
+      expect(output).toContain('NOT_AUTHENTICATED')
+      expect(Session.read()).toBeNull()
+    })
+
+    test('adds member', async () => {
+      const owner = await factory.account.insert({})
+      const session = await factory.session.insert({ account_id: owner.id })
+      const org = await factory.organization.insert({})
+      await factory.organization_member.insert({
+        organization_id: org.id,
+        account_id: owner.id,
+        role: 'owner',
+      })
+      const target = await factory.account.insert({})
+      Session.write({ session_id: session.id, organization_id: org.id })
+
+      const { output } = await serve(['org', 'member', 'add', target.login])
+      expect(output).toContain('Added')
+      expect(output).toContain(target.login)
+
+      const { output: listOutput } = await serve(['org', 'member', 'list'])
+      expect(listOutput).toContain(owner.login)
+      expect(listOutput).toContain(target.login)
+    })
+
+    test('adds member as admin (owner)', async () => {
+      const owner = await factory.account.insert({})
+      const session = await factory.session.insert({ account_id: owner.id })
+      const org = await factory.organization.insert({})
+      await factory.organization_member.insert({
+        organization_id: org.id,
+        account_id: owner.id,
+        role: 'owner',
+      })
+      const target = await factory.account.insert({})
+      Session.write({ session_id: session.id, organization_id: org.id })
+
+      const { output } = await serve([
+        'org',
+        'member',
+        'add',
+        target.login,
+        '--role',
+        'admin',
+      ])
+      expect(output).toContain('Added')
+      expect(output).toContain('admin')
+    })
+
+    test('forbidden (regular member)', async () => {
+      const account = await factory.account.insert({})
+      const session = await factory.session.insert({ account_id: account.id })
+      const org = await factory.organization.insert({})
+      await factory.organization_member.insert({
+        organization_id: org.id,
+        account_id: account.id,
+        role: 'member',
+      })
+      const target = await factory.account.insert({})
+      Session.write({ session_id: session.id, organization_id: org.id })
+
+      const { exitCode, output } = await serve([
+        'org',
+        'member',
+        'add',
+        target.login,
+      ])
+      expect(exitCode).toBe(1)
+      expect(output).toContain('FORBIDDEN')
+    })
+
+    test('forbidden (admin assigns admin)', async () => {
+      const admin = await factory.account.insert({})
+      const session = await factory.session.insert({ account_id: admin.id })
+      const org = await factory.organization.insert({})
+      await factory.organization_member.insert({
+        organization_id: org.id,
+        account_id: admin.id,
+        role: 'admin',
+      })
+      const target = await factory.account.insert({})
+      Session.write({ session_id: session.id, organization_id: org.id })
+
+      const { exitCode, output } = await serve([
+        'org',
+        'member',
+        'add',
+        target.login,
+        '--role',
+        'admin',
+      ])
+      expect(exitCode).toBe(1)
+      expect(output).toContain('FORBIDDEN')
+    })
+
+    test('account not found', async () => {
+      const owner = await factory.account.insert({})
+      const session = await factory.session.insert({ account_id: owner.id })
+      const org = await factory.organization.insert({})
+      await factory.organization_member.insert({
+        organization_id: org.id,
+        account_id: owner.id,
+        role: 'owner',
+      })
+      Session.write({ session_id: session.id, organization_id: org.id })
+
+      const { exitCode, output } = await serve([
+        'org',
+        'member',
+        'add',
+        'nonexistent-login',
+      ])
+      expect(exitCode).toBe(1)
+      expect(output).toContain('NOT_FOUND')
+    })
+
+    test('already member', async () => {
+      const owner = await factory.account.insert({})
+      const session = await factory.session.insert({ account_id: owner.id })
+      const org = await factory.organization.insert({})
+      await factory.organization_member.insert({
+        organization_id: org.id,
+        account_id: owner.id,
+        role: 'owner',
+      })
+      const target = await factory.account.insert({})
+      await factory.organization_member.insert({
+        organization_id: org.id,
+        account_id: target.id,
+        role: 'member',
+      })
+      Session.write({ session_id: session.id, organization_id: org.id })
+
+      const { exitCode, output } = await serve([
+        'org',
+        'member',
+        'add',
+        target.login,
+      ])
+      expect(exitCode).toBe(1)
+      expect(output).toContain('ALREADY_MEMBER')
+    })
+  })
+
+  describe('list', () => {
+    test('requires active org', async () => {
+      const account = await factory.account.insert({})
+      const session = await factory.session.insert({ account_id: account.id })
+      Session.write({ session_id: session.id })
+
+      const { exitCode, output } = await serve(['org', 'member', 'list'])
+      expect(exitCode).toBe(1)
+      expect(output).toContain('NO_ACTIVE_ORG')
+    })
+
+    test('expired session deletes session', async () => {
+      Session.write({
+        session_id: 'expired-session-id',
+        organization_id: 'stale',
+      })
+
+      const { exitCode, output } = await serve(['org', 'member', 'list'])
+      expect(exitCode).toBe(1)
+      expect(output).toContain('NOT_AUTHENTICATED')
+      expect(Session.read()).toBeNull()
+    })
+
+    test('forbidden (regular member)', async () => {
+      const account = await factory.account.insert({})
+      const session = await factory.session.insert({ account_id: account.id })
+      const org = await factory.organization.insert({})
+      await factory.organization_member.insert({
+        organization_id: org.id,
+        account_id: account.id,
+        role: 'member',
+      })
+      Session.write({ session_id: session.id, organization_id: org.id })
+
+      const { exitCode, output } = await serve(['org', 'member', 'list'])
+      expect(exitCode).toBe(1)
+      expect(output).toContain('FORBIDDEN')
+    })
+
+    test('lists members', async () => {
+      const owner = await factory.account.insert({})
+      const session = await factory.session.insert({ account_id: owner.id })
+      const org = await factory.organization.insert({})
+      await factory.organization_member.insert({
+        organization_id: org.id,
+        account_id: owner.id,
+        role: 'owner',
+      })
+      Session.write({ session_id: session.id, organization_id: org.id })
+
+      const { output } = await serve(['org', 'member', 'list'])
+      expect(output).toContain(owner.login)
+    })
+
+    test('empty list', async () => {
+      const owner = await factory.account.insert({})
+      const session = await factory.session.insert({ account_id: owner.id })
+      const org = await factory.organization.insert({})
+      await factory.organization_member.insert({
+        organization_id: org.id,
+        account_id: owner.id,
+        role: 'owner',
+      })
+      Session.write({ session_id: session.id, organization_id: org.id })
+
+      const { output } = await serve(['org', 'member', 'list'])
+      expect(output).toContain(owner.login)
+    })
+  })
+
+  describe('remove', () => {
+    test('requires active org', async () => {
+      const account = await factory.account.insert({})
+      const session = await factory.session.insert({ account_id: account.id })
+      Session.write({ session_id: session.id })
+
+      const { exitCode, output } = await serve([
+        'org',
+        'member',
+        'remove',
+        'someone',
+      ])
+      expect(exitCode).toBe(1)
+      expect(output).toContain('NO_ACTIVE_ORG')
+    })
+
+    test('expired session deletes session', async () => {
+      Session.write({
+        session_id: 'expired-session-id',
+        organization_id: 'stale',
+      })
+
+      const { exitCode, output } = await serve([
+        'org',
+        'member',
+        'remove',
+        'someone',
+      ])
+      expect(exitCode).toBe(1)
+      expect(output).toContain('NOT_AUTHENTICATED')
+      expect(Session.read()).toBeNull()
+    })
+
+    test('removes member by login', async () => {
+      const owner = await factory.account.insert({})
+      const session = await factory.session.insert({ account_id: owner.id })
+      const org = await factory.organization.insert({})
+      await factory.organization_member.insert({
+        organization_id: org.id,
+        account_id: owner.id,
+        role: 'owner',
+      })
+      const target = await factory.account.insert({})
+      await factory.organization_member.insert({
+        organization_id: org.id,
+        account_id: target.id,
+        role: 'member',
+      })
+      Session.write({ session_id: session.id, organization_id: org.id })
+
+      const { output } = await serve(['org', 'member', 'remove', target.login])
+      expect(output).toContain('Removed')
+    })
+
+    test('forbidden - cannot remove owner', async () => {
+      const owner = await factory.account.insert({})
+      const admin = await factory.account.insert({})
+      const session = await factory.session.insert({ account_id: admin.id })
+      const org = await factory.organization.insert({})
+      await factory.organization_member.insert({
+        organization_id: org.id,
+        account_id: owner.id,
+        role: 'owner',
+      })
+      await factory.organization_member.insert({
+        organization_id: org.id,
+        account_id: admin.id,
+        role: 'admin',
+      })
+      Session.write({ session_id: session.id, organization_id: org.id })
+
+      const { exitCode, output } = await serve([
+        'org',
+        'member',
+        'remove',
+        owner.login,
+      ])
+      expect(exitCode).toBe(1)
+      expect(output).toContain('FORBIDDEN')
+      expect(output).toContain('Cannot remove an owner')
+    })
+
+    test('not found', async () => {
+      const owner = await factory.account.insert({})
+      const session = await factory.session.insert({ account_id: owner.id })
+      const org = await factory.organization.insert({})
+      await factory.organization_member.insert({
+        organization_id: org.id,
+        account_id: owner.id,
+        role: 'owner',
+      })
+      Session.write({ session_id: session.id, organization_id: org.id })
+
+      const { exitCode, output } = await serve([
+        'org',
+        'member',
+        'remove',
+        'nonexistent-login',
+      ])
+      expect(exitCode).toBe(1)
+      expect(output).toContain('NOT_FOUND')
+      expect(output).toContain('not found')
+    })
+  })
+
+  describe('role', () => {
+    test('requires active org', async () => {
+      const account = await factory.account.insert({})
+      const session = await factory.session.insert({ account_id: account.id })
+      Session.write({ session_id: session.id })
+
+      const { exitCode, output } = await serve([
+        'org',
+        'member',
+        'role',
+        'someone',
+        '--role',
+        'admin',
+      ])
+      expect(exitCode).toBe(1)
+      expect(output).toContain('NO_ACTIVE_ORG')
+    })
+
+    test('expired session deletes session', async () => {
+      Session.write({
+        session_id: 'expired-session-id',
+        organization_id: 'stale',
+      })
+
+      const { exitCode, output } = await serve([
+        'org',
+        'member',
+        'role',
+        'someone',
+        '--role',
+        'admin',
+      ])
+      expect(exitCode).toBe(1)
+      expect(output).toContain('NOT_AUTHENTICATED')
+      expect(Session.read()).toBeNull()
+    })
+
+    test('changes role', async () => {
+      const owner = await factory.account.insert({})
+      const session = await factory.session.insert({ account_id: owner.id })
+      const org = await factory.organization.insert({})
+      await factory.organization_member.insert({
+        organization_id: org.id,
+        account_id: owner.id,
+        role: 'owner',
+      })
+      const target = await factory.account.insert({})
+      await factory.organization_member.insert({
+        organization_id: org.id,
+        account_id: target.id,
+        role: 'member',
+      })
+      Session.write({ session_id: session.id, organization_id: org.id })
+
+      const { output } = await serve([
+        'org',
+        'member',
+        'role',
+        target.login,
+        '--role',
+        'admin',
+      ])
+      expect(output).toContain('Changed')
+      expect(output).toContain('admin')
+    })
+
+    test('admin changes member role', async () => {
+      const owner = await factory.account.insert({})
+      const admin = await factory.account.insert({})
+      const session = await factory.session.insert({ account_id: admin.id })
+      const org = await factory.organization.insert({})
+      await factory.organization_member.insert({
+        organization_id: org.id,
+        account_id: owner.id,
+        role: 'owner',
+      })
+      await factory.organization_member.insert({
+        organization_id: org.id,
+        account_id: admin.id,
+        role: 'admin',
+      })
+      const target = await factory.account.insert({})
+      await factory.organization_member.insert({
+        organization_id: org.id,
+        account_id: target.id,
+        role: 'member',
+      })
+      Session.write({ session_id: session.id, organization_id: org.id })
+
+      const { output } = await serve([
+        'org',
+        'member',
+        'role',
+        target.login,
+        '--role',
+        'admin',
+      ])
+      expect(output).toContain('Changed')
+      expect(output).toContain('admin')
+    })
+
+    test('admin changes other admin role', async () => {
+      const owner = await factory.account.insert({})
+      const admin = await factory.account.insert({})
+      const session = await factory.session.insert({ account_id: admin.id })
+      const org = await factory.organization.insert({})
+      await factory.organization_member.insert({
+        organization_id: org.id,
+        account_id: owner.id,
+        role: 'owner',
+      })
+      await factory.organization_member.insert({
+        organization_id: org.id,
+        account_id: admin.id,
+        role: 'admin',
+      })
+      const otherAdmin = await factory.account.insert({})
+      await factory.organization_member.insert({
+        organization_id: org.id,
+        account_id: otherAdmin.id,
+        role: 'admin',
+      })
+      Session.write({ session_id: session.id, organization_id: org.id })
+
+      const { output } = await serve([
+        'org',
+        'member',
+        'role',
+        otherAdmin.login,
+        '--role',
+        'member',
+      ])
+      expect(output).toContain('Changed')
+      expect(output).toContain('member')
+    })
+
+    test('forbidden (regular member)', async () => {
+      const owner = await factory.account.insert({})
+      const member = await factory.account.insert({})
+      const session = await factory.session.insert({ account_id: member.id })
+      const org = await factory.organization.insert({})
+      await factory.organization_member.insert({
+        organization_id: org.id,
+        account_id: owner.id,
+        role: 'owner',
+      })
+      await factory.organization_member.insert({
+        organization_id: org.id,
+        account_id: member.id,
+        role: 'member',
+      })
+      Session.write({ session_id: session.id, organization_id: org.id })
+
+      const { exitCode, output } = await serve([
+        'org',
+        'member',
+        'role',
+        owner.login,
+        '--role',
+        'admin',
+      ])
+      expect(exitCode).toBe(1)
+      expect(output).toContain('FORBIDDEN')
+    })
+
+    test('cannot change owner role', async () => {
+      const owner = await factory.account.insert({})
+      const session = await factory.session.insert({ account_id: owner.id })
+      const org = await factory.organization.insert({})
+      await factory.organization_member.insert({
+        organization_id: org.id,
+        account_id: owner.id,
+        role: 'owner',
+      })
+      const otherOwner = await factory.account.insert({})
+      await factory.organization_member.insert({
+        organization_id: org.id,
+        account_id: otherOwner.id,
+        role: 'owner',
+      })
+      Session.write({ session_id: session.id, organization_id: org.id })
+
+      const { exitCode, output } = await serve([
+        'org',
+        'member',
+        'role',
+        otherOwner.login,
+        '--role',
+        'admin',
+      ])
+      expect(exitCode).toBe(1)
+      expect(output).toContain('FORBIDDEN')
+      expect(output).toContain('Cannot change owner role')
     })
   })
 })

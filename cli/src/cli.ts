@@ -733,8 +733,436 @@ const invite = Cli.create('invite', {
     },
   })
 
+const member = Cli.create('member', {
+  description: 'Manage organization members (add, list, remove, role)',
+  vars,
+})
+  .command('add', {
+    description: 'Add a member to the active organization',
+    middleware: [requireAuth],
+    args: z.object({
+      login: z.string().describe('Account login to add'),
+    }),
+    options: z.object({
+      role: z
+        .enum(['member', 'admin'])
+        .default('member')
+        .describe('Role for the new member'),
+    }),
+    alias: { role: 'r' },
+    output: z.string(),
+    format: 'md',
+    async run(c) {
+      const orgId = c.var.session?.organization_id
+      if (!orgId)
+        return c.error({
+          code: 'NO_ACTIVE_ORG',
+          message: 'No active organization. Switch first.',
+          cta: {
+            description: 'Switch organization:',
+            commands: [
+              {
+                command: `${c.name} org switch`,
+                description: 'Switch active organization',
+              },
+              ...c.var.commands,
+            ],
+          },
+        })
+
+      const res = await c.var.client.api.orgs[':id'].members.$post({
+        param: { id: orgId },
+        json: { login: c.args.login, role: c.options.role },
+      })
+
+      if (res.status === 401) {
+        Session.delete()
+        return c.error({
+          ...notAuthenticated,
+          cta: {
+            description: 'Log in:',
+            commands: [
+              {
+                command: `${c.name} auth login`,
+                description: `Authenticate with ${c.name}`,
+              },
+              ...c.var.commands,
+            ],
+          },
+        })
+      }
+
+      if (res.status === 403)
+        return c.error({
+          code: 'FORBIDDEN',
+          message: "You don't have permission to add members.",
+        })
+
+      if (res.status === 404)
+        return c.error({ code: 'NOT_FOUND', message: 'Account not found.' })
+
+      if (res.status === 409)
+        return c.error({
+          code: 'ALREADY_MEMBER',
+          message: 'Already a member.',
+        })
+
+      if (res.status !== 201)
+        return c.error({ code: 'UNKNOWN', message: 'Unexpected error.' })
+
+      return c.ok(`Added ${c.args.login} as ${c.options.role}.`)
+    },
+  })
+  .command('list', {
+    description: 'List members of the active organization',
+    middleware: [requireAuth],
+    output: z.string(),
+    format: 'md',
+    async run(c) {
+      const orgId = c.var.session?.organization_id
+      if (!orgId)
+        return c.error({
+          code: 'NO_ACTIVE_ORG',
+          message: 'No active organization. Switch first.',
+          cta: {
+            description: 'Switch organization:',
+            commands: [
+              {
+                command: `${c.name} org switch`,
+                description: 'Switch active organization',
+              },
+              ...c.var.commands,
+            ],
+          },
+        })
+
+      const res = await c.var.client.api.orgs[':id'].members.$get({
+        param: { id: orgId },
+      })
+
+      if (res.status === 401) {
+        Session.delete()
+        return c.error({
+          ...notAuthenticated,
+          cta: {
+            description: 'Log in:',
+            commands: [
+              {
+                command: `${c.name} auth login`,
+                description: `Authenticate with ${c.name}`,
+              },
+              ...c.var.commands,
+            ],
+          },
+        })
+      }
+
+      if (res.status === 403)
+        return c.error({
+          code: 'FORBIDDEN',
+          message: "You don't have permission to view members.",
+        })
+
+      const json = await res.json()
+      if (!json.members.length) return c.ok('No members found.')
+
+      const rows = json.members.map((m) => {
+        const loginCol = m.login
+        const roleCol = m.role
+        const joinedCol = `joined ${relativeTime(new Date(m.created_at)) ?? 'just now'}`
+        return [loginCol, roleCol, joinedCol] as const
+      })
+
+      const widths = [0, 0, 0] as number[]
+      for (const row of rows)
+        for (let i = 0; i < 3; i++)
+          widths[i] = Math.max(widths[i] ?? 0, row[i]?.length ?? 0)
+
+      const lines = rows.map(
+        (row) =>
+          `  ${row[0].padEnd(widths[0] ?? 0)}  ${row[1].padEnd(widths[1] ?? 0)}  ${pc.dim(row[2])}`,
+      )
+      return c.ok(lines.join('\n'))
+    },
+  })
+  .command('remove', {
+    description: 'Remove a member from the active organization',
+    middleware: [requireAuth],
+    args: z.object({
+      login: z.string().optional().describe('Member login to remove'),
+    }),
+    output: z.string(),
+    format: 'md',
+    async run(c) {
+      const orgId = c.var.session?.organization_id
+      if (!orgId)
+        return c.error({
+          code: 'NO_ACTIVE_ORG',
+          message: 'No active organization. Switch first.',
+          cta: {
+            description: 'Switch organization:',
+            commands: [
+              {
+                command: `${c.name} org switch`,
+                description: 'Switch active organization',
+              },
+              ...c.var.commands,
+            ],
+          },
+        })
+
+      const listRes = await c.var.client.api.orgs[':id'].members.$get({
+        param: { id: orgId },
+      })
+      if (listRes.status === 401) {
+        Session.delete()
+        return c.error({
+          ...notAuthenticated,
+          cta: {
+            description: 'Log in:',
+            commands: [
+              {
+                command: `${c.name} auth login`,
+                description: `Authenticate with ${c.name}`,
+              },
+              ...c.var.commands,
+            ],
+          },
+        })
+      }
+
+      if (listRes.status === 403)
+        return c.error({
+          code: 'FORBIDDEN',
+          message: "You don't have permission to remove members.",
+        })
+      if (listRes.status !== 200)
+        return c.error({ code: 'UNKNOWN', message: 'Unexpected error.' })
+      const listJson = await listRes.json()
+      if (!listJson.members.length)
+        return c.error({
+          code: 'NO_MEMBERS',
+          message: 'No members to remove.',
+        })
+
+      let login = c.args.login
+      if (!login) {
+        const choices = listJson.members.map(
+          (m) => `${m.login}  ${pc.dim(m.role)}`,
+        )
+        const index = await select('Remove member:', choices)
+        if (index === -1)
+          return c.error({
+            code: 'INVALID_SELECTION',
+            message: 'Selection cancelled.',
+          })
+        const selected = listJson.members[index]
+        if (!selected)
+          return c.error({
+            code: 'INVALID_SELECTION',
+            message: 'Invalid selection.',
+          })
+        login = selected.login
+      }
+
+      const match = listJson.members.find((m) => m.login === login)
+      if (!match)
+        return c.error({
+          code: 'NOT_FOUND',
+          message: `Member "${login}" not found.`,
+        })
+
+      const res = await c.var.client.api.orgs[':id'].members[
+        ':memberId'
+      ].$delete({
+        param: { id: orgId, memberId: match.id },
+      })
+
+      if (res.status === 401) {
+        Session.delete()
+        return c.error({
+          ...notAuthenticated,
+          cta: {
+            description: 'Log in:',
+            commands: [
+              {
+                command: `${c.name} auth login`,
+                description: `Authenticate with ${c.name}`,
+              },
+              ...c.var.commands,
+            ],
+          },
+        })
+      }
+
+      if (res.status === 403) {
+        const json = await res.json()
+        const message = (() => {
+          if (json.error === 'cannot_remove_self')
+            return 'Cannot remove yourself.'
+          if (json.error === 'cannot_remove_owner')
+            return 'Cannot remove an owner.'
+          return "You don't have permission to remove members."
+        })()
+        return c.error({ code: 'FORBIDDEN', message })
+      }
+
+      if (res.status === 404)
+        return c.error({ code: 'NOT_FOUND', message: 'Member not found.' })
+
+      return c.ok(`Removed ${login} from organization.`)
+    },
+  })
+  .command('role', {
+    description: 'Change a member role',
+    middleware: [requireAuth],
+    args: z.object({
+      login: z.string().optional().describe('Member login to change role for'),
+    }),
+    options: z.object({
+      role: z.enum(['member', 'admin']).optional().describe('New role'),
+    }),
+    alias: { role: 'r' },
+    output: z.string(),
+    format: 'md',
+    async run(c) {
+      const orgId = c.var.session?.organization_id
+      if (!orgId)
+        return c.error({
+          code: 'NO_ACTIVE_ORG',
+          message: 'No active organization. Switch first.',
+          cta: {
+            description: 'Switch organization:',
+            commands: [
+              {
+                command: `${c.name} org switch`,
+                description: 'Switch active organization',
+              },
+              ...c.var.commands,
+            ],
+          },
+        })
+
+      const listRes = await c.var.client.api.orgs[':id'].members.$get({
+        param: { id: orgId },
+      })
+      if (listRes.status === 401) {
+        Session.delete()
+        return c.error({
+          ...notAuthenticated,
+          cta: {
+            description: 'Log in:',
+            commands: [
+              {
+                command: `${c.name} auth login`,
+                description: `Authenticate with ${c.name}`,
+              },
+              ...c.var.commands,
+            ],
+          },
+        })
+      }
+
+      if (listRes.status === 403)
+        return c.error({
+          code: 'FORBIDDEN',
+          message: "You don't have permission to change roles.",
+        })
+      if (listRes.status !== 200)
+        return c.error({ code: 'UNKNOWN', message: 'Unexpected error.' })
+      const listJson = await listRes.json()
+      if (!listJson.members.length)
+        return c.error({
+          code: 'NO_MEMBERS',
+          message: 'No members found.',
+        })
+
+      let login = c.args.login
+      if (!login) {
+        const choices = listJson.members.map(
+          (m) => `${m.login}  ${pc.dim(m.role)}`,
+        )
+        const index = await select('Change role for:', choices)
+        if (index === -1)
+          return c.error({
+            code: 'INVALID_SELECTION',
+            message: 'Selection cancelled.',
+          })
+        const selected = listJson.members[index]
+        if (!selected)
+          return c.error({
+            code: 'INVALID_SELECTION',
+            message: 'Invalid selection.',
+          })
+        login = selected.login
+      }
+
+      const match = listJson.members.find((m) => m.login === login)
+      if (!match)
+        return c.error({
+          code: 'NOT_FOUND',
+          message: `Member "${login}" not found.`,
+        })
+
+      let role = c.options.role
+      if (!role) {
+        const roleIndex = await select('New role:', ['member', 'admin'])
+        if (roleIndex === -1)
+          return c.error({
+            code: 'INVALID_SELECTION',
+            message: 'Selection cancelled.',
+          })
+        role = (['member', 'admin'] as const)[roleIndex]
+        if (!role)
+          return c.error({
+            code: 'INVALID_SELECTION',
+            message: 'Invalid selection.',
+          })
+      }
+
+      const res = await c.var.client.api.orgs[':id'].members[
+        ':memberId'
+      ].$patch({
+        param: { id: orgId, memberId: match.id },
+        json: { role },
+      })
+
+      if (res.status === 401) {
+        Session.delete()
+        return c.error({
+          ...notAuthenticated,
+          cta: {
+            description: 'Log in:',
+            commands: [
+              {
+                command: `${c.name} auth login`,
+                description: `Authenticate with ${c.name}`,
+              },
+              ...c.var.commands,
+            ],
+          },
+        })
+      }
+
+      if (res.status === 403) {
+        const json = await res.json()
+        const message =
+          json.error === 'cannot_change_owner'
+            ? 'Cannot change owner role.'
+            : "You don't have permission to change roles."
+        return c.error({ code: 'FORBIDDEN', message })
+      }
+
+      if (res.status === 404)
+        return c.error({ code: 'NOT_FOUND', message: 'Member not found.' })
+
+      return c.ok(`Changed ${login} role to ${role}.`)
+    },
+  })
+
 const org = Cli.create('org', {
-  description: 'Manage organizations (create, invite, list, show, switch)',
+  description:
+    'Manage organizations (create, invite, list, members, show, switch)',
   vars,
 })
   .command('create', {
@@ -1231,7 +1659,7 @@ const update = Cli.create('update', {
 })
 
 cli.command(auth)
-cli.command(org.command(invite))
+cli.command(org.command(invite).command(member))
 cli.command(token)
 cli.command(update)
 
