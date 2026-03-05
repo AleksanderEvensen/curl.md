@@ -324,11 +324,11 @@ describe('POST /api/auth/device', () => {
   test('returns device code and user code', async () => {
     const res = await client.api.auth.device.$post()
     expect(res.status).toBe(200)
-    const data = await res.json()
-    expect(data.code).toBeDefined()
-    expect(data.user_code).toMatch(/^[A-Z2-9]{8}$/)
-    expect(data.verification_uri).toBe('https://curl.local/auth/device')
-    expect(data.interval).toBe(1)
+    const json = await res.json()
+    expect(json.code).toBeDefined()
+    expect(json.user_code).toMatch(/^[A-Z2-9]{8}$/)
+    expect(json.verification_uri).toBe('https://curl.local/auth/device')
+    expect(json.interval).toBe(1)
   })
 
   test('full flow: create, confirm, exchange for session', async () => {
@@ -495,9 +495,9 @@ describe('GET /api/auth/me', () => {
       { headers: { Authorization: 'Bearer curl_test123456' } },
     )
     expect(res.status).toBe(200)
-    const data = await res.json()
-    expect(data.account).not.toBeNull()
-    expect(data.account!.id).toBe(account.id)
+    const json = await res.json()
+    expect(json.account).not.toBeNull()
+    expect(json.account!.id).toBe(account.id)
   })
 
   test('rejects deleted API key', async () => {
@@ -565,18 +565,18 @@ describe('POST /api/tokens', () => {
       { headers: { Authorization: `Bearer ${session.id}` } },
     )
     expect(res.status).toBe(201)
-    const data = await res.json()
-    assert('api_key' in data, 'expected api_key')
-    expect(data.api_key.name).toBe('test token')
-    expect(data.api_key.token.startsWith('curl_')).toBe(true)
-    expect(data.api_key.key_prefix).toBe(data.api_key.token.slice(0, 14))
+    const json = await res.json()
+    assert('api_key' in json, 'expected api_key')
+    expect(json.api_key.name).toBe('test token')
+    expect(json.api_key.token.startsWith('curl_')).toBe(true)
+    expect(json.api_key.key_prefix).toBe(json.api_key.token.slice(0, 14))
 
     const stored = await db
       .selectFrom('api_key')
-      .where('id', '=', data.api_key.id)
+      .where('id', '=', json.api_key.id)
       .select('key_hash')
       .executeTakeFirstOrThrow()
-    const expectedHash = await ApiKey.hash(data.api_key.token)
+    const expectedHash = await ApiKey.hash(json.api_key.token)
     expect(stored.key_hash).toBe(expectedHash)
   })
 
@@ -630,9 +630,9 @@ describe('POST /api/tokens', () => {
       },
     )
     expect(res.status).toBe(201)
-    const data = await res.json()
-    assert('api_key' in data, 'expected api_key')
-    expect(data.api_key.organization_id).toBe(org.id)
+    const json = await res.json()
+    assert('api_key' in json, 'expected api_key')
+    expect(json.api_key.organization_id).toBe(org.id)
   })
 
   test('rejects duplicate name', async () => {
@@ -648,8 +648,8 @@ describe('POST /api/tokens', () => {
       { headers: { Authorization: `Bearer ${session.id}` } },
     )
     expect(res.status).toBe(409)
-    const data = await res.json()
-    expect(data).toEqual({ error: 'name_taken' })
+    const json = await res.json()
+    expect(json).toEqual({ error: 'name_taken' })
   })
 })
 
@@ -675,11 +675,11 @@ describe('GET /api/tokens', () => {
       { headers: { Authorization: `Bearer ${session.id}` } },
     )
     expect(res.status).toBe(200)
-    const data = (await res.json()) as Extract<
+    const json = (await res.json()) as Extract<
       Awaited<ReturnType<typeof res.json>>,
       { api_keys: unknown }
     >
-    expect(data.api_keys).toHaveLength(2)
+    expect(json.api_keys).toHaveLength(2)
   })
 
   test('excludes deleted tokens', async () => {
@@ -704,11 +704,11 @@ describe('GET /api/tokens', () => {
       { headers: { Authorization: `Bearer ${session.id}` } },
     )
     expect(res.status).toBe(200)
-    const data = (await res.json()) as Extract<
+    const json = (await res.json()) as Extract<
       Awaited<ReturnType<typeof res.json>>,
       { api_keys: unknown }
     >
-    expect(data.api_keys).toHaveLength(1)
+    expect(json.api_keys).toHaveLength(1)
   })
 
   test('requires auth', async () => {
@@ -809,10 +809,10 @@ describe('GET /api/orgs', () => {
       },
     )
     expect(res.status).toBe(200)
-    const data = await res.json()
-    assert(!('error' in data), 'expected organizations')
-    expect(data.organizations).toHaveLength(2)
-    expect(data.organizations).toEqual(
+    const json = await res.json()
+    assert(!('error' in json), 'expected organizations')
+    expect(json.organizations).toHaveLength(2)
+    expect(json.organizations).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           id: org1.id,
@@ -858,9 +858,9 @@ describe('GET /api/orgs/:id', () => {
       },
     )
     expect(res.status).toBe(200)
-    const data = await res.json()
-    assert(!('error' in data), 'expected organization')
-    expect(data.organization).toEqual(
+    const json = await res.json()
+    assert(!('error' in json), 'expected organization')
+    expect(json.organization).toEqual(
       expect.objectContaining({
         id: org.id,
         login: org.login,

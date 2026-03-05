@@ -46,13 +46,23 @@ main() {
 
   base_url="https://github.com/${REPO}/releases/download/${tag}"
 
+  # TODO: remove gh CLI fallback when repo is public (curl works for public release assets)
   info "Downloading curl.md ${tag} (${os}/${arch})..."
   tmpfile="$(mktemp)"
-  curl -fsSL "${base_url}/${artifact}" -o "$tmpfile" || error "Download failed. Binary may not exist for ${os}/${arch}."
+  if [ -n "$GITHUB_TOKEN" ] && command -v gh >/dev/null 2>&1; then
+    gh release download "$tag" --repo "$REPO" --pattern "$artifact" --output "$tmpfile" --clobber || error "Download failed. Binary may not exist for ${os}/${arch}."
+  else
+    curl -fsSL "${base_url}/${artifact}" -o "$tmpfile" || error "Download failed. Binary may not exist for ${os}/${arch}."
+  fi
 
   # Verify checksum
   checksumfile="$(mktemp)"
-  if curl -fsSL "${base_url}/${artifact}.sha256" -o "$checksumfile" 2>/dev/null; then
+  if [ -n "$GITHUB_TOKEN" ] && command -v gh >/dev/null 2>&1; then
+    gh release download "$tag" --repo "$REPO" --pattern "${artifact}.sha256" --output "$checksumfile" --clobber 2>/dev/null
+  else
+    curl -fsSL "${base_url}/${artifact}.sha256" -o "$checksumfile" 2>/dev/null
+  fi
+  if [ -s "$checksumfile" ]; then
     expected="$(cat "$checksumfile")"
     if command -v shasum >/dev/null 2>&1; then
       actual="$(shasum -a 256 "$tmpfile" | cut -d' ' -f1)"
