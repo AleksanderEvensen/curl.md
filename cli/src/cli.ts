@@ -283,7 +283,7 @@ const notAuthenticated = {
 }
 
 const auth = Cli.create('auth', {
-  description: 'Authentication commands',
+  description: 'Authentication commands (check, login, logout)',
   vars,
 })
   .command('check', {
@@ -620,7 +620,7 @@ const org = Cli.create('org', {
   })
 
 const token = Cli.create('token', {
-  description: 'Manage API tokens',
+  description: 'Manage API tokens (create, list, delete)',
   vars,
 })
   .command('create', {
