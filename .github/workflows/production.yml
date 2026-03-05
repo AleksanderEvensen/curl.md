@@ -84,11 +84,15 @@ jobs:
             COOKIE_SECRET
             GH_CLIENT_ID
             GH_CLIENT_SECRET
+            STRIPE_SECRET_KEY
+            STRIPE_WEBHOOK_SECRET
             TOKEN_ENCRYPTION_KEY
         env:
           COOKIE_SECRET: ${{ secrets.COOKIE_SECRET }}
           GH_CLIENT_ID: ${{ secrets.GH_CLIENT_ID }}
           GH_CLIENT_SECRET: ${{ secrets.GH_CLIENT_SECRET }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
           TOKEN_ENCRYPTION_KEY: ${{ secrets.TOKEN_ENCRYPTION_KEY }}
 
   changesets:
@@ -106,19 +110,10 @@ jobs:
         with:
           app-id: ${{ secrets.PRO_APP_ID }}
           private-key: ${{ secrets.PRO_APP_PRIVATE_KEY }}
-          repositories: curl.md,curl.md.pro
+          repositories: curl.md
 
       - name: Checkout
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
-        with:
-          persist-credentials: false
-
-      - name: Checkout submodules
-        run: |
-          git config --global url."https://x-access-token:${TOKEN}@github.com/wevm/curl.md.pro".insteadOf "https://github.com/wevm/curl.md.pro"
-          git submodule update --init
-        env:
-          TOKEN: ${{ steps.app-token.outputs.token }}
 
       - name: Setup pnpm
         uses: ./.github/actions/setup-pnpm
