@@ -24,8 +24,9 @@ jobs:
       - name: Dispatch cleanup
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           printf '{"event_type":"preview-cleanup","client_payload":{"pr_number":"%s","sha":"%s"}}' \
-            "${{ github.event.pull_request.number }}" \
-            "${{ github.event.pull_request.head.sha }}" \
+            "$PR_NUMBER" "$PR_SHA" \
             | gh api repos/wevm/curl.md.pro/dispatches --method POST --input -

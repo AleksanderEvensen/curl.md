@@ -123,15 +123,18 @@ jobs:
         if: inputs.dispatch_pro_sha
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          DISPATCH_SHA: ${{ inputs.dispatch_pro_sha }}
         run: |
-          printf '{"event_type":"parent-check","client_payload":{"sha":"%s"}}' "${{ inputs.dispatch_pro_sha }}" \
+          printf '{"event_type":"parent-check","client_payload":{"sha":"%s"}}' "$DISPATCH_SHA" \
             | gh api repos/wevm/curl.md.pro/dispatches --method POST --input -
 
       - name: Dispatch preview
         if: inputs.dispatch_preview_pr
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          DISPATCH_SHA: ${{ inputs.dispatch_pro_sha }}
+          DISPATCH_PR: ${{ inputs.dispatch_preview_pr }}
         run: |
           printf '{"event_type":"preview-deploy","client_payload":{"sha":"%s","pr_number":"%s"}}' \
-            "${{ inputs.dispatch_pro_sha }}" "${{ inputs.dispatch_preview_pr }}" \
+            "$DISPATCH_SHA" "$DISPATCH_PR" \
             | gh api repos/wevm/curl.md.pro/dispatches --method POST --input -

@@ -32,7 +32,9 @@ jobs:
         uses: ./.github/actions/setup-pnpm
 
       - name: Set preview base URL
-        run: sed -i'' -e "s|https://curl.md|https://pr${{ github.event.pull_request.number }}.curl.md|" cli/src/cli.ts
+        run: sed -i'' -e "s|https://curl.md|https://pr${PR_NUMBER}.curl.md|" cli/src/cli.ts
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
 
       - name: Build CLI
         run: pnpm build:cli

@@ -12,6 +12,10 @@ cleanup() {
 }
 trap cleanup INT TERM EXIT
 
+has_gh_auth() {
+  command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1
+}
+
 main() {
   os="$(uname -s)"
   arch="$(uname -m)"
@@ -36,6 +40,8 @@ main() {
 
   if [ -n "$1" ]; then
     tag="$1"
+  elif has_gh_auth; then
+    tag="$(gh release view --repo "$REPO" --json tagName -q '.tagName' 2>/dev/null)"
   else
     tag="$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" | grep '"tag_name"' | cut -d'"' -f4)"
   fi
@@ -49,7 +55,7 @@ main() {
   # TODO: remove gh CLI fallback when repo is public (curl works for public release assets)
   info "Downloading curl.md ${tag} (${os}/${arch})..."
   tmpfile="$(mktemp)"
-  if [ -n "$GITHUB_TOKEN" ] && command -v gh >/dev/null 2>&1; then
+  if has_gh_auth; then
     gh release download "$tag" --repo "$REPO" --pattern "$artifact" --output "$tmpfile" --clobber || error "Download failed. Binary may not exist for ${os}/${arch}."
   else
     curl -fsSL "${base_url}/${artifact}" -o "$tmpfile" || error "Download failed. Binary may not exist for ${os}/${arch}."
@@ -57,7 +63,7 @@ main() {
 
   # Verify checksum
   checksumfile="$(mktemp)"
-  if [ -n "$GITHUB_TOKEN" ] && command -v gh >/dev/null 2>&1; then
+  if has_gh_auth; then
     gh release download "$tag" --repo "$REPO" --pattern "${artifact}.sha256" --output "$checksumfile" --clobber 2>/dev/null
   else
     curl -fsSL "${base_url}/${artifact}.sha256" -o "$checksumfile" 2>/dev/null

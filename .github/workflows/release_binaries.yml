@@ -67,9 +67,10 @@ jobs:
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
       - name: Run install script
-        run: sh public/install.sh ${{ github.event.release.tag_name }}
+        run: sh public/install.sh "$TAG"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.event.release.tag_name }}
 
       - name: Verify binary
         run: ~/.local/bin/curl.md --version
