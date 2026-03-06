@@ -180,16 +180,23 @@ const cli = Cli.create('curl.md', {
         code: 'RATE_LIMITED',
         message,
         cta: {
-          description: 'Authenticate for higher limits:',
+          description: c.var.session
+            ? 'Add credits to remove rate limits:'
+            : 'Authenticate for higher limits:',
           commands: [
-            ...(!c.var.session
+            ...(c.var.session
               ? [
+                  {
+                    command: `${c.name} credits add`,
+                    description: 'Add credits to your balance',
+                  },
+                ]
+              : [
                   {
                     command: `${c.name} auth login`,
                     description: 'Log in for higher rate limits',
                   },
-                ]
-              : []),
+                ]),
             ...c.var.commands,
           ],
         },
@@ -285,6 +292,31 @@ const notAuthenticated = {
   message: 'You are not authenticated.',
 }
 
+function expiredSession(c: {
+  error: (options: {
+    code: string
+    cta?: { description: string; commands: Command[] }
+    message: string
+  }) => never
+  name: string
+  var: { commands: Command[] }
+}) {
+  Session.delete()
+  return c.error({
+    ...notAuthenticated,
+    cta: {
+      description: 'Log in:',
+      commands: [
+        {
+          command: `${c.name} auth login`,
+          description: `Authenticate with ${c.name}`,
+        },
+        ...c.var.commands,
+      ],
+    },
+  })
+}
+
 const auth = Cli.create('auth', {
   description: 'Authentication commands (check, login, logout)',
   vars,
@@ -297,22 +329,7 @@ const auth = Cli.create('auth', {
     async run(c) {
       const res = await c.var.client.api.auth.me.$get()
       const json = await res.json()
-      if (!json.account) {
-        Session.delete()
-        return c.error({
-          ...notAuthenticated,
-          cta: {
-            description: 'Log in:',
-            commands: [
-              {
-                command: `${c.name} auth login`,
-                description: `Authenticate with ${c.name}`,
-              },
-              ...c.var.commands,
-            ],
-          },
-        })
-      }
+      if (!json.account) return expiredSession(c)
       return c.ok('You are authenticated.')
     },
   })
@@ -395,6 +412,131 @@ const auth = Cli.create('auth', {
     },
   })
 
+const credits = Cli.create('credits', {
+  description: 'Manage prepaid credits (add, check)',
+  vars,
+})
+  .command('add', {
+    description: 'Add credits to your balance',
+    middleware: [requireAuth],
+    args: z.object({
+      amount: z
+        .enum(['500', '1000', '2000', '5000'])
+        .default('1000')
+        .describe('Amount in cents ($5, $10, $20, $50)'),
+    }),
+    output: z.string(),
+    format: 'md',
+    async run(c) {
+      const res = await c.var.client.api.credits.add.$post({
+        json: {
+          amount: c.args.amount,
+          organization_id: c.var.session?.organization_id,
+        },
+      })
+
+      if (res.status === 401) return expiredSession(c)
+
+      if (res.status === 403)
+        return c.error({
+          code: 'FORBIDDEN',
+          message:
+            'You must be an owner or admin to add credits to this organization.',
+        })
+
+      if (res.status !== 200)
+        return c.error({ code: 'UNKNOWN', message: 'Unexpected error.' })
+
+      const json = await res.json()
+      if (!json.url)
+        return c.error({ code: 'UNKNOWN', message: 'Unexpected error.' })
+
+      // Get current balance before opening checkout
+      const balanceRes = await c.var.client.api.credits.$get()
+      const initialBalance =
+        balanceRes.status === 200
+          ? (await balanceRes.json()).balance_mills
+          : null
+
+      openUrl(json.url)
+      console.log(
+        `\nIf something goes wrong, copy and paste this URL into your browser:\n${pc.bold(json.url)}\n`,
+      )
+
+      const spinner = createSpinner('Waiting for checkout to complete...')
+      const interval = 3_000
+      const timeout = 10 * 60 * 1000
+      const start = Date.now()
+      try {
+        while (Date.now() - start < timeout) {
+          await new Promise((r) => setTimeout(r, interval))
+          const checkRes = await c.var.client.api.credits.checkout[':id'].$get({
+            param: { id: json.checkout_id },
+          })
+          if (checkRes.status !== 200) continue
+          const checkJson = await checkRes.json()
+          if (checkJson.status === 'complete') {
+            // Wait for webhook to process and update balance
+            let delay = 500
+            const webhookTimeout = Date.now() + 60_000
+            while (Date.now() < webhookTimeout) {
+              await new Promise((r) => setTimeout(r, delay))
+              const newBalanceRes = await c.var.client.api.credits.$get()
+              if (newBalanceRes.status === 200) {
+                const newBalanceJson = await newBalanceRes.json()
+                if (
+                  initialBalance === null ||
+                  newBalanceJson.balance_mills > initialBalance
+                ) {
+                  spinner.stop()
+                  const dollars = (newBalanceJson.balance_mills / 1000).toFixed(
+                    3,
+                  )
+                  return c.ok(
+                    `Credits added! New balance: ${pc.green(`$${dollars}`)}`,
+                  )
+                }
+              }
+              delay = Math.min(delay * 2, 5_000)
+            }
+            spinner.stop()
+            return c.ok('Credits added!')
+          }
+          if (checkJson.status === 'expired') {
+            spinner.stop()
+            return c.error({
+              code: 'CHECKOUT_EXPIRED',
+              message: 'Checkout session expired.',
+            })
+          }
+        }
+        spinner.stop()
+        return c.ok(
+          'Checkout may still be processing. Run `credits check` to verify.',
+        )
+      } catch (error) {
+        spinner.stop()
+        throw error
+      }
+    },
+  })
+  .command('check', {
+    description: 'Check your current credit balance',
+    middleware: [requireAuth],
+    output: z.string(),
+    format: 'md',
+    async run(c) {
+      const res = await c.var.client.api.credits.$get()
+      if (res.status === 401) return expiredSession(c)
+      if (res.status !== 200)
+        return c.error({ code: 'UNKNOWN', message: 'Unexpected error.' })
+
+      const json = await res.json()
+      const dollars = (json.balance_mills / 1000).toFixed(3)
+      return c.ok(`Credit balance: ${pc.green(`$${dollars}`)}`)
+    },
+  })
+
 const invite = Cli.create('invite', {
   description: 'Manage organization invites (accept, create, list, revoke)',
   vars,
@@ -418,22 +560,7 @@ const invite = Cli.create('invite', {
         param: { token: inviteToken },
       })
 
-      if (res.status === 401) {
-        Session.delete()
-        return c.error({
-          ...notAuthenticated,
-          cta: {
-            description: 'Log in:',
-            commands: [
-              {
-                command: `${c.name} auth login`,
-                description: `Authenticate with ${c.name}`,
-              },
-              ...c.var.commands,
-            ],
-          },
-        })
-      }
+      if (res.status === 401) return expiredSession(c)
 
       if (res.status === 404)
         return c.error({
@@ -506,22 +633,7 @@ const invite = Cli.create('invite', {
         },
       })
 
-      if (res.status === 401) {
-        Session.delete()
-        return c.error({
-          ...notAuthenticated,
-          cta: {
-            description: 'Log in:',
-            commands: [
-              {
-                command: `${c.name} auth login`,
-                description: `Authenticate with ${c.name}`,
-              },
-              ...c.var.commands,
-            ],
-          },
-        })
-      }
+      if (res.status === 401) return expiredSession(c)
 
       if (res.status === 403)
         return c.error({
@@ -571,22 +683,7 @@ const invite = Cli.create('invite', {
         param: { id: orgId },
       })
 
-      if (res.status === 401) {
-        Session.delete()
-        return c.error({
-          ...notAuthenticated,
-          cta: {
-            description: 'Log in:',
-            commands: [
-              {
-                command: `${c.name} auth login`,
-                description: `Authenticate with ${c.name}`,
-              },
-              ...c.var.commands,
-            ],
-          },
-        })
-      }
+      if (res.status === 401) return expiredSession(c)
 
       if (res.status === 403)
         return c.error({
@@ -709,22 +806,7 @@ const invite = Cli.create('invite', {
         param: { id: orgId, inviteId },
       })
 
-      if (res.status === 401) {
-        Session.delete()
-        return c.error({
-          ...notAuthenticated,
-          cta: {
-            description: 'Log in:',
-            commands: [
-              {
-                command: `${c.name} auth login`,
-                description: `Authenticate with ${c.name}`,
-              },
-              ...c.var.commands,
-            ],
-          },
-        })
-      }
+      if (res.status === 401) return expiredSession(c)
 
       if (res.status === 404)
         return c.error({ code: 'NOT_FOUND', message: 'Invite not found.' })
@@ -775,22 +857,7 @@ const member = Cli.create('member', {
         json: { login: c.args.login, role: c.options.role },
       })
 
-      if (res.status === 401) {
-        Session.delete()
-        return c.error({
-          ...notAuthenticated,
-          cta: {
-            description: 'Log in:',
-            commands: [
-              {
-                command: `${c.name} auth login`,
-                description: `Authenticate with ${c.name}`,
-              },
-              ...c.var.commands,
-            ],
-          },
-        })
-      }
+      if (res.status === 401) return expiredSession(c)
 
       if (res.status === 403)
         return c.error({
@@ -840,22 +907,7 @@ const member = Cli.create('member', {
         param: { id: orgId },
       })
 
-      if (res.status === 401) {
-        Session.delete()
-        return c.error({
-          ...notAuthenticated,
-          cta: {
-            description: 'Log in:',
-            commands: [
-              {
-                command: `${c.name} auth login`,
-                description: `Authenticate with ${c.name}`,
-              },
-              ...c.var.commands,
-            ],
-          },
-        })
-      }
+      if (res.status === 401) return expiredSession(c)
 
       if (res.status === 403)
         return c.error({
@@ -915,20 +967,7 @@ const member = Cli.create('member', {
         param: { id: orgId },
       })
       if (listRes.status === 401) {
-        Session.delete()
-        return c.error({
-          ...notAuthenticated,
-          cta: {
-            description: 'Log in:',
-            commands: [
-              {
-                command: `${c.name} auth login`,
-                description: `Authenticate with ${c.name}`,
-              },
-              ...c.var.commands,
-            ],
-          },
-        })
+        return expiredSession(c)
       }
 
       if (listRes.status === 403)
@@ -978,22 +1017,7 @@ const member = Cli.create('member', {
         param: { id: orgId, memberId: match.id },
       })
 
-      if (res.status === 401) {
-        Session.delete()
-        return c.error({
-          ...notAuthenticated,
-          cta: {
-            description: 'Log in:',
-            commands: [
-              {
-                command: `${c.name} auth login`,
-                description: `Authenticate with ${c.name}`,
-              },
-              ...c.var.commands,
-            ],
-          },
-        })
-      }
+      if (res.status === 401) return expiredSession(c)
 
       if (res.status === 403) {
         const json = await res.json()
@@ -1047,20 +1071,7 @@ const member = Cli.create('member', {
         param: { id: orgId },
       })
       if (listRes.status === 401) {
-        Session.delete()
-        return c.error({
-          ...notAuthenticated,
-          cta: {
-            description: 'Log in:',
-            commands: [
-              {
-                command: `${c.name} auth login`,
-                description: `Authenticate with ${c.name}`,
-              },
-              ...c.var.commands,
-            ],
-          },
-        })
+        return expiredSession(c)
       }
 
       if (listRes.status === 403)
@@ -1127,22 +1138,7 @@ const member = Cli.create('member', {
         json: { role },
       })
 
-      if (res.status === 401) {
-        Session.delete()
-        return c.error({
-          ...notAuthenticated,
-          cta: {
-            description: 'Log in:',
-            commands: [
-              {
-                command: `${c.name} auth login`,
-                description: `Authenticate with ${c.name}`,
-              },
-              ...c.var.commands,
-            ],
-          },
-        })
-      }
+      if (res.status === 401) return expiredSession(c)
 
       if (res.status === 403) {
         const json = await res.json()
@@ -1187,22 +1183,7 @@ const org = Cli.create('org', {
           message: formatValidationError(json, json.error),
         })
       }
-      if (res.status === 401) {
-        Session.delete()
-        return c.error({
-          ...notAuthenticated,
-          cta: {
-            description: 'Log in:',
-            commands: [
-              {
-                command: `${c.name} auth login`,
-                description: `Authenticate with ${c.name}`,
-              },
-              ...c.var.commands,
-            ],
-          },
-        })
-      }
+      if (res.status === 401) return expiredSession(c)
 
       if (res.status === 409) {
         const json = await res.json()
@@ -1231,22 +1212,7 @@ const org = Cli.create('org', {
     format: 'md',
     async run(c) {
       const res = await c.var.client.api.orgs.$get()
-      if (res.status === 401) {
-        Session.delete()
-        return c.error({
-          ...notAuthenticated,
-          cta: {
-            description: 'Log in:',
-            commands: [
-              {
-                command: `${c.name} auth login`,
-                description: `Authenticate with ${c.name}`,
-              },
-              ...c.var.commands,
-            ],
-          },
-        })
-      }
+      if (res.status === 401) return expiredSession(c)
 
       const json = await res.json()
       let activeId = c.var.session?.organization_id
@@ -1284,22 +1250,7 @@ const org = Cli.create('org', {
       const res = await c.var.client.api.orgs[':id'].$get({
         param: { id: orgId },
       })
-      if (res.status === 401) {
-        Session.delete()
-        return c.error({
-          ...notAuthenticated,
-          cta: {
-            description: 'Log in:',
-            commands: [
-              {
-                command: `${c.name} auth login`,
-                description: `Authenticate with ${c.name}`,
-              },
-              ...c.var.commands,
-            ],
-          },
-        })
-      }
+      if (res.status === 401) return expiredSession(c)
 
       if (res.status === 404) {
         Session.write({ organization_id: undefined })
@@ -1325,22 +1276,7 @@ const org = Cli.create('org', {
     format: 'md',
     async run(c) {
       const res = await c.var.client.api.orgs.$get()
-      if (res.status === 401) {
-        Session.delete()
-        return c.error({
-          ...notAuthenticated,
-          cta: {
-            description: 'Log in:',
-            commands: [
-              {
-                command: `${c.name} auth login`,
-                description: `Authenticate with ${c.name}`,
-              },
-              ...c.var.commands,
-            ],
-          },
-        })
-      }
+      if (res.status === 401) return expiredSession(c)
 
       const json = await res.json()
       if (c.args.login) {
@@ -1403,22 +1339,7 @@ const token = Cli.create('token', {
         json: { name: c.args.name },
       })
 
-      if (res.status === 401) {
-        Session.delete()
-        return c.error({
-          ...notAuthenticated,
-          cta: {
-            description: 'Log in:',
-            commands: [
-              {
-                command: `${c.name} auth login`,
-                description: `Authenticate with ${c.name}`,
-              },
-              ...c.var.commands,
-            ],
-          },
-        })
-      }
+      if (res.status === 401) return expiredSession(c)
 
       if (res.status === 403)
         return c.error({
@@ -1455,22 +1376,7 @@ const token = Cli.create('token', {
     async run(c) {
       const res = await c.var.client.api.tokens.$get()
 
-      if (res.status === 401) {
-        Session.delete()
-        return c.error({
-          ...notAuthenticated,
-          cta: {
-            description: 'Log in:',
-            commands: [
-              {
-                command: `${c.name} auth login`,
-                description: `Authenticate with ${c.name}`,
-              },
-              ...c.var.commands,
-            ],
-          },
-        })
-      }
+      if (res.status === 401) return expiredSession(c)
 
       const json = await res.json()
       if (!json.api_keys.length) return c.ok('No tokens found.')
@@ -1495,20 +1401,7 @@ const token = Cli.create('token', {
     async run(c) {
       const listRes = await c.var.client.api.tokens.$get()
       if (listRes.status === 401) {
-        Session.delete()
-        return c.error({
-          ...notAuthenticated,
-          cta: {
-            description: 'Log in:',
-            commands: [
-              {
-                command: `${c.name} auth login`,
-                description: `Authenticate with ${c.name}`,
-              },
-              ...c.var.commands,
-            ],
-          },
-        })
+        return expiredSession(c)
       }
 
       const listJson = await listRes.json()
@@ -1556,22 +1449,7 @@ const token = Cli.create('token', {
         param: { id: match.id },
       })
 
-      if (res.status === 401) {
-        Session.delete()
-        return c.error({
-          ...notAuthenticated,
-          cta: {
-            description: 'Log in:',
-            commands: [
-              {
-                command: `${c.name} auth login`,
-                description: `Authenticate with ${c.name}`,
-              },
-              ...c.var.commands,
-            ],
-          },
-        })
-      }
+      if (res.status === 401) return expiredSession(c)
 
       if (res.status === 404)
         return c.error({
@@ -1659,6 +1537,7 @@ const update = Cli.create('update', {
 })
 
 cli.command(auth)
+cli.command(credits)
 cli.command(org.command(invite).command(member))
 cli.command(token)
 cli.command(update)

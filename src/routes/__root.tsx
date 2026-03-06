@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import {
   createRootRoute,
   HeadContent,
+  Link,
   Outlet,
   Scripts,
 } from '@tanstack/react-router'
@@ -32,6 +33,7 @@ export const Route = createRootRoute({
     ],
   }),
   component: RootComponent,
+  notFoundComponent: NotFound,
   shellComponent: RootDocument,
 })
 
@@ -42,6 +44,18 @@ function RootComponent() {
         <Outlet />
       </div>
     </QueryClientProvider>
+  )
+}
+
+function NotFound() {
+  return (
+    <div className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center px-6">
+      <h1 className="font-bold text-lg">404</h1>
+      <p className="mt-2 text-gray9 dark:text-gray6">Page not found</p>
+      <Link className="mt-4 hover:underline" to="/">
+        Go home
+      </Link>
+    </div>
   )
 }
 

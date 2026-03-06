@@ -13,6 +13,8 @@ const schema = z.object({
   GH_CLIENT_ID: z.string(),
   GH_CLIENT_SECRET: z.string(),
   HOST: z.string(),
+  STRIPE_SECRET_KEY: z.string(),
+  STRIPE_WEBHOOK_SECRET: z.string(),
   TOKEN_ENCRYPTION_KEY: z.string(),
 })
 
@@ -27,6 +29,8 @@ export const Env = {
       GH_CLIENT_ID: 'test',
       GH_CLIENT_SECRET: 'test',
       HOST: 'curl.local',
+      STRIPE_SECRET_KEY: 'sk_test_fake',
+      STRIPE_WEBHOOK_SECRET: 'whsec_test_fake',
       TOKEN_ENCRYPTION_KEY: 'dGVzdC1lbmNyeXB0aW9uLWtleXRlc3QtZW5jcnlwdGk=',
       ...overrides,
     } satisfies Input

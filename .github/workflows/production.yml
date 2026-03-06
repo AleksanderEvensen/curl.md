@@ -103,15 +103,10 @@ jobs:
       contents: write
       id-token: write
       pull-requests: write
+    outputs:
+      published: ${{ steps.changesets.outputs.published }}
+      publishedPackages: ${{ steps.changesets.outputs.publishedPackages }}
     steps:
-      - name: Generate token
-        id: app-token
-        uses: actions/create-github-app-token@df432ceedc7162793a195dd1713ff69aefc7379e # v2.0.6
-        with:
-          app-id: ${{ secrets.PRO_APP_ID }}
-          private-key: ${{ secrets.PRO_APP_PRIVATE_KEY }}
-          repositories: curl.md
-
       - name: Checkout
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
@@ -122,6 +117,7 @@ jobs:
         run: pnpm build:cli
 
       - name: Create release PR or publish
+        id: changesets
         uses: changesets/action@6a0a831ff30acef54f2c6aa1cbbc1096b066edaf # v1.7.0
         with:
           commit: "chore: version packages"
@@ -129,6 +125,14 @@ jobs:
           version: pnpm changeset version
           publish: pnpm pkg:publish
         env:
-          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # TODO: uncomment when repo is public
           # NPM_CONFIG_PROVENANCE: true
+
+  release_binaries:
+    name: Release Binaries
+    needs: changesets
+    if: needs.changesets.outputs.published == 'true'
+    uses: ./.github/workflows/release_binaries.yml
+    with:
+      tag: ${{ fromJson(needs.changesets.outputs.publishedPackages)[0].name }}@${{ fromJson(needs.changesets.outputs.publishedPackages)[0].version }}

@@ -8,8 +8,8 @@ import { assert } from '#lib/assert.ts'
 import * as Cookie from '#lib/cookie.ts'
 import * as Crypto from '#lib/crypto.ts'
 import type { DB } from '#lib/db.gen.ts'
+import { dialect } from '#lib/db.ts'
 import * as Nanoid from '#lib/nanoid.ts'
-import { dialect } from '#lib/pg.ts'
 import { createFactory } from '../test/factory.ts'
 
 const client = testClient(api, env, {
@@ -552,6 +552,155 @@ describe('GET /api/auth/me', () => {
       .select('last_used_at')
       .executeTakeFirstOrThrow()
     expect(updated.last_used_at).not.toBeNull()
+  })
+})
+
+describe('GET /api/credits', () => {
+  test('returns 401 when unauthenticated', async () => {
+    const res = await client.api.credits.$get({})
+    expect(res.status).toBe(401)
+  })
+
+  test('returns account balance', async () => {
+    const account = await factory.account.insert({})
+    await db
+      .updateTable('account')
+      .set({ balance_mills: 50000 })
+      .where('id', '=', account.id)
+      .execute()
+    const session = await factory.session.insert({ account_id: account.id })
+
+    const res = await client.api.credits.$get(
+      {},
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned(
+            'curl.session',
+            session.id,
+            env.COOKIE_SECRET,
+          ),
+        },
+      },
+    )
+    expect(res.status).toBe(200)
+    await expect(res.json()).resolves.toEqual({ balance_mills: 50000 })
+  })
+
+  test('returns organization balance', async () => {
+    const account = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: account.id })
+    const org = await factory.organization.insert({})
+    await db
+      .updateTable('organization')
+      .set({ balance_mills: 30000 })
+      .where('id', '=', org.id)
+      .execute()
+    await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: account.id,
+      role: 'owner',
+    })
+
+    const res = await client.api.credits.$get(
+      {},
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned(
+            'curl.session',
+            session.id,
+            env.COOKIE_SECRET,
+          ),
+          'x-organization-id': org.id,
+        },
+      },
+    )
+    expect(res.status).toBe(200)
+    await expect(res.json()).resolves.toEqual({ balance_mills: 30000 })
+  })
+})
+
+describe('POST /api/credits/add', () => {
+  test('returns 401 when unauthenticated', async () => {
+    const res = await client.api.credits.add.$post({
+      json: { amount: '500' },
+    })
+    expect(res.status).toBe(401)
+  })
+
+  test('creates checkout session for account', async () => {
+    const account = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: account.id })
+
+    fetchMock
+      .get('https://api.stripe.com')
+      .intercept({ method: 'POST', path: '/v1/customers' })
+      .reply(
+        200,
+        { id: 'cus_test_123', object: 'customer' },
+        { headers: { 'content-type': 'application/json' } },
+      )
+    fetchMock
+      .get('https://api.stripe.com')
+      .intercept({ method: 'POST', path: '/v1/checkout/sessions' })
+      .reply(
+        200,
+        {
+          id: 'cs_test_123',
+          object: 'checkout.session',
+          url: 'https://checkout.stripe.com/pay/cs_test_123',
+        },
+        { headers: { 'content-type': 'application/json' } },
+      )
+
+    const res = await client.api.credits.add.$post(
+      { json: { amount: '500' } },
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned(
+            'curl.session',
+            session.id,
+            env.COOKIE_SECRET,
+          ),
+        },
+      },
+    )
+    expect(res.status).toBe(200)
+    await expect(res.json()).resolves.toEqual({
+      url: 'https://checkout.stripe.com/pay/cs_test_123',
+      checkout_id: 'cs_test_123',
+    })
+
+    const updated = await db
+      .selectFrom('account')
+      .where('id', '=', account.id)
+      .select('stripe_customer_id')
+      .executeTakeFirstOrThrow()
+    expect(updated.stripe_customer_id).toBe('cus_test_123')
+  })
+
+  test('returns 403 for org when not owner/admin', async () => {
+    const account = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: account.id })
+    const org = await factory.organization.insert({})
+    await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: account.id,
+      role: 'member',
+    })
+
+    const res = await client.api.credits.add.$post(
+      { json: { amount: '500', organization_id: org.id } },
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned(
+            'curl.session',
+            session.id,
+            env.COOKIE_SECRET,
+          ),
+        },
+      },
+    )
+    expect(res.status).toBe(403)
   })
 })
 
@@ -1276,7 +1425,7 @@ test('GET /api/:url with q= uses stricter query limit', async () => {
     { headers: { 'cf-connecting-ip': '10.0.0.3' } },
   )
   expect(res.status).toBe(200)
-  expect(res.headers.get('x-ratelimit-limit')).toBe('10')
+  expect(res.headers.get('x-ratelimit-limit')).toBe('3')
 })
 
 test('GET /api/:url returns 429 when fetch limit exceeded', async () => {
@@ -1309,6 +1458,174 @@ test('GET /api/:url returns 429 when query limit exceeded', async () => {
   expect(res.status).toBe(429)
   expect(res.headers.get('retry-after')).toBeTruthy()
   await expect(res.json()).resolves.toEqual({ error: 'rate_limit_exceeded' })
+})
+
+test('GET /api/:url authed 429 includes credits message', async () => {
+  const account = await factory.account.insert({})
+  const session = await factory.session.insert({ account_id: account.id })
+
+  await env.KV.put(
+    `ratelimit:fetch:${account.id}`,
+    JSON.stringify({
+      count: 1000,
+      reset: Math.floor(Date.now() / 1000) + 3600,
+    }),
+    { expirationTtl: 3600 },
+  )
+
+  const res = await client.api[':url{.+}'].$get(
+    { param: { url: 'rl-authed-exceeded.example.com' }, query: {} },
+    {
+      headers: {
+        Cookie: await Cookie.generateSigned(
+          'curl.session',
+          session.id,
+          env.COOKIE_SECRET,
+        ),
+      },
+    },
+  )
+  expect(res.status).toBe(429)
+  const json = await res.json()
+  expect(json).toEqual({
+    error: 'rate_limit_exceeded',
+    message: 'Add credits to remove rate limits',
+  })
+})
+
+test('GET /api/:url paid user skips rate limits', async () => {
+  const account = await factory.account.insert({})
+  const session = await factory.session.insert({ account_id: account.id })
+
+  // Seed balance cache
+  await env.KV.put(`balance:${account.id}`, '1000')
+
+  // Seed rate limit to already exceeded
+  await env.KV.put(
+    `ratelimit:fetch:${account.id}`,
+    JSON.stringify({
+      count: 1000,
+      reset: Math.floor(Date.now() / 1000) + 3600,
+    }),
+    { expirationTtl: 3600 },
+  )
+
+  fetchMock
+    .get('https://rl-paid.example.com')
+    .intercept({ path: '/' })
+    .reply(200, '<html><body><p>ok</p></body></html>', {
+      headers: { 'content-type': 'text/html' },
+    })
+
+  const res = await client.api[':url{.+}'].$get(
+    { param: { url: 'rl-paid.example.com' }, query: {} },
+    {
+      headers: {
+        Cookie: await Cookie.generateSigned(
+          'curl.session',
+          session.id,
+          env.COOKIE_SECRET,
+        ),
+      },
+    },
+  )
+  // Paid user should NOT get 429 even though rate limit is exceeded
+  expect(res.status).toBe(200)
+  // Should not have rate limit headers
+  expect(res.headers.get('x-ratelimit-limit')).toBeNull()
+})
+
+test('GET /api/:url zero balance user gets authed rate limits', async () => {
+  const account = await factory.account.insert({})
+  const session = await factory.session.insert({ account_id: account.id })
+
+  // Seed balance cache with 0
+  await env.KV.put(`balance:${account.id}`, '0')
+
+  fetchMock
+    .get('https://rl-zero-bal.example.com')
+    .intercept({ path: '/' })
+    .reply(200, '<html><body><p>ok</p></body></html>', {
+      headers: { 'content-type': 'text/html' },
+    })
+
+  const res = await client.api[':url{.+}'].$get(
+    { param: { url: 'rl-zero-bal.example.com' }, query: {} },
+    {
+      headers: {
+        Cookie: await Cookie.generateSigned(
+          'curl.session',
+          session.id,
+          env.COOKIE_SECRET,
+        ),
+      },
+    },
+  )
+  expect(res.status).toBe(200)
+  // Should have authed rate limit headers (1000 for fetch)
+  expect(res.headers.get('x-ratelimit-limit')).toBe('1000')
+})
+
+test('GET /api/:url paid user gets x-credits-remaining header', async () => {
+  const account = await factory.account.insert({})
+  const session = await factory.session.insert({ account_id: account.id })
+
+  await env.KV.put(`balance:${account.id}`, '500')
+
+  fetchMock
+    .get('https://rl-credits.example.com')
+    .intercept({ path: '/' })
+    .reply(200, '<html><body><p>ok</p></body></html>', {
+      headers: { 'content-type': 'text/html' },
+    })
+
+  const res = await client.api[':url{.+}'].$get(
+    { param: { url: 'rl-credits.example.com' }, query: {} },
+    {
+      headers: {
+        Cookie: await Cookie.generateSigned(
+          'curl.session',
+          session.id,
+          env.COOKIE_SECRET,
+        ),
+      },
+    },
+  )
+  expect(res.status).toBe(200)
+  // fetch costs 1 mill, so 500 - 1 = 499
+  expect(res.headers.get('x-credits-remaining')).toBe('499')
+})
+
+test('GET /api/:url query request cost scales with input size', async () => {
+  const account = await factory.account.insert({})
+  const session = await factory.session.insert({ account_id: account.id })
+  await env.KV.put(`balance:${account.id}`, '100')
+
+  await env.KV.put(
+    'page:https://cost-query.example.com/',
+    JSON.stringify({
+      content: '<html><body><p>ok</p></body></html>',
+      contentType: 'text/html',
+    }),
+  )
+  await env.KV.put('query:https://cost-query.example.com/:test:', 'ok')
+
+  const res = await client.api[':url{.+}'].$get(
+    { param: { url: 'cost-query.example.com' }, query: { q: 'test' } },
+    {
+      headers: {
+        Cookie: await Cookie.generateSigned(
+          'curl.session',
+          session.id,
+          env.COOKIE_SECRET,
+        ),
+      },
+    },
+  )
+  expect(res.status).toBe(200)
+  // cached query: inputChars=0, cost = 1 + ceil(0/4000) = 1 mill, so 100 - 1 = 99
+  expect(res.headers.get('x-cost-mills')).toBe('1')
+  expect(res.headers.get('x-credits-remaining')).toBe('99')
 })
 
 describe('GET /api/invites/:token', () => {
@@ -2755,5 +3072,86 @@ describe('DELETE /api/orgs/:id/members/:memberId', () => {
       },
     )
     expect(res.status).toBe(404)
+  })
+})
+
+describe('POST /api/stripe/webhook', () => {
+  test('returns 400 when signature missing', async () => {
+    const res = await api.request(
+      '/api/stripe/webhook',
+      {
+        method: 'POST',
+        body: '{}',
+        headers: { 'content-type': 'application/json' },
+      },
+      env,
+    )
+    expect(res.status).toBe(400)
+    await expect(res.json()).resolves.toEqual({ error: 'missing_signature' })
+  })
+
+  test('returns 400 when signature invalid', async () => {
+    const res = await api.request(
+      '/api/stripe/webhook',
+      {
+        method: 'POST',
+        body: '{}',
+        headers: {
+          'content-type': 'application/json',
+          'stripe-signature': 'invalid_sig',
+        },
+      },
+      env,
+    )
+    expect(res.status).toBe(400)
+    await expect(res.json()).resolves.toEqual({ error: 'invalid_signature' })
+  })
+
+  test('accepts valid signature and queues event', async () => {
+    const payload = JSON.stringify({
+      id: 'evt_test_valid',
+      type: 'checkout.session.completed',
+      data: {
+        object: {
+          id: 'cs_test_valid',
+          amount_total: 500,
+          customer: 'cus_test_valid',
+        },
+      },
+    })
+
+    // Compute HMAC signature (async-safe for Workers)
+    const timestamp = Math.floor(Date.now() / 1000)
+    const key = await crypto.subtle.importKey(
+      'raw',
+      new TextEncoder().encode(env.STRIPE_WEBHOOK_SECRET),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign'],
+    )
+    const sig = await crypto.subtle.sign(
+      'HMAC',
+      key,
+      new TextEncoder().encode(`${timestamp}.${payload}`),
+    )
+    const hex = [...new Uint8Array(sig)]
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('')
+    const header = `t=${timestamp},v1=${hex}`
+
+    const res = await api.request(
+      '/api/stripe/webhook',
+      {
+        method: 'POST',
+        body: payload,
+        headers: {
+          'content-type': 'application/json',
+          'stripe-signature': header,
+        },
+      },
+      env,
+    )
+    expect(res.status).toBe(200)
+    await expect(res.json()).resolves.toEqual({ received: true })
   })
 })

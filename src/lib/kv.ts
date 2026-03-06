@@ -1,10 +1,8 @@
 /** Key-to-JSON-value mapping for typed KV access. */
 type ValueFor<K extends string> =
+  | (K extends `balance:${string}` ? number : never)
   | (K extends 'stats:tokens_saved' ? number : never)
   | (K extends `stats:tokens_saved:${string}` ? number : never)
-  | (K extends `check:${string}`
-      ? { score: number; tokens: number; saved: number }
-      : never)
   | (K extends `page:${string}`
       ? { content: string; contentType: string }
       : never)
@@ -18,7 +16,7 @@ type ValueFor<K extends string> =
   | (K extends `session:${string}` ? string : never)
 
 export type KVKey =
-  | `check:${string}`
+  | `balance:${string}`
   | 'cli:latest'
   | `page:${string}`
   | `query:${string}`

@@ -55,6 +55,8 @@ Add the following secrets to your GitHub repository (Settings → Secrets and va
 * `DB_URL` - PlanetScale Postgres connection string (for CI migrations)
 * `GH_CLIENT_ID` - GitHub App client ID (see [GitHub App Setup](#github-app-setup))
 * `GH_CLIENT_SECRET` - GitHub App client secret (see [GitHub App Setup](#github-app-setup))
+* `STRIPE_SECRET_KEY` - Stripe secret key (see [Stripe Setup](#stripe-setup))
+* `STRIPE_WEBHOOK_SECRET` - Stripe webhook signing secret (see [Stripe Setup](#stripe-setup))
 * `TOKEN_ENCRYPTION_KEY` - Base64-encoded 256-bit key for encrypting OAuth tokens (`openssl rand -base64 32`)
 
 ### Creating a Cloudflare API Token
@@ -89,6 +91,24 @@ Add the following secrets to your GitHub repository (Settings → Secrets and va
 5. Click "Create GitHub App"
 6. Copy the **Client ID** → `GH_CLIENT_ID` in `.env`
 7. Click "Generate a new client secret" → `GH_CLIENT_SECRET` in `.env`
+
+### Stripe Setup
+
+Stripe powers prepaid credit billing. A single Stripe account is used with test mode for development and live mode for production.
+
+1. Go to [Stripe Dashboard](https://dashboard.stripe.com)
+2. Copy your **Secret key** from [API keys](https://dashboard.stripe.com/test/apikeys) → `STRIPE_SECRET_KEY` in `.env`
+3. Run `docker compose up -d` — the `stripe` service auto-forwards webhooks to the app
+4. Grab the webhook signing secret:
+   ```bash
+   docker logs curl-stripe 2>&1 | grep -o 'whsec_[a-zA-Z0-9]*'
+   ```
+   Copy it → `STRIPE_WEBHOOK_SECRET` in `.env`, then restart: `docker compose up -d`
+5. For **production**:
+   - Go to [Webhooks](https://dashboard.stripe.com/webhooks) → "Add endpoint"
+   - Set URL to `https://curl.md/api/stripe/webhook`
+   - Select events: `checkout.session.completed`, `charge.dispute.created`, `charge.refunded`
+   - Copy the signing secret → `STRIPE_WEBHOOK_SECRET`
 
 ### WWW Redirect
 

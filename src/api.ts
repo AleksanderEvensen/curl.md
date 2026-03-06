@@ -1,10 +1,9 @@
-import { Octokit } from '@octokit/core'
 import { Hono } from 'hono'
 import { html, raw } from 'hono/html'
 import { Kysely, sql } from 'kysely'
 import { jsonArrayFrom } from 'kysely/helpers/postgres'
 import { customAlphabet } from 'nanoid'
-import { ImageResponse } from 'workers-og'
+import { estimateTokenCount } from 'tokenx'
 import { z } from 'zod'
 import * as ApiKey from '#lib/api-key.ts'
 import { attribution, packageName } from '#lib/constants.ts'
@@ -12,10 +11,10 @@ import * as Cookie from '#lib/cookie.ts'
 import { fetchPage } from '#lib/core/fetch-page.ts'
 import * as Crypto from '#lib/crypto.ts'
 import type { DB } from '#lib/db.gen.ts'
+import { dialect } from '#lib/db.ts'
 import { narrowValidation, validationError, validator } from '#lib/hono.ts'
 import * as Nanoid from '#lib/nanoid.ts'
 import * as Og from '#lib/og.tsx'
-import { dialect } from '#lib/pg.ts'
 import { knownRoutes } from '#lib/routes.ts'
 import { urlSchema } from '#lib/schemas.ts'
 import type { OneOf } from '#lib/types.ts'
@@ -240,6 +239,7 @@ export const api = new Hono<{
         return c.redirect(errorUrl.toString())
       }
 
+      const { Octokit } = await import('@octokit/core')
       const octokit = new Octokit({ auth: tokenData.access_token })
       const [userRes, emailsRes] = await Promise.all([
         octokit.request('GET /user').catch((e: Error) => e),
@@ -616,7 +616,162 @@ export const api = new Hono<{
       return c.json(result, 200)
     },
   )
+  .get('/api/credits', async (c) => {
+    if (!c.var.session) return c.json({ error: 'unauthorized' }, 401)
+
+    const orgId = c.req.header('x-organization-id')
+    if (orgId) {
+      if (!c.var.organization_id)
+        return c.json({ error: 'organization_access_denied' }, 403)
+      const org = await c.var.db
+        .selectFrom('organization')
+        .where('id', '=', orgId)
+        .select('balance_mills')
+        .executeTakeFirst()
+      return c.json({ balance_mills: org?.balance_mills ?? 0 }, 200)
+    }
+
+    const account = await c.var.db
+      .selectFrom('account')
+      .where('id', '=', c.var.session.account_id)
+      .select('balance_mills')
+      .executeTakeFirst()
+    return c.json({ balance_mills: account?.balance_mills ?? 0 }, 200)
+  })
+  .post(
+    '/api/credits/add',
+    validator(
+      'json',
+      z.object({
+        amount: z.enum(['500', '1000', '2000', '5000']),
+        organization_id: z.string().optional(),
+      }),
+    ),
+    async (c) => {
+      if (narrowValidation) return validationError(c)
+      if (!c.var.session) return c.json({ error: 'unauthorized' }, 401)
+
+      const json = c.req.valid('json')
+      const amount = Number(json.amount)
+
+      // Determine billing entity
+      let stripeCustomerId: string | null = null
+      let entityId: string
+      let entityType: 'account' | 'organization'
+
+      if (json.organization_id) {
+        // Check org membership + role
+        const member = await c.var.db
+          .selectFrom('organization_member')
+          .where('organization_id', '=', json.organization_id)
+          .where('account_id', '=', c.var.session.account_id)
+          .select('role')
+          .executeTakeFirst()
+        if (!member) return c.json({ error: 'organization_access_denied' }, 403)
+        if (member.role !== 'owner' && member.role !== 'admin')
+          return c.json({ error: 'organization_access_denied' }, 403)
+
+        const org = await c.var.db
+          .selectFrom('organization')
+          .where('id', '=', json.organization_id)
+          .select('stripe_customer_id')
+          .executeTakeFirst()
+        if (!org) return c.json({ error: 'not_found' }, 404)
+
+        stripeCustomerId = org.stripe_customer_id
+        entityId = json.organization_id
+        entityType = 'organization'
+      } else {
+        const account = await c.var.db
+          .selectFrom('account')
+          .where('id', '=', c.var.session.account_id)
+          .select('stripe_customer_id')
+          .executeTakeFirst()
+        if (!account) return c.json({ error: 'not_found' }, 404)
+
+        stripeCustomerId = account.stripe_customer_id
+        entityId = c.var.session.account_id
+        entityType = 'account'
+      }
+
+      const { default: Stripe } = await import('stripe')
+      const stripe = new Stripe(c.env.STRIPE_SECRET_KEY)
+
+      // Create Stripe customer lazily
+      if (!stripeCustomerId) {
+        const customer = await stripe.customers.create({
+          metadata: { entity_type: entityType, entity_id: entityId },
+        })
+        const result = await c.var.db
+          .updateTable(entityType)
+          .set({ stripe_customer_id: customer.id })
+          .where('id', '=', entityId)
+          .where('stripe_customer_id', 'is', null)
+          .returning('stripe_customer_id')
+          .executeTakeFirst()
+        if (result?.stripe_customer_id) {
+          stripeCustomerId = result.stripe_customer_id
+        } else {
+          // Another request won the race — use existing customer
+          const existing = await c.var.db
+            .selectFrom(entityType)
+            .where('id', '=', entityId)
+            .select('stripe_customer_id')
+            .executeTakeFirstOrThrow()
+          stripeCustomerId = existing.stripe_customer_id
+          // Clean up orphaned Stripe customer
+          await stripe.customers.del(customer.id)
+        }
+      }
+
+      if (!stripeCustomerId) return c.json({ error: 'not_found' }, 404)
+
+      const session = await stripe.checkout.sessions.create({
+        customer: stripeCustomerId,
+        line_items: [
+          {
+            price_data: {
+              currency: 'usd',
+              product_data: { name: `${amount} credits` },
+              unit_amount: amount,
+            },
+            quantity: 1,
+          },
+        ],
+        metadata: { entity_type: entityType, entity_id: entityId },
+        mode: 'payment',
+        success_url: `https://${c.env.HOST}`,
+        cancel_url: `https://${c.env.HOST}`,
+      })
+
+      return c.json({ url: session.url, checkout_id: session.id }, 200)
+    },
+  )
+  .get('/api/credits/checkout/:id', async (c) => {
+    if (!c.var.session) return c.json({ error: 'unauthorized' }, 401)
+
+    const { default: Stripe } = await import('stripe')
+    const stripe = new Stripe(c.env.STRIPE_SECRET_KEY)
+
+    try {
+      const session = await stripe.checkout.sessions.retrieve(c.req.param('id'))
+      return c.json({ status: session.status }, 200)
+    } catch {
+      return c.json({ error: 'not_found' }, 404)
+    }
+  })
   .get('/api/health', (c) => c.json({ ok: true }, 200))
+  .get('/api/stats', async (c) => {
+    try {
+      const result = await c.var.db
+        .selectFrom('request')
+        .select((eb) => eb.fn.sum<number>('tokens_saved').as('total'))
+        .executeTakeFirstOrThrow()
+      return c.json({ tokens_saved: result.total ?? 0 }, 200)
+    } catch {
+      return c.json({ tokens_saved: 0 }, 200)
+    }
+  })
   .get('/api/invites/:token', async (c) => {
     const invite = await c.var.db
       .selectFrom('organization_invite')
@@ -717,6 +872,7 @@ export const api = new Hono<{
         Og.loadFont(c.req.raw, c.env, '/fonts/GeistMono-Regular.ttf'),
         Og.loadFont(c.req.raw, c.env, '/fonts/GeistMono-Black.ttf'),
       ])
+      const { ImageResponse } = await import('workers-og')
       return new ImageResponse(element, {
         fonts: [
           { data: font, name: 'Geist Mono', style: 'normal', weight: 400 },
@@ -815,20 +971,24 @@ export const api = new Hono<{
       if (reservedLogins.has(json.login))
         return c.json({ error: 'login_reserved' }, 409)
 
-      const [existingOrg, existingAccount] = await Promise.all([
-        c.var.db
-          .selectFrom('organization')
-          .where('login', '=', json.login)
-          .select('id')
-          .executeTakeFirst(),
-        c.var.db
-          .selectFrom('account')
-          .where('login', '=', json.login)
-          .select('id')
-          .executeTakeFirst(),
-      ])
-      if (existingOrg || existingAccount)
-        return c.json({ error: 'login_taken' }, 409)
+      const existingLogin = await c.var.db
+        .selectFrom((eb) =>
+          eb
+            .selectFrom('account')
+            .select('id')
+            .where('login', '=', json.login)
+            .unionAll(
+              eb
+                .selectFrom('organization')
+                .select('id')
+                .where('login', '=', json.login),
+            )
+            .as('existing'),
+        )
+        .select('id')
+        .limit(1)
+        .executeTakeFirst()
+      if (existingLogin) return c.json({ error: 'login_taken' }, 409)
 
       const accountId = c.var.session.account_id
       try {
@@ -1194,6 +1354,82 @@ export const api = new Hono<{
     if (!result.numUpdatedRows) return c.json({ error: 'not_found' }, 404)
     return c.json({ ok: true }, 200)
   })
+  .post('/api/stripe/webhook', async (c) => {
+    const body = await c.req.text()
+    const signature = c.req.header('stripe-signature')
+    if (!signature) return c.json({ error: 'missing_signature' }, 400)
+
+    const { default: Stripe } = await import('stripe')
+    const stripe = new Stripe(c.env.STRIPE_SECRET_KEY)
+
+    let event: import('stripe').Stripe.Event
+    try {
+      event = await stripe.webhooks.constructEventAsync(
+        body,
+        signature,
+        c.env.STRIPE_WEBHOOK_SECRET,
+      )
+    } catch {
+      return c.json({ error: 'invalid_signature' }, 400)
+    }
+
+    switch (event.type) {
+      case 'checkout.session.completed': {
+        const session = event.data
+          .object as import('stripe').Stripe.Checkout.Session
+        const customer =
+          typeof session.customer === 'string' ? session.customer : null
+        if (customer && session.amount_total)
+          c.env.STRIPE_WEBHOOK_QUEUE.send({
+            type: event.type,
+            data: {
+              amount_total: session.amount_total,
+              customer,
+              id: session.id,
+            },
+          })
+        break
+      }
+      case 'charge.dispute.created': {
+        // TODO: send chargeback alert (email/Slack)
+        const dispute = event.data.object as import('stripe').Stripe.Dispute
+        const charge =
+          typeof dispute.charge === 'string'
+            ? await stripe.charges.retrieve(dispute.charge)
+            : dispute.charge
+        const customer =
+          typeof charge.customer === 'string' ? charge.customer : null
+        if (customer)
+          c.env.STRIPE_WEBHOOK_QUEUE.send({
+            type: event.type,
+            data: {
+              amount_total: dispute.amount,
+              customer,
+              id: dispute.id,
+            },
+          })
+        break
+      }
+      case 'charge.refunded': {
+        const charge = event.data.object as import('stripe').Stripe.Charge
+        const refund = charge.refunds?.data?.[0]
+        const customer =
+          typeof charge.customer === 'string' ? charge.customer : null
+        if (refund && customer)
+          c.env.STRIPE_WEBHOOK_QUEUE.send({
+            type: event.type,
+            data: {
+              amount_total: refund.amount,
+              customer,
+              id: refund.id,
+            },
+          })
+        break
+      }
+    }
+
+    return c.json({ received: true }, 200)
+  })
   .get(
     '/api/:url{.+}',
     validator(
@@ -1255,16 +1491,28 @@ export const api = new Hono<{
       if (orgHeader && !c.var.organization_id)
         return c.json({ error: 'organization_access_denied' }, 403)
 
-      // Rate limit: two tiers (fetch = abuse prevention, query = cost protection)
-      // TODO: use metered billing for authenticated accounts so no limits
+      // Rate limit: three tiers (anon, authed/free, paid)
       const identity = c.var.session
         ? c.var.session.account_id
         : (c.req.header('cf-connecting-ip') ?? 'unknown')
       const isAuthed = !!c.var.session
+      // Cost calculated after fetchPage (need chunk count for queries)
+
+      // Check balance for paid tier
+      let billable = false
+      if (isAuthed) {
+        const billingEntityId =
+          c.var.organization_id ?? c.var.session?.account_id
+        const balanceKey = `balance:${billingEntityId}` as const
+        const cached = await c.env.KV.get(balanceKey)
+        const balanceMills = cached !== null ? Number(cached) : 0
+        if (balanceMills > 0) billable = true
+      }
+
       const limit = query.q
         ? {
             key: `query:${identity}` as const,
-            max: isAuthed ? 100 : 10,
+            max: isAuthed ? 10 : 3,
             window: 3600,
           }
         : {
@@ -1273,31 +1521,44 @@ export const api = new Hono<{
             window: 3600,
           }
 
-      const kvKey = `ratelimit:${limit.key}` as const
-      const now = Math.floor(Date.now() / 1000)
-      const record = await c.env.KV.get(kvKey, 'json')
+      // Paid users skip rate limiting
+      let rateLimitHeaders: Record<string, string> = {}
+      if (!billable) {
+        const kvKey = `ratelimit:${limit.key}` as const
+        const now = Math.floor(Date.now() / 1000)
+        const record = await c.env.KV.get(kvKey, 'json')
 
-      const reset =
-        record && record.reset > now ? record.reset : now + limit.window
-      const count = record && record.reset > now ? record.count + 1 : 1
+        const reset =
+          record && record.reset > now ? record.reset : now + limit.window
+        const count = record && record.reset > now ? record.count + 1 : 1
 
-      const rateLimitHeaders = {
-        'x-ratelimit-limit': String(limit.max),
-        'x-ratelimit-remaining': String(Math.max(0, limit.max - count)),
-        'x-ratelimit-reset': String(reset),
+        rateLimitHeaders = {
+          'x-ratelimit-limit': String(limit.max),
+          'x-ratelimit-remaining': String(Math.max(0, limit.max - count)),
+          'x-ratelimit-reset': String(reset),
+        }
+
+        if (count > limit.max)
+          return c.json(
+            {
+              error: 'rate_limit_exceeded',
+              ...(isAuthed && {
+                message: 'Add credits to remove rate limits',
+              }),
+            },
+            429,
+            {
+              ...rateLimitHeaders,
+              'retry-after': String(reset - now),
+            },
+          )
+
+        c.executionCtx.waitUntil(
+          c.env.KV.put(kvKey, JSON.stringify({ count, reset }), {
+            expirationTtl: limit.window,
+          }),
+        )
       }
-
-      if (count > limit.max)
-        return c.json({ error: 'rate_limit_exceeded' }, 429, {
-          ...rateLimitHeaders,
-          'retry-after': String(reset - now),
-        })
-
-      c.executionCtx.waitUntil(
-        c.env.KV.put(kvKey, JSON.stringify({ count, reset }), {
-          expirationTtl: limit.window,
-        }),
-      )
 
       let page: Awaited<ReturnType<typeof fetchPage>>
       try {
@@ -1311,15 +1572,20 @@ export const api = new Hono<{
         return c.json({ error: 'fetch_failed', message }, 502)
       }
 
+      // Fetch: 1 mill. Query: 1 mill base + 1 mill per 1K input tokens
+      const costMills = query.q ? 1 + Math.ceil(page.inputChars / 4000) : 1
+
       const requestId = Nanoid.generate()
       c.env.REQUEST_QUEUE.send({
         account_id: c.var.session?.account_id ?? null,
         api_key_id: c.var.api_key_id,
+        billable,
+        cost_mills: costMills,
         estimated: page.estimated,
         hostname: url.hostname,
         id: requestId,
         keywords: query.k?.join(',') || null,
-        markdownLength: page.markdown.length,
+        markdownTokens: estimateTokenCount(page.markdown),
         objective: query.q || null,
         organization_id: c.var.organization_id,
         path: url.pathname,
@@ -1331,13 +1597,23 @@ export const api = new Hono<{
       const content = c.var.session
         ? page.markdown.trimEnd()
         : `${page.markdown.trimEnd()}${attribution.suffix}`
-      const commonHeaders = {
+      const commonHeaders: Record<string, string> = {
         ...rateLimitHeaders,
         'access-control-expose-headers':
-          'retry-after, x-ratelimit-limit, x-ratelimit-remaining, x-ratelimit-reset, x-request-id, x-tokens-count, x-tokens-saved',
+          'retry-after, x-cost-mills, x-credits-remaining, x-ratelimit-limit, x-ratelimit-remaining, x-ratelimit-reset, x-request-id, x-tokens-count, x-tokens-saved',
+        'x-cost-mills': String(costMills),
         'x-request-id': requestId,
         'x-tokens-count': String(page.tokensCount),
         'x-tokens-saved': String(page.tokensSaved),
+      }
+      if (billable) {
+        const billingEntityId =
+          c.var.organization_id ?? c.var.session?.account_id
+        const cached = await c.env.KV.get(`balance:${billingEntityId}`)
+        if (cached !== null)
+          commonHeaders['x-credits-remaining'] = String(
+            Math.max(0, Number(cached) - costMills),
+          )
       }
 
       if (c.req.header('accept')?.includes('application/json'))

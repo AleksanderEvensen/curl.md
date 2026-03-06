@@ -3,12 +3,14 @@ import rehypeParse from 'rehype-parse'
 import rehypeRemark from 'rehype-remark'
 import remarkGfm from 'remark-gfm'
 import remarkStringify from 'remark-stringify'
+import { estimateTokenCount } from 'tokenx'
 import { unified } from 'unified'
 export async function fetchPage(
   url: URL,
   options?: { fresh?: boolean; keywords?: string[]; objective?: string },
 ): Promise<{
   estimated: boolean
+  inputChars: number
   markdown: string
   tokensCount: number
   tokensSaved: number
@@ -18,8 +20,14 @@ export async function fetchPage(
   if (url.hostname === env.HOST) {
     const res = await env.ASSETS.fetch(new URL('/llms.txt', url))
     const markdown = await res.text()
-    const tokensCount = Math.round(markdown.length / 4)
-    return { estimated: false, markdown, tokensCount, tokensSaved: 0 }
+    const tokensCount = estimateTokenCount(markdown)
+    return {
+      estimated: false,
+      inputChars: 0,
+      markdown,
+      tokensCount,
+      tokensSaved: 0,
+    }
   }
 
   const res = await fetch(url)
@@ -44,7 +52,21 @@ export async function fetchPage(
     }
   }
 
-  if (objective) {
+  if (!objective) {
+    const tokensCount = estimateTokenCount(markdown)
+    const tokensSaved = estimateTokenCount(html) - tokensCount
+    return {
+      estimated: false,
+      inputChars: 0,
+      markdown,
+      tokensCount,
+      tokensSaved,
+    }
+  }
+
+  const inputChars = markdown.length
+
+  {
     const result = (await env.AI.run(
       '@cf/meta/llama-4-scout-17b-16e-instruct',
       {
@@ -66,7 +88,7 @@ export async function fetchPage(
     if (response && response !== 'NONE') markdown = response
   }
 
-  const tokensCount = Math.round(markdown.length / 4)
-  const tokensSaved = Math.round((html.length - markdown.length) / 4)
-  return { estimated: false, markdown, tokensCount, tokensSaved }
+  const tokensCount = estimateTokenCount(markdown)
+  const tokensSaved = estimateTokenCount(html) - tokensCount
+  return { estimated: false, inputChars, markdown, tokensCount, tokensSaved }
 }

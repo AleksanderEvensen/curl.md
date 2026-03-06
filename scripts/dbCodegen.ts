@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { Kysely } from 'kysely'
 import { z } from 'zod'
-import { dialect } from '../src/lib/pg.ts'
+import { dialect } from '../src/lib/db.ts'
 
 const env = z.parse(z.object({ DB_URL: z.string() }), process.env)
 
@@ -42,6 +42,9 @@ const enums = await db
 // Override types for varchar columns with known enum-like values
 const customTypes: Record<string, Record<string, string>> = {
   account: { role: "'crew' | 'user'" },
+  credit_transaction: {
+    type: "'chargeback' | 'promo' | 'purchase' | 'refund' | 'request'",
+  },
   device_code: { status: "'approved' | 'pending'" },
   organization_invite: { role: "'admin' | 'member' | 'owner'" },
   organization_member: { role: "'admin' | 'member' | 'owner'" },

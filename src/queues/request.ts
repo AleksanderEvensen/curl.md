@@ -1,5 +1,6 @@
 import { env } from 'cloudflare:workers'
 import type { Kysely } from 'kysely'
+import { estimateTokenCount } from 'tokenx'
 import type { DB } from '#lib/db.gen.ts'
 
 export async function processRequestMessage(
@@ -8,7 +9,7 @@ export async function processRequestMessage(
 ) {
   const body = message.body
 
-  // Insert request record
+  // Insert request record (idempotent for retries)
   await db
     .insertInto('request')
     .values({
@@ -24,30 +25,88 @@ export async function processRequestMessage(
       url: body.url,
       user_agent: body.user_agent,
     })
+    .onConflict((oc) => oc.column('id').doNothing())
     .execute()
 
-  // Update tokens_saved if estimated
+  // Update tokens_saved if estimated (best-effort, must not block billing)
   if (body.estimated) {
-    const res = await fetch(body.url, {
-      headers: {
-        Accept:
-          'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'User-Agent': `Mozilla/5.0 (compatible; ${env.HOST}/1.0; +https://${env.HOST})`,
-      },
-      redirect: 'follow',
-    })
-    if (res.ok) {
-      const html = await res.text()
-      const tokensSaved = Math.round((html.length - body.markdownLength) / 4)
-      await db
-        .updateTable('request')
-        .set({ tokens_saved: tokensSaved })
-        .where('id', '=', body.id)
-        .execute()
+    try {
+      const res = await fetch(body.url, {
+        headers: {
+          Accept:
+            'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'User-Agent': `Mozilla/5.0 (compatible; ${env.HOST}/1.0; +https://${env.HOST})`,
+        },
+        redirect: 'follow',
+      })
+      if (res.ok) {
+        const html = await res.text()
+        const tokensSaved = estimateTokenCount(html) - body.markdownTokens
+        await db
+          .updateTable('request')
+          .set({ tokens_saved: tokensSaved })
+          .where('id', '=', body.id)
+          .execute()
+      }
+    } catch (error) {
+      console.warn('Failed to update tokens_saved', body.id, error)
     }
   }
 
   if (body.tokens_saved) await env.KV.delete('stats:tokens_saved')
+
+  // Deduct credits if billable
+  const billingEntity = body.organization_id ?? body.account_id
+  if (body.billable && body.cost_mills > 0 && billingEntity) {
+    // Idempotency — unique partial index on (reference_id, type) prevents duplicates
+    const existing = await db
+      .selectFrom('credit_transaction')
+      .where('reference_id', '=', body.id)
+      .where('type', '=', 'request')
+      .select('id')
+      .executeTakeFirst()
+    if (existing) return
+
+    const table = body.organization_id
+      ? ('organization' as const)
+      : ('account' as const)
+    await db.transaction().execute(async (tx) => {
+      const updated = await tx
+        .updateTable(table)
+        .set((eb) => ({
+          balance_mills: eb('balance_mills', '-', body.cost_mills),
+        }))
+        .where('id', '=', billingEntity)
+        .where('balance_mills', '>=', body.cost_mills)
+        .returning('balance_mills')
+        .executeTakeFirst()
+      if (!updated) return
+
+      await tx
+        .insertInto('credit_transaction')
+        .values({
+          ...(body.organization_id
+            ? { organization_id: body.organization_id }
+            : { account_id: billingEntity }),
+          amount_mills: -body.cost_mills,
+          balance_after_mills: updated.balance_mills,
+          reference_id: body.id,
+          type: 'request',
+        })
+        .execute()
+    })
+
+    // Update KV balance cache
+    const newBalance = await db
+      .selectFrom(table)
+      .where('id', '=', billingEntity)
+      .select('balance_mills')
+      .executeTakeFirstOrThrow()
+    await env.KV.put(
+      `balance:${billingEntity}`,
+      String(newBalance.balance_mills),
+    )
+  }
 }
 
 processRequestMessage.queueName = 'curl-request' as const
@@ -56,11 +115,13 @@ export namespace processRequestMessage {
   export type Body = {
     account_id: string | null
     api_key_id: string | null
+    billable: boolean
+    cost_mills: number
     estimated: boolean
     hostname: string
     id: string
     keywords: string | null
-    markdownLength: number
+    markdownTokens: number
     objective: string | null
     organization_id: string | null
     path: string

@@ -4,15 +4,14 @@ import { defineWorkersProject } from '@cloudflare/vitest-pool-workers/config'
 import { defineConfig } from 'vitest/config'
 import { Env } from './test/env.ts'
 
+const root = path.resolve(import.meta.dirname)
 const hasPro = existsSync('pro/src')
-
-const aliases: Record<string, string> = {
+const aliases = {
   '#': new URL('./src/', import.meta.url).pathname,
   ...(hasPro && {
     '#lib/core': new URL('./pro/src/', import.meta.url).pathname,
   }),
 }
-const root = path.resolve(import.meta.dirname)
 
 export default defineConfig({
   test: {
@@ -62,7 +61,10 @@ export default defineConfig({
                   compatibilityFlags: ['nodejs_compat'],
                   hyperdrives: { DB: env.DB_URL },
                   kvNamespaces: ['KV'],
-                  queueProducers: { REQUEST_QUEUE: 'test-queue' },
+                  queueProducers: {
+                    REQUEST_QUEUE: 'test-queue',
+                    STRIPE_WEBHOOK_QUEUE: 'test-stripe-webhook-queue',
+                  },
                   serviceBindings: {
                     ASSETS: () => new Response(null, { status: 404 }),
                   },

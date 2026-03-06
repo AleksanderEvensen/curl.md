@@ -37,6 +37,14 @@ services:
       - ./.wrangler:/app/.wrangler
     working_dir: /app
 
+  stripe:
+    image: stripe/stripe-cli:latest
+    container_name: curl-stripe
+    command: listen --forward-to https://curl.local/api/stripe/webhook --api-key ${STRIPE_SECRET_KEY} --skip-verify
+    depends_on: [app]
+    env_file: .env
+    restart: unless-stopped
+
 volumes:
   db_data:
   node_modules:

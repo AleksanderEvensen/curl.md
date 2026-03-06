@@ -25,13 +25,36 @@
     { "binding": "KV", "id": "e3a921b8d13741b99e7aa1cbb6144c9f" }
   ],
   "queues": {
-    "producers": [{ "binding": "REQUEST_QUEUE", "queue": "curl-request" }],
+    "producers": [
+      { "binding": "REQUEST_QUEUE", "queue": "curl-request" },
+      { "binding": "STRIPE_WEBHOOK_QUEUE", "queue": "stripe-webhook" }
+    ],
     "consumers": [
       {
         "queue": "curl-request",
         "max_batch_size": 10,
         "max_batch_timeout": 30,
-        "max_retries": 3
+        "max_retries": 3,
+        "dead_letter_queue": "curl-request-dlq"
+      },
+      {
+        "queue": "stripe-webhook",
+        "max_batch_size": 1,
+        "max_batch_timeout": 5,
+        "max_retries": 3,
+        "dead_letter_queue": "stripe-webhook-dlq"
+      },
+      {
+        "queue": "curl-request-dlq",
+        "max_batch_size": 1,
+        "max_batch_timeout": 5,
+        "max_retries": 0
+      },
+      {
+        "queue": "stripe-webhook-dlq",
+        "max_batch_size": 1,
+        "max_batch_timeout": 5,
+        "max_retries": 0
       }
     ]
   },
@@ -67,13 +90,36 @@
         { "binding": "KV", "id": "e3a921b8d13741b99e7aa1cbb6144c9f" }
       ],
       "queues": {
-        "producers": [{ "binding": "REQUEST_QUEUE", "queue": "curl-request" }],
+        "producers": [
+          { "binding": "REQUEST_QUEUE", "queue": "curl-request" },
+          { "binding": "STRIPE_WEBHOOK_QUEUE", "queue": "stripe-webhook" }
+        ],
         "consumers": [
           {
             "queue": "curl-request",
             "max_batch_size": 10,
             "max_batch_timeout": 30,
-            "max_retries": 3
+            "max_retries": 3,
+            "dead_letter_queue": "curl-request-dlq"
+          },
+          {
+            "queue": "stripe-webhook",
+            "max_batch_size": 1,
+            "max_batch_timeout": 5,
+            "max_retries": 3,
+            "dead_letter_queue": "stripe-webhook-dlq"
+          },
+          {
+            "queue": "curl-request-dlq",
+            "max_batch_size": 1,
+            "max_batch_timeout": 5,
+            "max_retries": 0
+          },
+          {
+            "queue": "stripe-webhook-dlq",
+            "max_batch_size": 1,
+            "max_batch_timeout": 5,
+            "max_retries": 0
           }
         ]
       },
@@ -112,6 +158,10 @@
           {
             "binding": "REQUEST_QUEUE",
             "queue": "curl-request-__PREVIEW_APEX__"
+          },
+          {
+            "binding": "STRIPE_WEBHOOK_QUEUE",
+            "queue": "stripe-webhook-__PREVIEW_APEX__"
           }
         ],
         "consumers": [
@@ -119,6 +169,12 @@
             "queue": "curl-request-__PREVIEW_APEX__",
             "max_batch_size": 10,
             "max_batch_timeout": 30,
+            "max_retries": 3
+          },
+          {
+            "queue": "stripe-webhook-__PREVIEW_APEX__",
+            "max_batch_size": 1,
+            "max_batch_timeout": 5,
             "max_retries": 3
           }
         ]

@@ -11,7 +11,6 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as PlaygroundRouteImport } from './routes/playground'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as CheckRouteImport } from './routes/check'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as AuthErrorRouteImport } from './routes/auth/error'
@@ -27,11 +26,6 @@ const PlaygroundRoute = PlaygroundRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CheckRoute = CheckRouteImport.update({
-  id: '/check',
-  path: '/check',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -67,7 +61,6 @@ const Char126dashLoginIndexRoute = Char126dashLoginIndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/check': typeof CheckRoute
   '/login': typeof LoginRoute
   '/playground': typeof PlaygroundRoute
   '/~dash/$login': typeof Char126dashLoginRouteRouteWithChildren
@@ -78,7 +71,6 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/check': typeof CheckRoute
   '/login': typeof LoginRoute
   '/playground': typeof PlaygroundRoute
   '/auth/device': typeof AuthDeviceRoute
@@ -89,7 +81,6 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/check': typeof CheckRoute
   '/login': typeof LoginRoute
   '/playground': typeof PlaygroundRoute
   '/~dash/$login': typeof Char126dashLoginRouteRouteWithChildren
@@ -102,7 +93,6 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/check'
     | '/login'
     | '/playground'
     | '/~dash/$login'
@@ -113,7 +103,6 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/check'
     | '/login'
     | '/playground'
     | '/auth/device'
@@ -123,7 +112,6 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/check'
     | '/login'
     | '/playground'
     | '/~dash/$login'
@@ -135,7 +123,6 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  CheckRoute: typeof CheckRoute
   LoginRoute: typeof LoginRoute
   PlaygroundRoute: typeof PlaygroundRoute
   Char126dashLoginRouteRoute: typeof Char126dashLoginRouteRouteWithChildren
@@ -158,13 +145,6 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/check': {
-      id: '/check'
-      path: '/check'
-      fullPath: '/check'
-      preLoaderRoute: typeof CheckRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -227,7 +207,6 @@ const Char126dashLoginRouteRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  CheckRoute: CheckRoute,
   LoginRoute: LoginRoute,
   PlaygroundRoute: PlaygroundRoute,
   Char126dashLoginRouteRoute: Char126dashLoginRouteRouteWithChildren,

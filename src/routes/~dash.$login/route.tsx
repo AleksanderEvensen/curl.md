@@ -2,6 +2,7 @@ import { env } from 'cloudflare:workers'
 import { useMutation } from '@tanstack/react-query'
 import {
   createFileRoute,
+  notFound,
   Outlet,
   redirect,
   useRouter,
@@ -15,11 +16,12 @@ import * as Session from '#lib/session.ts'
 export const Route = createFileRoute('/~dash/$login')({
   beforeLoad: async ({ location, params }) => {
     const data = await getLayoutData({ data: { login: params.login } })
-    if (!data)
+    if (data === false)
       throw redirect({
         to: '/login',
         search: { next: location.publicHref ?? location.pathname },
       })
+    if (!data) throw notFound()
     return data
   },
   component: DashboardLayout,
@@ -79,14 +81,14 @@ const getLayoutData = createServerFn({ method: 'GET' })
     const request = getRequest()
     const db = getDb(env.DB.connectionString)
     const accountId = await Session.getAccountId(request, db, env.COOKIE_SECRET)
-    if (!accountId) return null
+    if (!accountId) return false
 
     const account = await db
       .selectFrom('account')
       .where('id', '=', accountId)
       .select(['avatar_url', 'email', 'id', 'login', 'name'])
       .executeTakeFirst()
-    if (!account) return null
+    if (!account) return false
 
     // Check if login matches the logged-in account
     if (account.login === login)

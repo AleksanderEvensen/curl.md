@@ -4,6 +4,7 @@ import { api } from '#api.ts'
 import { getDb } from '#lib/db.ts'
 import { isApiPath } from '#lib/routes.ts'
 import { processRequestMessage } from '#queues/request.ts'
+import { processStripeWebhookMessage } from '#queues/stripe-webhook.ts'
 
 export default {
   fetch(request, env, ctx) {
@@ -32,11 +33,26 @@ export default {
     return serverEntry.fetch(request, { context: { ctx, env, request } })
   },
   queue: async (batch, env) => {
-    const queue = z.enum([processRequestMessage.queueName]).parse(batch.queue)
-    const handlers = {
-      [processRequestMessage.queueName]: processRequestMessage,
+    if (batch.queue.endsWith('-dlq')) {
+      for (const message of batch.messages) {
+        const { ack: _, retry: __, ...rest } = message
+        console.error(`DLQ message [${batch.queue}]`, rest)
+        message.ack()
+      }
+      return
     }
-    const handler = handlers[queue]
+
+    const queue = z.parse(
+      z.enum([
+        processRequestMessage.queueName,
+        processStripeWebhookMessage.queueName,
+      ]),
+      batch.queue,
+    )
+    const handler = {
+      [processRequestMessage.queueName]: processRequestMessage,
+      [processStripeWebhookMessage.queueName]: processStripeWebhookMessage,
+    }[queue]
     const db = getDb(env.DB.connectionString)
     for (const message of batch.messages) {
       try {
@@ -50,7 +66,7 @@ export default {
   },
   // TODO: Add scheduled handler to clean up expired device codes and sessions
   // scheduled: async (event, env, ctx) => { ... }
-} satisfies ExportedHandler<Env, processRequestMessage.Body>
+} satisfies ExportedHandler<Env>
 
 declare module '@tanstack/react-start' {
   interface Register {

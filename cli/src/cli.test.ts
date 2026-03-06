@@ -11,8 +11,8 @@ import {
 } from 'vitest'
 import type { api } from '#api.ts'
 import type { DB } from '#lib/db.gen.ts'
+import { dialect } from '#lib/db.ts'
 import * as Nanoid from '#lib/nanoid.ts'
-import { dialect } from '#lib/pg.ts'
 import { Env } from '../../test/env.ts'
 import { createFactory } from '../../test/factory.ts'
 import * as utils from '../src/utils.ts'
@@ -63,10 +63,11 @@ test('help', async () => {
       $ curl.md zod.dev/error-formatting --objective tree error formatting --keywords treeifyError
 
     Commands:
-      auth    Authentication commands (check, login, logout)
-      org     Manage organizations (create, invite, list, members, show, switch)
-      token   Manage API tokens (create, list, delete)
-      update  Update curl.md CLI
+      auth     Authentication commands (check, login, logout)
+      credits  Manage prepaid credits (add, check)
+      org      Manage organizations (create, invite, list, members, show, switch)
+      token    Manage API tokens (create, list, delete)
+      update   Update curl.md CLI
 
     Built-in Commands:
       completions  Generate shell completion script
@@ -184,6 +185,23 @@ describe('fetch', () => {
 
     const { output } = await serve(['example.com'])
     expect(output).toContain('auth login')
+  })
+
+  test('fetch - rate limit 429 credits add cta when authenticated', async () => {
+    Session.write({ session_id: 'test' })
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = async () =>
+      new Response(JSON.stringify({ error: 'rate_limit_exceeded' }), {
+        status: 429,
+        headers: { 'content-type': 'application/json' },
+      })
+    onTestFinished(() => {
+      globalThis.fetch = originalFetch
+    })
+
+    const { output } = await serve(['example.com'])
+    expect(output).toContain('credits add')
+    expect(output).not.toContain('auth login')
   })
 
   test('fetch - validation error 400', async () => {
@@ -490,6 +508,120 @@ describe('auth', () => {
 
     const { output: checkOutput } = await serve(['auth', 'check'])
     expect(checkOutput).toContain('You are authenticated')
+  })
+})
+
+describe('credits', () => {
+  test('check - requires auth', async () => {
+    const { exitCode, output } = await serve(['credits', 'check'])
+    expect(exitCode).toBe(1)
+    expect(output).toContain('NOT_AUTHENTICATED')
+  })
+
+  test('check - expired session deletes session', async () => {
+    Session.write({ session_id: 'expired-session-id' })
+    const { exitCode, output } = await serve(['credits', 'check'])
+    expect(exitCode).toBe(1)
+    expect(output).toContain('NOT_AUTHENTICATED')
+    expect(Session.read()).toBeNull()
+  })
+
+  test('check - shows balance', async () => {
+    const account = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: account.id })
+    await db
+      .updateTable('account')
+      .set({ balance_mills: 12500 })
+      .where('id', '=', account.id)
+      .execute()
+    Session.write({ session_id: session.id })
+
+    const { output } = await serve(['credits', 'check'])
+    expect(output).toContain('$12.500')
+  })
+
+  test('check - zero balance', async () => {
+    const account = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: account.id })
+    Session.write({ session_id: session.id })
+
+    const { output } = await serve(['credits', 'check'])
+    expect(output).toContain('$0.000')
+  })
+
+  test('add - requires auth', async () => {
+    const { exitCode, output } = await serve(['credits', 'add', '500'])
+    expect(exitCode).toBe(1)
+    expect(output).toContain('NOT_AUTHENTICATED')
+  })
+
+  test('add - full flow', async () => {
+    const account = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: account.id })
+    Session.write({ session_id: session.id })
+
+    const openUrlSpy = vi.spyOn(utils, 'openUrl').mockImplementation(() => {})
+    const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    let callCount = 0
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = async (input, init) => {
+      const url = input.toString()
+
+      // 1) POST /api/credits/add → return mock checkout URL + id
+      if (url.includes('/api/credits/add') && init?.method === 'POST')
+        return new Response(
+          JSON.stringify({
+            url: 'https://checkout.stripe.com/test_session',
+            checkout_id: 'cs_test_123',
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        )
+
+      // 2) GET /api/credits/checkout/:id → return 'complete'
+      if (url.includes('/api/credits/checkout/cs_test_123'))
+        return new Response(JSON.stringify({ status: 'complete' }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        })
+
+      // 3) GET /api/credits → first call returns initial balance, subsequent returns updated
+      if (
+        url.includes('/api/credits') &&
+        !url.includes('checkout') &&
+        !url.includes('add')
+      ) {
+        callCount++
+        const balance_mills = callCount <= 1 ? 0 : 10_000
+        return new Response(JSON.stringify({ balance_mills }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        })
+      }
+
+      return originalFetch(input, init)
+    }
+
+    onTestFinished(() => {
+      openUrlSpy.mockRestore()
+      consoleLogSpy.mockRestore()
+      globalThis.fetch = originalFetch
+    })
+
+    const { output } = await serve(['credits', 'add', '1000'])
+    expect(openUrlSpy).toHaveBeenCalledWith(
+      'https://checkout.stripe.com/test_session',
+    )
+    expect(output).toContain('Credits added')
+    expect(output).toContain('$10.000')
+  })
+
+  test('add - expired session deletes session', async () => {
+    Session.write({ session_id: 'expired-session-id' })
+    const { exitCode, output } = await serve(['credits', 'add', '500'])
+    expect(exitCode).toBe(1)
+    expect(output).toContain('NOT_AUTHENTICATED')
+    expect(Session.read()).toBeNull()
   })
 })
 
