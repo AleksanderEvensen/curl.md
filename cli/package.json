@@ -7,7 +7,11 @@
     "check:types": "tsgo --noEmit",
     "gen:types": "incur gen"
   },
-  "repository": "wevm/curl.md",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wevm/curl.md.git",
+    "directory": "cli"
+  },
   "license": "MIT",
   "type": "module",
   "bin": {
@@ -19,11 +23,14 @@
     "md.src": "./src/cli.ts"
   },
   "files": [
-    "dist"
+    "CHANGELOG.md",
+    "dist",
+    "src"
   ],
   "dependencies": {
     "hono": "^4.12.2",
-    "incur": "^0.2.0"
+    "incur": "^0.2.0",
+    "picocolors": "^1.1.1"
   },
   "engines": {
     "node": ">=22.0.0"
