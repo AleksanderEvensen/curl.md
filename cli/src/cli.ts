@@ -1524,7 +1524,7 @@ const update = Cli.create('update', {
       else await installGlobal(c.name, version)
       spinner.stop()
       return c.ok(
-        `Updated ${c.name}: ${pkg.version} → ${version}\nhttps://github.com/${pkg.repository}/releases/tag/${c.name}@${version}`,
+        `Updated ${c.name}: ${pkg.version} → ${version}\nhttps://github.com/wevm/curl.md/releases/tag/${c.name}@${version}`,
       )
     } catch (error) {
       spinner.stop()

@@ -305,7 +305,8 @@ export async function updateStandalone(version: string, aliases: string[]) {
   const ext = os_ === 'windows' ? '.exe' : ''
   const artifact = `curl.md-${os_}-${arch}${ext}`
   const tag = `curl.md@${version}`
-  const url = `https://github.com/${pkg.repository}/releases/download/${tag}/${artifact}`
+  const repo = 'wevm/curl.md'
+  const url = `https://github.com/${repo}/releases/download/${tag}/${artifact}`
 
   const res = await fetch(url, { redirect: 'follow' })
   if (!res.ok)
