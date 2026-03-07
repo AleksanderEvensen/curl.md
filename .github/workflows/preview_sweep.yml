@@ -1,0 +1,147 @@
+name: Preview Sweep
+
+on:
+  schedule:
+    - cron: "0 0 * * *" # Daily at midnight UTC
+  workflow_dispatch:
+
+jobs:
+  sweep:
+    name: Sweep Orphaned Previews
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Sweep orphaned previews
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
+          PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
+          PLANETSCALE_ORG: ${{ secrets.PLANETSCALE_ORG }}
+          PLANETSCALE_DB: ${{ secrets.PLANETSCALE_DB }}
+        run: |
+          # List all preview workers
+          WORKERS=$(curl -sS \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts" \
+            | jq -r '.result[].id // empty' | grep '^curl-pr[0-9]*$' || true)
+
+          if [ -z "$WORKERS" ]; then
+            echo "No preview workers found"
+            exit 0
+          fi
+
+          echo "Found preview workers:"
+          echo "$WORKERS"
+          echo ""
+
+          for worker in $WORKERS; do
+            PR_NUM=$(echo "$worker" | sed 's/curl-pr//')
+            PR_JSON=$(gh api "repos/${{ github.repository }}/pulls/$PR_NUM" --jq '{state: .state, draft: .draft}' 2>/dev/null || echo '{"state":"unknown","draft":false}')
+            STATE=$(echo "$PR_JSON" | jq -r '.state')
+            DRAFT=$(echo "$PR_JSON" | jq -r '.draft')
+
+            if [ "$STATE" = "open" ] && [ "$DRAFT" != "true" ]; then
+              echo "Skipping $worker (PR #$PR_NUM is open and not draft)"
+              continue
+            fi
+
+            echo "Cleaning up $worker (PR #$PR_NUM state: $STATE, draft: $DRAFT)"
+
+            # Remove Worker from Queue consumers
+            echo "  Removing worker from queue consumers..."
+            QUEUE_IDS=$(curl -sS \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+              "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/queues" \
+              | jq -r --arg suffix "-pr$PR_NUM" '.result[] | select(.queue_name | endswith($suffix)) | .queue_id')
+            for QUEUE_ID in $QUEUE_IDS; do
+              CONSUMER_ID=$(curl -sS \
+                -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+                "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/queues/$QUEUE_ID/consumers" \
+                | jq -r --arg name "$worker" '.result[] | select(.script == $name) | .consumer_id // empty')
+              if [ -n "$CONSUMER_ID" ]; then
+                curl -sS -X DELETE \
+                  -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+                  "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/queues/$QUEUE_ID/consumers/$CONSUMER_ID" \
+                  || true
+              fi
+            done
+
+            # Delete Worker
+            echo "  Deleting worker..."
+            curl -sS -X DELETE \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+              "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/$worker?force=true" \
+              || true
+
+            # Delete Hyperdrive
+            echo "  Deleting Hyperdrive..."
+            HD_ID=$(curl -sS \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+              "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/hyperdrive/configs" \
+              | jq -r --arg name "curl-hd-pr$PR_NUM" '.result[] | select(.name == $name) | .id // empty')
+            if [ -n "$HD_ID" ]; then
+              curl -sS -X DELETE \
+                -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+                "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/hyperdrive/configs/$HD_ID" || true
+            fi
+
+            # Delete PlanetScale branch
+            echo "  Deleting PlanetScale branch..."
+            curl -sS -X DELETE \
+              -H "Authorization: $PLANETSCALE_SERVICE_TOKEN_ID:$PLANETSCALE_SERVICE_TOKEN" \
+              "https://api.planetscale.com/v1/organizations/$PLANETSCALE_ORG/databases/$PLANETSCALE_DB/branches/pr-$PR_NUM" \
+              || true
+
+            # Delete KV namespace
+            echo "  Deleting KV namespace..."
+            KV_ID=$(curl -sS \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+              "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/storage/kv/namespaces" \
+              | jq -r --arg name "curl-kv-pr$PR_NUM" '.result[] | select(.title == $name) | .id // empty')
+            if [ -n "$KV_ID" ]; then
+              curl -sS -X DELETE \
+                -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+                "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/storage/kv/namespaces/$KV_ID" || true
+            fi
+
+            # Delete Queue
+            echo "  Deleting Queues..."
+            QUEUE_IDS=$(curl -sS \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+              "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/queues" \
+              | jq -r --arg suffix "-pr$PR_NUM" '.result[] | select(.queue_name | endswith($suffix)) | .queue_id')
+            for QUEUE_ID in $QUEUE_IDS; do
+              curl -sS -X DELETE \
+                -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+                "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/queues/$QUEUE_ID" || true
+            done
+
+            # Update PR comment to shut-down status
+            SHA=$(gh api "repos/${{ github.repository }}/pulls/$PR_NUM" --jq '.head.sha' 2>/dev/null || echo "")
+            COMMENT_ID=$(gh api "repos/${{ github.repository }}/issues/${PR_NUM}/comments" --paginate --jq '.[] | select(.body | contains("preview deployment")) | .id' 2>/dev/null || echo "")
+
+            if [ -n "$COMMENT_ID" ] && [ -n "$SHA" ]; then
+              SHA_SHORT=$(echo "$SHA" | cut -c1-7)
+              APEX="pr${PR_NUM}"
+              DASH_URL="https://dash.cloudflare.com/?to=/:account/workers/services/view/curl-pr${PR_NUM}/production"
+              RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+              UPDATED=$(date -u +'%b %-d, %Y, %-I:%M %p')
+
+              BODY=$(printf '%s\n\n%s\n%s\n%s' \
+                "The latest preview deployment for ${SHA_SHORT}" \
+                "| Name | Status | Preview | Updated (UTC) |" \
+                "| :--- | :----- | :------ | :------------ |" \
+                "| [${APEX}](${DASH_URL}) | [![Shut Down](https://vercel.com/static/status/canceled.svg) Shut Down](${RUN_URL}) | [${APEX}.curl.md](https://${APEX}.curl.md) | ${UPDATED} |")
+
+              echo "  Updating PR comment..."
+              gh api "repos/${{ github.repository }}/issues/comments/${COMMENT_ID}" \
+                -X PATCH \
+                -f body="$BODY" || true
+            fi
+
+            echo "  Done"
+            echo ""
+          done

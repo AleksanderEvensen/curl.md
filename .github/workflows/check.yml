@@ -2,16 +2,6 @@ name: Check
 
 on:
   workflow_call:
-    inputs:
-      dispatch_pro_sha:
-        description: If set, dispatches pro tests for this commit SHA
-        type: string
-      dispatch_preview_pr:
-        description: If set, dispatches preview deploy for this PR number
-        type: string
-      submodules:
-        type: boolean
-        default: false
   workflow_dispatch:
 
 permissions:
@@ -38,27 +28,10 @@ jobs:
           --health-timeout 5s
         ports: ['5432:5432']
     steps:
-      - name: Generate token
-        if: inputs.submodules
-        id: app-token
-        uses: actions/create-github-app-token@df432ceedc7162793a195dd1713ff69aefc7379e # v2.0.6
-        with:
-          app-id: ${{ secrets.PRO_APP_ID }}
-          private-key: ${{ secrets.PRO_APP_PRIVATE_KEY }}
-          repositories: curl.md.pro
-
       - name: Checkout
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           persist-credentials: false
-
-      - name: Checkout submodules
-        if: inputs.submodules
-        run: |
-          git config --global url."https://x-access-token:${TOKEN}@github.com/wevm/curl.md.pro".insteadOf "https://github.com/wevm/curl.md.pro"
-          git submodule update --init
-        env:
-          TOKEN: ${{ steps.app-token.outputs.token }}
 
       - name: Setup
         uses: ./.github/actions/setup-pnpm
@@ -99,44 +72,10 @@ jobs:
         run: pnpm check:types
 
       - name: Test
-        run: pnpm test --exclude 'pro/**'
+        run: pnpm test
 
       - name: Build
         run: pnpm build
 
       - name: Build CLI
         run: pnpm build:cli
-
-  dispatch:
-    name: Dispatch
-    needs: verify
-    if: inputs.dispatch_pro_sha || inputs.dispatch_preview_pr
-    runs-on: ubuntu-latest
-    steps:
-      - name: Generate token
-        id: app-token
-        uses: actions/create-github-app-token@df432ceedc7162793a195dd1713ff69aefc7379e # v2.0.6
-        with:
-          app-id: ${{ secrets.PRO_APP_ID }}
-          private-key: ${{ secrets.PRO_APP_PRIVATE_KEY }}
-          repositories: curl.md.pro
-
-      - name: Dispatch test
-        if: inputs.dispatch_pro_sha
-        env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-          DISPATCH_SHA: ${{ inputs.dispatch_pro_sha }}
-        run: |
-          printf '{"event_type":"parent-check","client_payload":{"sha":"%s"}}' "$DISPATCH_SHA" \
-            | gh api repos/wevm/curl.md.pro/dispatches --method POST --input -
-
-      - name: Dispatch preview
-        if: inputs.dispatch_preview_pr
-        env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-          DISPATCH_SHA: ${{ inputs.dispatch_pro_sha }}
-          DISPATCH_PR: ${{ inputs.dispatch_preview_pr }}
-        run: |
-          printf '{"event_type":"preview-deploy","client_payload":{"sha":"%s","pr_number":"%s"}}' \
-            "$DISPATCH_SHA" "$DISPATCH_PR" \
-            | gh api repos/wevm/curl.md.pro/dispatches --method POST --input -

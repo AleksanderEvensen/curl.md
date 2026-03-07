@@ -8,7 +8,6 @@
   "include": [
     "../test/workers.env.d.ts",
     "../test/workers.setup.ts",
-    "../pro/src/**/*.workers.test.ts",
     "../src/**/*.workers.test.ts",
     "../src/env.d.ts",
     "../src/worker-configuration.d.ts"

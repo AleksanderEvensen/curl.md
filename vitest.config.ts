@@ -1,16 +1,11 @@
-import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { defineWorkersProject } from '@cloudflare/vitest-pool-workers/config'
 import { defineConfig } from 'vitest/config'
 import { Env } from './test/env.ts'
 
 const root = path.resolve(import.meta.dirname)
-const hasPro = existsSync('pro/src')
 const aliases = {
   '#': new URL('./src/', import.meta.url).pathname,
-  ...(hasPro && {
-    '#lib/core': new URL('./pro/src/', import.meta.url).pathname,
-  }),
 }
 
 export default defineConfig({
@@ -20,10 +15,7 @@ export default defineConfig({
         resolve: { alias: aliases },
         test: {
           name: 'app',
-          include: [
-            'src/**/!(*workers).test.ts',
-            ...(hasPro ? ['pro/src/**/!(*workers).test.ts'] : []),
-          ],
+          include: ['src/**/!(*workers).test.ts'],
           root,
         },
       },
@@ -43,10 +35,7 @@ export default defineConfig({
         resolve: { alias: aliases },
         test: {
           name: 'workers',
-          include: [
-            'src/**/*.workers.test.ts',
-            ...(hasPro ? ['pro/src/**/*.workers.test.ts'] : []),
-          ],
+          include: ['src/**/*.workers.test.ts'],
           root,
           globalSetup: ['test/workers.globalSetup.ts'],
           setupFiles: ['test/workers.setup.ts'],

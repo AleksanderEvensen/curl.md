@@ -14,10 +14,16 @@ jobs:
   check:
     name: Check
     uses: ./.github/workflows/check.yml
+    secrets: inherit
+
+  preview:
+    name: Preview Deploy
+    needs: check
+    if: ${{ !github.event.pull_request.draft && contains(fromJSON('["COLLABORATOR", "MEMBER", "OWNER"]'), github.event.pull_request.author_association) }}
+    uses: ./.github/workflows/preview_deploy.yml
     with:
-      dispatch_pro_sha: ${{ contains(fromJSON('["COLLABORATOR", "MEMBER", "OWNER"]'), github.event.pull_request.author_association) && github.event.pull_request.head.sha || '' }}
-      dispatch_preview_pr: ${{ !github.event.pull_request.draft && contains(fromJSON('["COLLABORATOR", "MEMBER", "OWNER"]'), github.event.pull_request.author_association) && github.event.pull_request.number || '' }}
-      submodules: ${{ contains(fromJSON('["COLLABORATOR", "MEMBER", "OWNER"]'), github.event.pull_request.author_association) }}
+      pr_number: ${{ github.event.pull_request.number }}
+      sha: ${{ github.event.pull_request.head.sha }}
     secrets: inherit
 
   cli:

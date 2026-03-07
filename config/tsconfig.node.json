@@ -1,7 +1,6 @@
 {
   "compilerOptions": {
     "paths": {
-      "#lib/core/*": ["./../pro/*", "./../src/lib/core/*"],
       "#*": ["./../src/*"]
     },
     "tsBuildInfoFile": "../node_modules/.tmp/tsconfig.node.tsbuildinfo",

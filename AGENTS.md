@@ -24,14 +24,6 @@ App runs in Docker via `docker compose up`. Use these to debug:
 - `docker compose exec app sh` - Shell into container
 - Use Playwright MCP to visually debug the app at `https://curl.local` (navigate, snapshot, screenshot, interact with elements, network requests, console logs)
 
-## Submodule Architecture
-
-The `pro/` directory is a git submodule (`wevm/curl.md.pro`) containing pro/premium features. It is NOT required for development — the app works without it. If you don't have access to the private repo, the submodule will be absent and that's fine.
-
-- Pro features live in `pro/`; basic/free functionality lives in the main repo
-- Do not commit submodule pointer changes unless intentional
-- When working on pro features, ensure the submodule is initialized (`git submodule update --init`)
-
 ## API (Hono RPC)
 
 - Always specify explicit status codes in `c.json()` responses (e.g., `c.json({ error: 'not_found' }, 404)`, `c.json({ data }, 200)`)

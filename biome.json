@@ -51,16 +51,6 @@
   },
   "overrides": [
     {
-      "includes": ["pro/**"],
-      "assist": {
-        "actions": {
-          "source": {
-            "organizeImports": "off"
-          }
-        }
-      }
-    },
-    {
       "includes": ["**/*.test.ts", "**/*.test.tsx"],
       "linter": {
         "rules": {

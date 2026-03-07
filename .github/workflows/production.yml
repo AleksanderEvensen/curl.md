@@ -15,9 +15,6 @@ jobs:
   check:
     name: Check
     uses: ./.github/workflows/check.yml
-    with:
-      dispatch_pro_sha: ${{ github.sha }}
-      submodules: true
     secrets: inherit
 
   deploy:
@@ -27,25 +24,10 @@ jobs:
     permissions:
       contents: read
     steps:
-      - name: Generate token
-        id: app-token
-        uses: actions/create-github-app-token@df432ceedc7162793a195dd1713ff69aefc7379e # v2.0.6
-        with:
-          app-id: ${{ secrets.PRO_APP_ID }}
-          private-key: ${{ secrets.PRO_APP_PRIVATE_KEY }}
-          repositories: curl.md.pro
-
       - name: Checkout
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           persist-credentials: false
-
-      - name: Checkout submodules
-        run: |
-          git config --global url."https://x-access-token:${TOKEN}@github.com/wevm/curl.md.pro".insteadOf "https://github.com/wevm/curl.md.pro"
-          git submodule update --init
-        env:
-          TOKEN: ${{ steps.app-token.outputs.token }}
 
       - name: Setup pnpm
         uses: ./.github/actions/setup-pnpm

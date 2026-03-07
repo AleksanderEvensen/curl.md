@@ -1,6 +1,4 @@
 import * as child from 'node:child_process'
-import { existsSync } from 'node:fs'
-import { resolve } from 'node:path'
 import { cloudflare } from '@cloudflare/vite-plugin'
 import tailwindcss from '@tailwindcss/vite'
 import { tanstackStart } from '@tanstack/react-start/plugin/vite'
@@ -12,13 +10,6 @@ import { defineConfig } from 'vite'
 import { getWranglerVar } from './config/wrangler.ts'
 
 export default defineConfig({
-  resolve: {
-    alias: {
-      ...(existsSync('pro/src')
-        ? { '#lib/core': resolve(__dirname, 'pro/src') }
-        : {}),
-    },
-  },
   server: {
     allowedHosts: ['curl.local'],
   },
