@@ -29,6 +29,7 @@ export const cfBrowserRendering = defineFallback<{
       body: JSON.stringify({
         url: url.toString(),
         rejectResourceTypes: ['font', 'image', 'media'],
+        goToOptions: { waitUntil: 'networkidle2' },
       }),
     },
   )

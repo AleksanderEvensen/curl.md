@@ -11,7 +11,7 @@ export namespace KV {
     | (key extends 'cli:latest'
         ? { published_at: string | null; version: string }
         : never)
-    | (key extends `ratelimit:${'fetch' | 'query'}:${string}`
+    | (key extends `ratelimit:${string}`
         ? { count: number; reset: number }
         : never)
     | (key extends `session:${string}` ? string : never)
@@ -21,7 +21,7 @@ export namespace KV {
     | 'cli:latest'
     | `page:${string}`
     | `query:${string}`
-    | `ratelimit:${'fetch' | 'query'}:${string}`
+    | `ratelimit:${string}`
     | `session:${string}`
     | 'stats:tokens_saved'
     | `stats:tokens_saved:${string}`

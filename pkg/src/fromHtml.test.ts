@@ -167,6 +167,16 @@ describe('strips noise elements', () => {
     expect(result).toContain('Site Title')
   })
 
+  test('strips skip-to-content links', async () => {
+    const { content: result } = await fromHtml(
+      html({
+        body: '<a href="#main-content">Skip to main content</a><main id="main-content"><p>Content</p></main>',
+      }),
+    )
+    expect(result).toContain('Content')
+    expect(result).not.toContain('Skip')
+  })
+
   test('strips footer elements', async () => {
     const { content: result } = await fromHtml(
       html({ body: '<p>Content</p><footer><p>Copyright 2024</p></footer>' }),
@@ -290,6 +300,15 @@ describe('resolves relative links', () => {
     expect(result).toContain('Jump')
     expect(result).not.toContain('[Jump]')
     expect(result).toContain('Content')
+  })
+
+  test('removes anchor elements with no href (id-only anchors)', async () => {
+    const { content: result } = await fromHtml(
+      html({ body: '<a id="some-writing"></a><h1>Some writing</h1>' }),
+      { baseUrl },
+    )
+    expect(result).not.toContain('[]')
+    expect(result).toContain('Some writing')
   })
 
   test('resolves path-relative links', async () => {

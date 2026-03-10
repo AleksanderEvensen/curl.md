@@ -1,5 +1,11 @@
-import { expect, test } from 'vitest'
-import { compareVersions, formatValidationError } from './utils.ts'
+import child_process from 'node:child_process'
+import fs from 'node:fs'
+import { expect, test, vi } from 'vitest'
+import {
+  compareVersions,
+  formatValidationError,
+  updateStandalone,
+} from './utils.ts'
 
 test('compareVersions: equal versions return 0', () => {
   expect(compareVersions('1.0.0', '1.0.0')).toBe(0)
@@ -58,4 +64,73 @@ test('formatValidationError: returns fallback for non-validation error', () => {
 test('formatValidationError: returns fallback for non-object', () => {
   expect(formatValidationError('string')).toBe('Invalid request')
   expect(formatValidationError(null)).toBe('Invalid request')
+})
+
+test('updateStandalone: uses direct fetch when response is ok', async () => {
+  const binary = Buffer.from('fake-binary')
+  const fetchSpy = vi
+    .spyOn(globalThis, 'fetch')
+    .mockResolvedValue(new Response(binary, { status: 200 }))
+  const writeSpy = vi.spyOn(fs, 'writeFileSync').mockImplementation(() => {})
+  const renameSpy = vi.spyOn(fs, 'renameSync').mockImplementation(() => {})
+  const execSpy = vi.spyOn(child_process, 'execFileSync')
+
+  await updateStandalone('1.0.0', [])
+
+  expect(fetchSpy).toHaveBeenCalledOnce()
+  expect(execSpy).not.toHaveBeenCalled()
+  expect(writeSpy).toHaveBeenCalledOnce()
+
+  fetchSpy.mockRestore()
+  writeSpy.mockRestore()
+  renameSpy.mockRestore()
+  execSpy.mockRestore()
+})
+
+test('updateStandalone: falls back to gh CLI when fetch returns 404', async () => {
+  const binary = Buffer.from('fake-binary')
+  const fetchSpy = vi
+    .spyOn(globalThis, 'fetch')
+    .mockResolvedValue(new Response('Not Found', { status: 404 }))
+  const execSpy = vi
+    .spyOn(child_process, 'execFileSync')
+    .mockImplementation(() => Buffer.alloc(0))
+  const readSpy = vi.spyOn(fs, 'readFileSync').mockReturnValue(binary)
+  const unlinkSpy = vi.spyOn(fs, 'unlinkSync').mockImplementation(() => {})
+  const writeSpy = vi.spyOn(fs, 'writeFileSync').mockImplementation(() => {})
+  const renameSpy = vi.spyOn(fs, 'renameSync').mockImplementation(() => {})
+
+  await updateStandalone('1.0.0', [])
+
+  expect(fetchSpy).toHaveBeenCalledOnce()
+  expect(execSpy).toHaveBeenCalledOnce()
+  expect(execSpy.mock.calls[0]![0]).toBe('gh')
+  expect(execSpy.mock.calls[0]![1]).toContain('release')
+  expect(execSpy.mock.calls[0]![1]).toContain('curl.md@1.0.0')
+  expect(writeSpy).toHaveBeenCalledOnce()
+
+  fetchSpy.mockRestore()
+  execSpy.mockRestore()
+  readSpy.mockRestore()
+  unlinkSpy.mockRestore()
+  writeSpy.mockRestore()
+  renameSpy.mockRestore()
+})
+
+test('updateStandalone: throws when both fetch and gh CLI fail', async () => {
+  const fetchSpy = vi
+    .spyOn(globalThis, 'fetch')
+    .mockResolvedValue(new Response('Not Found', { status: 404 }))
+  const execSpy = vi
+    .spyOn(child_process, 'execFileSync')
+    .mockImplementation(() => {
+      throw new Error('gh not found')
+    })
+
+  await expect(updateStandalone('1.0.0', [])).rejects.toThrow(
+    'Download failed (404)',
+  )
+
+  fetchSpy.mockRestore()
+  execSpy.mockRestore()
 })

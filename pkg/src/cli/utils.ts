@@ -308,13 +308,35 @@ export async function updateStandalone(version: string, aliases: string[]) {
   const repo = 'wevm/curl.md'
   const url = `https://github.com/${repo}/releases/download/${tag}/${artifact}`
 
-  const res = await fetch(url, { redirect: 'follow' })
-  if (!res.ok)
+  const buffer = await (async () => {
+    // Try direct download first (works for public repos)
+    const res = await fetch(url, { redirect: 'follow' })
+    if (res.ok) return Buffer.from(await res.arrayBuffer())
+
+    // Fallback: use gh CLI for authenticated downloads (private repos)
+    try {
+      const tmpfile = path.join(os.tmpdir(), artifact)
+      child_process.execFileSync('gh', [
+        'release',
+        'download',
+        tag,
+        '--repo',
+        repo,
+        '--pattern',
+        artifact,
+        '--output',
+        tmpfile,
+        '--clobber',
+      ])
+      const buf = fs.readFileSync(tmpfile)
+      fs.unlinkSync(tmpfile)
+      return buf
+    } catch {}
+
     throw new Error(
       `Download failed (${res.status}). Binary may not exist for ${os_}/${arch}.`,
     )
-
-  const buffer = Buffer.from(await res.arrayBuffer())
+  })()
   const target = process.execPath
   const tmpPath = `${target}.tmp`
   fs.writeFileSync(tmpPath, buffer, { mode: 0o755 })

@@ -5,6 +5,7 @@ import { getDb } from '#lib/db.ts'
 import { isApiPath } from '#lib/routes.ts'
 import { processRequestMessage } from '#queues/request.ts'
 import { processStripeWebhookMessage } from '#queues/stripe-webhook.ts'
+import { cleanupExpired } from '#tasks/cleanup.ts'
 
 export default {
   fetch(request, env, ctx) {
@@ -64,8 +65,13 @@ export default {
       }
     }
   },
-  // TODO: Add scheduled handler to clean up expired device codes and sessions
-  // scheduled: async (event, env, ctx) => { ... }
+  scheduled(controller, env, ctx) {
+    const crons = {
+      '0 * * * *': cleanupExpired,
+    } as const
+    const task = crons[controller.cron as keyof typeof crons]
+    if (task) ctx.waitUntil(task(env, ctx))
+  },
 } satisfies ExportedHandler<Env>
 
 declare module '@tanstack/react-start' {

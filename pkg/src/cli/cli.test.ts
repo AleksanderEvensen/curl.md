@@ -473,6 +473,65 @@ describe('auth', () => {
     expect(output).toContain('code')
   })
 
+  test('login - rate limit on device request', async () => {
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = async () =>
+      new Response(JSON.stringify({ error: 'rate_limit_exceeded' }), {
+        status: 429,
+        headers: {
+          'content-type': 'application/json',
+          'retry-after': '30',
+        },
+      })
+    onTestFinished(() => {
+      globalThis.fetch = originalFetch
+    })
+
+    const { exitCode, output } = await serve(['auth', 'login'])
+    expect(exitCode).toBe(1)
+    expect(output).toContain('RATE_LIMITED')
+    expect(output).toContain('30s')
+  })
+
+  test('login - rate limit on token polling', async () => {
+    vi.mock('node:child_process', () => ({
+      default: { exec: vi.fn(), spawn: vi.fn(() => ({ unref: vi.fn() })) },
+      exec: vi.fn(),
+      spawn: vi.fn(() => ({ unref: vi.fn() })),
+    }))
+
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    onTestFinished(() => consoleSpy.mockRestore())
+
+    const originalFetch = globalThis.fetch
+    let callCount = 0
+    globalThis.fetch = async () => {
+      callCount++
+      if (callCount === 1)
+        return new Response(
+          JSON.stringify({
+            code: 'test-code',
+            interval: 0,
+            user_code: 'TESTCODE',
+            verification_uri: 'https://curl.local/auth/device',
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        )
+      return new Response(JSON.stringify({ error: 'rate_limit_exceeded' }), {
+        status: 429,
+        headers: { 'content-type': 'application/json' },
+      })
+    }
+    onTestFinished(() => {
+      globalThis.fetch = originalFetch
+    })
+
+    const { exitCode, output } = await serve(['auth', 'login'])
+    expect(exitCode).toBe(1)
+    expect(output).toContain('RATE_LIMITED')
+    expect(output).toContain('Try again later')
+  })
+
   test('login - full device flow', async () => {
     vi.mock('node:child_process', () => ({
       default: { exec: vi.fn(), spawn: vi.fn(() => ({ unref: vi.fn() })) },

@@ -5,7 +5,7 @@ import * as Nanoid from '#lib/nanoid.ts'
 import { processRequestMessage } from '#queues/request.ts'
 import { createFactory } from '../../test/factory.ts'
 
-const db = getDb(env.DB.connectionString)
+const db = getDb(env.DB.connectionString, { max: 1 })
 const factory = createFactory(db)
 
 test('inserts request record', async () => {

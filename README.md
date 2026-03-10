@@ -70,9 +70,12 @@ Connect PlanetScale to Cloudflare Workers via [Hyperdrive](https://developers.cl
 2. Click "Create Token"
 3. Select "Create Custom Token"
 4. Add these permissions:
-   - **Account** → **Hyperdrive** → **Edit**
-   - **Account** → **Workers Scripts** → **Edit**
    - **Account** → **Browser Rendering** → **Edit**
+   - **Account** → **Workers AI** → **Edit**
+   - **Account** → **Queues** → **Edit**
+   - **Account** → **Hyperdrive** → **Edit**
+   - **Account** → **Workers KV Storage** → **Edit**
+   - **Account** → **Workers Scripts** → **Edit**
    - **Zone** → **Workers Routes** → **Edit**
 5. Set Account Resources to your account
 6. Set Zone Resources to your domain (e.g., `curl.md`)

@@ -23,6 +23,7 @@ import { dialect } from '#lib/db.ts'
 import { narrowValidation, validationError, validator } from '#lib/hono.ts'
 import * as Nanoid from '#lib/nanoid.ts'
 import * as Og from '#lib/og.tsx'
+import { rateLimit } from '#lib/rate-limit.ts'
 import { knownRoutes } from '#lib/routes.ts'
 import { urlSchema } from '#lib/schemas.ts'
 import type { OneOf } from '#lib/types.ts'
@@ -438,6 +439,17 @@ export const api = new Hono<{
     },
   )
   .post('/api/auth/device', async (c) => {
+    const rl = await rateLimit(c.env.KV, c.executionCtx, {
+      ip: c.req.header('cf-connecting-ip') ?? 'unknown',
+      key: 'device',
+      max: 5,
+      window: 60,
+    })
+    if (rl.error)
+      return c.json({ error: 'rate_limit_exceeded' }, 429, {
+        'retry-after': String(rl.reset - Math.floor(Date.now() / 1000)),
+      })
+
     const code = Nanoid.generate()
     const user_code = customAlphabet('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 8)()
     await c.var.db
@@ -490,6 +502,18 @@ export const api = new Hono<{
     validator('json', z.object({ code: z.string() })),
     async (c) => {
       if (narrowValidation) return validationError(c)
+
+      const rl = await rateLimit(c.env.KV, c.executionCtx, {
+        ip: c.req.header('cf-connecting-ip') ?? 'unknown',
+        key: 'device_token',
+        max: 30,
+        window: 60,
+      })
+      if (rl.error)
+        return c.json({ error: 'rate_limit_exceeded' }, 429, {
+          'retry-after': String(rl.reset - Math.floor(Date.now() / 1000)),
+        })
+
       const json = c.req.valid('json')
       const deviceCode = await c.var.db
         .selectFrom('device_code')
@@ -771,11 +795,20 @@ export const api = new Hono<{
   .get('/api/health', (c) => c.json({ ok: true }, 200))
   .get('/api/stats', async (c) => {
     try {
+      const cached = await c.env.KV.get('stats:tokens_saved', 'json')
+      if (cached !== null) return c.json({ tokens_saved: cached }, 200)
+
       const result = await c.var.db
         .selectFrom('request')
         .select((eb) => eb.fn.sum<number>('tokens_saved').as('total'))
         .executeTakeFirstOrThrow()
-      return c.json({ tokens_saved: result.total ?? 0 }, 200)
+      const total = result.total ?? 0
+      c.executionCtx.waitUntil(
+        c.env.KV.put('stats:tokens_saved', JSON.stringify(total), {
+          expirationTtl: 300,
+        }),
+      )
+      return c.json({ tokens_saved: total }, 200)
     } catch {
       return c.json({ tokens_saved: 0 }, 200)
     }
@@ -873,6 +906,18 @@ export const api = new Hono<{
   })
   .get('/api/og.png', validator('query', Og.schema), async (c) => {
     if (narrowValidation) return validationError(c)
+
+    const rl = await rateLimit(c.env.KV, c.executionCtx, {
+      ip: c.req.header('cf-connecting-ip') ?? 'unknown',
+      key: 'og',
+      max: 10,
+      window: 60,
+    })
+    if (rl.error)
+      return c.json({ error: 'rate_limit_exceeded' }, 429, {
+        'retry-after': String(rl.reset - Math.floor(Date.now() / 1000)),
+      })
+
     const query = c.req.valid('query')
     try {
       const element = await Og.getElement(c.env.HOST, c.env, c.var.db, query)

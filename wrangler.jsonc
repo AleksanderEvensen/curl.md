@@ -58,6 +58,9 @@
       }
     ]
   },
+  "triggers": {
+    "crons": ["0 * * * *"]
+  },
   "vars": {
     "HOST": "curl.local"
   },
@@ -126,7 +129,10 @@
       "vars": {
         "HOST": "curl.md"
       },
-      "routes": [{ "pattern": "curl.md", "custom_domain": true }]
+      "routes": [{ "pattern": "curl.md", "custom_domain": true }],
+      "triggers": {
+        "crons": ["0 * * * *"]
+      }
     },
     "preview": {
       "name": "__PREVIEW_NAME__",
@@ -184,7 +190,10 @@
       },
       "routes": [
         { "pattern": "__PREVIEW_APEX__.curl.md", "custom_domain": true }
-      ]
+      ],
+      "triggers": {
+        "crons": ["0 * * * *"]
+      }
     }
   }
 }

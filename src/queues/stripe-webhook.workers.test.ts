@@ -4,7 +4,7 @@ import { getDb } from '#lib/db.ts'
 import { processStripeWebhookMessage } from '#queues/stripe-webhook.ts'
 import { createFactory } from '../../test/factory.ts'
 
-const db = getDb(env.DB.connectionString)
+const db = getDb(env.DB.connectionString, { max: 1 })
 const factory = createFactory(db)
 
 test('processes checkout.session.completed for account', async () => {

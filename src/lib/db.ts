@@ -3,15 +3,15 @@ import { PostgresJSDialect } from 'kysely-postgres-js'
 import postgres from 'postgres'
 import type { DB } from '#lib/db.gen.ts'
 
-export function getDb(connectionString: string) {
+export function getDb(connectionString: string, options?: { max?: number }) {
   return new Kysely<DB>({
-    dialect: dialect(connectionString),
+    dialect: dialect(connectionString, options),
   })
 }
 
-export function dialect(url: string) {
+export function dialect(url: string, options?: { max?: number }) {
   return new PostgresJSDialect({
-    postgres: postgres(url),
+    postgres: postgres(url, { max: options?.max }),
   })
 }
 

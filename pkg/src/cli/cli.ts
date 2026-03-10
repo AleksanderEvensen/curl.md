@@ -349,6 +349,19 @@ const auth = Cli.create('auth', {
       }
 
       const deviceRes = await c.var.client.api.auth.device.$post()
+      if ((deviceRes.status as number) === 429) {
+        const retryAfter = deviceRes.headers.get('retry-after')
+        return c.error({
+          code: 'RATE_LIMITED',
+          message: retryAfter
+            ? `Rate limit exceeded. Try again in ${retryAfter}s.`
+            : 'Rate limit exceeded. Try again later.',
+        })
+      }
+      if (deviceRes.status !== 200) {
+        const json = await deviceRes.json()
+        return c.error({ code: 'AUTH_FAILED', message: json.error })
+      }
       const device = await deviceRes.json()
 
       const url = `${device.verification_uri}?user_code=${device.user_code}`
@@ -368,7 +381,17 @@ const auth = Cli.create('auth', {
           const res = await c.var.client.api.auth.device.token.$post({
             json: { code: device.code },
           })
-          if (res.status === 400) {
+          if ((res.status as number) === 429) {
+            const retryAfter = res.headers.get('retry-after')
+            spinner.stop()
+            return c.error({
+              code: 'RATE_LIMITED',
+              message: retryAfter
+                ? `Rate limit exceeded. Try again in ${retryAfter}s.`
+                : 'Rate limit exceeded. Try again later.',
+            })
+          }
+          if (res.status !== 200) {
             const json = await res.json()
             if (json.error === 'authorization_pending') {
               await new Promise((r) => setTimeout(r, interval))

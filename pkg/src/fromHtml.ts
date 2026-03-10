@@ -203,6 +203,7 @@ function strip(node: Element | Root, links: CollectedLink[], baseUrl?: string) {
     }
 
     if (isHidden(child)) return false
+    if (isSkipLink(child)) return false
 
     if (matchesNoiseClassId(child)) {
       collectLinks(child, links, baseUrl)
@@ -217,6 +218,14 @@ function strip(node: Element | Root, links: CollectedLink[], baseUrl?: string) {
     strip(child, links, baseUrl)
     return true
   })
+}
+
+function isSkipLink(node: Element): boolean {
+  if (node.tagName !== 'a') return false
+  const href = node.properties?.href
+  if (typeof href !== 'string' || !href.startsWith('#')) return false
+  const text = hastToText(node).toLowerCase()
+  return text.includes('skip')
 }
 
 function isHidden(node: Element): boolean {
@@ -308,15 +317,13 @@ function rehypeResolveLinks(baseUrl?: string) {
 
 function resolveLinks(node: Element | Root, baseUrl: string) {
   if (!('children' in node)) return
-  // Unwrap anchor elements with hash-only hrefs (keep children)
+  // Unwrap anchor elements with hash-only or missing hrefs (keep children)
   node.children = node.children.flatMap((child) => {
-    if (
-      child.type === 'element' &&
-      child.tagName === 'a' &&
-      typeof child.properties?.href === 'string' &&
-      child.properties.href.startsWith('#')
-    )
-      return child.children
+    if (child.type === 'element' && child.tagName === 'a') {
+      const href = child.properties?.href
+      if (typeof href !== 'string' || href.startsWith('#'))
+        return child.children
+    }
     return [child]
   })
   for (const child of node.children) {

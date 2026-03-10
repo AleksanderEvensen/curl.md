@@ -18,7 +18,9 @@ const client = testClient(api, env, {
   props: {},
 })
 // Workers tests use D1 via miniflare; env.DB is a Hyperdrive stub with connectionString
-const db = new Kysely<DB>({ dialect: dialect(env.DB.connectionString) })
+const db = new Kysely<DB>({
+  dialect: dialect(env.DB.connectionString, { max: 1 }),
+})
 const factory = createFactory(db)
 
 describe('GET /api/auth/github', () => {
@@ -323,7 +325,7 @@ describe('POST /api/auth/logout', () => {
 describe('POST /api/auth/device', () => {
   test('returns device code and user code', async () => {
     const res = await client.api.auth.device.$post()
-    expect(res.status).toBe(200)
+    assert(res.status === 200, 'expected 200')
     const json = await res.json()
     expect(json.code).toBeDefined()
     expect(json.user_code).toMatch(/^[A-Z2-9]{8}$/)
@@ -337,6 +339,7 @@ describe('POST /api/auth/device', () => {
 
     // 1. Create device code
     const deviceRes = await client.api.auth.device.$post()
+    assert(deviceRes.status === 200, 'expected 200')
     const device = await deviceRes.json()
 
     // 2. Confirm (as authenticated user)
@@ -447,6 +450,7 @@ describe('POST /api/auth/device/token', () => {
 
   test('polling pending code returns authorization_pending', async () => {
     const deviceRes = await client.api.auth.device.$post()
+    assert(deviceRes.status === 200, 'expected 200')
     const device = await deviceRes.json()
 
     const res = await client.api.auth.device.token.$post({
@@ -465,6 +469,40 @@ describe('POST /api/auth/device/token', () => {
     expect(res.status).toBe(400)
     await expect(res.json()).resolves.toEqual({ error: 'expired_token' })
   })
+
+  test('returns 429 when rate limit exceeded', async () => {
+    await env.KV.put(
+      'ratelimit:device_token:192.0.2.10',
+      JSON.stringify({ count: 30, reset: Math.floor(Date.now() / 1000) + 60 }),
+      { expirationTtl: 60 },
+    )
+
+    const res = await client.api.auth.device.token.$post(
+      { json: { code: 'anything' } },
+      { headers: { 'cf-connecting-ip': '192.0.2.10' } },
+    )
+    expect(res.status).toBe(429)
+    expect(res.headers.get('retry-after')).toBeTruthy()
+    await expect(res.json()).resolves.toEqual({
+      error: 'rate_limit_exceeded',
+    })
+  })
+})
+
+test('POST /api/auth/device returns 429 when rate limit exceeded', async () => {
+  await env.KV.put(
+    'ratelimit:device:192.0.2.11',
+    JSON.stringify({ count: 5, reset: Math.floor(Date.now() / 1000) + 60 }),
+    { expirationTtl: 60 },
+  )
+
+  const res = await client.api.auth.device.$post(
+    {},
+    { headers: { 'cf-connecting-ip': '192.0.2.11' } },
+  )
+  expect(res.status).toBe(429)
+  expect(res.headers.get('retry-after')).toBeTruthy()
+  await expect(res.json()).resolves.toEqual({ error: 'rate_limit_exceeded' })
 })
 
 describe('GET /api/auth/me', () => {
@@ -926,6 +964,21 @@ test('GET /api/health returns ok', async () => {
   const res = await client.api.health.$get()
   expect(res.status).toBe(200)
   await expect(res.json()).resolves.toEqual({ ok: true })
+})
+
+test('GET /api/stats returns cached value from KV', async () => {
+  await env.KV.put('stats:tokens_saved', '42000')
+  const res = await client.api.stats.$get()
+  expect(res.status).toBe(200)
+  await expect(res.json()).resolves.toEqual({ tokens_saved: 42000 })
+})
+
+test('GET /api/stats falls back to DB when KV is empty', async () => {
+  await env.KV.delete('stats:tokens_saved')
+  const res = await client.api.stats.$get()
+  expect(res.status).toBe(200)
+  const json = await res.json()
+  expect(json).toHaveProperty('tokens_saved')
 })
 
 describe('GET /api/orgs', () => {
