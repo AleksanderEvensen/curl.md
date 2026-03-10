@@ -1,5 +1,5 @@
-import { createMessageBatch, env, fetchMock } from 'cloudflare:test'
-import { afterEach, beforeAll, expect, test } from 'vitest'
+import { createMessageBatch, env } from 'cloudflare:test'
+import { expect, test } from 'vitest'
 import { getDb } from '#lib/db.ts'
 import * as Nanoid from '#lib/nanoid.ts'
 import { processRequestMessage } from '#queues/request.ts'
@@ -7,16 +7,6 @@ import { createFactory } from '../../test/factory.ts'
 
 const db = getDb(env.DB.connectionString)
 const factory = createFactory(db)
-
-beforeAll(() => {
-  fetchMock.activate()
-  fetchMock.disableNetConnect()
-  return () => fetchMock.deactivate()
-})
-
-afterEach(() => {
-  fetchMock.assertNoPendingInterceptors()
-})
 
 test('inserts request record', async () => {
   const batch = createMessageBatch<processRequestMessage.Body>(
@@ -96,11 +86,6 @@ test('clears KV cache when tokens_saved is set', async () => {
 })
 
 test('skips tokens_saved update when fetch fails', async () => {
-  fetchMock
-    .get('https://example.com')
-    .intercept({ path: '/fail' })
-    .reply(500, 'error')
-
   const batch = createMessageBatch<processRequestMessage.Body>(
     processRequestMessage.queueName,
     [

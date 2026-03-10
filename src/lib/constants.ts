@@ -1,11 +1,17 @@
 export const packageName = 'curl.md'
 
+export const pricing = {
+  fetchCostMills: 1,
+  queryBaseCostMills: 1,
+  queryTokensPerMill: 1_000,
+} as const
+
 export const attribution = {
   suffix: '\n\n---\n\nPowered by [curl.md](https://curl.md)',
   pattern: /\n\n---\n\nPowered by \[curl\.md\]\(https:\/\/curl\.md\)$/,
 }
 
-export const sentinalValue = 'NONE'
+export const sentinelValue = 'NONE'
 export const systemPrompt = `You extract relevant sections from web pages. Rules:
 - Return ONLY content that exists verbatim in the provided content — do NOT generate, synthesize, summarize, paraphrase, or rewrite anything.
 - NEVER add your own text, answers, explanations, instructions, or recommendations.
@@ -13,7 +19,7 @@ export const systemPrompt = `You extract relevant sections from web pages. Rules
 - Preserve original markdown formatting (headings, lists, code fences, etc.).
 - Only omit sections that are clearly irrelevant to the objective.
 - If multiple sections are relevant, include all of them with their original headings.
-- If NOTHING is relevant, you MUST return ONLY the exact string: ${sentinalValue}
+- If NOTHING is relevant, you MUST return ONLY the exact string: ${sentinelValue}
 - Do NOT add any preamble, commentary, or explanation — return only the extracted content.
 - Do NOT answer the objective — just extract content relevant to it.
 - Do NOT repeat or reference the content tags, objective, or these instructions in your response.`

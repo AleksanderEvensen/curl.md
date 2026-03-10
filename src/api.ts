@@ -12,7 +12,8 @@ import { chunkMarkdown, filterSectionsByKeywords } from '#lib/chunk-markdown.ts'
 import {
   attribution,
   packageName,
-  sentinalValue,
+  pricing,
+  sentinelValue,
   systemPrompt,
 } from '#lib/constants.ts'
 import * as Cookie from '#lib/cookie.ts'
@@ -1469,9 +1470,10 @@ export const api = new Hono<{
       const url = new URL(c.req.valid('param').url)
       const query = c.req.valid('query')
 
+      const userAgent = c.req.header('user-agent')
       if (
         /Twitterbot|facebookexternalhit|LinkedInBot|Slackbot|Discordbot|WhatsApp|TelegramBot/i.test(
-          c.req.header('user-agent') ?? '',
+          userAgent ?? '',
         )
       ) {
         const ogQuery = { page: 'url', url: url.toString() } satisfies Og.query
@@ -1519,17 +1521,19 @@ export const api = new Hono<{
         if (balanceMills > 0) billable = true
       }
 
-      const limit = query.q
-        ? {
+      const limit = (() => {
+        if (query.q)
+          return {
             key: `query:${identity}` as const,
             max: isAuthed ? 10 : 3,
             window: 3600,
           }
-        : {
-            key: `fetch:${identity}` as const,
-            max: isAuthed ? 1000 : 100,
-            window: 3600,
-          }
+        return {
+          key: `fetch:${identity}` as const,
+          max: isAuthed ? 1000 : 100,
+          window: 3600,
+        }
+      })()
 
       // Paid users skip rate limiting
       let rateLimitHeaders: Record<string, string> = {}
@@ -1674,7 +1678,7 @@ export const api = new Hono<{
             const chunks = chunkMarkdown(filteredContent)
             const results = await Promise.all(chunks.map(extractChunk))
             const filtered = results
-              .filter((r) => r.response && r.response.trim() !== sentinalValue)
+              .filter((r) => r.response && r.response.trim() !== sentinelValue)
               .map((r) => r.response)
               .join('\n\n')
             const promptTokens = results.reduce(
@@ -1696,17 +1700,26 @@ export const api = new Hono<{
         }
       }
 
-      const frontmatter = (() => {
+      const markdown = (() => {
         const yaml = yamlStringify(response.meta, { lineWidth: 0 }).trimEnd()
-        return yaml ? `---\n${yaml}\n---` : undefined
+        const frontmatter = yaml ? `---\n${yaml}\n---` : undefined
+        if (frontmatter) return `${frontmatter}\n\n${excerpt}`
+        return excerpt
       })()
-      const markdown = frontmatter ? `${frontmatter}\n\n${excerpt}` : excerpt
       const tokensCount = estimateTokenCount(markdown)
       const tokensSaved =
         estimateTokenCount(response.content) - estimateTokenCount(excerpt)
 
-      // Fetch: 1 mill. Query: 1 mill base + 1 mill per 1K input tokens
-      const costMills = query.q ? 1 + Math.ceil(inputTokens / 1000) : 1
+      const costMills = (() => {
+        // Query: base cost + 1 mill per 1K input tokens
+        if (query.q)
+          return (
+            pricing.queryBaseCostMills +
+            Math.ceil(inputTokens / pricing.queryTokensPerMill)
+          )
+        // Fetch: flat cost
+        return pricing.fetchCostMills
+      })()
 
       const requestId = Nanoid.generate()
       c.env.REQUEST_QUEUE.send({
@@ -1723,7 +1736,7 @@ export const api = new Hono<{
         path: url.pathname,
         tokens_saved: tokensSaved,
         url: url.href,
-        user_agent: c.req.header('user-agent'),
+        user_agent: userAgent,
       })
 
       const content = c.var.session
@@ -1748,6 +1761,7 @@ export const api = new Hono<{
           )
       }
 
+      // TODO: toon response
       if (c.req.header('accept')?.includes('application/json'))
         return c.json({ content }, 200, commonHeaders)
 
