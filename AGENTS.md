@@ -9,11 +9,13 @@ Agent guidance for this repository.
 Prefer running these scripts instead of using `npx`.
 
 - `pnpm check` - Lint with Biome
+- `pnpm check:deps` - Check for unused dependencies with Knip (packages/ only)
 - `pnpm check:types` - Type check with tsgo
 - `pnpm db:codegen` - Generate database types
 - `pnpm db:migrate` - Run database migrations
 - `pnpm gen:types` - Generate Cloudflare worker types
-- `pnpm test` - Run tests with Vitest (includes app, cli, workers, and pro projects)
+- `pnpm test` - Run tests with Vitest (includes all projects)
+- `pnpm test --project name` - Always try to scope tests to specific projects when possible
 
 ## Debugging
 

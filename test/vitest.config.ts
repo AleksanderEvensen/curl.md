@@ -1,11 +1,11 @@
 import path from 'node:path'
 import { defineWorkersProject } from '@cloudflare/vitest-pool-workers/config'
 import { defineConfig } from 'vitest/config'
-import { Env } from './test/env.ts'
+import { Env } from './env.ts'
 
-const root = path.resolve(import.meta.dirname)
+const root = path.resolve(import.meta.dirname, '..')
 const aliases = {
-  '#': new URL('./src/', import.meta.url).pathname,
+  '#': new URL('../src/', import.meta.url).pathname,
 }
 
 export default defineConfig({
@@ -25,9 +25,16 @@ export default defineConfig({
           globalSetup: ['test/cli.globalSetup.ts'],
           setupFiles: ['test/cli.setup.ts'],
           hookTimeout: 120_000,
-          include: ['cli/src/**/*.test.ts'],
+          include: ['packages/cli/src/**/*.test.ts'],
           root,
           testTimeout: 30_000,
+        },
+      },
+      {
+        test: {
+          name: 'sdk',
+          include: ['packages/curl.md/src/**/*.test.ts'],
+          root,
         },
       },
       defineWorkersProject({

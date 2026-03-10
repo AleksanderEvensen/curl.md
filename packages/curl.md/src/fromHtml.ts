@@ -6,10 +6,10 @@ import remarkStringify from 'remark-stringify'
 import { unified } from 'unified'
 import type { VFile } from 'vfile'
 
-export async function htmlToMarkdown(
+export async function fromHtml(
   html: string,
-  options?: { baseUrl?: string },
-): Promise<{ markdown: string; meta: Record<string, string> }> {
+  options?: fromHtml.Options,
+): Promise<fromHtml.ReturnType> {
   const file = await unified()
     .use(rehypeParse)
     .use(rehypeExtractMeta, options?.baseUrl)
@@ -32,36 +32,48 @@ export async function htmlToMarkdown(
     .use(remarkGfm)
     .use(remarkStringify)
     .process(html)
-  const meta = (file.data.meta as Record<string, string> | undefined) ?? {}
+
+  const meta = filterFrontmatterKeys(
+    (file.data.meta as Record<string, string> | undefined) ?? {},
+  )
+
   const relatedLinks =
     (file.data.relatedLinks as Array<{ href: string; text: string }>) ?? []
-  const frontmatter = (() => {
-    const entries = Object.entries(meta)
-      .filter(([k]) => allowedFrontmatterKeys.has(k))
-      .map(([k, v]) => `${k}: ${JSON.stringify(v.trim())}`)
-    return entries.length > 0 ? entries.join('\n') : undefined
-  })()
-  let markdown = frontmatter
-    ? `---\n${frontmatter}\n---\n\n${String(file)}`
-    : String(file)
+  let content = String(file)
   if (relatedLinks.length > 0) {
     const links = relatedLinks
       .slice(0, 25)
       .map((l) => `- [${l.text.replace(/[[\]]/g, '\\$&')}](${l.href})`)
       .join('\n')
-    markdown += `\n<!--\nSitemap:\n${links}\n-->\n`
+    content += `\n<!--\nSitemap:\n${links}\n-->\n`
   }
-  return { markdown, meta }
+
+  return { content, meta }
 }
 
-export const allowedFrontmatterKeys = new Set([
-  'author',
-  'description',
-  'publish_date',
-  'site',
-  'title',
-  'url',
-])
+export namespace fromHtml {
+  export type Options = { baseUrl?: string }
+  export type ReturnType = { content: string; meta: Record<string, string> }
+}
+
+export function filterFrontmatterKeys(
+  meta: Record<string, unknown>,
+): Record<string, string> {
+  const filtered: Record<string, string> = {}
+  const allowedFrontmatterKeys = new Set([
+    'author',
+    'description',
+    'publish_date',
+    'site',
+    'title',
+    'url',
+  ])
+  for (const [k, v] of Object.entries(meta)) {
+    if (!allowedFrontmatterKeys.has(k)) continue
+    if (typeof v === 'string') filtered[k] = v.trim()
+  }
+  return filtered
+}
 
 const metaPropertyMap: Record<string, string> = {
   'article:published_time': 'publish_date',

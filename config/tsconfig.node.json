@@ -31,7 +31,7 @@
     "../scripts",
     "../kysely.config.ts",
     "../vite.config.ts",
-    "../vitest.config.ts"
+    "../test/vitest.config.ts"
   ],
   "exclude": ["../test/workers.setup.ts"]
 }

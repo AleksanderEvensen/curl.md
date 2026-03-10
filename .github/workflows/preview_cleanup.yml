@@ -19,6 +19,7 @@ jobs:
     name: Cleanup Preview
     if: contains(fromJSON('["COLLABORATOR", "MEMBER", "OWNER"]'), github.event.pull_request.author_association)
     runs-on: ubuntu-latest
+    environment: preview
     steps:
       - name: Remove Worker from Queue consumers
         env:
