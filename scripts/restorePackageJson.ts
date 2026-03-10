@@ -1,8 +1,8 @@
 import fs from 'node:fs/promises'
 
-// Restores cli/package.json from backup.
+// Restores pkg/package.json from backup.
 
-const packagePath = 'cli/package.json'
+const packagePath = 'pkg/package.json'
 const tmpPath = `${packagePath}.tmp`
 
 console.log('Restoring package.json.')

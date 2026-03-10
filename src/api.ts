@@ -1692,7 +1692,7 @@ export const api = new Hono<{
             return { excerpt: filtered, inputTokens: promptTokens }
           })()
           inputTokens = result.inputTokens
-          excerpt = result.excerpt
+          excerpt = result.excerpt || filteredContent
         } catch (error) {
           const message =
             error instanceof Error ? error.message : 'Unknown error'

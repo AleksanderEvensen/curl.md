@@ -2,11 +2,8 @@
   "$schema": "https://unpkg.com/knip@latest/schema.json",
   "ignoreWorkspaces": ["."],
   "workspaces": {
-    "packages/cli": {
-      "entry": ["src/bin.ts"]
-    },
-    "packages/curl.md": {
-      "ignoreDependencies": ["@curl.md/cli"]
+    "pkg": {
+      "entry": ["src/cli/bin.ts"]
     }
   },
   "ignore": ["**/*.test.ts", "**/test/**"],

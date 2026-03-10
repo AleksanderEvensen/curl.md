@@ -246,9 +246,31 @@ function splitFrontmatter(markdown: string): {
 }
 
 function normalizeMarkdown(content: string): string {
-  // Normalize GFM table separator rows to use `| --- |`
-  return content.replace(
-    /^(\| *:?)-+([ :]*\|(?:[ :]*-+[ :]*\|)*)\s*$/gm,
-    (match) => match.replace(/\| *(:?)-+(:?) */g, '| $1---$2 '),
+  return (
+    content
+      // Strip utm_* query params from markdown links
+      .replace(/\[([^\]]*)\]\(([^)]+)\)/g, (match, text, url) => {
+        try {
+          const parsed = new URL(url)
+          const keys = [...parsed.searchParams.keys()]
+          let changed = false
+          for (const key of keys) {
+            if (key.startsWith('utm_')) {
+              parsed.searchParams.delete(key)
+              changed = true
+            }
+          }
+          if (!changed) return match
+          let href = parsed.toString()
+          if (parsed.searchParams.size === 0) href = href.replace(/\?$/, '')
+          return `[${text}](${href})`
+        } catch {
+          return match
+        }
+      })
+      // Normalize GFM table separator rows to use `| --- |`
+      .replace(/^(\| *:?)-+([ :]*\|(?:[ :]*-+[ :]*\|)*)\s*$/gm, (match) =>
+        match.replace(/\| *(:?)-+(:?) */g, '| $1---$2 '),
+      )
   )
 }

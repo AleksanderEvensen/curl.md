@@ -2,10 +2,15 @@
   "name": "curl.md",
   "version": "0.0.8",
   "description": "Fetch any URL as Markdown",
+  "scripts": {
+    "build": "tsgo --noCheck -p tsconfig.build.json && find ../src -name '*.js' -delete",
+    "check:types": "tsgo --noEmit",
+    "gen:types": "incur gen"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/wevm/curl.md.git",
-    "directory": "packages/curl.md"
+    "directory": "pkg"
   },
   "license": "FSL-1.1-MIT",
   "type": "module",
@@ -16,18 +21,22 @@
     }
   },
   "bin": {
-    "curl.md": "../cli/dist/bin.js",
-    "curl.md.src": "../cli/src/cli.ts",
-    "curlmd": "../cli/dist/bin.js",
-    "curlmd.src": "../cli/src/cli.ts",
-    "md": "../cli/dist/bin.js",
-    "md.src": "../cli/src/cli.ts"
+    "curl.md": "./dist/cli/bin.js",
+    "curl.md.src": "./src/cli/cli.ts",
+    "curlmd": "./dist/cli/bin.js",
+    "curlmd.src": "./src/cli/cli.ts",
+    "md": "./dist/cli/bin.js",
+    "md.src": "./src/cli/cli.ts"
   },
   "files": [
+    "CHANGELOG.md",
+    "dist",
     "src"
   ],
   "dependencies": {
-    "@curl.md/cli": "workspace:*",
+    "hono": "^4.12.2",
+    "incur": "^0.2.0",
+    "picocolors": "^1.1.1",
     "rehype-parse": "^9.0.1",
     "rehype-remark": "^10.0.1",
     "remark-gfm": "^4.0.1",
@@ -35,5 +44,8 @@
     "unified": "^11.0.5",
     "vfile": "^6.0.3",
     "zod": "catalog:"
+  },
+  "engines": {
+    "node": ">=22.0.0"
   }
 }

@@ -1,5 +1,5 @@
 packages:
-  - packages/*
+  - pkg
 
 catalog:
   zod: ^4.3.6

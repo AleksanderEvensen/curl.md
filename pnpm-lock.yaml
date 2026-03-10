@@ -40,7 +40,7 @@ importers:
         version: 1.163.2(@tanstack/react-router@1.163.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(vite@7.3.1(@types/node@25.3.2)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))
       curl.md:
         specifier: workspace:*
-        version: link:packages/curl.md
+        version: link:pkg
       hono:
         specifier: ^4.12.2
         version: 4.12.3
@@ -163,7 +163,7 @@ importers:
         specifier: ^4.68.0
         version: 4.69.0
 
-  packages/cli:
+  pkg:
     dependencies:
       hono:
         specifier: ^4.12.2
@@ -174,12 +174,6 @@ importers:
       picocolors:
         specifier: ^1.1.1
         version: 1.1.1
-
-  packages/curl.md:
-    dependencies:
-      '@curl.md/cli':
-        specifier: workspace:*
-        version: link:../cli
       rehype-parse:
         specifier: ^9.0.1
         version: 9.0.1

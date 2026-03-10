@@ -15,9 +15,9 @@ import { dialect } from '#lib/db.ts'
 import * as Nanoid from '#lib/nanoid.ts'
 import { Env } from '../../../test/env.ts'
 import { createFactory } from '../../../test/factory.ts'
-import * as utils from '../src/utils.ts'
-import { Session, UpdateCache } from '../src/utils.ts'
-import { serve, useTempHome } from '../test/utils.ts'
+import { serve, useTempHome } from '../../test/utils.ts'
+import * as utils from './utils.ts'
+import { Session, UpdateCache } from './utils.ts'
 
 const env = Env.parse(inject('env'))
 const client = hc<typeof api>(env.CURL_MD_BASE_URL)

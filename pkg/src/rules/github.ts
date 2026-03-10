@@ -5,7 +5,7 @@ import remarkGfm from 'remark-gfm'
 import remarkStringify from 'remark-stringify'
 import { unified } from 'unified'
 import { z } from 'zod'
-import { defineRule, type FetchContext } from '../mod.ts'
+import { defineRule, type FetchContext, type Meta } from '../mod.ts'
 
 export const githubBlob = defineRule({
   key: 'githubBlob',
@@ -47,9 +47,12 @@ export const githubIssue = defineRule<{ token?: string }>({
     return {
       content: (json.body ?? '').trim(),
       meta: {
+        ...(json.number && { number: json.number }),
         ...(json.title && { title: json.title }),
         ...(json.user?.login && { author: json.user.login }),
         ...(json.state && { state: json.state }),
+        ...(json.created_at && { created_at: json.created_at }),
+        ...(json.updated_at && { updated_at: json.updated_at }),
       },
     }
   },
@@ -77,17 +80,28 @@ export const githubPr = defineRule<{ token?: string }>({
 
     if (raw.data?.repository) {
       const entry = z.parse(graphqlPrSchema, raw).data.repository.pullRequest
-      return formatComments(entry, { merged: entry.merged })
+      return formatComments(entry, {
+        merged: entry.merged,
+        isDraft: entry.isDraft,
+        baseRef: entry.baseRefName,
+        headRef: entry.headRefName,
+      })
     }
 
     const json = z.parse(restPrSchema, raw)
-    const state = json.merged ? 'merged' : json.state
+    const state = json.merged ? 'merged' : json.draft ? 'draft' : json.state
     return {
       content: (json.body ?? '').trim(),
       meta: {
+        ...(json.number && { number: json.number }),
         ...(json.title && { title: json.title }),
         ...(json.user?.login && { author: json.user.login }),
         ...(state && { state }),
+        ...(json.created_at && { created_at: json.created_at }),
+        ...(json.updated_at && { updated_at: json.updated_at }),
+
+        ...(json.base?.ref && { base_ref: json.base.ref }),
+        ...(json.head?.ref && { head_ref: json.head.ref }),
       },
     }
   },
@@ -107,20 +121,61 @@ async function fetchGithubApi(
   const [, , owner, repo, kind, id] = url.pathname.split('/')
   const isPr = kind === 'pulls'
 
-  // Use GraphQL when authenticated to fetch comments in a single request
+  // Use GraphQL when authenticated to fetch comments with pagination
   if (context.token) {
-    const res = await context.fetch('https://api.github.com/graphql', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${context.token}`,
-        'User-Agent': userAgent,
-      },
-      body: JSON.stringify({
-        query: isPr ? prQuery : issueQuery,
-        variables: { owner, repo, number: Number(id) },
-      }),
+    let cursor: string | null = null
+    const allComments: z.infer<typeof commentSchema>[] = []
+    let firstResponse: Record<string, unknown> | undefined
+
+    while (true) {
+      const res: Response = await context.fetch(
+        'https://api.github.com/graphql',
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${context.token}`,
+            'User-Agent': userAgent,
+          },
+          body: JSON.stringify({
+            query: isPr ? prQuery : issueQuery,
+            variables: { owner, repo, number: Number(id), cursor },
+          }),
+        },
+      )
+      if (!res.ok) return res
+
+      const raw = await res.json()
+      const entry = isPr
+        ? z.parse(graphqlPrSchema, raw).data.repository.pullRequest
+        : z.parse(graphqlIssueSchema, raw).data.repository.issue
+      const pageInfo = entry.comments?.pageInfo
+
+      if (!firstResponse) firstResponse = raw as Record<string, unknown>
+      allComments.push(...(entry.comments?.nodes ?? []))
+
+      if (!pageInfo?.hasNextPage) break
+      if (pageInfo.endCursor === cursor)
+        throw new Error('Pagination cursor did not advance')
+      cursor = pageInfo.endCursor
+    }
+
+    // Patch first response with all accumulated comments
+    if (isPr) {
+      const parsed = z.parse(graphqlPrSchema, firstResponse)
+      if (parsed.data.repository.pullRequest.comments)
+        parsed.data.repository.pullRequest.comments.nodes = allComments
+      firstResponse = parsed
+    } else {
+      const parsed = z.parse(graphqlIssueSchema, firstResponse)
+      if (parsed.data.repository.issue.comments)
+        parsed.data.repository.issue.comments.nodes = allComments
+      firstResponse = parsed
+    }
+
+    return new Response(JSON.stringify(firstResponse), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
     })
-    if (res.ok) return res
   }
 
   // Unauthenticated: fetch HTML directly (includes comments, no rate limit)
@@ -135,9 +190,12 @@ async function fetchGithubApi(
 
 function formatComments(
   entry: {
+    number?: number
     body?: string
     title?: string
     state?: string
+    createdAt?: string
+    updatedAt?: string
     author?: { login?: string }
     comments?: {
       nodes: Array<{
@@ -147,9 +205,18 @@ function formatComments(
       }>
     }
   },
-  options?: { merged?: boolean },
+  options?: {
+    merged?: boolean
+    isDraft?: boolean
+    baseRef?: string
+    headRef?: string
+  },
 ) {
-  const state = options?.merged ? 'merged' : entry.state?.toLowerCase()
+  const state = options?.merged
+    ? 'merged'
+    : options?.isDraft
+      ? 'draft'
+      : entry.state?.toLowerCase()
 
   let content = (entry.body ?? '').trim()
   for (const comment of entry.comments?.nodes ?? [])
@@ -158,9 +225,15 @@ function formatComments(
   return {
     content,
     meta: {
+      ...(entry.number && { number: entry.number }),
       ...(entry.title && { title: entry.title }),
       ...(entry.author?.login && { author: entry.author.login }),
       ...(state && { state }),
+      ...(entry.createdAt && { created_at: entry.createdAt }),
+      ...(entry.updatedAt && { updated_at: entry.updatedAt }),
+
+      ...(options?.baseRef && { base_ref: options.baseRef }),
+      ...(options?.headRef && { head_ref: options.headRef }),
     },
   }
 }
@@ -183,11 +256,24 @@ const graphqlIssueSchema = z.object({
   data: z.object({
     repository: z.object({
       issue: z.object({
+        number: z.number().optional(),
         title: z.string().optional(),
         body: z.string().optional(),
         state: z.string().optional(),
+        createdAt: z.string().optional(),
+        updatedAt: z.string().optional(),
         author: z.object({ login: z.string().optional() }).optional(),
-        comments: z.object({ nodes: z.array(commentSchema) }).optional(),
+        comments: z
+          .object({
+            nodes: z.array(commentSchema),
+            pageInfo: z
+              .object({
+                hasNextPage: z.boolean(),
+                endCursor: z.string().nullable(),
+              })
+              .optional(),
+          })
+          .optional(),
       }),
     }),
   }),
@@ -197,59 +283,94 @@ const graphqlPrSchema = z.object({
   data: z.object({
     repository: z.object({
       pullRequest: z.object({
+        number: z.number().optional(),
         title: z.string().optional(),
         body: z.string().optional(),
         state: z.string().optional(),
+        createdAt: z.string().optional(),
+        updatedAt: z.string().optional(),
         merged: z.boolean().optional(),
+        isDraft: z.boolean().optional(),
         author: z.object({ login: z.string().optional() }).optional(),
-        comments: z.object({ nodes: z.array(commentSchema) }).optional(),
+        baseRefName: z.string().optional(),
+        headRefName: z.string().optional(),
+        comments: z
+          .object({
+            nodes: z.array(commentSchema),
+            pageInfo: z
+              .object({
+                hasNextPage: z.boolean(),
+                endCursor: z.string().nullable(),
+              })
+              .optional(),
+          })
+          .optional(),
       }),
     }),
   }),
 })
 
 const restIssueSchema = z.object({
+  number: z.number().optional(),
   body: z.string().optional(),
   title: z.string().optional(),
   state: z.string().optional(),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
   user: z.object({ login: z.string().optional() }).optional(),
 })
 
 const restPrSchema = z.object({
+  number: z.number().optional(),
   body: z.string().optional(),
   title: z.string().optional(),
   state: z.string().optional(),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
   merged: z.boolean().optional(),
+  draft: z.boolean().optional(),
   user: z.object({ login: z.string().optional() }).optional(),
+  base: z.object({ ref: z.string().optional() }).optional(),
+  head: z.object({ ref: z.string().optional() }).optional(),
 })
 
-// TODO: paginate comments — `comments(first: 100)` silently drops anything beyond 100
 const issueQuery = `
-query($owner: String!, $repo: String!, $number: Int!) {
+query($owner: String!, $repo: String!, $number: Int!, $cursor: String) {
   repository(owner: $owner, name: $repo) {
     issue(number: $number) {
+      number
       title
       body
       state
+      createdAt
+      updatedAt
       author { login }
-      comments(first: 100) {
+      comments(first: 100, after: $cursor) {
         nodes { body, createdAt, author { login } }
+        pageInfo { hasNextPage endCursor }
       }
     }
   }
 }`
 
 const prQuery = `
-query($owner: String!, $repo: String!, $number: Int!) {
+query($owner: String!, $repo: String!, $number: Int!, $cursor: String) {
   repository(owner: $owner, name: $repo) {
     pullRequest(number: $number) {
+      number
       title
       body
       state
+      createdAt
+      updatedAt
       merged
+      isDraft
       author { login }
-      comments(first: 100) {
+      baseRefName
+      headRefName
+      comments(first: 100, after: $cursor) {
         nodes { body, createdAt, author { login } }
+        pageInfo { hasNextPage endCursor }
       }
     }
   }
@@ -262,27 +383,51 @@ query($owner: String!, $repo: String!, $number: Int!) {
 async function parseGithubHtml(
   html: string,
   kind: 'issue' | 'pr',
-): Promise<{ content: string; meta: Record<string, string> }> {
+): Promise<{ content: string; meta: Meta }> {
   const tree = unified().use(rehypeParse).parse(html)
 
   const title = extractTitle(tree)
+  const number = extractNumber(tree)
   const state = extractState(tree, kind)
   const comments = extractComments(tree)
   if (comments.length === 0) return { content: '', meta: {} }
 
   const author = comments[0]?.author
+  const createdAt = comments[0]?.createdAt
+  const lastComment = comments[comments.length - 1]
+  const updatedAt = comments.length > 1 ? lastComment?.createdAt : undefined
   let content = comments[0]?.body.trim() ?? ''
   for (const comment of comments.slice(1))
     content += `\n\n${commentTag(comment.body, comment.author, comment.createdAt)}`
 
+  const refs = kind === 'pr' ? extractBranchRefs(tree) : undefined
+
   return {
     content,
     meta: {
+      ...(number && { number }),
       ...(title && { title }),
       ...(author && { author }),
       ...(state && { state }),
+      ...(createdAt && { created_at: createdAt }),
+      ...(updatedAt && { updated_at: updatedAt }),
+
+      ...(refs?.base && { base_ref: refs.base }),
+      ...(refs?.head && { head_ref: refs.head }),
     },
   }
+}
+
+function extractNumber(tree: Root): number | undefined {
+  let num: number | undefined
+  walk(tree, (el) => {
+    if (num) return
+    if (el.tagName !== 'h1') return
+    const text = hastToText(el)
+    const match = text.match(/#(\d+)\s*$/)
+    if (match) num = Number(match[1])
+  })
+  return num
 }
 
 function extractTitle(tree: Root): string | undefined {
@@ -308,7 +453,8 @@ function extractState(tree: Root, kind: 'issue' | 'pr'): string | undefined {
     if (!classes.some((c) => c.includes('StateLabel'))) return
     const status = el.properties?.dataStatus as string | undefined
     if (!status) return
-    if (kind === 'pr' && status === 'pullMerged') state = 'merged'
+    if (status === 'draft') state = 'draft'
+    else if (kind === 'pr' && status === 'pullMerged') state = 'merged'
     else if (
       status === 'pullMerged' ||
       status === 'issueClosed' ||
@@ -393,6 +539,21 @@ function classNames(el: Element): string[] {
   if (Array.isArray(raw)) return raw.map(String)
   if (typeof raw === 'string') return raw.split(/\s+/)
   return []
+}
+
+function extractBranchRefs(
+  tree: Root,
+): { base?: string; head?: string } | undefined {
+  const refs: string[] = []
+  walk(tree, (el) => {
+    if (refs.length >= 2) return
+    if (el.tagName !== 'a') return
+    if (!classNames(el).some((c) => c.includes('BranchName'))) return
+    const text = hastToText(el).trim()
+    if (text) refs.push(text.replace(/^[^:]+:/, ''))
+  })
+  if (refs.length === 0) return undefined
+  return { base: refs[0], head: refs[1] }
 }
 
 function hastToText(node: Element | ElementContent): string {

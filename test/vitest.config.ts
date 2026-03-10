@@ -25,7 +25,7 @@ export default defineConfig({
           globalSetup: ['test/cli.globalSetup.ts'],
           setupFiles: ['test/cli.setup.ts'],
           hookTimeout: 120_000,
-          include: ['packages/cli/src/**/*.test.ts'],
+          include: ['pkg/src/cli/**/*.test.ts'],
           root,
           testTimeout: 30_000,
         },
@@ -33,7 +33,7 @@ export default defineConfig({
       {
         test: {
           name: 'sdk',
-          include: ['packages/curl.md/src/**/*.test.ts'],
+          include: ['pkg/src/*.test.ts'],
           root,
         },
       },
