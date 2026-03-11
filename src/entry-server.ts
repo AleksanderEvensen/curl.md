@@ -8,8 +8,11 @@ import { processRequestMessage } from '#queues/request.ts'
 import { processStripeWebhookMessage } from '#queues/stripe-webhook.ts'
 import { cleanupExpired } from '#tasks/cleanup.ts'
 
-export default Sentry.withSentry(
-  (env: Env) => ({
+export default Sentry.withSentry<
+  Env,
+  processRequestMessage.Body | processStripeWebhookMessage.Body
+>(
+  (env) => ({
     dsn: env.SENTRY_DSN,
     tracesSampleRate: 0.01,
     sendDefaultPii: true,
@@ -20,14 +23,14 @@ export default Sentry.withSentry(
       // Route API requests to the Hono API handler
       if (url.pathname.startsWith('/api/'))
         return api.fetch(new Request(url, request), env, ctx)
-      // Redirect protocol-prefixed paths (e.g. /https://example.com/path → /example.com/path)
-      const protocolMatch = url.pathname.match(/^\/(https?:\/\/)(.+)/)
-      if (protocolMatch) {
-        url.pathname = `/${protocolMatch[2]}`
-        return Response.redirect(url.toString(), 301)
-      }
       // Route dot-segment paths (e.g. curl.md/example.com) to the API handler under /api prefix
       if (isApiPath(url.pathname)) {
+        // Redirect protocol-prefixed paths (e.g. /https://example.com/path → /example.com/path)
+        const protocolMatch = url.pathname.match(/^\/(https?:\/\/)(.+)/)
+        if (protocolMatch) {
+          url.pathname = `/${protocolMatch[2]}`
+          return Response.redirect(url.toString(), 301)
+        }
         url.pathname = `/api${url.pathname}`
         return api.fetch(new Request(url, request), env, ctx)
       }
@@ -91,7 +94,7 @@ export default Sentry.withSentry(
       const task = crons[controller.cron as keyof typeof crons]
       if (task) ctx.waitUntil(task(env, ctx))
     },
-  } satisfies ExportedHandler<Env>,
+  },
 )
 
 declare module '@tanstack/react-start' {

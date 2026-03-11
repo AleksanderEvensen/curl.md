@@ -159,7 +159,7 @@ async function findEntity(stripeCustomerId: string, db: Kysely<DB>) {
   return { table: entity.type, id: entity.id } as const
 }
 
-processStripeWebhookMessage.queueName = 'stripe-webhook' as const
+processStripeWebhookMessage.queueName = 'curl-stripe-webhook' as const
 
 export namespace processStripeWebhookMessage {
   export type Body =

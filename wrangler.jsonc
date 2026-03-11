@@ -31,7 +31,7 @@
   "queues": {
     "producers": [
       { "binding": "REQUEST_QUEUE", "queue": "curl-request" },
-      { "binding": "STRIPE_WEBHOOK_QUEUE", "queue": "stripe-webhook" }
+      { "binding": "STRIPE_WEBHOOK_QUEUE", "queue": "curl-stripe-webhook" }
     ],
     "consumers": [
       {
@@ -42,11 +42,11 @@
         "dead_letter_queue": "curl-request-dlq"
       },
       {
-        "queue": "stripe-webhook",
+        "queue": "curl-stripe-webhook",
         "max_batch_size": 1,
         "max_batch_timeout": 5,
         "max_retries": 3,
-        "dead_letter_queue": "stripe-webhook-dlq"
+        "dead_letter_queue": "curl-stripe-webhook-dlq"
       },
       {
         "queue": "curl-request-dlq",
@@ -55,7 +55,7 @@
         "max_retries": 0
       },
       {
-        "queue": "stripe-webhook-dlq",
+        "queue": "curl-stripe-webhook-dlq",
         "max_batch_size": 1,
         "max_batch_timeout": 5,
         "max_retries": 0
@@ -99,7 +99,7 @@
       "queues": {
         "producers": [
           { "binding": "REQUEST_QUEUE", "queue": "curl-request" },
-          { "binding": "STRIPE_WEBHOOK_QUEUE", "queue": "stripe-webhook" }
+          { "binding": "STRIPE_WEBHOOK_QUEUE", "queue": "curl-stripe-webhook" }
         ],
         "consumers": [
           {
@@ -110,11 +110,11 @@
             "dead_letter_queue": "curl-request-dlq"
           },
           {
-            "queue": "stripe-webhook",
+            "queue": "curl-stripe-webhook",
             "max_batch_size": 1,
             "max_batch_timeout": 5,
             "max_retries": 3,
-            "dead_letter_queue": "stripe-webhook-dlq"
+            "dead_letter_queue": "curl-stripe-webhook-dlq"
           },
           {
             "queue": "curl-request-dlq",
@@ -123,7 +123,7 @@
             "max_retries": 0
           },
           {
-            "queue": "stripe-webhook-dlq",
+            "queue": "curl-stripe-webhook-dlq",
             "max_batch_size": 1,
             "max_batch_timeout": 5,
             "max_retries": 0
@@ -174,7 +174,7 @@
           },
           {
             "binding": "STRIPE_WEBHOOK_QUEUE",
-            "queue": "stripe-webhook-__PREVIEW_APEX__"
+            "queue": "curl-stripe-webhook-__PREVIEW_APEX__"
           }
         ],
         "consumers": [
@@ -186,11 +186,11 @@
             "dead_letter_queue": "curl-request-__PREVIEW_APEX__-dlq"
           },
           {
-            "queue": "stripe-webhook-__PREVIEW_APEX__",
+            "queue": "curl-stripe-webhook-__PREVIEW_APEX__",
             "max_batch_size": 1,
             "max_batch_timeout": 5,
             "max_retries": 3,
-            "dead_letter_queue": "stripe-webhook-__PREVIEW_APEX__-dlq"
+            "dead_letter_queue": "curl-stripe-webhook-__PREVIEW_APEX__-dlq"
           },
           {
             "queue": "curl-request-__PREVIEW_APEX__-dlq",
@@ -199,7 +199,7 @@
             "max_retries": 0
           },
           {
-            "queue": "stripe-webhook-__PREVIEW_APEX__-dlq",
+            "queue": "curl-stripe-webhook-__PREVIEW_APEX__-dlq",
             "max_batch_size": 1,
             "max_batch_timeout": 5,
             "max_retries": 0
