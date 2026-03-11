@@ -15,7 +15,7 @@ export default async function (project: TestProject) {
   console.log(`${name}: started dev server`)
 
   const env = Env.get({
-    CURL_MD_BASE_URL: server.baseUrl,
+    CURLMD_BASE_URL: server.baseUrl,
     DB_URL: container.getConnectionUri(),
   })
   project.provide('env', JSON.stringify(env))

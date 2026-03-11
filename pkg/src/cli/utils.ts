@@ -202,7 +202,7 @@ export const UpdateCache = {
       const child = child_process.spawn(process.execPath, args, {
         detached: true,
         stdio: 'ignore',
-        env: { ...process.env, __CURL_MD_UPDATE_CACHE: '1' },
+        env: { ...process.env, __CURLMD_UPDATE_CACHE: '1' },
       })
       child.unref()
     } catch {}

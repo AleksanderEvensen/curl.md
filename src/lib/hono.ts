@@ -5,6 +5,13 @@ import type { z } from 'zod'
 /** Always false at runtime; typed as `boolean` so TypeScript keeps the branch and widens the handler return type to include the 400 validation error response for RPC. */
 export const narrowValidation = false as boolean
 
+/** Typed invalid API key response for RPC. Never reached at runtime (auth middleware handles it). */
+export function invalidApiKey(
+  c: Context,
+): TypedResponse<{ error: 'invalid_api_key' }, 401, 'json'> {
+  return c.json({ error: 'invalid_api_key' as const }, 401)
+}
+
 /** Typed validation error response for RPC. Never reached at runtime (validator middleware handles it). */
 export function validationError(
   c: Context,

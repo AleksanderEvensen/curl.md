@@ -24,7 +24,7 @@
     "deps:ci": "pnpx actions-up --dir .github",
     "dev": "vite dev --port 3000",
     "gen:types": "cp -n .env.example .env 2>/dev/null; wrangler types src/worker-configuration.d.ts && node --experimental-strip-types scripts/stripGlobalProps.ts && pnpm --filter curl.md gen:types",
-    "md": "CURL_MD_BASE_URL=https://curl.local NODE_TLS_REJECT_UNAUTHORIZED=0 node --experimental-strip-types --no-warnings pkg/src/cli/bin.ts",
+    "md": "CURLMD_BASE_URL=https://curl.local NODE_TLS_REJECT_UNAUTHORIZED=0 node --experimental-strip-types --no-warnings pkg/src/cli/bin.ts",
     "preinstall": "pnpx only-allow pnpm",
     "prepare": "pnpm gen:types && simple-git-hooks",
     "preview": "pnpm run build && vite preview",

@@ -12,6 +12,8 @@ import * as ApiKey from '#lib/api-key.ts'
 import { chunkMarkdown, filterSectionsByKeywords } from '#lib/chunk-markdown.ts'
 import {
   attribution,
+  type Mode,
+  modes,
   packageName,
   pricing,
   sentinelValue,
@@ -21,7 +23,12 @@ import * as Cookie from '#lib/cookie.ts'
 import * as Crypto from '#lib/crypto.ts'
 import type { DB } from '#lib/db.gen.ts'
 import { dialect } from '#lib/db.ts'
-import { narrowValidation, validationError, validator } from '#lib/hono.ts'
+import {
+  invalidApiKey,
+  narrowValidation,
+  validationError,
+  validator,
+} from '#lib/hono.ts'
 import * as Nanoid from '#lib/nanoid.ts'
 import * as Og from '#lib/og.tsx'
 import { rateLimit } from '#lib/rate-limit.ts'
@@ -78,24 +85,23 @@ export const api = new Hono<{
         .where('deleted_at', 'is', null)
         .select(['id', 'account_id', 'organization_id', 'last_used_at'])
         .executeTakeFirst()
-      if (apiKey) {
-        c.set('api_key_id', apiKey.id)
-        c.set('organization_id', apiKey.organization_id)
-        c.set('session', { account_id: apiKey.account_id })
-        if (
-          !apiKey.last_used_at ||
-          Date.now() - new Date(apiKey.last_used_at).getTime() > 3_600_000 // 1 hour
+      if (!apiKey) return c.json({ error: 'invalid_api_key' }, 401)
+      c.set('api_key_id', apiKey.id)
+      c.set('organization_id', apiKey.organization_id)
+      c.set('session', { account_id: apiKey.account_id })
+      if (
+        !apiKey.last_used_at ||
+        Date.now() - new Date(apiKey.last_used_at).getTime() > 3_600_000 // 1 hour
+      )
+        c.executionCtx.waitUntil(
+          c.var.db
+            .updateTable('api_key')
+            .set('last_used_at', new Date())
+            .where('id', '=', apiKey.id)
+            .execute(),
         )
-          c.executionCtx.waitUntil(
-            c.var.db
-              .updateTable('api_key')
-              .set('last_used_at', new Date())
-              .where('id', '=', apiKey.id)
-              .execute(),
-          )
-        await next()
-        return
-      }
+      await next()
+      return
     }
 
     // Try session lookup (cookie or bearer token)
@@ -1531,11 +1537,15 @@ export const api = new Hono<{
           .string()
           .transform((v) => v.split(/[\s,]+/).filter(Boolean))
           .optional(),
+        mode: z
+          .enum(['rush', 'smart'] satisfies [Mode, ...Mode[]])
+          .default('smart'),
         q: z.string().optional(),
       }),
     ),
     async (c) => {
       if (narrowValidation) return validationError(c)
+      if (narrowValidation) return invalidApiKey(c)
       const url = new URL(c.req.valid('param').url)
       const query = c.req.valid('query')
 
@@ -1672,13 +1682,13 @@ export const api = new Hono<{
               : undefined,
           }),
         },
-        fallbacks: [
-          Md.fallbacks.browserUA(),
-          Md.fallbacks.cfBrowserRendering({
+        transport: Md.transports.fallback([
+          Md.transports.fetch(),
+          Md.transports.cfBrowserRendering({
             accountId: c.env.CLOUDFLARE_ACCOUNT_ID,
             apiToken: c.env.CLOUDFLARE_API_TOKEN,
           }),
-        ],
+        ]),
       })
 
       const response = await (async () => {
@@ -1710,26 +1720,31 @@ export const api = new Hono<{
         return response.content
       })()
 
+      const mode = modes[query.mode]
       let inputTokens = 0
+      let outputTokens = 0
       let excerpt = filteredContent
       if (query.q) {
         try {
           const result = await (async () => {
             const queryCacheKey =
-              `query:${url.href}:${query.q}:${query.k?.join(',') ?? ''}` as const
+              `query:${url.href}:${query.q}:${query.k?.join(',') ?? ''}:${query.mode}` as const
             const cached = await c.env.KV.get(queryCacheKey)
             if (!query.fresh && cached)
-              return { excerpt: cached, inputTokens: 0 }
+              return { completionTokens: 0, excerpt: cached, promptTokens: 0 }
 
             const extractChunk = async (chunk: string) => {
               const output = z.parse(
                 z.object({
                   response: z.string().default(''),
                   usage: z
-                    .object({ prompt_tokens: z.number().default(0) })
-                    .default({ prompt_tokens: 0 }),
+                    .object({
+                      completion_tokens: z.number().default(0),
+                      prompt_tokens: z.number().default(0),
+                    })
+                    .default({ completion_tokens: 0, prompt_tokens: 0 }),
                 }),
-                await c.env.AI.run('@cf/meta/llama-4-scout-17b-16e-instruct', {
+                await c.env.AI.run(mode.model, {
                   max_tokens: 4096,
                   messages: [
                     { role: 'system', content: systemPrompt },
@@ -1753,13 +1768,18 @@ export const api = new Hono<{
               (sum, r) => sum + r.usage.prompt_tokens,
               0,
             )
+            const completionTokens = results.reduce(
+              (sum, r) => sum + r.usage.completion_tokens,
+              0,
+            )
 
             c.executionCtx.waitUntil(
               c.env.KV.put(queryCacheKey, filtered, { expirationTtl: 900 }),
             )
-            return { excerpt: filtered, inputTokens: promptTokens }
+            return { completionTokens, excerpt: filtered, promptTokens }
           })()
-          inputTokens = result.inputTokens
+          inputTokens = result.promptTokens
+          outputTokens = result.completionTokens
           excerpt = result.excerpt || filteredContent
         } catch (error) {
           const message =
@@ -1779,13 +1799,17 @@ export const api = new Hono<{
         estimateTokenCount(response.content) - estimateTokenCount(excerpt)
 
       const costMills = (() => {
-        // Query: base cost + 1 mill per 1K input tokens
-        if (query.q)
+        if (query.q) {
+          // CF cost in mills: tokens * pricePerMToken / 1000
+          const cfCostMills =
+            (inputTokens * mode.inputPricePerMToken +
+              outputTokens * mode.outputPricePerMToken) /
+            1000
           return (
             pricing.queryBaseCostMills +
-            Math.ceil(inputTokens / pricing.queryTokensPerMill)
+            Math.ceil(cfCostMills * pricing.queryMarkup)
           )
-        // Fetch: flat cost
+        }
         return pricing.fetchCostMills
       })()
 
@@ -1799,6 +1823,7 @@ export const api = new Hono<{
         id: requestId,
         keywords: query.k?.join(',') || null,
         markdownTokens: tokensCount,
+        mode: query.q ? query.mode : null,
         objective: query.q || null,
         organization_id: c.var.organization_id,
         path: url.pathname,

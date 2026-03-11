@@ -11,9 +11,9 @@ let content = readFileSync(file, 'utf8')
 content = content.replace(/\tinterface GlobalProps \{[^}]*\}\n/, '')
 content = content.replace(/^\t+KV: KVNamespace;?\n/gm, '')
 content = content.replace(/^\t+DB_URL: string;?\n/gm, '')
-content = content.replace(/^\t+CURL_MD_BASE_URL: string;?\n/gm, '')
+content = content.replace(/^\t+CURLMD_BASE_URL: string;?\n/gm, '')
 content = content.replace(/^\t+WRANGLER_SEND_METRICS: string;?\n/gm, '')
-for (const key of ['DB_URL', 'CURL_MD_BASE_URL', 'WRANGLER_SEND_METRICS'])
+for (const key of ['DB_URL', 'CURLMD_BASE_URL', 'WRANGLER_SEND_METRICS'])
   content = content.replace(
     new RegExp(`\\s*\\|\\s*"${key}"|"${key}"\\s*\\|\\s*`, 'g'),
     '',

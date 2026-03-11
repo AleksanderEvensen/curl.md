@@ -1,8 +1,6 @@
 import { filterFrontmatterKeys, fromHtml } from './fromHtml.ts'
 
 export function create(options: create.Options = {}): create.ReturnType {
-  const { fallbacks = [] } = options
-
   const rules = (() => {
     if (!options.rules) return []
     if (Array.isArray(options.rules)) return options.rules
@@ -45,16 +43,14 @@ export function create(options: create.Options = {}): create.ReturnType {
       let response: Response
       if (rule?.fetch)
         response = await rule.fetch(rewrittenUrl, requestInit, context)
-      else {
+      else if (options.transport) {
+        const result = await options.transport(rewrittenUrl, requestInit, {
+          ...context,
+          previous: undefined,
+        })
+        response = result ?? new Response(null, { status: 500 })
+      } else {
         response = await context.fetch(rewrittenUrl, requestInit)
-        for (const fallback of fallbacks) {
-          const retry = await fallback(rewrittenUrl, requestInit, {
-            ...context,
-            response,
-          })
-          if (retry) response = retry
-          else break
-        }
       }
 
       if (!response.ok)
@@ -104,7 +100,7 @@ export function create(options: create.Options = {}): create.ReturnType {
 export namespace create {
   export type Options = {
     fetch?: typeof globalThis.fetch | undefined
-    fallbacks?: Fallback[] | undefined
+    transport?: Transport | undefined
     headers?: HeadersInit | undefined
     rules?: Rule[] | Record<string, Rule | (() => Rule)> | undefined
   }
@@ -173,20 +169,23 @@ export namespace defineRule {
   }
 }
 
-export type Fallback = (
+export type Transport = (
   url: URL,
   init: RequestInit | undefined,
-  context: FetchContext & { response: Response },
+  context: FetchContext & { previous: Response | undefined },
 ) => Promise<Response | null>
 
-export function defineFallback<options = void>(
+export function defineTransport<options = void>(
   handler: (
     url: URL,
     init: RequestInit | undefined,
-    context: FetchContext & { options: options; response: Response },
+    context: FetchContext & {
+      options: options
+      previous: Response | undefined
+    },
   ) => Promise<Response | null>,
-): (options?: options) => Fallback {
-  return (options?: options): Fallback =>
+): (options?: options) => Transport {
+  return (options?: options): Transport =>
     (url, init, context) =>
       handler(url, init, { ...context, options: options as options })
 }

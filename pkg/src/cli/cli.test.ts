@@ -20,7 +20,7 @@ import * as utils from './utils.ts'
 import { Session, UpdateCache } from './utils.ts'
 
 const env = Env.parse(inject('env'))
-const client = hc<typeof api>(env.CURL_MD_BASE_URL)
+const client = hc<typeof api>(env.CURLMD_BASE_URL)
 const db = new Kysely<DB>({ dialect: dialect(env.DB_URL) })
 const factory = createFactory(db)
 
@@ -39,7 +39,7 @@ test('version', async () => {
 })
 
 test('help', async () => {
-  const { output } = await serve(['--help'], { CURL_MD_BASE_URL: undefined })
+  const { output } = await serve(['--help'], { CURLMD_BASE_URL: undefined })
   expect(output).toMatchInlineSnapshot(`
     "curl.md@x.y.z — Fetch any URL as Markdown
     Aliases: md, curlmd
@@ -52,15 +52,17 @@ test('help', async () => {
     Options:
       --fresh, -f <boolean>     Force fresh fetch (bypass cache)
       --keywords, -k <array>    Pre-filter by keywords (comma-separated)
-      --objective, -q <string>  Narrow content to a specific objective
+      --mode, -m <rush|smart>   Mode when narrowing content with --objective
+      --objective, -o <string>  Narrow content to a specific objective
+      --api-key <string>        API key for authentication (overrides CURLMD_API_KEY)
 
     Examples:
-      $ curl.md example.com
-      $ curl.md docs.github.com/en/webhooks/webhook-events-and-payloads --objective pull request webhook event payload and actions --keywords pull_request
-      $ curl.md developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch --objective streaming response body --keywords ReadableStream,getReader
-      $ curl.md developers.cloudflare.com/d1/get-started --objective how to query D1 from a worker --keywords D1,bindings
-      $ curl.md ai-sdk.dev/docs/ai-sdk-core/generating-text --objective how to stream text with the ai sdk --keywords streamText,generateText
-      $ curl.md zod.dev/error-formatting --objective tree error formatting --keywords treeifyError
+      curl.md example.com
+      curl.md docs.github.com/en/webhooks/webhook-events-and-payloads --objective pull request webhook event payload and actions --keywords pull_request
+      curl.md developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch --objective streaming response body --keywords ReadableStream,getReader
+      curl.md developers.cloudflare.com/d1/get-started --objective how to query D1 from a worker --keywords D1,bindings
+      curl.md ai-sdk.dev/docs/ai-sdk-core/generating-text --objective how to stream text with the ai sdk --keywords streamText,generateText
+      curl.md zod.dev/error-formatting --objective tree error formatting --keywords treeifyError
 
     Commands:
       auth     Authentication commands (check, login, logout)
@@ -75,15 +77,21 @@ test('help', async () => {
       skills add   Sync skill files to your agent
 
     Global Options:
+      --filter-output <keys>              Filter output by key paths (e.g. foo,bar.baz,a[0,3])
       --format <toon|json|yaml|md|jsonl>  Output format
       --help                              Show help
-      --llms                              Print LLM-readable manifest
+      --llms, --llms-full                 Print LLM-readable manifest
       --mcp                               Start as MCP stdio server
+      --schema                            Show JSON Schema for a command
+      --token-count                       Print token count of output (instead of output)
+      --token-limit <n>                   Limit output to n tokens
+      --token-offset <n>                  Skip first n tokens of output
       --verbose                           Show full output envelope
       --version                           Show version
 
     Environment Variables:
-      CURL_MD_BASE_URL  Base URL (default: https://curl.md)
+      CURLMD_API_KEY   API key for authentication
+      CURLMD_BASE_URL  Base URL (default: https://curl.md)
     "
   `)
 })
@@ -202,6 +210,23 @@ describe('fetch', () => {
     const { output } = await serve(['example.com'])
     expect(output).toContain('credits add')
     expect(output).not.toContain('auth login')
+  })
+
+  test('fetch - invalid api key 401', async () => {
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = async () =>
+      new Response(JSON.stringify({ error: 'invalid_api_key' }), {
+        status: 401,
+        headers: { 'content-type': 'application/json' },
+      })
+    onTestFinished(() => {
+      globalThis.fetch = originalFetch
+    })
+
+    const { exitCode, output } = await serve(['example.com'])
+    expect(exitCode).toBe(1)
+    expect(output).toContain('INVALID_API_KEY')
+    expect(output).toContain('token create')
   })
 
   test('fetch - validation error 400', async () => {

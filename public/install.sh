@@ -5,7 +5,7 @@
 set -e
 
 REPO="wevm/curl.md"
-INSTALL_DIR="${CURL_MD_INSTALL_DIR:-$HOME/.local/bin}"
+INSTALL_DIR="${CURLMD_INSTALL_DIR:-$HOME/.local/bin}"
 
 cleanup() {
   rm -f "$tmpfile" "$checksumfile" 2>/dev/null || true

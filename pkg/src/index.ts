@@ -1,12 +1,12 @@
-export * as fallbacks from './fallbacks.ts'
 export {
   create,
-  defineFallback,
   defineRule,
-  type Fallback,
+  defineTransport,
   type FetchContext,
   type Meta,
   type Rule,
+  type Transport,
 } from './mod.ts'
 export * as rules from './rules.ts'
 export * as sites from './sites.ts'
+export * as transports from './transports.ts'

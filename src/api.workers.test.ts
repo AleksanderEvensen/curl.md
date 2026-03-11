@@ -559,8 +559,8 @@ describe('GET /api/auth/me', () => {
       {},
       { headers: { Authorization: 'Bearer curl_deleted789' } },
     )
-    expect(res.status).toBe(200)
-    await expect(res.json()).resolves.toEqual({ account: null })
+    expect(res.status).toBe(401)
+    await expect(res.json()).resolves.toEqual({ error: 'invalid_api_key' })
   })
 
   test('updates last_used_at on API key use', async () => {
@@ -1474,7 +1474,7 @@ test('GET /api/:url with q= uses stricter query limit', async () => {
       },
     }),
   )
-  await env.KV.put('query:https://rl-query.example.com/:test:', 'ok')
+  await env.KV.put('query:https://rl-query.example.com/:test::smart', 'ok')
 
   const res = await client.api[':url{.+}'].$get(
     { param: { url: 'rl-query.example.com' }, query: { q: 'test' } },
@@ -1667,7 +1667,7 @@ test('GET /api/:url query request cost scales with input size', async () => {
       },
     }),
   )
-  await env.KV.put('query:https://cost-query.example.com/:test:', 'ok')
+  await env.KV.put('query:https://cost-query.example.com/:test::smart', 'ok')
 
   const res = await client.api[':url{.+}'].$get(
     { param: { url: 'cost-query.example.com' }, query: { q: 'test' } },

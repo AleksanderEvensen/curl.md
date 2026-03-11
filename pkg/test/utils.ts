@@ -54,7 +54,7 @@ export async function serve(
   let exitCode: number | undefined
   await cli.serve(argv, {
     env: stripUndefined({
-      CURL_MD_BASE_URL: env.CURL_MD_BASE_URL,
+      CURLMD_BASE_URL: env.CURLMD_BASE_URL,
       ...overrides,
     }),
     stdout(s: string) {

@@ -1,6 +1,91 @@
 import { expect, test } from 'vitest'
 import { create } from '../mod.ts'
-import { githubBlob, githubIssue, githubPr } from './github.ts'
+import { githubBlob, githubIssue, githubPr, githubRepo } from './github.ts'
+
+test('githubRepo rewrites to raw README.md', () => {
+  const rule = githubRepo()
+  const result = rule.rewrite?.(new URL('https://github.com/owner/repo'))
+  expect(result?.href).toBe(
+    'https://raw.githubusercontent.com/owner/repo/HEAD/README.md',
+  )
+})
+
+test('githubRepo rewrites with trailing slash', () => {
+  const rule = githubRepo()
+  const result = rule.rewrite?.(new URL('https://github.com/owner/repo/'))
+  expect(result?.href).toBe(
+    'https://raw.githubusercontent.com/owner/repo/HEAD/README.md',
+  )
+})
+
+test('githubRepo pattern matches repo URLs', () => {
+  const rule = githubRepo()
+  const pattern = rule.patterns[0] as RegExp
+  expect(pattern.test('https://github.com/owner/repo')).toBe(true)
+  expect(pattern.test('https://github.com/owner/repo/')).toBe(true)
+  expect(pattern.test('https://github.com/owner/repo/issues/1')).toBe(false)
+  expect(pattern.test('https://github.com/owner/repo/blob/main/file.md')).toBe(
+    false,
+  )
+})
+
+test('githubRepo extracts readme with repo metadata', async () => {
+  const md = create({
+    rules: [githubRepo()],
+    fetch: async (input) => {
+      const url =
+        typeof input === 'string'
+          ? input
+          : input instanceof URL
+            ? input.href
+            : input.url
+      if (url.includes('raw.githubusercontent.com'))
+        return new Response('# My Project\n\nHello world', { status: 200 })
+      if (url.includes('api.github.com'))
+        return new Response(
+          JSON.stringify({
+            full_name: 'owner/repo',
+            description: 'A cool project',
+            language: 'TypeScript',
+            license: { spdx_id: 'MIT' },
+            stargazers_count: 1234,
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        )
+      return new Response(null, { status: 404 })
+    },
+  })
+  const result = await md.fetch('https://github.com/owner/repo')
+  expect(result.ok).toBe(true)
+  if (!result.ok) return
+  expect(result.content).toBe('# My Project\n\nHello world')
+  expect(result.meta.title).toBe('owner/repo')
+  expect(result.meta.description).toBe('A cool project')
+  expect(result.meta.language).toBe('TypeScript')
+  expect(result.meta.license).toBe('MIT')
+  expect(result.meta.stars).toBe(1234)
+})
+
+test('githubRepo works when api fails', async () => {
+  const md = create({
+    rules: [githubRepo()],
+    fetch: async (input) => {
+      const url =
+        typeof input === 'string'
+          ? input
+          : input instanceof URL
+            ? input.href
+            : input.url
+      if (url.includes('raw.githubusercontent.com'))
+        return new Response('# Readme', { status: 200 })
+      return new Response(null, { status: 403 })
+    },
+  })
+  const result = await md.fetch('https://github.com/owner/repo')
+  expect(result.ok).toBe(true)
+  if (!result.ok) return
+  expect(result.content).toBe('# Readme')
+})
 
 test('githubBlob rewrites .md blob URL', () => {
   const rule = githubBlob()

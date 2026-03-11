@@ -8,7 +8,7 @@ declare module 'vitest' {
 
 const schema = z.object({
   COOKIE_SECRET: z.string(),
-  CURL_MD_BASE_URL: z.string(),
+  CURLMD_BASE_URL: z.string(),
   DB_URL: z.string(),
   GH_CLIENT_ID: z.string(),
   GH_CLIENT_SECRET: z.string(),
@@ -24,7 +24,7 @@ export const Env = {
   get(overrides: Partial<Input> = {}) {
     return {
       COOKIE_SECRET: 'test-secret',
-      CURL_MD_BASE_URL: 'http://localhost',
+      CURLMD_BASE_URL: 'http://localhost',
       DB_URL: 'postgres://localhost:5432/test',
       GH_CLIENT_ID: 'test',
       GH_CLIENT_SECRET: 'test',

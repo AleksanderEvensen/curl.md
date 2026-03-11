@@ -118,6 +118,7 @@ type request = {
   hostname: string
   id: k.Generated<string>
   keywords: string | null
+  mode: 'rush' | 'smart' | null
   objective: string | null
   organization_id: string | null
   path: string

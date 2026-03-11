@@ -17,6 +17,7 @@ export async function processRequestMessage(
       hostname: body.hostname,
       id: body.id,
       keywords: body.keywords,
+      mode: body.mode,
       objective: body.objective,
       organization_id: body.organization_id,
       path: body.path,
@@ -95,6 +96,7 @@ export namespace processRequestMessage {
     id: string
     keywords: string | null
     markdownTokens: number
+    mode: 'rush' | 'smart' | null
     objective: string | null
     organization_id: string | null
     path: string

@@ -1,9 +1,25 @@
 export const packageName = 'curl.md'
 
+// https://developers.cloudflare.com/workers-ai/platform/pricing/
+export const modes = {
+  rush: {
+    model: '@cf/meta/llama-3.1-8b-instruct-fp8' as const,
+    inputPricePerMToken: 0.152,
+    outputPricePerMToken: 0.287,
+  },
+  smart: {
+    model: '@cf/meta/llama-4-scout-17b-16e-instruct' as const,
+    inputPricePerMToken: 0.27,
+    outputPricePerMToken: 0.85,
+  },
+} as const
+
+export type Mode = keyof typeof modes
+
 export const pricing = {
   fetchCostMills: 1,
   queryBaseCostMills: 1,
-  queryTokensPerMill: 1_000,
+  queryMarkup: 4,
 } as const
 
 export const attribution = {

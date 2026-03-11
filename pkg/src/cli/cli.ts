@@ -32,10 +32,11 @@ const cli = Cli.create('curl.md', {
   description: 'Fetch any URL as Markdown',
   version: pkg.version,
   env: z.object({
-    CURL_MD_BASE_URL: z
+    CURLMD_API_KEY: z
       .string()
-      .default('https://curl.md')
-      .describe('Base URL'),
+      .optional()
+      .describe('API key for authentication'),
+    CURLMD_BASE_URL: z.string().default('https://curl.md').describe('Base URL'),
   }),
   vars,
   usage: [{ suffix: '<url> [options]' }],
@@ -48,12 +49,20 @@ const cli = Cli.create('curl.md', {
       .array(z.string())
       .optional()
       .describe('Pre-filter by keywords (comma-separated)'),
+    mode: z
+      .enum(['rush', 'smart'])
+      .optional()
+      .describe('Mode when narrowing content with --objective'),
     objective: z
       .string()
       .optional()
       .describe('Narrow content to a specific objective'),
+    'api-key': z
+      .string()
+      .optional()
+      .describe('API key for authentication (overrides CURLMD_API_KEY)'),
   }),
-  alias: { fresh: 'f', keywords: 'k', objective: 'q' },
+  alias: { fresh: 'f', keywords: 'k', mode: 'm', objective: 'o' },
   examples: [
     { args: { url: 'example.com' } },
     {
@@ -140,9 +149,26 @@ const cli = Cli.create('curl.md', {
       query: {
         fresh: c.options.fresh ? '' : undefined,
         k: keywords?.join(','),
+        mode: c.options.mode,
         q: c.options.objective,
       },
     })
+
+    if (res.status === 401)
+      return c.error({
+        code: 'INVALID_API_KEY',
+        message: 'Invalid API key.',
+        cta: {
+          description: 'Create a new token:',
+          commands: [
+            {
+              command: `${c.name} token create <name>`,
+              description: 'Create a new API token',
+            },
+            ...c.var.commands,
+          ],
+        },
+      })
 
     if (res.status === 400) {
       const json = await res.json()
@@ -244,12 +270,19 @@ cli.use(async (c, next) => {
   const session = Session.read()
   c.set('session', session)
   const headers: Record<string, string> = {}
-  if (session) {
+  // TODO: add feature to incur
+  const keyIndex = process.argv.indexOf('--api-key')
+  const apiKey =
+    (keyIndex !== -1 ? process.argv[keyIndex + 1] : undefined) ??
+    c.env.CURLMD_API_KEY
+  if (apiKey) {
+    headers.Authorization = `Bearer ${apiKey}`
+  } else if (session) {
     headers.Authorization = `Bearer ${session.session_id}`
     if (session.organization_id)
       headers['x-organization-id'] = session.organization_id
   }
-  c.set('client', hc<typeof api>(c.env.CURL_MD_BASE_URL, { headers }))
+  c.set('client', hc<typeof api>(c.env.CURLMD_BASE_URL, { headers }))
   return next()
 })
 

@@ -7,6 +7,73 @@ import { unified } from 'unified'
 import { z } from 'zod'
 import { defineRule, type FetchContext, type Meta } from '../mod.ts'
 
+export const githubRepo = defineRule<{ token?: string | undefined }>({
+  key: 'githubRepo',
+  patterns: [/^https:\/\/github\.com\/[^/]+\/[^/]+\/?$/],
+  rewrite(url) {
+    const [, owner, repo] = url.pathname.split('/')
+    return new URL(
+      `https://raw.githubusercontent.com/${owner}/${repo}/HEAD/README.md`,
+    )
+  },
+  async fetch(input, init, context) {
+    const url =
+      input instanceof URL
+        ? input
+        : new URL(typeof input === 'string' ? input : input.url)
+    const userAgent = new Headers(init?.headers).get('User-Agent') ?? ''
+    // url is the rewritten raw.githubusercontent.com URL
+    // Extract owner/repo from it: /owner/repo/HEAD/README.md
+    const [, owner, repo] = url.pathname.split('/')
+
+    const apiHeaders: Record<string, string> = { 'User-Agent': userAgent }
+    if (context.options?.token)
+      apiHeaders.Authorization = `Bearer ${context.options.token}`
+
+    const [readmeRes, repoRes] = await Promise.all([
+      context.fetch(url, init),
+      context
+        .fetch(`https://api.github.com/repos/${owner}/${repo}`, {
+          headers: apiHeaders,
+        })
+        .catch(() => null),
+    ])
+
+    if (!readmeRes.ok) return readmeRes
+
+    const readme = await readmeRes.text()
+    const repoInfo = await (async () => {
+      if (!repoRes?.ok) return null
+      try {
+        return z.parse(restRepoSchema, await repoRes.json())
+      } catch {
+        return null
+      }
+    })()
+
+    return new Response(JSON.stringify({ readme, repoInfo }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    })
+  },
+  async extract(response) {
+    const { readme, repoInfo } = (await response.json()) as {
+      readme: string
+      repoInfo: z.infer<typeof restRepoSchema> | null
+    }
+    const split = splitRawFrontmatter(readme)
+    const meta: Meta = { ...split.meta }
+    if (repoInfo) {
+      if (repoInfo.full_name) meta.title = repoInfo.full_name
+      if (repoInfo.description) meta.description = repoInfo.description
+      if (repoInfo.language) meta.language = repoInfo.language
+      if (repoInfo.license?.spdx_id) meta.license = repoInfo.license.spdx_id
+      if (repoInfo.stargazers_count) meta.stars = repoInfo.stargazers_count
+    }
+    return { content: split.body, meta }
+  },
+})
+
 export const githubBlob = defineRule({
   key: 'githubBlob',
   patterns: [/^https:\/\/github\.com\/[^/]+\/[^/]+\/blob\//],
@@ -336,6 +403,17 @@ const restPrSchema = z.object({
   head: z.object({ ref: z.string().optional() }).optional(),
 })
 
+const restRepoSchema = z.object({
+  full_name: z.string().optional(),
+  description: z.string().nullable().optional(),
+  language: z.string().nullable().optional(),
+  license: z
+    .object({ spdx_id: z.string().nullable().optional() })
+    .nullable()
+    .optional(),
+  stargazers_count: z.number().optional(),
+})
+
 const issueQuery = `
 query($owner: String!, $repo: String!, $number: Int!, $cursor: String) {
   repository(owner: $owner, name: $repo) {
@@ -572,4 +650,30 @@ function walk(node: Element | Root, fn: (el: Element) => void) {
     fn(child)
     walk(child, fn)
   }
+}
+
+function splitRawFrontmatter(markdown: string): {
+  body: string
+  meta: Record<string, string>
+} {
+  if (!markdown.startsWith('---\n')) return { body: markdown, meta: {} }
+  const end = markdown.indexOf('\n---\n', 4)
+  if (end === -1) return { body: markdown, meta: {} }
+  const body = markdown.slice(end + 5).replace(/^\n+/, '')
+  const meta: Record<string, string> = {}
+  const lines = markdown.slice(4, end).split('\n')
+  for (const line of lines) {
+    const colonIdx = line.indexOf(':')
+    if (colonIdx === -1) continue
+    if (line[0] === ' ' || line[0] === '\t') continue
+    const key = line.slice(0, colonIdx).trim()
+    let value = line.slice(colonIdx + 1).trim()
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    )
+      value = value.slice(1, -1)
+    if (key && value) meta[key] = value
+  }
+  return { body, meta }
 }

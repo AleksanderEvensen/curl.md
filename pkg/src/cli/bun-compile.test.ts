@@ -95,7 +95,7 @@ describe('bun build --compile', () => {
     const port = (server.address() as { port: number }).port
     try {
       const { stdout } = await exec(bin, ['example.com'], {
-        env: { CURL_MD_BASE_URL: `http://localhost:${port}` },
+        env: { CURLMD_BASE_URL: `http://localhost:${port}` },
       })
       expect(stdout).toContain('Example Domain')
     } finally {
