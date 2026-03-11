@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/cloudflare'
 import * as Md from 'curl.md'
 import { Hono } from 'hono'
 import { html, raw } from 'hono/html'
@@ -37,6 +38,10 @@ export const api = new Hono<{
     session: Pick<DB.session, 'account_id'> | null
   }
 }>()
+  .onError((error, c) => {
+    Sentry.captureException(error)
+    return c.json({ error: 'internal_error' }, 500)
+  })
   .use(async (c, next) => {
     c.set(
       'db',

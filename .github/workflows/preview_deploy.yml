@@ -206,6 +206,7 @@ jobs:
           CLOUDFLARE_ENV: preview
           DB_URL: ${{ secrets.DB_URL }}
           GIT_SHA: ${{ inputs.sha }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
 
       - name: Deploy preview
         id: deploy
@@ -220,6 +221,7 @@ jobs:
             COOKIE_SECRET
             GH_CLIENT_ID
             GH_CLIENT_SECRET
+            SENTRY_DSN
             STRIPE_SECRET_KEY
             STRIPE_WEBHOOK_SECRET
             TOKEN_ENCRYPTION_KEY
@@ -227,6 +229,7 @@ jobs:
           COOKIE_SECRET: ${{ secrets.COOKIE_SECRET }}
           GH_CLIENT_ID: ${{ secrets.GH_CLIENT_ID }}
           GH_CLIENT_SECRET: ${{ secrets.GH_CLIENT_SECRET }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
           STRIPE_WEBHOOK_SECRET: ${{ steps.stripe.outputs.secret }}
           TOKEN_ENCRYPTION_KEY: ${{ secrets.TOKEN_ENCRYPTION_KEY }}

@@ -54,6 +54,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_ENV: production
           DB_URL: ${{ secrets.DB_URL }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
 
       - name: Deploy to Production
         uses: cloudflare/wrangler-action@da0e0dfe58b7a431659754fdf3f186c529afbe65 # v3.14.1
@@ -67,6 +68,7 @@ jobs:
             COOKIE_SECRET
             GH_CLIENT_ID
             GH_CLIENT_SECRET
+            SENTRY_DSN
             STRIPE_SECRET_KEY
             STRIPE_WEBHOOK_SECRET
             TOKEN_ENCRYPTION_KEY
@@ -74,6 +76,7 @@ jobs:
           COOKIE_SECRET: ${{ secrets.COOKIE_SECRET }}
           GH_CLIENT_ID: ${{ secrets.GH_CLIENT_ID }}
           GH_CLIENT_SECRET: ${{ secrets.GH_CLIENT_SECRET }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
           STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
           TOKEN_ENCRYPTION_KEY: ${{ secrets.TOKEN_ENCRYPTION_KEY }}
