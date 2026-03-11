@@ -12,6 +12,15 @@ export { githubDocs } from './rules/github-docs.ts'
 export { mdn } from './rules/mdn.ts'
 export { tailwind } from './rules/tailwind.ts'
 
+export const curlMd = defineRule<{ fetch?: typeof globalThis.fetch }>({
+  key: 'curlMd',
+  patterns: [/(?:^|\.)curl\.(md|local)$/],
+  async fetch(_, _init, { options }) {
+    const fetch = options.fetch ?? globalThis.fetch
+    return fetch('https://curl.md/llms.txt')
+  },
+})
+
 export const aiSdk = appendMd({ key: 'aiSdk', patterns: ['ai-sdk.dev'] })
 export const anthropic = appendMd({
   key: 'anthropic',

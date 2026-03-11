@@ -55,7 +55,11 @@ function Playground() {
   }, [])
 
   const mutation = Query.useMutation({
-    mutationFn: async (input: { k?: string; q?: string; url: string }) => {
+    mutationFn: async (input: {
+      k?: string | undefined
+      q?: string | undefined
+      url: string
+    }) => {
       abortRef.current?.abort()
       const controller = new AbortController()
       abortRef.current = controller
@@ -85,7 +89,11 @@ function Playground() {
   })
 
   const syncToUrl = React.useCallback(
-    (values: { k?: string; q?: string; url?: string }) => {
+    (values: {
+      k?: string | undefined
+      q?: string | undefined
+      url?: string | undefined
+    }) => {
       navigate({
         to: '/playground',
         search: () => {
@@ -112,7 +120,11 @@ function Playground() {
       mutation.mutate({ url: search.url, q: search.q, k: search.k })
   }, [])
 
-  const setInputs = (values: { k?: string; q?: string; url?: string }) => {
+  const setInputs = (values: {
+    k?: string | undefined
+    q?: string | undefined
+    url?: string | undefined
+  }) => {
     if (values.url !== undefined) setUrl(values.url)
     if (values.q !== undefined) setObjective(values.q)
     if (values.k !== undefined) setKeywords(values.k)

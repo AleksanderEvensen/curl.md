@@ -23,7 +23,9 @@ export default defineConfig({
             config(config) {
               config.hyperdrive = config.hyperdrive?.map((h) => ({
                 ...h,
-                localConnectionString: process.env.DB_URL,
+                ...(process.env.DB_URL && {
+                  localConnectionString: process.env.DB_URL,
+                }),
               }))
             },
           }

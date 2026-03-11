@@ -360,6 +360,7 @@ function insertPreNewlines(node: Element | Root) {
   const updated: typeof node.children = []
   for (let i = 0; i < node.children.length; i++) {
     const child = node.children[i]
+    if (!child) continue
     updated.push(child)
     if (child.type !== 'element') continue
     const next = node.children[i + 1]

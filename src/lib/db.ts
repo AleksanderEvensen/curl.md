@@ -11,7 +11,9 @@ export function getDb(connectionString: string, options?: { max?: number }) {
 
 export function dialect(url: string, options?: { max?: number }) {
   return new PostgresJSDialect({
-    postgres: postgres(url, { max: options?.max }),
+    postgres: postgres(url, {
+      ...(options?.max !== undefined && { max: options.max }),
+    }),
   })
 }
 

@@ -1576,16 +1576,13 @@ export const api = new Hono<{
       const identity = c.var.session
         ? c.var.session.account_id
         : (c.req.header('cf-connecting-ip') ?? 'unknown')
-      const isAuthed = !!c.var.session
-      // Cost calculated after fetchPage (need chunk count for queries)
 
       // Check balance for paid tier
       let billable = false
-      if (isAuthed) {
+      if (c.var.session) {
         const billingEntityId =
           c.var.organization_id ?? c.var.session?.account_id
-        const balanceKey = `balance:${billingEntityId}` as const
-        const cached = await c.env.KV.get(balanceKey)
+        const cached = await c.env.KV.get(`balance:${billingEntityId}`)
         const balanceMills = cached !== null ? Number(cached) : 0
         if (balanceMills > 0) billable = true
       }
@@ -1594,12 +1591,12 @@ export const api = new Hono<{
         if (query.q)
           return {
             key: `query:${identity}` as const,
-            max: isAuthed ? 10 : 3,
+            max: c.var.session ? 10 : 3,
             window: 3600,
           }
         return {
           key: `fetch:${identity}` as const,
-          max: isAuthed ? 1000 : 100,
+          max: c.var.session ? 1000 : 100,
           window: 3600,
         }
       })()
@@ -1625,7 +1622,7 @@ export const api = new Hono<{
           return c.json(
             {
               error: 'rate_limit_exceeded',
-              ...(isAuthed && {
+              ...(c.var.session && {
                 message: 'Add credits to remove rate limits',
               }),
             },
@@ -1648,8 +1645,10 @@ export const api = new Hono<{
           'User-Agent': `Mozilla/5.0 (compatible; ${c.env.HOST}/1.0; +https://${c.env.HOST})`,
         },
         rules: {
-          // TODO: curl.md rule (since worker cannot fetch itself)
           ...Md.rules,
+          [Md.rules.curlMd.key]: Md.rules.curlMd({
+            fetch: (req) => c.env.ASSETS.fetch(req),
+          }),
           ...Md.sites.github({
             token: c.var.session
               ? await c.var.db

@@ -4,13 +4,13 @@ export const mdn = defineRule({
   key: 'mdn',
   patterns: [/^https:\/\/developer\.mozilla\.org\/[a-zA-Z-]+\/docs\/.+/],
   rewrite(url) {
-    // biome-ignore lint/style/noNonNullAssertion: pattern guarantees match
-    const [, locale, slug] = url.pathname.match(/^\/([a-zA-Z-]+)\/docs\/(.+)/)!
-    const lowerLocale = locale.toLowerCase()
+    const match = url.pathname.match(/^\/([a-zA-Z-]+)\/docs\/(.+)/)
+    if (!match?.[1] || !match[2]) return
+    const lowerLocale = match[1].toLowerCase()
     const repo =
       lowerLocale === 'en-us' ? 'mdn/content' : 'mdn/translated-content'
     return new URL(
-      `https://raw.githubusercontent.com/${repo}/main/files/${lowerLocale}/${slug.toLowerCase()}/index.md`,
+      `https://raw.githubusercontent.com/${repo}/main/files/${lowerLocale}/${match[2].toLowerCase()}/index.md`,
     )
   },
   async extract(response) {

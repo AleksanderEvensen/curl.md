@@ -18,7 +18,7 @@ export const githubBlob = defineRule({
   },
 })
 
-export const githubIssue = defineRule<{ token?: string }>({
+export const githubIssue = defineRule<{ token?: string | undefined }>({
   key: 'githubIssue',
   patterns: [/^https:\/\/github\.com\/[^/]+\/[^/]+\/issues\/\d+$/],
   rewrite(url) {
@@ -58,7 +58,7 @@ export const githubIssue = defineRule<{ token?: string }>({
   },
 })
 
-export const githubPr = defineRule<{ token?: string }>({
+export const githubPr = defineRule<{ token?: string | undefined }>({
   key: 'githubPr',
   patterns: [/^https:\/\/github\.com\/[^/]+\/[^/]+\/pull\/\d+$/],
   rewrite(url) {
@@ -110,7 +110,7 @@ export const githubPr = defineRule<{ token?: string }>({
 async function fetchGithubApi(
   input: RequestInfo | URL,
   init: RequestInit | undefined,
-  context: FetchContext & { token?: string },
+  context: FetchContext & { token?: string | undefined },
 ) {
   const url =
     input instanceof URL
@@ -190,26 +190,28 @@ async function fetchGithubApi(
 
 function formatComments(
   entry: {
-    number?: number
-    body?: string
-    title?: string
-    state?: string
-    createdAt?: string
-    updatedAt?: string
-    author?: { login?: string }
-    comments?: {
-      nodes: Array<{
-        body?: string
-        createdAt?: string
-        author?: { login?: string }
-      }>
-    }
+    number?: number | undefined
+    body?: string | undefined
+    title?: string | undefined
+    state?: string | undefined
+    createdAt?: string | undefined
+    updatedAt?: string | undefined
+    author?: { login?: string | undefined } | undefined
+    comments?:
+      | {
+          nodes: Array<{
+            body?: string | undefined
+            createdAt?: string | undefined
+            author?: { login?: string | undefined } | undefined
+          }>
+        }
+      | undefined
   },
   options?: {
-    merged?: boolean
-    isDraft?: boolean
-    baseRef?: string
-    headRef?: string
+    merged?: boolean | undefined
+    isDraft?: boolean | undefined
+    baseRef?: string | undefined
+    headRef?: string | undefined
   },
 ) {
   const state = options?.merged
@@ -467,9 +469,9 @@ function extractState(tree: Root, kind: 'issue' | 'pr'): string | undefined {
 }
 
 type HtmlComment = {
-  author?: string
+  author?: string | undefined
   body: string
-  createdAt?: string
+  createdAt?: string | undefined
 }
 
 function extractComments(tree: Root): HtmlComment[] {
@@ -543,7 +545,7 @@ function classNames(el: Element): string[] {
 
 function extractBranchRefs(
   tree: Root,
-): { base?: string; head?: string } | undefined {
+): { base?: string | undefined; head?: string | undefined } | undefined {
   const refs: string[] = []
   walk(tree, (el) => {
     if (refs.length >= 2) return

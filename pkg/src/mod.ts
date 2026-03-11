@@ -140,8 +140,8 @@ export function defineRule<options = void>(
   function factory(options?: options): Rule {
     return {
       patterns: config.patterns,
-      rewrite: config.rewrite,
-      extract: config.extract,
+      ...(config.rewrite && { rewrite: config.rewrite }),
+      ...(config.extract && { extract: config.extract }),
       ...(configFetch && {
         fetch(
           input: RequestInfo | URL,

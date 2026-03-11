@@ -2342,8 +2342,8 @@ describe('GET /api/orgs/:id/members', () => {
       email: owner.email,
       role: 'owner',
     })
-    expect(json.members[0].id).toBeDefined()
-    expect(json.members[0].created_at).toBeDefined()
+    expect(json.members[0]!.id).toBeDefined()
+    expect(json.members[0]!.created_at).toBeDefined()
     expect(json.members[1]).toMatchObject({
       login: member.login,
       role: 'member',
