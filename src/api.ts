@@ -1438,7 +1438,7 @@ export const api = new Hono<{
         const customer =
           typeof session.customer === 'string' ? session.customer : null
         if (customer && session.amount_total)
-          c.env.STRIPE_WEBHOOK_QUEUE.send({
+          await c.env.STRIPE_WEBHOOK_QUEUE.send({
             type: event.type,
             data: {
               amount_total: session.amount_total,
@@ -1458,7 +1458,7 @@ export const api = new Hono<{
         const customer =
           typeof charge.customer === 'string' ? charge.customer : null
         if (customer)
-          c.env.STRIPE_WEBHOOK_QUEUE.send({
+          await c.env.STRIPE_WEBHOOK_QUEUE.send({
             type: event.type,
             data: {
               amount_total: dispute.amount,
@@ -1468,14 +1468,17 @@ export const api = new Hono<{
           })
         break
       }
-      case 'charge.refunded': {
-        const charge = event.data.object as import('stripe').Stripe.Charge
-        const refund = charge.refunds?.data?.[0]
+      case 'refund.created': {
+        const refund = event.data.object as import('stripe').Stripe.Refund
+        const charge =
+          typeof refund.charge === 'string'
+            ? await stripe.charges.retrieve(refund.charge)
+            : refund.charge
         const customer =
-          typeof charge.customer === 'string' ? charge.customer : null
-        if (refund && customer)
-          c.env.STRIPE_WEBHOOK_QUEUE.send({
-            type: event.type,
+          charge && typeof charge.customer === 'string' ? charge.customer : null
+        if (customer)
+          await c.env.STRIPE_WEBHOOK_QUEUE.send({
+            type: 'charge.refunded',
             data: {
               amount_total: refund.amount,
               customer,
@@ -1487,10 +1490,6 @@ export const api = new Hono<{
     }
 
     return c.json({ received: true }, 200)
-  })
-  // TODO: remove after verifying Sentry is working in production
-  .get('/api/debug/sentry', () => {
-    throw new Error('Sentry test error')
   })
   .post('/api/sentry/tunnel', async (c) => {
     const body = await c.req.text()
@@ -1792,7 +1791,7 @@ export const api = new Hono<{
       })()
 
       const requestId = Nanoid.generate()
-      c.env.REQUEST_QUEUE.send({
+      await c.env.REQUEST_QUEUE.send({
         account_id: c.var.session?.account_id ?? null,
         api_key_id: c.var.api_key_id,
         billable,
