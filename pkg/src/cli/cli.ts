@@ -213,7 +213,7 @@ const cli = Cli.create('curl.md', {
       return c.error({ code: 'FETCH_FAILED', message })
     }
 
-    if (!c.options.objective)
+    if (!c.options.objective && text.length > 10_000)
       return c.ok(text, {
         cta: {
           description: 'Narrow results with an objective:',
@@ -227,6 +227,11 @@ const cli = Cli.create('curl.md', {
             ...c.var.commands,
           ],
         },
+      })
+
+    if (!c.options.objective)
+      return c.ok(text, {
+        cta: { commands: c.var.commands },
       })
 
     return c.ok(text, {
@@ -523,7 +528,19 @@ const credits = Cli.create('credits', {
               delay = Math.min(delay * 2, 5_000)
             }
             spinner.stop()
-            return c.ok('Credits added!')
+            return c.ok(
+              'Checkout completed, but credits may take a moment to appear.',
+              {
+                cta: {
+                  commands: [
+                    {
+                      command: `${c.name} credits check`,
+                      description: 'Check your balance',
+                    },
+                  ],
+                },
+              },
+            )
           }
           if (checkJson.status === 'expired') {
             spinner.stop()
