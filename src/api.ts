@@ -5,13 +5,16 @@ import { html, raw } from 'hono/html'
 import { Kysely, sql } from 'kysely'
 import { jsonArrayFrom } from 'kysely/helpers/postgres'
 import { customAlphabet } from 'nanoid'
+import type Stripe from 'stripe'
 import { estimateTokenCount } from 'tokenx'
 import { stringify as yamlStringify } from 'yaml'
 import { z } from 'zod'
 import * as ApiKey from '#lib/api-key.ts'
+import { resolveBillingEntity } from '#lib/billing.ts'
 import { chunkMarkdown, filterSectionsByKeywords } from '#lib/chunk-markdown.ts'
 import {
   attribution,
+  creditAmounts,
   type Mode,
   modes,
   packageName,
@@ -662,32 +665,46 @@ export const api = new Hono<{
   .get('/api/credits', async (c) => {
     if (!c.var.session) return c.json({ error: 'unauthorized' }, 401)
 
-    const orgId = c.req.header('x-organization-id')
-    if (orgId) {
-      if (!c.var.organization_id)
-        return c.json({ error: 'organization_access_denied' }, 403)
-      const org = await c.var.db
-        .selectFrom('organization')
-        .where('id', '=', orgId)
-        .select('balance_mills')
-        .executeTakeFirst()
-      return c.json({ balance_mills: org?.balance_mills ?? 0 }, 200)
+    const organizationId = c.req.header('x-organization-id')
+    const entity = await resolveBillingEntity(
+      c.var.db,
+      organizationId
+        ? {
+            type: 'organization',
+            accountId: c.var.session.account_id,
+            organizationId,
+          }
+        : { type: 'account', accountId: c.var.session.account_id },
+    )
+    if (!entity.ok) return c.json({ error: entity.error }, entity.status)
+
+    let method: Pick<Stripe.PaymentMethod.Card, 'brand' | 'last4'> | null = null
+    if (entity.stripeCustomerId) {
+      const { default: Stripe } = await import('stripe')
+      const stripe = new Stripe(c.env.STRIPE_SECRET_KEY)
+      const methods = await stripe.paymentMethods.list({
+        customer: entity.stripeCustomerId,
+        type: 'card',
+        limit: 1,
+      })
+      const card = methods.data[0]?.card
+      if (card) method = { brand: card.brand, last4: card.last4 }
     }
 
-    const account = await c.var.db
-      .selectFrom('account')
-      .where('id', '=', c.var.session.account_id)
-      .select('balance_mills')
-      .executeTakeFirst()
-    return c.json({ balance_mills: account?.balance_mills ?? 0 }, 200)
+    return c.json(
+      { balance_mills: entity.balanceMills, payment_method: method },
+      200,
+    )
   })
   .post(
     '/api/credits/add',
     validator(
       'json',
       z.object({
-        amount: z.enum(['500', '1000', '2000', '5000']),
+        amount: z.enum(creditAmounts),
+        locked: z.boolean().optional(),
         organization_id: z.string().optional(),
+        save: z.boolean().optional(),
       }),
     ),
     async (c) => {
@@ -697,45 +714,20 @@ export const api = new Hono<{
       const json = c.req.valid('json')
       const amount = Number(json.amount)
 
-      // Determine billing entity
-      let stripeCustomerId: string | null = null
-      let entityId: string
-      let entityType: 'account' | 'organization'
+      const entity = await resolveBillingEntity(
+        c.var.db,
+        json.organization_id
+          ? {
+              type: 'organization',
+              accountId: c.var.session.account_id,
+              organizationId: json.organization_id,
+            }
+          : { type: 'account', accountId: c.var.session.account_id },
+      )
+      if (!entity.ok) return c.json({ error: entity.error }, entity.status)
 
-      if (json.organization_id) {
-        // Check org membership + role
-        const member = await c.var.db
-          .selectFrom('organization_member')
-          .where('organization_id', '=', json.organization_id)
-          .where('account_id', '=', c.var.session.account_id)
-          .select('role')
-          .executeTakeFirst()
-        if (!member) return c.json({ error: 'organization_access_denied' }, 403)
-        if (member.role !== 'owner' && member.role !== 'admin')
-          return c.json({ error: 'organization_access_denied' }, 403)
-
-        const org = await c.var.db
-          .selectFrom('organization')
-          .where('id', '=', json.organization_id)
-          .select('stripe_customer_id')
-          .executeTakeFirst()
-        if (!org) return c.json({ error: 'not_found' }, 404)
-
-        stripeCustomerId = org.stripe_customer_id
-        entityId = json.organization_id
-        entityType = 'organization'
-      } else {
-        const account = await c.var.db
-          .selectFrom('account')
-          .where('id', '=', c.var.session.account_id)
-          .select('stripe_customer_id')
-          .executeTakeFirst()
-        if (!account) return c.json({ error: 'not_found' }, 404)
-
-        stripeCustomerId = account.stripe_customer_id
-        entityId = c.var.session.account_id
-        entityType = 'account'
-      }
+      let { stripeCustomerId } = entity
+      const { entityId, entityType } = entity
 
       const { default: Stripe } = await import('stripe')
       const stripe = new Stripe(c.env.STRIPE_SECRET_KEY)
@@ -769,40 +761,148 @@ export const api = new Hono<{
 
       if (!stripeCustomerId) return c.json({ error: 'not_found' }, 404)
 
-      const session = await stripe.checkout.sessions.create({
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount,
+        currency: 'usd',
         customer: stripeCustomerId,
-        line_items: [
-          {
-            price_data: {
-              currency: 'usd',
-              product_data: { name: `${amount} credits` },
-              unit_amount: amount,
-            },
-            quantity: 1,
-          },
-        ],
         metadata: { entity_type: entityType, entity_id: entityId },
-        mode: 'payment',
-        success_url: `https://${c.env.HOST}`,
-        cancel_url: `https://${c.env.HOST}`,
+        ...(json.save ? { setup_future_usage: 'off_session' } : {}),
       })
 
-      return c.json({ url: session.url, checkout_id: session.id }, 200)
+      const customerSession = await stripe.customerSessions.create({
+        components: {
+          payment_element: {
+            enabled: true,
+            features: {
+              payment_method_redisplay: 'enabled',
+              payment_method_remove: 'disabled',
+              payment_method_save: 'enabled',
+              payment_method_save_usage: 'off_session',
+            },
+          },
+        },
+        customer: stripeCustomerId,
+      })
+
+      const paymentId = Nanoid.generate()
+      await c.env.KV.put(
+        `payment:${paymentId}`,
+        JSON.stringify({
+          amount,
+          cs_secret: customerSession.client_secret,
+          locked: json.locked ?? false,
+          pi_secret: paymentIntent.client_secret,
+        }),
+        { expirationTtl: 1800 },
+      )
+
+      return c.json(
+        {
+          url: `https://${c.env.HOST}/credits/add/${paymentId}`,
+          payment_id: paymentId,
+        },
+        200,
+      )
     },
   )
-  .get('/api/credits/checkout/:id', async (c) => {
-    if (!c.var.session) return c.json({ error: 'unauthorized' }, 401)
+  .post(
+    '/api/credits/charge',
+    validator(
+      'json',
+      z.object({
+        amount: z.enum(creditAmounts),
+        organization_id: z.string().optional(),
+      }),
+    ),
+    async (c) => {
+      if (narrowValidation) return validationError(c)
+      if (!c.var.session) return c.json({ error: 'unauthorized' }, 401)
 
-    const { default: Stripe } = await import('stripe')
-    const stripe = new Stripe(c.env.STRIPE_SECRET_KEY)
+      const json = c.req.valid('json')
+      const amount = Number(json.amount)
 
-    try {
-      const session = await stripe.checkout.sessions.retrieve(c.req.param('id'))
-      return c.json({ status: session.status }, 200)
-    } catch {
-      return c.json({ error: 'not_found' }, 404)
-    }
-  })
+      const entity = await resolveBillingEntity(
+        c.var.db,
+        json.organization_id
+          ? {
+              type: 'organization',
+              accountId: c.var.session.account_id,
+              organizationId: json.organization_id,
+            }
+          : { type: 'account', accountId: c.var.session.account_id },
+      )
+      if (!entity.ok) return c.json({ error: entity.error }, entity.status)
+
+      const { stripeCustomerId, entityId, entityType } = entity
+      if (!stripeCustomerId) return c.json({ error: 'no_payment_method' }, 400)
+
+      const { default: Stripe } = await import('stripe')
+      const stripe = new Stripe(c.env.STRIPE_SECRET_KEY)
+
+      const methods = await stripe.paymentMethods.list({
+        customer: stripeCustomerId,
+        type: 'card',
+        limit: 1,
+      })
+      if (!methods.data[0]) return c.json({ error: 'no_payment_method' }, 400)
+
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount,
+        confirm: true,
+        currency: 'usd',
+        customer: stripeCustomerId,
+        metadata: { entity_type: entityType, entity_id: entityId },
+        off_session: true,
+        payment_method: methods.data[0].id,
+      })
+
+      if (paymentIntent.status === 'succeeded')
+        return c.json(
+          { payment_id: paymentIntent.id, status: 'succeeded' },
+          200,
+        )
+
+      if (paymentIntent.status === 'requires_action') {
+        const customerSession = await stripe.customerSessions.create({
+          components: {
+            payment_element: {
+              enabled: true,
+              features: {
+                payment_method_redisplay: 'enabled',
+                payment_method_remove: 'disabled',
+                payment_method_save: 'enabled',
+                payment_method_save_usage: 'off_session',
+              },
+            },
+          },
+          customer: stripeCustomerId,
+        })
+
+        const paymentId = Nanoid.generate()
+        await c.env.KV.put(
+          `payment:${paymentId}`,
+          JSON.stringify({
+            amount,
+            cs_secret: customerSession.client_secret,
+            locked: true,
+            pi_secret: paymentIntent.client_secret,
+          }),
+          { expirationTtl: 1800 },
+        )
+
+        return c.json(
+          {
+            payment_id: paymentId,
+            status: 'requires_action',
+            url: `https://${c.env.HOST}/credits/add/${paymentId}`,
+          },
+          200,
+        )
+      }
+
+      return c.json({ error: 'payment_failed' }, 400)
+    },
+  )
   .get('/api/health', (c) => c.json({ ok: true }, 200))
   .get('/api/stats', async (c) => {
     try {
@@ -1433,23 +1533,26 @@ export const api = new Hono<{
         signature,
         c.env.STRIPE_WEBHOOK_SECRET,
       )
-    } catch {
+    } catch (error) {
+      Sentry.captureException(error)
       return c.json({ error: 'invalid_signature' }, 400)
     }
 
     switch (event.type) {
-      case 'checkout.session.completed': {
-        const session = event.data
-          .object as import('stripe').Stripe.Checkout.Session
+      case 'payment_intent.succeeded': {
+        const paymentIntent = event.data
+          .object as import('stripe').Stripe.PaymentIntent
         const customer =
-          typeof session.customer === 'string' ? session.customer : null
-        if (customer && session.amount_total)
+          typeof paymentIntent.customer === 'string'
+            ? paymentIntent.customer
+            : null
+        if (customer && paymentIntent.amount)
           await c.env.STRIPE_WEBHOOK_QUEUE.send({
             type: event.type,
             data: {
-              amount_total: session.amount_total,
+              amount_total: paymentIntent.amount,
               customer,
-              id: session.id,
+              id: paymentIntent.id,
             },
           })
         break
@@ -1484,7 +1587,7 @@ export const api = new Hono<{
           charge && typeof charge.customer === 'string' ? charge.customer : null
         if (customer)
           await c.env.STRIPE_WEBHOOK_QUEUE.send({
-            type: 'charge.refunded',
+            type: 'refund.created',
             data: {
               amount_total: refund.amount,
               customer,
