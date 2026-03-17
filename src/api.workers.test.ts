@@ -1,27 +1,25 @@
-import { env, fetchMock } from 'cloudflare:test'
+import assert from 'node:assert'
+import { env } from 'cloudflare:workers'
 import { testClient } from 'hono/testing'
-import { Kysely } from 'kysely'
+import { HttpResponse, http } from 'msw'
 import { afterAll, afterEach, describe, expect, test, vi } from 'vitest'
 import { api } from '#api.ts'
-import * as ApiKey from '#lib/api-key.ts'
-import { assert } from '#lib/assert.ts'
+import { createClient } from '#db/client.ts'
+import * as ApiKey from '#lib/apiKey.ts'
 import * as Cookie from '#lib/cookie.ts'
 import * as Crypto from '#lib/crypto.ts'
-import type { DB } from '#lib/db.gen.ts'
-import { dialect } from '#lib/db.ts'
 import * as Nanoid from '#lib/nanoid.ts'
-import { createFactory } from '../test/factory.ts'
+import { createFactory } from '#test/factory.ts'
+import { server } from '#test/server.ts'
+
+const db = createClient(env.DB.connectionString)
+const factory = createFactory(db)
 
 const client = testClient(api, env, {
   waitUntil: vi.fn((p: Promise<unknown>) => p),
   passThroughOnException: vi.fn(),
   props: {},
 })
-// Workers tests use D1 via miniflare; env.DB is a Hyperdrive stub with connectionString
-const db = new Kysely<DB>({
-  dialect: dialect(env.DB.connectionString, { max: 1 }),
-})
-const factory = createFactory(db)
 
 afterAll(() => db.destroy())
 
@@ -53,9 +51,7 @@ describe('GET /api/auth/github', () => {
     expect(res.status).toBe(302)
     const location = res.headers.get('location')!
     const redirectUri = new URL(location).searchParams.get('redirect_uri')!
-    expect(new URL(redirectUri).searchParams.get('next')).toBe(
-      'https://pr10.curl.local',
-    )
+    expect(new URL(redirectUri).searchParams.get('next')).toBe('https://pr10.curl.local')
   })
 
   test('ignores invalid next param origin', async () => {
@@ -77,10 +73,9 @@ describe('GET /api/auth/github/callback', () => {
     })
     expect(res.status).toBe(400)
     await expect(res.json()).resolves.toEqual({
-      error: 'validation_error',
-      issues: expect.arrayContaining([
-        { path: expect.any(String), message: expect.any(String) },
-      ]),
+      code: 'validation_error',
+      message: expect.any(String),
+      issues: expect.arrayContaining([{ path: expect.any(String), message: expect.any(String) }]),
     })
   })
 
@@ -92,25 +87,20 @@ describe('GET /api/auth/github/callback', () => {
     const location = new URL(res.headers.get('location')!)
     expect(location.pathname).toBe('/auth/error')
     expect(location.searchParams.get('error')).toBe('invalid_request')
-    expect(location.searchParams.get('error_description')).toBe(
-      'State mismatch',
-    )
+    expect(location.searchParams.get('error_description')).toBe('State mismatch')
   })
 
   test('with bad code redirects to error page', async () => {
     const query = { code: 'bad', state: 'test-state' }
 
-    fetchMock
-      .get('https://github.com')
-      .intercept({
-        method: 'POST',
-        path: `/login/oauth/access_token?client_id=${env.GH_CLIENT_ID}&client_secret=${env.GH_CLIENT_SECRET}&code=${query.code}`,
-      })
-      .reply(
-        200,
-        { error: 'bad_verification_code', error_description: 'Bad code' },
-        { headers: { 'content-type': 'application/json' } },
-      )
+    server.use(
+      http.post('https://github.com/login/oauth/access_token', () =>
+        HttpResponse.json({
+          error: 'bad_verification_code',
+          error_description: 'Bad code',
+        }),
+      ),
+    )
 
     const res = await client.api.auth.github.callback.$get(
       { query },
@@ -120,9 +110,7 @@ describe('GET /api/auth/github/callback', () => {
     const location = new URL(res.headers.get('location')!)
     expect(location.pathname).toBe('/auth/error')
     expect(location.searchParams.get('error')).toBe('bad_verification_code')
-    expect(location.searchParams.get('error_description')).toBe(
-      'Failed to get access token',
-    )
+    expect(location.searchParams.get('error_description')).toBe('Failed to get access token')
   })
 
   test('creates account and redirects to account login', async () => {
@@ -131,37 +119,25 @@ describe('GET /api/auth/github/callback', () => {
     const email = `${login}@example.com`
     const query = { code: 'good', state: 'test-state' }
 
-    fetchMock
-      .get('https://github.com')
-      .intercept({
-        method: 'POST',
-        path: `/login/oauth/access_token?client_id=${env.GH_CLIENT_ID}&client_secret=${env.GH_CLIENT_SECRET}&code=${query.code}`,
-      })
-      .reply(
-        200,
-        { access_token: 'ghu_test123', token_type: 'bearer' },
-        { headers: { 'content-type': 'application/json' } },
-      )
-
-    fetchMock
-      .get('https://api.github.com')
-      .intercept({ method: 'GET', path: '/user' })
-      .reply(
-        200,
-        {
+    server.use(
+      http.post('https://github.com/login/oauth/access_token', () =>
+        HttpResponse.json({
+          access_token: 'ghu_test123',
+          token_type: 'bearer',
+        }),
+      ),
+      http.get('https://api.github.com/user', () =>
+        HttpResponse.json({
           avatar_url: `https://avatars.githubusercontent.com/u/${ghId}`,
           id: ghId,
           login,
           name: 'Test User',
-        },
-        { headers: { 'content-type': 'application/json' } },
-      )
-    fetchMock
-      .get('https://api.github.com')
-      .intercept({ method: 'GET', path: '/user/emails' })
-      .reply(200, [{ email, primary: true, verified: true }], {
-        headers: { 'content-type': 'application/json' },
-      })
+        }),
+      ),
+      http.get('https://api.github.com/user/emails', () =>
+        HttpResponse.json([{ email, primary: true, verified: true }]),
+      ),
+    )
 
     const res = await client.api.auth.github.callback.$get(
       { query },
@@ -169,9 +145,7 @@ describe('GET /api/auth/github/callback', () => {
     )
     expect(res.status).toBe(302)
     expect(res.headers.get('location')).toBe(`https://curl.local/${login}`)
-    expect(
-      res.headers.getSetCookie().some((c) => c.startsWith('curl.session=')),
-    ).toBe(true)
+    expect(res.headers.getSetCookie().some((c) => c.startsWith('curl.session='))).toBe(true)
 
     // Verify account was created in D1
     const provider = await db
@@ -192,10 +166,7 @@ describe('GET /api/auth/github/callback', () => {
     // Verify tokens are encrypted (not stored as plaintext)
     expect(provider.access_token).not.toBe('ghu_test123')
     expect(provider.access_token).toBeTruthy()
-    const decrypted = await Crypto.decrypt(
-      provider.access_token!,
-      env.TOKEN_ENCRYPTION_KEY,
-    )
+    const decrypted = await Crypto.decrypt(provider.access_token!, env.TOKEN_ENCRYPTION_KEY)
     expect(decrypted).toBe('ghu_test123')
   })
 
@@ -210,46 +181,32 @@ describe('GET /api/auth/github/callback', () => {
 
     const query = { code: 'existing', state: 'test-state' }
 
-    fetchMock
-      .get('https://github.com')
-      .intercept({
-        method: 'POST',
-        path: `/login/oauth/access_token?client_id=${env.GH_CLIENT_ID}&client_secret=${env.GH_CLIENT_SECRET}&code=${query.code}`,
-      })
-      .reply(
-        200,
-        { access_token: 'ghu_existing', token_type: 'bearer' },
-        { headers: { 'content-type': 'application/json' } },
-      )
-
-    fetchMock
-      .get('https://api.github.com')
-      .intercept({ method: 'GET', path: '/user' })
-      .reply(
-        200,
-        {
+    server.use(
+      http.post('https://github.com/login/oauth/access_token', () =>
+        HttpResponse.json({
+          access_token: 'ghu_existing',
+          token_type: 'bearer',
+        }),
+      ),
+      http.get('https://api.github.com/user', () =>
+        HttpResponse.json({
           avatar_url: `https://avatars.githubusercontent.com/u/${ghId}`,
           id: Number(ghId),
           login: account.login,
           name: 'Existing User',
-        },
-        { headers: { 'content-type': 'application/json' } },
-      )
-    fetchMock
-      .get('https://api.github.com')
-      .intercept({ method: 'GET', path: '/user/emails' })
-      .reply(200, [{ email: account.email, primary: true, verified: true }], {
-        headers: { 'content-type': 'application/json' },
-      })
+        }),
+      ),
+      http.get('https://api.github.com/user/emails', () =>
+        HttpResponse.json([{ email: account.email, primary: true, verified: true }]),
+      ),
+    )
 
     const res = await client.api.auth.github.callback.$get(
       { query },
       { headers: { Cookie: `curl.state=${query.state}` } },
     )
     expect(res.status).toBe(302)
-    expect(res.headers.get('location')).toBe(
-      `https://curl.local/${account.login}`,
-    )
+    expect(res.headers.get('location')).toBe(`https://curl.local/${account.login}`)
 
     // Verify account was updated, not duplicated
     const accounts = await db
@@ -266,37 +223,23 @@ describe('GET /api/auth/github/callback', () => {
     const ghId = Math.floor(Math.random() * 1_000_000)
     const query = { code: 'no-email', state: 'test-state' }
 
-    fetchMock
-      .get('https://github.com')
-      .intercept({
-        method: 'POST',
-        path: `/login/oauth/access_token?client_id=${env.GH_CLIENT_ID}&client_secret=${env.GH_CLIENT_SECRET}&code=${query.code}`,
-      })
-      .reply(
-        200,
-        { access_token: 'ghu_noemail', token_type: 'bearer' },
-        { headers: { 'content-type': 'application/json' } },
-      )
-
-    fetchMock
-      .get('https://api.github.com')
-      .intercept({ method: 'GET', path: '/user' })
-      .reply(
-        200,
-        {
+    server.use(
+      http.post('https://github.com/login/oauth/access_token', () =>
+        HttpResponse.json({
+          access_token: 'ghu_noemail',
+          token_type: 'bearer',
+        }),
+      ),
+      http.get('https://api.github.com/user', () =>
+        HttpResponse.json({
           avatar_url: `https://avatars.githubusercontent.com/u/${ghId}`,
           id: ghId,
           login: 'noemail-user',
           name: 'No Email',
-        },
-        { headers: { 'content-type': 'application/json' } },
-      )
-    fetchMock
-      .get('https://api.github.com')
-      .intercept({ method: 'GET', path: '/user/emails' })
-      .reply(200, [], {
-        headers: { 'content-type': 'application/json' },
-      })
+        }),
+      ),
+      http.get('https://api.github.com/user/emails', () => HttpResponse.json([])),
+    )
 
     const res = await client.api.auth.github.callback.$get(
       { query },
@@ -306,14 +249,10 @@ describe('GET /api/auth/github/callback', () => {
     const location = new URL(res.headers.get('location')!)
     expect(location.pathname).toBe('/auth/error')
     expect(location.searchParams.get('error')).toBe('no_email')
-    expect(location.searchParams.get('error_description')).toBe(
-      'No email found on GitHub account',
-    )
+    expect(location.searchParams.get('error_description')).toBe('No email found on GitHub account')
   })
 
-  test.todo(
-    'with transaction failure redirects to error page with server_error',
-  )
+  test.todo('with transaction failure redirects to error page with server_error')
 })
 
 describe('POST /api/auth/logout', () => {
@@ -349,11 +288,7 @@ describe('POST /api/auth/device', () => {
       { json: { user_code: device.user_code } },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -401,10 +336,9 @@ describe('POST /api/auth/device/confirm', () => {
     })
     expect(res.status).toBe(400)
     await expect(res.json()).resolves.toEqual({
-      error: 'validation_error',
-      issues: expect.arrayContaining([
-        { path: expect.any(String), message: expect.any(String) },
-      ]),
+      code: 'validation_error',
+      message: expect.any(String),
+      issues: expect.arrayContaining([{ path: expect.any(String), message: expect.any(String) }]),
     })
   })
 
@@ -423,11 +357,7 @@ describe('POST /api/auth/device/confirm', () => {
       { json: { user_code: 'INVALID1' } },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -443,10 +373,9 @@ describe('POST /api/auth/device/token', () => {
     })
     expect(res.status).toBe(400)
     await expect(res.json()).resolves.toEqual({
-      error: 'validation_error',
-      issues: expect.arrayContaining([
-        { path: expect.any(String), message: expect.any(String) },
-      ]),
+      code: 'validation_error',
+      message: expect.any(String),
+      issues: expect.arrayContaining([{ path: expect.any(String), message: expect.any(String) }]),
     })
   })
 
@@ -460,7 +389,8 @@ describe('POST /api/auth/device/token', () => {
     })
     expect(res.status).toBe(400)
     await expect(res.json()).resolves.toEqual({
-      error: 'authorization_pending',
+      code: 'authorization_pending',
+      message: expect.any(String),
     })
   })
 
@@ -469,7 +399,10 @@ describe('POST /api/auth/device/token', () => {
       json: { code: 'nonexistent' },
     })
     expect(res.status).toBe(400)
-    await expect(res.json()).resolves.toEqual({ error: 'expired_token' })
+    await expect(res.json()).resolves.toEqual({
+      code: 'expired_token',
+      message: expect.any(String),
+    })
   })
 
   test('returns 429 when rate limit exceeded', async () => {
@@ -486,7 +419,8 @@ describe('POST /api/auth/device/token', () => {
     expect(res.status).toBe(429)
     expect(res.headers.get('retry-after')).toBeTruthy()
     await expect(res.json()).resolves.toEqual({
-      error: 'rate_limit_exceeded',
+      code: 'rate_limit_exceeded',
+      message: expect.any(String),
     })
   })
 })
@@ -494,7 +428,7 @@ describe('POST /api/auth/device/token', () => {
 test('POST /api/auth/device returns 429 when rate limit exceeded', async () => {
   await env.KV.put(
     'ratelimit:device:192.0.2.11',
-    JSON.stringify({ count: 5, reset: Math.floor(Date.now() / 1000) + 60 }),
+    JSON.stringify({ count: 15, reset: Math.floor(Date.now() / 1000) + 60 }),
     { expirationTtl: 60 },
   )
 
@@ -504,7 +438,10 @@ test('POST /api/auth/device returns 429 when rate limit exceeded', async () => {
   )
   expect(res.status).toBe(429)
   expect(res.headers.get('retry-after')).toBeTruthy()
-  await expect(res.json()).resolves.toEqual({ error: 'rate_limit_exceeded' })
+  await expect(res.json()).resolves.toEqual({
+    code: 'rate_limit_exceeded',
+    message: expect.any(String),
+  })
 })
 
 describe('GET /api/auth/me', () => {
@@ -521,19 +458,17 @@ describe('GET /api/auth/me', () => {
       organization_id: org.id,
       account_id: account.id,
     })
-    const hash = await ApiKey.hash('curl_test123456')
+    const token = ApiKey.generate()
+    const hash = await ApiKey.hash(token)
     await factory.api_key.insert({
       organization_id: org.id,
       account_id: account.id,
       key_hash: hash,
-      key_prefix: 'curl_test',
+      key_prefix: token.slice(0, 14),
       name: 'test key',
     })
 
-    const res = await client.api.auth.me.$get(
-      {},
-      { headers: { Authorization: 'Bearer curl_test123456' } },
-    )
+    const res = await client.api.auth.me.$get({}, { headers: { Authorization: `Bearer ${token}` } })
     expect(res.status).toBe(200)
     const json = await res.json()
     expect(json.account).not.toBeNull()
@@ -547,22 +482,23 @@ describe('GET /api/auth/me', () => {
       organization_id: org.id,
       account_id: account.id,
     })
-    const hash = await ApiKey.hash('curl_deleted789')
+    const token = ApiKey.generate()
+    const hash = await ApiKey.hash(token)
     await factory.api_key.insert({
       organization_id: org.id,
       account_id: account.id,
       key_hash: hash,
-      key_prefix: 'curl_dele',
+      key_prefix: token.slice(0, 14),
       name: 'deleted key',
       deleted_at: new Date().toISOString(),
     })
 
-    const res = await client.api.auth.me.$get(
-      {},
-      { headers: { Authorization: 'Bearer curl_deleted789' } },
-    )
+    const res = await client.api.auth.me.$get({}, { headers: { Authorization: `Bearer ${token}` } })
     expect(res.status).toBe(401)
-    await expect(res.json()).resolves.toEqual({ error: 'invalid_api_key' })
+    await expect(res.json()).resolves.toEqual({
+      code: 'invalid_api_key',
+      message: expect.any(String),
+    })
   })
 
   test('updates last_used_at on API key use', async () => {
@@ -572,19 +508,17 @@ describe('GET /api/auth/me', () => {
       organization_id: org.id,
       account_id: account.id,
     })
-    const hash = await ApiKey.hash('curl_lastused999')
+    const token = ApiKey.generate()
+    const hash = await ApiKey.hash(token)
     const apiKey = await factory.api_key.insert({
       organization_id: org.id,
       account_id: account.id,
       key_hash: hash,
-      key_prefix: 'curl_last',
+      key_prefix: token.slice(0, 14),
       name: 'lastused key',
     })
 
-    await client.api.auth.me.$get(
-      {},
-      { headers: { Authorization: 'Bearer curl_lastused999' } },
-    )
+    await client.api.auth.me.$get({}, { headers: { Authorization: `Bearer ${token}` } })
 
     const updated = await db
       .selectFrom('api_key')
@@ -614,11 +548,7 @@ describe('GET /api/credits', () => {
       {},
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -648,11 +578,7 @@ describe('GET /api/credits', () => {
       {},
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
           'x-organization-id': org.id,
         },
       },
@@ -668,20 +594,14 @@ describe('GET /api/credits', () => {
     const account = await factory.account.insert({})
     await db
       .updateTable('account')
-      .set({ stripe_customer_id: 'cus_test_pm' })
+      .set({ stripe_customer_id: `cus_${Nanoid.generate()}` })
       .where('id', '=', account.id)
       .execute()
     const session = await factory.session.insert({ account_id: account.id })
 
-    fetchMock
-      .get('https://api.stripe.com')
-      .intercept({
-        method: 'GET',
-        path: '/v1/payment_methods?customer=cus_test_pm&type=card&limit=1',
-      })
-      .reply(
-        200,
-        {
+    server.use(
+      http.get('https://api.stripe.com/v1/payment_methods', () =>
+        HttpResponse.json({
           object: 'list',
           data: [
             {
@@ -690,19 +610,15 @@ describe('GET /api/credits', () => {
               card: { brand: 'visa', last4: '4242' },
             },
           ],
-        },
-        { headers: { 'content-type': 'application/json' } },
-      )
+        }),
+      ),
+    )
 
     const res = await client.api.credits.$get(
       {},
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -717,32 +633,22 @@ describe('GET /api/credits', () => {
     const account = await factory.account.insert({})
     await db
       .updateTable('account')
-      .set({ stripe_customer_id: 'cus_test_empty' })
+      .set({ stripe_customer_id: `cus_${Nanoid.generate()}` })
       .where('id', '=', account.id)
       .execute()
     const session = await factory.session.insert({ account_id: account.id })
 
-    fetchMock
-      .get('https://api.stripe.com')
-      .intercept({
-        method: 'GET',
-        path: '/v1/payment_methods?customer=cus_test_empty&type=card&limit=1',
-      })
-      .reply(
-        200,
-        { object: 'list', data: [] },
-        { headers: { 'content-type': 'application/json' } },
-      )
+    server.use(
+      http.get('https://api.stripe.com/v1/payment_methods', () =>
+        HttpResponse.json({ object: 'list', data: [] }),
+      ),
+    )
 
     const res = await client.api.credits.$get(
       {},
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -766,44 +672,30 @@ describe('POST /api/credits/add', () => {
     const account = await factory.account.insert({})
     const session = await factory.session.insert({ account_id: account.id })
 
-    fetchMock
-      .get('https://api.stripe.com')
-      .intercept({ method: 'POST', path: '/v1/customers' })
-      .reply(
-        200,
-        { id: 'cus_test_123', object: 'customer' },
-        { headers: { 'content-type': 'application/json' } },
-      )
-    fetchMock
-      .get('https://api.stripe.com')
-      .intercept({ method: 'POST', path: '/v1/payment_intents' })
-      .reply(
-        200,
-        {
+    server.use(
+      http.post('https://api.stripe.com/v1/customers', () =>
+        HttpResponse.json({ id: 'cus_test_123', object: 'customer' }),
+      ),
+      http.post('https://api.stripe.com/v1/payment_intents', () =>
+        HttpResponse.json({
           id: 'pi_test_123',
           object: 'payment_intent',
           client_secret: 'pi_test_123_secret',
-        },
-        { headers: { 'content-type': 'application/json' } },
-      )
-    fetchMock
-      .get('https://api.stripe.com')
-      .intercept({ method: 'POST', path: '/v1/customer_sessions' })
-      .reply(
-        200,
-        { client_secret: 'cs_session_test_123', object: 'customer_session' },
-        { headers: { 'content-type': 'application/json' } },
-      )
+        }),
+      ),
+      http.post('https://api.stripe.com/v1/customer_sessions', () =>
+        HttpResponse.json({
+          client_secret: 'cs_session_test_123',
+          object: 'customer_session',
+        }),
+      ),
+    )
 
     const res = await client.api.credits.add.$post(
       { json: { amount: '500' } },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -828,41 +720,32 @@ describe('POST /api/credits/add', () => {
     const account = await factory.account.insert({})
     await db
       .updateTable('account')
-      .set({ stripe_customer_id: 'cus_save_test' })
+      .set({ stripe_customer_id: `cus_${Nanoid.generate()}` })
       .where('id', '=', account.id)
       .execute()
     const session = await factory.session.insert({ account_id: account.id })
 
-    fetchMock
-      .get('https://api.stripe.com')
-      .intercept({ method: 'POST', path: '/v1/payment_intents' })
-      .reply(
-        200,
-        {
+    server.use(
+      http.post('https://api.stripe.com/v1/payment_intents', () =>
+        HttpResponse.json({
           id: 'pi_save_123',
           object: 'payment_intent',
           client_secret: 'pi_save_123_secret',
-        },
-        { headers: { 'content-type': 'application/json' } },
-      )
-    fetchMock
-      .get('https://api.stripe.com')
-      .intercept({ method: 'POST', path: '/v1/customer_sessions' })
-      .reply(
-        200,
-        { client_secret: 'cs_save_session_123', object: 'customer_session' },
-        { headers: { 'content-type': 'application/json' } },
-      )
+        }),
+      ),
+      http.post('https://api.stripe.com/v1/customer_sessions', () =>
+        HttpResponse.json({
+          client_secret: 'cs_save_session_123',
+          object: 'customer_session',
+        }),
+      ),
+    )
 
     const res = await client.api.credits.add.$post(
       { json: { amount: '1000', save: true } },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -887,11 +770,7 @@ describe('POST /api/credits/add', () => {
       { json: { amount: '500', organization_id: org.id } },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -915,96 +794,77 @@ describe('POST /api/credits/charge', () => {
       { json: { amount: '1000' } },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
     expect(res.status).toBe(400)
-    await expect(res.json()).resolves.toEqual({ error: 'no_payment_method' })
+    await expect(res.json()).resolves.toEqual({
+      code: 'no_payment_method',
+      message: expect.any(String),
+    })
   })
 
   test('returns 400 when no payment methods on file', async () => {
     const account = await factory.account.insert({})
     await db
       .updateTable('account')
-      .set({ stripe_customer_id: 'cus_test_no_cards' })
+      .set({ stripe_customer_id: `cus_${Nanoid.generate()}` })
       .where('id', '=', account.id)
       .execute()
     const session = await factory.session.insert({ account_id: account.id })
 
-    fetchMock
-      .get('https://api.stripe.com')
-      .intercept({
-        method: 'GET',
-        path: '/v1/payment_methods?customer=cus_test_no_cards&type=card&limit=1',
-      })
-      .reply(
-        200,
-        { data: [], object: 'list' },
-        { headers: { 'content-type': 'application/json' } },
-      )
+    server.use(
+      http.get('https://api.stripe.com/v1/payment_methods', () =>
+        HttpResponse.json({ data: [], object: 'list' }),
+      ),
+    )
 
     const res = await client.api.credits.charge.$post(
       { json: { amount: '1000' } },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
     expect(res.status).toBe(400)
-    await expect(res.json()).resolves.toEqual({ error: 'no_payment_method' })
+    await expect(res.json()).resolves.toEqual({
+      code: 'no_payment_method',
+      message: expect.any(String),
+    })
   })
 
   test('charges saved card successfully', async () => {
     const account = await factory.account.insert({})
     await db
       .updateTable('account')
-      .set({ stripe_customer_id: 'cus_test_charge' })
+      .set({ stripe_customer_id: `cus_${Nanoid.generate()}` })
       .where('id', '=', account.id)
       .execute()
     const session = await factory.session.insert({ account_id: account.id })
 
-    fetchMock
-      .get('https://api.stripe.com')
-      .intercept({
-        method: 'GET',
-        path: '/v1/payment_methods?customer=cus_test_charge&type=card&limit=1',
-      })
-      .reply(
-        200,
-        {
+    server.use(
+      http.get('https://api.stripe.com/v1/payment_methods', () =>
+        HttpResponse.json({
           data: [{ id: 'pm_test', card: { brand: 'visa', last4: '4242' } }],
           object: 'list',
-        },
-        { headers: { 'content-type': 'application/json' } },
-      )
-    fetchMock
-      .get('https://api.stripe.com')
-      .intercept({ method: 'POST', path: '/v1/payment_intents' })
-      .reply(
-        200,
-        { id: 'pi_charge_test', status: 'succeeded', object: 'payment_intent' },
-        { headers: { 'content-type': 'application/json' } },
-      )
+        }),
+      ),
+      http.post('https://api.stripe.com/v1/payment_intents', () =>
+        HttpResponse.json({
+          id: 'pi_charge_test',
+          status: 'succeeded',
+          object: 'payment_intent',
+        }),
+      ),
+    )
 
     const res = await client.api.credits.charge.$post(
       { json: { amount: '1000' } },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -1019,56 +879,39 @@ describe('POST /api/credits/charge', () => {
     const account = await factory.account.insert({})
     await db
       .updateTable('account')
-      .set({ stripe_customer_id: 'cus_test_3ds' })
+      .set({ stripe_customer_id: `cus_${Nanoid.generate()}` })
       .where('id', '=', account.id)
       .execute()
     const session = await factory.session.insert({ account_id: account.id })
 
-    fetchMock
-      .get('https://api.stripe.com')
-      .intercept({
-        method: 'GET',
-        path: '/v1/payment_methods?customer=cus_test_3ds&type=card&limit=1',
-      })
-      .reply(
-        200,
-        {
+    server.use(
+      http.get('https://api.stripe.com/v1/payment_methods', () =>
+        HttpResponse.json({
           data: [{ id: 'pm_3ds', card: { brand: 'visa', last4: '4242' } }],
           object: 'list',
-        },
-        { headers: { 'content-type': 'application/json' } },
-      )
-    fetchMock
-      .get('https://api.stripe.com')
-      .intercept({ method: 'POST', path: '/v1/payment_intents' })
-      .reply(
-        200,
-        {
+        }),
+      ),
+      http.post('https://api.stripe.com/v1/payment_intents', () =>
+        HttpResponse.json({
           id: 'pi_3ds_test',
           status: 'requires_action',
           client_secret: 'pi_3ds_secret',
           object: 'payment_intent',
-        },
-        { headers: { 'content-type': 'application/json' } },
-      )
-    fetchMock
-      .get('https://api.stripe.com')
-      .intercept({ method: 'POST', path: '/v1/customer_sessions' })
-      .reply(
-        200,
-        { client_secret: 'cs_3ds_session', object: 'customer_session' },
-        { headers: { 'content-type': 'application/json' } },
-      )
+        }),
+      ),
+      http.post('https://api.stripe.com/v1/customer_sessions', () =>
+        HttpResponse.json({
+          client_secret: 'cs_3ds_session',
+          object: 'customer_session',
+        }),
+      ),
+    )
 
     const res = await client.api.credits.charge.$post(
       { json: { amount: '1000' } },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -1099,11 +942,7 @@ describe('POST /api/credits/charge', () => {
       { json: { amount: '500', organization_id: org.id } },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -1124,7 +963,7 @@ describe('POST /api/tokens', () => {
     const json = await res.json()
     assert('api_key' in json, 'expected api_key')
     expect(json.api_key.name).toBe('test token')
-    expect(json.api_key.token.startsWith('curl_')).toBe(true)
+    expect(json.api_key.token.startsWith('curlmd_')).toBe(true)
     expect(json.api_key.key_prefix).toBe(json.api_key.token.slice(0, 14))
 
     const stored = await db
@@ -1150,7 +989,7 @@ describe('POST /api/tokens', () => {
       organization_id: org.id,
       account_id: account.id,
     })
-    const token = 'curl_blockapikey123'
+    const token = 'curlmd_blockapikey123'
     const hash = await ApiKey.hash(token)
     await factory.api_key.insert({
       organization_id: org.id,
@@ -1191,6 +1030,35 @@ describe('POST /api/tokens', () => {
     expect(json.api_key.organization_id).toBe(org.id)
   })
 
+  test('allows same name across different organizations', async () => {
+    const account = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: account.id })
+    const org = await factory.organization.insert({})
+    await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: account.id,
+    })
+
+    // Create token "foo" under org
+    const res1 = await client.api.tokens.$post(
+      { json: { name: 'foo' } },
+      {
+        headers: {
+          Authorization: `Bearer ${session.id}`,
+          'x-organization-id': org.id,
+        },
+      },
+    )
+    expect(res1.status).toBe(201)
+
+    // Create token "foo" under personal account (no org)
+    const res2 = await client.api.tokens.$post(
+      { json: { name: 'foo' } },
+      { headers: { Authorization: `Bearer ${session.id}` } },
+    )
+    expect(res2.status).toBe(201)
+  })
+
   test('rejects duplicate name', async () => {
     const account = await factory.account.insert({})
     const session = await factory.session.insert({ account_id: account.id })
@@ -1205,7 +1073,7 @@ describe('POST /api/tokens', () => {
     )
     expect(res.status).toBe(409)
     const json = await res.json()
-    expect(json).toEqual({ error: 'name_taken' })
+    expect(json).toEqual({ code: 'name_taken', message: expect.any(String) })
   })
 })
 
@@ -1215,14 +1083,14 @@ describe('GET /api/tokens', () => {
     const session = await factory.session.insert({ account_id: account.id })
     await factory.api_key.insert({
       account_id: account.id,
-      key_hash: await ApiKey.hash('curl_list1'),
-      key_prefix: 'curl_list1',
+      key_hash: await ApiKey.hash('curlmd_list1'),
+      key_prefix: 'curlmd_list1',
       name: 'key 1',
     })
     await factory.api_key.insert({
       account_id: account.id,
-      key_hash: await ApiKey.hash('curl_list2'),
-      key_prefix: 'curl_list2',
+      key_hash: await ApiKey.hash('curlmd_list2'),
+      key_prefix: 'curlmd_list2',
       name: 'key 2',
     })
 
@@ -1238,19 +1106,94 @@ describe('GET /api/tokens', () => {
     expect(json.api_keys).toHaveLength(2)
   })
 
+  test('scopes to organization when header present', async () => {
+    const account = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: account.id })
+    const org = await factory.organization.insert({})
+    await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: account.id,
+    })
+    await factory.api_key.insert({
+      account_id: account.id,
+      organization_id: org.id,
+      key_hash: await ApiKey.hash('curlmd_org1'),
+      key_prefix: 'curlmd_org1',
+      name: 'org key',
+    })
+    await factory.api_key.insert({
+      account_id: account.id,
+      key_hash: await ApiKey.hash('curlmd_acct1'),
+      key_prefix: 'curlmd_acct1',
+      name: 'account key',
+    })
+
+    const res = await client.api.tokens.$get(
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${session.id}`,
+          'x-organization-id': org.id,
+        },
+      },
+    )
+    expect(res.status).toBe(200)
+    const json = (await res.json()) as Extract<
+      Awaited<ReturnType<typeof res.json>>,
+      { api_keys: unknown[] }
+    >
+    expect(json.api_keys).toHaveLength(1)
+    expect(json.api_keys[0]!.name).toBe('org key')
+  })
+
+  test('shows only account tokens when no org header', async () => {
+    const account = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: account.id })
+    const org = await factory.organization.insert({})
+    await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: account.id,
+    })
+    await factory.api_key.insert({
+      account_id: account.id,
+      organization_id: org.id,
+      key_hash: await ApiKey.hash('curlmd_org2'),
+      key_prefix: 'curlmd_org2',
+      name: 'org key',
+    })
+    await factory.api_key.insert({
+      account_id: account.id,
+      key_hash: await ApiKey.hash('curlmd_acct2'),
+      key_prefix: 'curlmd_acct2',
+      name: 'account key',
+    })
+
+    const res = await client.api.tokens.$get(
+      {},
+      { headers: { Authorization: `Bearer ${session.id}` } },
+    )
+    expect(res.status).toBe(200)
+    const json = (await res.json()) as Extract<
+      Awaited<ReturnType<typeof res.json>>,
+      { api_keys: unknown[] }
+    >
+    expect(json.api_keys).toHaveLength(1)
+    expect(json.api_keys[0]!.name).toBe('account key')
+  })
+
   test('excludes deleted tokens', async () => {
     const account = await factory.account.insert({})
     const session = await factory.session.insert({ account_id: account.id })
     await factory.api_key.insert({
       account_id: account.id,
-      key_hash: await ApiKey.hash('curl_active1'),
-      key_prefix: 'curl_active',
+      key_hash: await ApiKey.hash('curlmd_active1'),
+      key_prefix: 'curlmd_active',
       name: 'active key',
     })
     await factory.api_key.insert({
       account_id: account.id,
-      key_hash: await ApiKey.hash('curl_deleted1'),
-      key_prefix: 'curl_delete',
+      key_hash: await ApiKey.hash('curlmd_deleted1'),
+      key_prefix: 'curlmd_delete',
       name: 'deleted key',
       deleted_at: new Date().toISOString(),
     })
@@ -1279,8 +1222,8 @@ describe('DELETE /api/tokens/:id', () => {
     const session = await factory.session.insert({ account_id: account.id })
     const apiKey = await factory.api_key.insert({
       account_id: account.id,
-      key_hash: await ApiKey.hash('curl_softdel1'),
-      key_prefix: 'curl_softde',
+      key_hash: await ApiKey.hash('curlmd_softdel1'),
+      key_prefix: 'curlmd_softde',
       name: 'to delete',
     })
 
@@ -1316,8 +1259,8 @@ describe('DELETE /api/tokens/:id', () => {
     const session2 = await factory.session.insert({ account_id: account2.id })
     const apiKey = await factory.api_key.insert({
       account_id: account1.id,
-      key_hash: await ApiKey.hash('curl_other1'),
-      key_prefix: 'curl_other',
+      key_hash: await ApiKey.hash('curlmd_other1'),
+      key_prefix: 'curlmd_other',
       name: 'account1 key',
     })
 
@@ -1371,17 +1314,13 @@ describe('GET /api/orgs', () => {
       {},
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
     expect(res.status).toBe(200)
     const json = await res.json()
-    assert(!('error' in json), 'expected organizations')
+    assert(!('code' in json), 'expected organizations')
     expect(json.organizations).toHaveLength(2)
     expect(json.organizations).toEqual(
       expect.arrayContaining([
@@ -1420,17 +1359,13 @@ describe('GET /api/orgs/:id', () => {
       { param: { id: org.id } },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
     expect(res.status).toBe(200)
     const json = await res.json()
-    assert(!('error' in json), 'expected organization')
+    assert(!('code' in json), 'expected organization')
     expect(json.organization).toEqual(
       expect.objectContaining({
         id: org.id,
@@ -1458,11 +1393,7 @@ describe('GET /api/orgs/:id', () => {
       { param: { id: org.id } },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -1477,10 +1408,9 @@ describe('POST /api/orgs', () => {
     })
     expect(res.status).toBe(400)
     await expect(res.json()).resolves.toEqual({
-      error: 'validation_error',
-      issues: expect.arrayContaining([
-        { path: 'login', message: expect.any(String) },
-      ]),
+      code: 'validation_error',
+      message: expect.any(String),
+      issues: expect.arrayContaining([{ path: 'login', message: expect.any(String) }]),
     })
   })
 
@@ -1491,10 +1421,9 @@ describe('POST /api/orgs', () => {
     })
     expect(res.status).toBe(400)
     await expect(res.json()).resolves.toEqual({
-      error: 'validation_error',
-      issues: expect.arrayContaining([
-        { path: 'login', message: expect.any(String) },
-      ]),
+      code: 'validation_error',
+      message: expect.any(String),
+      issues: expect.arrayContaining([{ path: 'login', message: expect.any(String) }]),
     })
   })
 
@@ -1514,11 +1443,7 @@ describe('POST /api/orgs', () => {
       { json: { login, name: 'My Org' } },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -1550,11 +1475,7 @@ describe('POST /api/orgs', () => {
       { json: { login } },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -1576,17 +1497,14 @@ describe('POST /api/orgs', () => {
       { json: { login: 'dash' } },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
     expect(res.status).toBe(409)
     await expect(res.json()).resolves.toEqual({
-      error: 'login_reserved',
+      code: 'login_reserved',
+      message: expect.any(String),
     })
   })
 
@@ -1599,16 +1517,12 @@ describe('POST /api/orgs', () => {
       { json: { login: other.login } },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
     expect(res.status).toBe(409)
-    await expect(res.json()).resolves.toEqual({ error: 'login_taken' })
+    await expect(res.json()).resolves.toEqual({ code: 'login_taken', message: expect.any(String) })
   })
 
   test('rejects duplicate login', async () => {
@@ -1620,17 +1534,14 @@ describe('POST /api/orgs', () => {
       { json: { login: existing.login } },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
     expect(res.status).toBe(409)
     await expect(res.json()).resolves.toEqual({
-      error: 'login_taken',
+      code: 'login_taken',
+      message: expect.any(String),
     })
   })
 })
@@ -1641,17 +1552,14 @@ describe('GET /api/cli/latest', () => {
   })
 
   test('returns latest version from npm registry', async () => {
-    fetchMock
-      .get('https://registry.npmjs.org')
-      .intercept({ path: '/curl.md' })
-      .reply(
-        200,
-        {
+    server.use(
+      http.get('https://registry.npmjs.org/curl.md', () =>
+        HttpResponse.json({
           'dist-tags': { latest: '0.0.4' },
           time: { '0.0.4': '2025-03-04T00:00:00.000Z' },
-        },
-        { headers: { 'content-type': 'application/json' } },
-      )
+        }),
+      ),
+    )
 
     const res = await client.api.cli.latest.$get({ query: {} })
     assert(res.status === 200, 'expected 200')
@@ -1675,45 +1583,43 @@ describe('GET /api/cli/latest', () => {
   })
 
   test('returns 502 when npm registry is down', async () => {
-    fetchMock
-      .get('https://registry.npmjs.org')
-      .intercept({ path: '/curl.md' })
-      .reply(503, 'Service Unavailable')
+    server.use(
+      http.get(
+        'https://registry.npmjs.org/curl.md',
+        () => new HttpResponse('Service Unavailable', { status: 503 }),
+      ),
+    )
 
     const res = await client.api.cli.latest.$get({ query: {} })
     expect(res.status).toBe(502)
-    await expect(res.json()).resolves.toEqual({ error: 'upstream_error' })
+    await expect(res.json()).resolves.toEqual({
+      code: 'upstream_error',
+      message: expect.any(String),
+    })
   })
 
   test('returns 502 when no latest version in registry', async () => {
-    fetchMock
-      .get('https://registry.npmjs.org')
-      .intercept({ path: '/curl.md' })
-      .reply(
-        200,
-        { 'dist-tags': {} },
-        {
-          headers: { 'content-type': 'application/json' },
-        },
-      )
+    server.use(
+      http.get('https://registry.npmjs.org/curl.md', () => HttpResponse.json({ 'dist-tags': {} })),
+    )
 
     const res = await client.api.cli.latest.$get({ query: {} })
     expect(res.status).toBe(502)
-    await expect(res.json()).resolves.toEqual({ error: 'version_not_found' })
+    await expect(res.json()).resolves.toEqual({
+      code: 'version_not_found',
+      message: expect.any(String),
+    })
   })
 
   test('accepts analytics query params', async () => {
-    fetchMock
-      .get('https://registry.npmjs.org')
-      .intercept({ path: '/curl.md' })
-      .reply(
-        200,
-        {
+    server.use(
+      http.get('https://registry.npmjs.org/curl.md', () =>
+        HttpResponse.json({
           'dist-tags': { latest: '0.0.4' },
           time: { '0.0.4': '2025-03-04T00:00:00.000Z' },
-        },
-        { headers: { 'content-type': 'application/json' } },
-      )
+        }),
+      ),
+    )
 
     const res = await client.api.cli.latest.$get({
       query: {
@@ -1736,10 +1642,9 @@ test('GET /api/:url rejects invalid url with validation_error', async () => {
   })
   expect(res.status).toBe(400)
   await expect(res.json()).resolves.toEqual({
-    error: 'validation_error',
-    issues: expect.arrayContaining([
-      { path: expect.any(String), message: expect.any(String) },
-    ]),
+    code: 'validation_error',
+    message: expect.any(String),
+    issues: expect.arrayContaining([{ path: expect.any(String), message: expect.any(String) }]),
   })
 })
 
@@ -1752,28 +1657,28 @@ test('GET /api/:url returns 403 for invalid x-organization-id', async () => {
     { param: { url: 'example.com' }, query: {} },
     {
       headers: {
-        Cookie: await Cookie.generateSigned(
-          'curl.session',
-          session.id,
-          env.COOKIE_SECRET,
-        ),
+        Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         'x-organization-id': org.id,
       },
     },
   )
   expect(res.status).toBe(403)
   await expect(res.json()).resolves.toEqual({
-    error: 'organization_access_denied',
+    code: 'organization_access_denied',
+    message: expect.any(String),
   })
 })
 
 test('GET /api/:url fetches URL and returns markdown', async () => {
-  fetchMock
-    .get('https://api-test.example.com')
-    .intercept({ path: '/' })
-    .reply(200, '<html><body><h1>Hello</h1><p>World</p></body></html>', {
-      headers: { 'content-type': 'text/html' },
-    })
+  server.use(
+    http.get(
+      'https://api-test.example.com/',
+      () =>
+        new HttpResponse('<html><body><h1>Hello</h1><p>World</p></body></html>', {
+          headers: { 'content-type': 'text/html' },
+        }),
+    ),
+  )
 
   const res = await client.api[':url{.+}'].$get(
     { param: { url: 'api-test.example.com' }, query: {} },
@@ -1787,12 +1692,15 @@ test('GET /api/:url fetches URL and returns markdown', async () => {
 })
 
 test('GET /api/:url returns fetch rate limit headers', async () => {
-  fetchMock
-    .get('https://rl-fetch.example.com')
-    .intercept({ path: '/' })
-    .reply(200, '<html><body><p>ok</p></body></html>', {
-      headers: { 'content-type': 'text/html' },
-    })
+  server.use(
+    http.get(
+      'https://rl-fetch.example.com/',
+      () =>
+        new HttpResponse('<html><body><p>ok</p></body></html>', {
+          headers: { 'content-type': 'text/html' },
+        }),
+    ),
+  )
 
   const res = await client.api[':url{.+}'].$get(
     { param: { url: 'rl-fetch.example.com' }, query: {} },
@@ -1807,22 +1715,21 @@ test('GET /api/:url returns fetch rate limit headers', async () => {
 test('GET /api/:url authenticated accounts get higher fetch limit', async () => {
   const account = await factory.account.insert({})
   const session = await factory.session.insert({ account_id: account.id })
-  fetchMock
-    .get('https://rl-authed-fetch.example.com')
-    .intercept({ path: '/' })
-    .reply(200, '<html><body><p>ok</p></body></html>', {
-      headers: { 'content-type': 'text/html' },
-    })
+  server.use(
+    http.get(
+      'https://rl-authed-fetch.example.com/',
+      () =>
+        new HttpResponse('<html><body><p>ok</p></body></html>', {
+          headers: { 'content-type': 'text/html' },
+        }),
+    ),
+  )
 
   const res = await client.api[':url{.+}'].$get(
     { param: { url: 'rl-authed-fetch.example.com' }, query: {} },
     {
       headers: {
-        Cookie: await Cookie.generateSigned(
-          'curl.session',
-          session.id,
-          env.COOKIE_SECRET,
-        ),
+        Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
       },
     },
   )
@@ -1866,7 +1773,10 @@ test('GET /api/:url returns 429 when fetch limit exceeded', async () => {
   )
   expect(res.status).toBe(429)
   expect(res.headers.get('retry-after')).toBeTruthy()
-  await expect(res.json()).resolves.toEqual({ error: 'rate_limit_exceeded' })
+  await expect(res.json()).resolves.toEqual({
+    code: 'rate_limit_exceeded',
+    message: expect.any(String),
+  })
 })
 
 test('GET /api/:url returns 429 when query limit exceeded', async () => {
@@ -1882,7 +1792,10 @@ test('GET /api/:url returns 429 when query limit exceeded', async () => {
   )
   expect(res.status).toBe(429)
   expect(res.headers.get('retry-after')).toBeTruthy()
-  await expect(res.json()).resolves.toEqual({ error: 'rate_limit_exceeded' })
+  await expect(res.json()).resolves.toEqual({
+    code: 'rate_limit_exceeded',
+    message: expect.any(String),
+  })
 })
 
 test('GET /api/:url authed 429 includes credits message', async () => {
@@ -1902,18 +1815,14 @@ test('GET /api/:url authed 429 includes credits message', async () => {
     { param: { url: 'rl-authed-exceeded.example.com' }, query: {} },
     {
       headers: {
-        Cookie: await Cookie.generateSigned(
-          'curl.session',
-          session.id,
-          env.COOKIE_SECRET,
-        ),
+        Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
       },
     },
   )
   expect(res.status).toBe(429)
   const json = await res.json()
   expect(json).toEqual({
-    error: 'rate_limit_exceeded',
+    code: 'rate_limit_exceeded',
     message: 'Add credits to remove rate limits',
   })
 })
@@ -1935,22 +1844,21 @@ test('GET /api/:url paid user skips rate limits', async () => {
     { expirationTtl: 3600 },
   )
 
-  fetchMock
-    .get('https://rl-paid.example.com')
-    .intercept({ path: '/' })
-    .reply(200, '<html><body><p>ok</p></body></html>', {
-      headers: { 'content-type': 'text/html' },
-    })
+  server.use(
+    http.get(
+      'https://rl-paid.example.com/',
+      () =>
+        new HttpResponse('<html><body><p>ok</p></body></html>', {
+          headers: { 'content-type': 'text/html' },
+        }),
+    ),
+  )
 
   const res = await client.api[':url{.+}'].$get(
     { param: { url: 'rl-paid.example.com' }, query: {} },
     {
       headers: {
-        Cookie: await Cookie.generateSigned(
-          'curl.session',
-          session.id,
-          env.COOKIE_SECRET,
-        ),
+        Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
       },
     },
   )
@@ -1967,22 +1875,21 @@ test('GET /api/:url zero balance user gets authed rate limits', async () => {
   // Seed balance cache with 0
   await env.KV.put(`balance:${account.id}`, '0')
 
-  fetchMock
-    .get('https://rl-zero-bal.example.com')
-    .intercept({ path: '/' })
-    .reply(200, '<html><body><p>ok</p></body></html>', {
-      headers: { 'content-type': 'text/html' },
-    })
+  server.use(
+    http.get(
+      'https://rl-zero-bal.example.com/',
+      () =>
+        new HttpResponse('<html><body><p>ok</p></body></html>', {
+          headers: { 'content-type': 'text/html' },
+        }),
+    ),
+  )
 
   const res = await client.api[':url{.+}'].$get(
     { param: { url: 'rl-zero-bal.example.com' }, query: {} },
     {
       headers: {
-        Cookie: await Cookie.generateSigned(
-          'curl.session',
-          session.id,
-          env.COOKIE_SECRET,
-        ),
+        Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
       },
     },
   )
@@ -1997,22 +1904,21 @@ test('GET /api/:url paid user gets x-credits-remaining header', async () => {
 
   await env.KV.put(`balance:${account.id}`, '500')
 
-  fetchMock
-    .get('https://rl-credits.example.com')
-    .intercept({ path: '/' })
-    .reply(200, '<html><body><p>ok</p></body></html>', {
-      headers: { 'content-type': 'text/html' },
-    })
+  server.use(
+    http.get(
+      'https://rl-credits.example.com/',
+      () =>
+        new HttpResponse('<html><body><p>ok</p></body></html>', {
+          headers: { 'content-type': 'text/html' },
+        }),
+    ),
+  )
 
   const res = await client.api[':url{.+}'].$get(
     { param: { url: 'rl-credits.example.com' }, query: {} },
     {
       headers: {
-        Cookie: await Cookie.generateSigned(
-          'curl.session',
-          session.id,
-          env.COOKIE_SECRET,
-        ),
+        Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
       },
     },
   )
@@ -2042,11 +1948,7 @@ test('GET /api/:url query request cost scales with input size', async () => {
     { param: { url: 'cost-query.example.com' }, query: { q: 'test' } },
     {
       headers: {
-        Cookie: await Cookie.generateSigned(
-          'curl.session',
-          session.id,
-          env.COOKIE_SECRET,
-        ),
+        Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
       },
     },
   )
@@ -2166,11 +2068,7 @@ describe('POST /api/invites/:token/accept', () => {
       { param: { token: invite.token } },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -2236,11 +2134,7 @@ describe('POST /api/invites/:token/accept', () => {
       { param: { token: invite.token } },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -2268,11 +2162,7 @@ describe('POST /api/invites/:token/accept', () => {
       { param: { token: invite.token } },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -2301,15 +2191,53 @@ describe('POST /api/invites/:token/accept', () => {
       { param: { token: invite.token } },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
     expect(res.status).toBe(404)
+  })
+
+  test('does not exceed max_uses under concurrent accepts', async () => {
+    const owner = await factory.account.insert({})
+    const org = await factory.organization.insert({})
+    await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: owner.id,
+      role: 'owner',
+    })
+    const invite = await factory.organization_invite.insert({
+      organization_id: org.id,
+      created_by: owner.id,
+      max_uses: 2,
+    })
+
+    const joiners = await factory.account.insert({}, {}, {}, {})
+    const sessions = await factory.session.insert(...joiners.map((j) => ({ account_id: j.id })))
+
+    const results = await Promise.all(
+      sessions.map(async (session) => {
+        const res = await client.api.invites[':token'].accept.$post(
+          { param: { token: invite.token } },
+          {
+            headers: {
+              Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
+            },
+          },
+        )
+        return res.status
+      }),
+    )
+
+    const successes = results.filter((s) => s === 200)
+    expect(successes.length).toBeLessThanOrEqual(2)
+
+    const updated = await db
+      .selectFrom('organization_invite')
+      .where('id', '=', invite.id)
+      .select('use_count')
+      .executeTakeFirstOrThrow()
+    expect(updated.use_count).toBeLessThanOrEqual(2)
   })
 
   test('returns 409 when already a member', async () => {
@@ -2337,16 +2265,15 @@ describe('POST /api/invites/:token/accept', () => {
       { param: { token: invite.token } },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
     expect(res.status).toBe(409)
-    await expect(res.json()).resolves.toEqual({ error: 'already_member' })
+    await expect(res.json()).resolves.toEqual({
+      code: 'already_member',
+      message: expect.any(String),
+    })
 
     const updated = await db
       .selectFrom('organization_invite')
@@ -2372,11 +2299,7 @@ describe('POST /api/orgs/:id/invites', () => {
       { param: { id: org.id }, json: {} },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -2413,11 +2336,28 @@ describe('POST /api/orgs/:id/invites', () => {
       { param: { id: org.id }, json: {} },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
+        },
+      },
+    )
+    expect(res.status).toBe(403)
+  })
+
+  test('returns 403 when admin creates admin invite', async () => {
+    const account = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: account.id })
+    const org = await factory.organization.insert({})
+    await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: account.id,
+      role: 'admin',
+    })
+
+    const res = await client.api.orgs[':id'].invites.$post(
+      { param: { id: org.id }, json: { role: 'admin' } },
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -2441,11 +2381,7 @@ describe('POST /api/orgs/:id/invites', () => {
       },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -2488,11 +2424,7 @@ describe('GET /api/orgs/:id/invites', () => {
       { param: { id: org.id } },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -2525,11 +2457,7 @@ describe('GET /api/orgs/:id/invites', () => {
       { param: { id: org.id } },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -2553,11 +2481,7 @@ describe('GET /api/orgs/:id/invites', () => {
       { param: { id: org.id } },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -2592,11 +2516,7 @@ describe('DELETE /api/orgs/:id/invites/:inviteId', () => {
       { param: { id: org.id, inviteId: invite.id } },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -2625,11 +2545,7 @@ describe('DELETE /api/orgs/:id/invites/:inviteId', () => {
       { param: { id: org.id, inviteId: 'nonexistent' } },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -2660,11 +2576,7 @@ describe('DELETE /api/orgs/:id/invites/:inviteId', () => {
       { param: { id: org.id, inviteId: invite.id } },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -2693,11 +2605,7 @@ describe('GET /api/orgs/:id/members', () => {
       { param: { id: org.id } },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -2733,11 +2641,7 @@ describe('GET /api/orgs/:id/members', () => {
       { param: { id: org.id } },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -2769,11 +2673,7 @@ describe('GET /api/orgs/:id/members', () => {
       { param: { id: org.id } },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -2789,11 +2689,7 @@ describe('GET /api/orgs/:id/members', () => {
       { param: { id: org.id } },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -2817,11 +2713,7 @@ describe('POST /api/orgs/:id/members', () => {
       { param: { id: org.id }, json: { login: target.login, role: 'member' } },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -2855,11 +2747,7 @@ describe('POST /api/orgs/:id/members', () => {
       { param: { id: org.id }, json: { login: target.login, role: 'member' } },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -2884,11 +2772,7 @@ describe('POST /api/orgs/:id/members', () => {
       { param: { id: org.id }, json: { login: target.login, role: 'admin' } },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -2910,11 +2794,7 @@ describe('POST /api/orgs/:id/members', () => {
       { param: { id: org.id }, json: { login: target.login, role: 'admin' } },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -2949,11 +2829,7 @@ describe('POST /api/orgs/:id/members', () => {
       { param: { id: org.id }, json: { login: target.login, role: 'member' } },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -2977,11 +2853,7 @@ describe('POST /api/orgs/:id/members', () => {
       },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -3008,11 +2880,7 @@ describe('POST /api/orgs/:id/members', () => {
       { param: { id: org.id }, json: { login: target.login, role: 'member' } },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -3044,11 +2912,7 @@ describe('PATCH /api/orgs/:id/members/:memberId', () => {
       },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -3086,11 +2950,7 @@ describe('PATCH /api/orgs/:id/members/:memberId', () => {
       },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -3120,11 +2980,7 @@ describe('PATCH /api/orgs/:id/members/:memberId', () => {
       },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -3170,11 +3026,7 @@ describe('PATCH /api/orgs/:id/members/:memberId', () => {
       },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -3198,11 +3050,7 @@ describe('PATCH /api/orgs/:id/members/:memberId', () => {
       },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -3232,16 +3080,15 @@ describe('PATCH /api/orgs/:id/members/:memberId', () => {
       },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
     expect(res.status).toBe(403)
-    await expect(res.json()).resolves.toEqual({ error: 'cannot_change_owner' })
+    await expect(res.json()).resolves.toEqual({
+      code: 'cannot_change_owner',
+      message: expect.any(String),
+    })
   })
 
   test('returns 404 when member not found', async () => {
@@ -3261,11 +3108,7 @@ describe('PATCH /api/orgs/:id/members/:memberId', () => {
       },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -3294,11 +3137,7 @@ describe('DELETE /api/orgs/:id/members/:memberId', () => {
       { param: { id: org.id, memberId: targetMember.id } },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -3332,11 +3171,7 @@ describe('DELETE /api/orgs/:id/members/:memberId', () => {
       { param: { id: org.id, memberId: targetMember.id } },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -3363,11 +3198,7 @@ describe('DELETE /api/orgs/:id/members/:memberId', () => {
       { param: { id: org.id, memberId: otherAdminMember.id } },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -3408,11 +3239,7 @@ describe('DELETE /api/orgs/:id/members/:memberId', () => {
       { param: { id: org.id, memberId: targetMember.id } },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -3433,16 +3260,15 @@ describe('DELETE /api/orgs/:id/members/:memberId', () => {
       { param: { id: org.id, memberId: ownerMember.id } },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
     expect(res.status).toBe(403)
-    await expect(res.json()).resolves.toEqual({ error: 'cannot_remove_self' })
+    await expect(res.json()).resolves.toEqual({
+      code: 'cannot_remove_self',
+      message: expect.any(String),
+    })
   })
 
   test('returns 403 when removing owner', async () => {
@@ -3465,16 +3291,15 @@ describe('DELETE /api/orgs/:id/members/:memberId', () => {
       { param: { id: org.id, memberId: ownerMember.id } },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
     expect(res.status).toBe(403)
-    await expect(res.json()).resolves.toEqual({ error: 'cannot_remove_owner' })
+    await expect(res.json()).resolves.toEqual({
+      code: 'cannot_remove_owner',
+      message: expect.any(String),
+    })
   })
 
   test('returns 404 when member not found', async () => {
@@ -3491,11 +3316,7 @@ describe('DELETE /api/orgs/:id/members/:memberId', () => {
       { param: { id: org.id, memberId: 'nonexistent' } },
       {
         headers: {
-          Cookie: await Cookie.generateSigned(
-            'curl.session',
-            session.id,
-            env.COOKIE_SECRET,
-          ),
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
         },
       },
     )
@@ -3515,7 +3336,10 @@ describe('POST /api/stripe/webhook', () => {
       env,
     )
     expect(res.status).toBe(400)
-    await expect(res.json()).resolves.toEqual({ error: 'missing_signature' })
+    await expect(res.json()).resolves.toEqual({
+      code: 'missing_signature',
+      message: expect.any(String),
+    })
   })
 
   test('returns 400 when signature invalid', async () => {
@@ -3532,7 +3356,10 @@ describe('POST /api/stripe/webhook', () => {
       env,
     )
     expect(res.status).toBe(400)
-    await expect(res.json()).resolves.toEqual({ error: 'invalid_signature' })
+    await expect(res.json()).resolves.toEqual({
+      code: 'invalid_signature',
+      message: expect.any(String),
+    })
   })
 
   test('accepts valid signature and queues event', async () => {
@@ -3562,9 +3389,7 @@ describe('POST /api/stripe/webhook', () => {
       key,
       new TextEncoder().encode(`${timestamp}.${payload}`),
     )
-    const hex = [...new Uint8Array(sig)]
-      .map((b) => b.toString(16).padStart(2, '0'))
-      .join('')
+    const hex = [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, '0')).join('')
     const header = `t=${timestamp},v1=${hex}`
 
     const res = await api.request(
@@ -3581,5 +3406,51 @@ describe('POST /api/stripe/webhook', () => {
     )
     expect(res.status).toBe(200)
     await expect(res.json()).resolves.toEqual({ received: true })
+  })
+})
+
+describe('POST /api/sentry/tunnel', () => {
+  test('returns 400 for invalid envelope', async () => {
+    const res = await api.request('/api/sentry/tunnel', { method: 'POST', body: 'no-newline' }, env)
+    expect(res.status).toBe(400)
+    await expect(res.json()).resolves.toEqual({
+      code: 'invalid_envelope',
+      message: expect.any(String),
+    })
+  })
+
+  test('forwards envelope to sentry', async () => {
+    server.use(
+      http.post('https://o123.ingest.us.sentry.io/api/456/envelope/', () =>
+        HttpResponse.json({ id: 'ok' }),
+      ),
+    )
+
+    const res = await api.request(
+      '/api/sentry/tunnel',
+      { method: 'POST', body: 'header\npayload' },
+      env,
+    )
+    expect(res.status).toBe(200)
+    await expect(res.json()).resolves.toEqual({ ok: true })
+  })
+
+  test('returns 502 on upstream error', async () => {
+    server.use(
+      http.post('https://o123.ingest.us.sentry.io/api/456/envelope/', () =>
+        HttpResponse.json({ error: 'rate_limited' }, { status: 429 }),
+      ),
+    )
+
+    const res = await api.request(
+      '/api/sentry/tunnel',
+      { method: 'POST', body: 'header\npayload' },
+      env,
+    )
+    expect(res.status).toBe(502)
+    await expect(res.json()).resolves.toEqual({
+      code: 'sentry_upstream_error',
+      message: expect.any(String),
+    })
   })
 })

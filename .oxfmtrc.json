@@ -1,0 +1,19 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "singleQuote": true,
+  "semi": false,
+  "sortImports": {
+    "internalPattern": ["#*"],
+    "newlinesBetween": false
+  },
+  "sortTailwindcss": {},
+  "sortPackageJson": false,
+  "ignorePatterns": [
+    "**/dist",
+    "src/routeTree.gen.ts",
+    "src/auto-imports.d.ts",
+    "**/worker-configuration.d.ts",
+    "**/__snapshots__",
+    "**/__fixtures__"
+  ]
+}

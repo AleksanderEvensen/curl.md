@@ -1,5 +1,5 @@
 import type { Insertable, Kysely, Selectable } from 'kysely'
-import type { DB } from '#lib/db.gen.ts'
+import type { DB } from '#db/types.gen.ts'
 import * as Nanoid from '#lib/nanoid.ts'
 
 export function createFactory(db: Kysely<DB>) {
@@ -16,11 +16,8 @@ export function createFactory(db: Kysely<DB>) {
         const values = this.attrs(...args)
         const rows = Array.isArray(values) ? values : [values]
 
-        // biome-ignore lint/suspicious/noExplicitAny: dynamic table name
-        const result = await (db.insertInto(table) as any)
-          .values(rows)
-          .returningAll()
-          .execute()
+        // oxlint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic table name
+        const result = await (db.insertInto(table) as any).values(rows).returningAll().execute()
 
         return rows.length === 1 ? result[0] : result
       },
@@ -34,7 +31,7 @@ export function createFactory(db: Kysely<DB>) {
 }
 
 const defaultConfig: Partial<{
-  [K in keyof DB]: () => Partial<Insertable<DB[K]>>
+  [table in keyof DB]: () => Partial<Insertable<DB[table]>>
 }> = {
   account() {
     const id = Nanoid.generate()
@@ -65,7 +62,7 @@ const defaultConfig: Partial<{
   api_key() {
     return {
       key_hash: Nanoid.generate(),
-      key_prefix: 'curl_',
+      key_prefix: 'curlmd_',
       name: `Key ${Nanoid.generate()}`,
     }
   },
@@ -83,31 +80,26 @@ const defaultConfig: Partial<{
 }
 
 type Factory = {
-  [K in keyof DB]: {
-    attrs: <const V extends readonly Record<string, unknown>[]>(
-      ...args: V & AttrsValidation<K, V>
-    ) => V['length'] extends 1 ? Selectable<DB[K]> : Selectable<DB[K]>[]
-    insert: <const V extends readonly Record<string, unknown>[]>(
-      ...args: V & AttrsValidation<K, V>
-    ) => Promise<
-      V['length'] extends 1 ? Selectable<DB[K]> : Selectable<DB[K]>[]
-    >
+  [table in keyof DB]: {
+    attrs: <const values extends readonly Record<string, unknown>[]>(
+      ...args: values & AttrsValidation<table, values>
+    ) => values['length'] extends 1 ? Selectable<DB[table]> : Selectable<DB[table]>[]
+    insert: <const values extends readonly Record<string, unknown>[]>(
+      ...args: values & AttrsValidation<table, values>
+    ) => Promise<values['length'] extends 1 ? Selectable<DB[table]> : Selectable<DB[table]>[]>
   }
 }
 
-type AttrsValidation<
-  K extends keyof DB,
-  V extends readonly Record<string, unknown>[],
-> = {
-  [I in keyof V]: Partial<Insertable<DB[K]>> & RequiredForeignKeys<DB[K]>
+type AttrsValidation<table extends keyof DB, values extends readonly Record<string, unknown>[]> = {
+  [index in keyof values]: Partial<Insertable<DB[table]>> & RequiredForeignKeys<DB[table]>
 }
 
-type RequiredForeignKeys<T> = {
-  [K in keyof T as K extends `${string}_id`
-    ? null extends T[K]
+type RequiredForeignKeys<row> = {
+  [key in keyof row as key extends `${string}_id`
+    ? null extends row[key]
       ? never
-      : K extends 'id'
+      : key extends 'id' | 'provider_account_id'
         ? never
-        : K
-    : never]-?: T[K]
+        : key
+    : never]-?: row[key]
 }

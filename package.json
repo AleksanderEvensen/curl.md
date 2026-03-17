@@ -3,15 +3,14 @@
   "private": true,
   "type": "module",
   "imports": {
-    "#*": "./src/*"
+    "#*": "./src/*",
+    "#db/*": "./db/*",
+    "#test/*": "./test/*"
   },
   "scripts": {
     "build": "vite build",
     "build:cli": "pnpm --filter curl.md build",
-    "pkg:format": "node --experimental-strip-types scripts/formatPackageJson.ts",
-    "pkg:publish": "pnpm pkg:format && pnpm changeset publish && pnpm pkg:restore",
-    "pkg:restore": "node --experimental-strip-types scripts/restorePackageJson.ts",
-    "check": "biome check .",
+    "check": "oxlint && oxfmt --check",
     "check:deps": "knip -c config/knip.json",
     "check:types": "tsgo -b && pnpm -r check:types",
     "db": "docker exec -it curl-db psql -U postgres -d curl_dev",
@@ -23,15 +22,16 @@
     "deps": "pnpx taze -r --no-ignore-other-workspaces --ignore-paths node_modules",
     "deps:ci": "pnpx actions-up --dir .github",
     "dev": "vite dev --port 3000",
+    "gen:fixtures:md:rules": "node --experimental-strip-types scripts/updateMdRulesFixtures.ts",
     "gen:types": "cp -n .env.example .env 2>/dev/null; wrangler types src/worker-configuration.d.ts && node --experimental-strip-types scripts/stripGlobalProps.ts && pnpm --filter curl.md gen:types",
-    "md": "CURLMD_BASE_URL=https://curl.local NODE_TLS_REJECT_UNAUTHORIZED=0 node --experimental-strip-types --no-warnings pkg/src/cli/bin.ts",
+    "md": "CURLMD_BASE_URL=https://curl.local NODE_TLS_REJECT_UNAUTHORIZED=0 node --experimental-strip-types --no-warnings cli/src/bin.ts",
     "preinstall": "pnpx only-allow pnpm",
     "prepare": "pnpm gen:types && simple-git-hooks",
     "preview": "pnpm run build && vite preview",
     "test": "vitest --config test/vitest.config.ts"
   },
   "dependencies": {
-    "@cloudflare/vite-plugin": "^1.25.4",
+    "@cloudflare/vite-plugin": "^1.29.0",
     "@fontsource-variable/geist-mono": "^5.2.7",
     "@hono/zod-validator": "^0.7.6",
     "@octokit/core": "^7.0.6",
@@ -39,59 +39,66 @@
     "@sentry/react": "^10.42.0",
     "@stripe/react-stripe-js": "^5.6.1",
     "@stripe/stripe-js": "^8.9.0",
+    "@takumi-rs/image-response": "^0.72.0",
+    "@takumi-rs/wasm": "^0.72.0",
     "@tanstack/react-query": "^5.90.21",
     "@tanstack/react-router": "^1.132.0",
     "@tanstack/react-start": "^1.132.0",
     "@tanstack/router-plugin": "^1.132.0",
-    "curl.md": "workspace:*",
-    "hono": "^4.12.2",
+    "hono": "catalog:",
     "kysely": "^0.28.11",
     "kysely-postgres-js": "^3.0.0",
     "nanoid": "^5.1.6",
     "postgres": "^3.4.8",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "rehype-parse": "^9.0.1",
+    "rehype-remark": "^10.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-stringify": "^11.0.0",
     "stripe": "^20.4.0",
     "tokenx": "^1.3.0",
-    "workers-og": "^0.0.27",
+    "unified": "^11.0.5",
+    "vfile": "^6.0.3",
     "yaml": "^2.8.2",
-    "zod": "catalog:"
+    "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.3.13",
-    "@changesets/cli": "^2.29.8",
-    "@cloudflare/vitest-pool-workers": "~0.8.71",
+    "@cloudflare/vitest-pool-workers": "~0.13.0",
     "@iconify/json": "^2.2.344",
     "@svgr/core": "^8.1.0",
     "@svgr/plugin-jsx": "^8.1.0",
-    "@svitejs/changesets-changelog-github-compact": "^1.2.0",
-    "@tailwindcss/vite": "^4.1.18",
-    "@testcontainers/postgresql": "^11.12.0",
+    "@tailwindcss/vite": "insiders",
+    "@testcontainers/postgresql": "^11.13.0",
     "@types/hast": "^3.0.4",
     "@types/node": "^25.2.3",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@typescript/native-preview": "7.0.0-dev.20260216.1",
-    "@vitejs/plugin-react": "^5.0.4",
-    "bun": "^1.3.10",
+    "@vitejs/plugin-react": "^5.2.0",
     "knip": "^5.85.0",
     "kysely-ctl": "~0.20.0",
+    "lint-staged": "^16.1.0",
+    "msw": "^2.7.0",
+    "oxfmt": "^0.40.0",
+    "oxlint": "1.31.0",
     "simple-git-hooks": "^2.13.1",
-    "tailwindcss": "^4.1.18",
-    "testcontainers": "^11.12.0",
+    "tailwindcss": "insiders",
+    "testcontainers": "^11.13.0",
     "tiny-jsonc": "^1.0.2",
     "unplugin-auto-import": "^21.0.0",
     "unplugin-icons": "^23.0.1",
-    "vite": "^7.1.7",
-    "vitest": "~3.2.4",
-    "wrangler": "^4.68.0"
+    "vite": "^8.0.0",
+    "vitest": "^4.1.0",
+    "wrangler": "^4.74.0"
   },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "bun"
-    ]
+  "simple-git-hooks": {
+    "pre-commit": "pnpm exec lint-staged"
   },
-  "packageManager": "pnpm@10.22.0",
+  "lint-staged": {
+    "*": "oxfmt --no-error-on-unmatched-pattern",
+    "*.{js,jsx,ts,tsx,mjs,cjs}": "oxlint"
+  },
   "devEngines": {
     "runtime": {
       "name": "node",
@@ -99,7 +106,5 @@
       "onFail": "download"
     }
   },
-  "simple-git-hooks": {
-    "pre-commit": "pnpm biome check --write --unsafe --staged --no-errors-on-unmatched && git update-index --again"
-  }
+  "packageManager": "pnpm@10.22.0"
 }

@@ -1,6 +1,6 @@
 import { env } from 'cloudflare:workers'
 import type { Kysely } from 'kysely'
-import type { DB } from '#lib/db.gen.ts'
+import type { DB } from '#db/types.gen.ts'
 
 export async function processRequestMessage(
   message: Message<processRequestMessage.Body>,
@@ -42,9 +42,7 @@ export async function processRequestMessage(
       .executeTakeFirst()
     if (existing) return
 
-    const table = body.organization_id
-      ? ('organization' as const)
-      : ('account' as const)
+    const table = body.organization_id ? ('organization' as const) : ('account' as const)
     await db.transaction().execute(async (tx) => {
       const updated = await tx
         .updateTable(table)
@@ -77,10 +75,7 @@ export async function processRequestMessage(
       .where('id', '=', billingEntity)
       .select('balance_mills')
       .executeTakeFirstOrThrow()
-    await env.KV.put(
-      `balance:${billingEntity}`,
-      String(newBalance.balance_mills),
-    )
+    await env.KV.put(`balance:${billingEntity}`, String(newBalance.balance_mills))
   }
 }
 

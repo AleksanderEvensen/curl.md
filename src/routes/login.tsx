@@ -1,17 +1,17 @@
-import { env } from 'cloudflare:workers'
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { getRequest } from '@tanstack/react-start/server'
+import { env } from 'cloudflare:workers'
 import { z } from 'zod'
-import { getDb } from '#lib/db.ts'
-import * as Session from '#lib/session.ts'
+import { createClient } from '#db/client.ts'
+import * as Cookie from '#lib/cookie.ts'
 
 export const Route = createFileRoute('/login')({
-  head: () => ({
-    meta: [{ title: `Sign In - ${__HOST__}` }],
-  }),
+  head() {
+    return { meta: [{ title: `Sign In - ${__HOST__}` }] }
+  },
   validateSearch: z.object({ next: z.string().optional() }),
-  beforeLoad: async () => {
+  async beforeLoad() {
     const login = await getSessionLogin()
     if (login) throw redirect({ to: '/~dash/$login', params: { login } })
   },
@@ -28,9 +28,9 @@ function Login() {
       : '/api/auth/github'
   return (
     <div className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center px-6">
-      <h1 className="font-bold text-lg">Sign in to {__HOST__}</h1>
+      <h1 className="text-lg font-bold">Sign in to {__HOST__}</h1>
       <a
-        className="mt-6 flex items-center gap-2 bg-gray12 px-4 py-2 text-gray1 hover:bg-gray11"
+        className="bg-gray12 text-gray1 hover:bg-gray11 mt-6 flex items-center gap-2 px-4 py-2"
         href={href}
       >
         <IconOcticonMarkGithub16 className="size-5" />
@@ -42,8 +42,22 @@ function Login() {
 
 const getSessionLogin = createServerFn({ method: 'GET' }).handler(async () => {
   const request = getRequest()
-  const db = getDb(env.DB.connectionString)
-  const accountId = await Session.getAccountId(request, db, env.COOKIE_SECRET)
+  const db = createClient(env.DB.connectionString)
+  const sessionId = await Cookie.parseSigned(
+    request.headers.get('cookie') ?? '',
+    env.COOKIE_SECRET,
+    'curl.session',
+  )
+  const accountId = sessionId
+    ? ((
+        await db
+          .selectFrom('session')
+          .where('id', '=', sessionId)
+          .where('expires_at', '>', new Date())
+          .select('account_id')
+          .executeTakeFirst()
+      )?.account_id ?? null)
+    : null
   if (!accountId) return null
 
   const account = await db

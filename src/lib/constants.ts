@@ -1,5 +1,7 @@
 export const packageName = 'curl.md'
 
+export const creditAmounts = ['500', '1000', '2000', '5000'] as const
+
 // https://developers.cloudflare.com/workers-ai/platform/pricing/
 export const modes = {
   rush: {
@@ -14,10 +16,6 @@ export const modes = {
   },
 } as const
 
-export type Mode = keyof typeof modes
-
-export const creditAmounts = ['500', '1000', '2000', '5000'] as const
-
 export const pricing = {
   fetchCostMills: 1,
   queryBaseCostMills: 1,
@@ -30,6 +28,10 @@ export const attribution = {
 }
 
 export const sentinelValue = 'NONE'
+
+export const routes = ['', 'auth', 'credits', 'invite', 'login', 'playground'] as const
+export const knownRoutes: Set<string> = new Set(routes)
+
 export const systemPrompt = `You extract relevant sections from web pages. Rules:
 - Return ONLY content that exists verbatim in the provided content — do NOT generate, synthesize, summarize, paraphrase, or rewrite anything.
 - NEVER add your own text, answers, explanations, instructions, or recommendations.

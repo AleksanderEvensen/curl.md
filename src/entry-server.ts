@@ -2,16 +2,12 @@ import * as Sentry from '@sentry/cloudflare'
 import serverEntry from '@tanstack/react-start/server-entry'
 import { z } from 'zod'
 import { api } from '#api.ts'
-import { getDb } from '#lib/db.ts'
-import { isApiPath } from '#lib/routes.ts'
+import { cleanupExpired } from '#crons/cleanup.ts'
+import { createClient } from '#db/client.ts'
 import { processRequestMessage } from '#queues/request.ts'
 import { processStripeWebhookMessage } from '#queues/stripe-webhook.ts'
-import { cleanupExpired } from '#tasks/cleanup.ts'
 
-export default Sentry.withSentry<
-  Env,
-  processRequestMessage.Body | processStripeWebhookMessage.Body
->(
+export default Sentry.withSentry<Env, QueueHandlerMessage>(
   (env) => ({
     dsn: env.SENTRY_DSN,
     tracesSampleRate: 0.01,
@@ -21,10 +17,10 @@ export default Sentry.withSentry<
     fetch(request, env, ctx) {
       const url = new URL(request.url)
       // Route API requests to the Hono API handler
-      if (url.pathname.startsWith('/api/'))
-        return api.fetch(new Request(url, request), env, ctx)
+      if (url.pathname.startsWith('/api/')) return api.fetch(new Request(url, request), env, ctx)
       // Route dot-segment paths (e.g. curl.md/example.com) to the API handler under /api prefix
-      if (isApiPath(url.pathname)) {
+      const firstSegment = url.pathname.split('/')[1] ?? ''
+      if (firstSegment.includes('.') || /^https?:$/.test(firstSegment)) {
         // Redirect protocol-prefixed paths (e.g. /https://example.com/path → /example.com/path)
         const protocolMatch = url.pathname.match(/^\/(https?:\/\/)(.+)/)
         if (protocolMatch) {
@@ -43,13 +39,11 @@ export default Sentry.withSentry<
         '/.well-known/skills/curl-md': '/.well-known/skills/curl-md/SKILL.md',
       } as const
       if (path in staticAssets)
-        return env.ASSETS.fetch(
-          new URL(staticAssets[path as keyof typeof staticAssets], url),
-        )
+        return env.ASSETS.fetch(new URL(staticAssets[path as keyof typeof staticAssets], url))
       // Fall through to TanStack Start SSR handler for all other routes (app pages)
       return serverEntry.fetch(request, { context: { ctx, env, request } })
     },
-    queue: async (batch, env) => {
+    async queue(batch, env) {
       if (batch.queue.endsWith('-dlq')) {
         for (const message of batch.messages) {
           const { ack: _, retry: __, ...rest } = message
@@ -66,17 +60,14 @@ export default Sentry.withSentry<
         return batch.queue
       })()
       const queue = z.parse(
-        z.enum([
-          processRequestMessage.queueName,
-          processStripeWebhookMessage.queueName,
-        ]),
+        z.enum([processRequestMessage.queueName, processStripeWebhookMessage.queueName]),
         queueName,
       )
       const handler = {
         [processRequestMessage.queueName]: processRequestMessage,
         [processStripeWebhookMessage.queueName]: processStripeWebhookMessage,
       }[queue]
-      const db = getDb(env.DB.connectionString)
+      const db = createClient(env.DB.connectionString)
       for (const message of batch.messages) {
         try {
           await handler(message as never, db)
@@ -88,6 +79,8 @@ export default Sentry.withSentry<
       }
     },
     scheduled(controller, env, ctx) {
+      // TODO: cron union type gen
+      // https://github.com/cloudflare/workers-sdk/pull/12740
       const crons = {
         '0 * * * *': cleanupExpired,
       } as const
@@ -96,6 +89,8 @@ export default Sentry.withSentry<
     },
   },
 )
+
+type QueueHandlerMessage = processRequestMessage.Body | processStripeWebhookMessage.Body
 
 declare module '@tanstack/react-start' {
   interface Register {
