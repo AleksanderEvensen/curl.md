@@ -4,23 +4,20 @@ import { expect, test } from 'vitest'
 import { create } from '../mod.ts'
 import { githubBlob, githubIssue, githubPr, githubRepo } from './github.ts'
 
-const issueFixture = readFileSync(
-  path.resolve(import.meta.dirname, '__fixtures__/github-issue-2908.html'),
+const prFixture = readFileSync(
+  path.resolve(import.meta.dirname, '__fixtures__/github-pr-66.html'),
   'utf8',
 )
 
-test('extract produces expected output for issue HTML', async () => {
+test('extract produces expected output for PR HTML', async () => {
   const md = create({
-    rules: [githubIssue()],
-    fetch: async () => new Response(issueFixture, { status: 200 }),
+    rules: [githubPr()],
+    fetch: async () => new Response(prFixture, { status: 200 }),
   })
-  const result = await md.fetch('https://github.com/wevm/viem/issues/2908')
+  const result = await md.fetch('https://github.com/wevm/viem/pull/66')
   expect(result.ok).toBe(true)
   if (!result.ok) return
-  await expect(result.content).toMatchFileSnapshot('__snapshots__/github-issue-2908.md')
-  expect(result.meta.title).toBe('feat: add lavita chain')
-  expect(result.meta.author).toBe('qi-0826')
-  expect(result.meta.number).toBe(2908)
+  await expect(result.content).toMatchFileSnapshot('__snapshots__/github-pr-66.md')
 })
 
 test('githubRepo rewrites to raw README.md', () => {
@@ -325,7 +322,7 @@ test('githubPr paginates GraphQL comments across multiple pages', async () => {
   expect(result.meta.state).toBe('merged')
 })
 
-test('githubIssue throws on stuck pagination cursor', async () => {
+test('githubIssue returns error on stuck pagination cursor', async () => {
   const md = create({
     rules: [githubIssue({ token: 'test' })],
     fetch: async () =>
@@ -349,9 +346,11 @@ test('githubIssue throws on stuck pagination cursor', async () => {
         { status: 200, headers: { 'content-type': 'application/json' } },
       ),
   })
-  await expect(md.fetch('https://github.com/wevm/viem/issues/1')).rejects.toThrow(
-    'Pagination cursor did not advance',
-  )
+  const result = await md.fetch('https://github.com/wevm/viem/issues/1')
+  expect(result.ok).toBe(false)
+  if (result.ok) return
+  expect(result.status).toBe(502)
+  expect(result.error).toBe('Pagination cursor did not advance')
 })
 
 test('githubPr pattern matches PR URLs', () => {

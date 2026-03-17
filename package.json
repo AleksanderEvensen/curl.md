@@ -12,7 +12,7 @@
     "build:cli": "pnpm --filter curl.md build",
     "changeset:publish": "cd cli && pnpm pkg:publish",
     "changeset:version": "cd cli && pnpm changeset version",
-    "check": "oxlint && oxfmt --check",
+    "check": "oxlint && oxfmt",
     "check:deps": "knip -c config/knip.json",
     "check:types": "tsgo -b && pnpm -r check:types",
     "db": "docker exec -it curl-db psql -U postgres -d curl_dev",
@@ -30,8 +30,7 @@
     "preinstall": "pnpx only-allow pnpm",
     "prepare": "pnpm gen:types && simple-git-hooks",
     "preview": "pnpm run build && vite preview",
-    "test": "vitest --config test/vitest.config.ts --project app --project cli --project workers",
-    "test:smoke": "vitest --config test/vitest.config.ts --project smoke"
+    "test": "vitest --config test/vitest.config.ts"
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.29.0",

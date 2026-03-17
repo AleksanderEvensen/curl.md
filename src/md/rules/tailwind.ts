@@ -4,6 +4,14 @@ import { defineRule } from '../mod.ts'
 export const tailwind = defineRule({
   key: 'tailwind',
   patterns: ['tailwindcss.com'],
+  checks: [
+    {
+      url: 'https://tailwindcss.com/docs/padding',
+      title: 'padding',
+      contains: ['padding'],
+      minLength: 500,
+    },
+  ],
   async extract(response) {
     let html = await response.text()
 

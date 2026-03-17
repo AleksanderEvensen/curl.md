@@ -39,24 +39,21 @@ export function create(options: create.Options = {}): create.ReturnType {
       } satisfies FetchContext
 
       let response: Response
-      if (rule?.fetch) response = await rule.fetch(rewrittenUrl, requestInit, context)
-      else if (options.transport) {
-        const result = await options.transport(rewrittenUrl, requestInit, {
-          ...context,
-          previous: undefined,
-        })
-        response = result ?? new Response(null, { status: 500 })
-      } else {
-        response = await context.fetch(rewrittenUrl, requestInit)
+      try {
+        if (rule?.fetch) response = await rule.fetch(rewrittenUrl, requestInit, context)
+        else if (options.transport) {
+          const result = await options.transport(rewrittenUrl, requestInit, {
+            ...context,
+            previous: undefined,
+          })
+          response = result ?? new Response(null, { status: 500 })
+        } else response = await context.fetch(rewrittenUrl, requestInit)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        return { ok: false as const, status: 502, error: message }
       }
 
-      if (!response.ok)
-        return {
-          ok: false as const,
-          status: response.status,
-          content: '',
-          meta: {},
-        }
+      if (!response.ok) return { ok: false as const, status: response.status }
 
       const result = await (async () => {
         if (rule?.extract) return rule.extract(response)
@@ -105,7 +102,7 @@ export namespace create {
       init?: RequestInit | undefined,
     ) => Promise<
       | { ok: true; status: number; content: string; meta: Meta }
-      | { ok: false; status: number; content: ''; meta: Meta }
+      | { ok: false; status: number; error?: string }
     >
   }
 }
@@ -140,11 +137,17 @@ export function defineRule<options = void>(
       }),
     }
   }
-  return Object.assign(factory, { key: config.key })
+  return Object.assign(factory, {
+    key: config.key,
+    ...(config.checks && { checks: config.checks }),
+  })
 }
 
 export namespace defineRule {
-  export type Config<options = void> = { key: string } & Omit<Rule, 'fetch'> & {
+  export type Config<options = void> = { key: string; checks?: CheckCase[] } & Omit<
+    Rule,
+    'fetch'
+  > & {
       fetch?: (
         input: RequestInfo | URL,
         init: RequestInit | undefined,
@@ -154,7 +157,16 @@ export namespace defineRule {
 
   export type ReturnType<options = void> = ((options?: options) => Rule) & {
     key: string
+    checks?: CheckCase[]
   }
+}
+
+type CheckCase = {
+  url: string
+  contains?: string[]
+  notContains?: string[]
+  title?: string
+  minLength?: number
 }
 
 export type Transport = (
@@ -249,6 +261,8 @@ function normalizeMarkdown(content: string): string {
           return match
         }
       })
+      // Strip "Built with [Mintlify](...)" lines
+      .replace(/\n*Built with \[Mintlify\]\([^)]*\)\.?\n*/g, '\n')
       // Normalize GFM table separator rows to use `| --- |`
       .replace(/^(\| *:?)-+([ :]*\|(?:[ :]*-+[ :]*\|)*)\s*$/gm, (match) =>
         match.replace(/\| *(:?)-+(:?) */g, '| $1---$2 '),

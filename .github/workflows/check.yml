@@ -77,7 +77,7 @@ jobs:
         run: pnpm check:types
 
       - name: Test
-        run: pnpm test
+        run: pnpm test --project app --project md --project cli --project workers
 
       - name: Build
         run: pnpm build

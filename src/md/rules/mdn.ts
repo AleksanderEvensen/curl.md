@@ -3,6 +3,15 @@ import { defineRule } from '../mod.ts'
 export const mdn = defineRule({
   key: 'mdn',
   patterns: [/^https:\/\/developer\.mozilla\.org\/[a-zA-Z-]+\/docs\/.+/],
+  checks: [
+    {
+      url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/map',
+      title: 'Array.prototype.map()',
+      contains: ['map('],
+      notContains: ['{{'],
+      minLength: 500,
+    },
+  ],
   rewrite(url) {
     const match = url.pathname.match(/^\/([a-zA-Z-]+)\/docs\/(.+)/)
     if (!match?.[1] || !match[2]) return

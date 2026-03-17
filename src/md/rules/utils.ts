@@ -1,6 +1,7 @@
 import { defineRule } from '../mod.ts'
 
-type Options = Required<Pick<defineRule.Config, 'key' | 'patterns'>>
+type Options = Required<Pick<defineRule.Config, 'key' | 'patterns'>> &
+  Pick<defineRule.Config, 'checks'>
 
 export function appendMd(options: Options) {
   return defineRule({

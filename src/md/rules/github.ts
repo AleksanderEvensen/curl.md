@@ -10,6 +10,7 @@ import { defineRule, type FetchContext, type Meta } from '../mod.ts'
 export const githubRepo = defineRule<{ token?: string | Promise<string | undefined> | undefined }>({
   key: 'githubRepo',
   patterns: [/^https:\/\/github\.com\/[^/]+\/[^/]+\/?$/],
+  checks: [{ url: 'https://github.com/facebook/react', minLength: 100 }],
   rewrite(url) {
     const [, owner, repo] = url.pathname.split('/')
     return new URL(`https://raw.githubusercontent.com/${owner}/${repo}/HEAD/README.md`)
@@ -73,6 +74,7 @@ export const githubRepo = defineRule<{ token?: string | Promise<string | undefin
 export const githubBlob = defineRule({
   key: 'githubBlob',
   patterns: [/^https:\/\/github\.com\/[^/]+\/[^/]+\/blob\//],
+  checks: [{ url: 'https://github.com/facebook/react/blob/main/README.md', contains: ['React'] }],
   rewrite(url) {
     const [, owner, repo, , ...rest] = url.pathname.split('/')
     const path = rest.join('/')
@@ -85,6 +87,7 @@ export const githubIssue = defineRule<{ token?: string | Promise<string | undefi
   {
     key: 'githubIssue',
     patterns: [/^https:\/\/github\.com\/[^/]+\/[^/]+\/issues\/\d+$/],
+    checks: [{ url: 'https://github.com/wevm/viem/issues/29' }],
     rewrite(url) {
       const [, owner, repo, , id] = url.pathname.split('/')
       return new URL(`https://api.github.com/repos/${owner}/${repo}/issues/${id}`)
@@ -125,6 +128,7 @@ export const githubIssue = defineRule<{ token?: string | Promise<string | undefi
 
 export const githubPr = defineRule<{ token?: string | Promise<string | undefined> | undefined }>({
   key: 'githubPr',
+  checks: [{ url: 'https://github.com/wevm/viem/pull/66' }],
   patterns: [/^https:\/\/github\.com\/[^/]+\/[^/]+\/pull\/\d+$/],
   rewrite(url) {
     const [, owner, repo, , id] = url.pathname.split('/')

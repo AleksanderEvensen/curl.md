@@ -18,8 +18,8 @@ const fixtures = [
     url: 'https://docs.github.com/api/article?pathname=/en/actions',
   },
   {
-    name: 'github-issue-2908.html',
-    url: 'https://github.com/wevm/viem/issues/2908',
+    name: 'github-pr-66.html',
+    url: 'https://github.com/wevm/viem/pull/66',
     headers: {
       'User-Agent':
         'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',

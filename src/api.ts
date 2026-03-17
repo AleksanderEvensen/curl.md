@@ -1537,6 +1537,13 @@ export const api = new Hono<{
               normalize: true,
               protocol: /^https?$/,
             }),
+          )
+          .refine(
+            (url) =>
+              // Keep in sync with WAF rule in production (scripts/wafRules.ts)
+              !/\.(action|aspx?|cgi|css|eot|gif|html?|ico|jpe?g|json|jsx?|map|php|png|svg|tsx?|ttf|webp|woff2?|xml|ya?ml)$/i.test(
+                new URL(url).hostname,
+              ),
           ),
       }),
     ),
@@ -1688,13 +1695,15 @@ export const api = new Hono<{
       const response = await (async () => {
         const pageCacheKey = `page:${url.href}` as const
         const cached = await c.env.KV.get(pageCacheKey, 'json')
-        if (!query.fresh && cached) return { ...cached, ok: true, status: 200 }
+        if (!query.fresh && cached) return { ...cached, ok: true as const, status: 200 }
         const result = await md.fetch(url)
         if (!result.ok) return result
         c.executionCtx.waitUntil(
-          c.env.KV.put(pageCacheKey, JSON.stringify(result), {
-            expirationTtl: 900,
-          }),
+          c.env.KV.put(
+            pageCacheKey,
+            JSON.stringify({ content: result.content, meta: result.meta }),
+            { expirationTtl: 900 }, // 15m
+          ),
         )
         return result
       })()
@@ -1703,7 +1712,7 @@ export const api = new Hono<{
         return c.json(
           {
             code: 'fetch_failed',
-            message: `Upstream returned ${response.status}`,
+            message: response.error || `Upstream returned ${response.status}`,
           },
           502,
         )
