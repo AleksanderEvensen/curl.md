@@ -32,7 +32,8 @@
     "check:types": "tsgo --noEmit",
     "gen:types": "incur gen",
     "pkg:format": "node --experimental-strip-types scripts/formatPackageJson.ts",
-    "pkg:publish": "pnpm pkg:format && pnpm changeset publish && node --experimental-strip-types scripts/restorePackageJson.ts"
+    "changeset:publish": "pnpm pkg:format && pnpm changeset publish && node --experimental-strip-types scripts/restorePackageJson.ts",
+    "changeset:version": "pnpm changeset version && rm -rf .changeset && cp -r ../.changeset .changeset"
   },
   "dependencies": {
     "hono": "catalog:",

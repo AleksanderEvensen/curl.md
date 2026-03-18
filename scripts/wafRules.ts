@@ -1,3 +1,6 @@
+// Deploys Cloudflare WAF custom rules to block bot-probed file extensions and paths.
+// Run: pnpm node --experimental-strip-types scripts/wafRules.ts
+
 import { z } from 'zod'
 
 const env = z.parse(z.object({ CLOUDFLARE_API_TOKEN: z.string() }), process.env)
@@ -46,8 +49,16 @@ const botPaths = [
   '/xmlrpc',
 ]
 
+const excludePrefixes = ['/assets/', '/.well-known/']
+const excludePaths = ['/favicon.svg']
+
 const expression = [
-  ...extensions.map((ext) => `ends_with(http.request.uri.path, "${ext}")`),
+  `(${[
+    ...excludePrefixes.map((p) => `not starts_with(http.request.uri.path, "${p}")`),
+    ...excludePaths.map((p) => `http.request.uri.path ne "${p}"`),
+  ].join(
+    ' and ',
+  )} and (${extensions.map((ext) => `ends_with(http.request.uri.path, "${ext}")`).join(' or ')}))`,
   ...botPaths.map((path) => `starts_with(http.request.uri.path, "${path}")`),
 ].join(' or ')
 

@@ -12,7 +12,7 @@ Prefer running these scripts instead of using `npx`.
 - `pnpm check:deps` - Check for unused dependencies with Knip (cli/ only)
 - `pnpm check:types` - Type check with tsgo
 - `pnpm db:codegen` - Generate database types
-- `pnpm db:migrate` - Run database migrations
+- `pnpm db:migrate latest` - Run database migrations
 - `pnpm gen:fixtures:md:rules` - Re-fetch live sources for `src/md/rules` fixture tests
   - Run `pnpm test --project app -- src/md/ --update` after to update snapshots
 - `pnpm gen:types` - Generate Cloudflare worker types
