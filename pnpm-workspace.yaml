@@ -1,13 +1,26 @@
 packages:
   - cli
 
-# Override undici to avoid miniflare bug where POST + 401 → 500.
-# TODO: Remove once miniflare ships with a fixed undici version.
-# https://github.com/cloudflare/workers-sdk/issues/12912
 overrides:
+  h3: 2.0.1-rc.17
+  h3-v2: npm:h3@2.0.1-rc.17
+  # Override undici to avoid miniflare bug where POST + 401 → 500.
+  # TODO: Remove once miniflare ships with a fixed undici version.
+  # https://github.com/cloudflare/workers-sdk/issues/12967
   miniflare>undici: 7.18.2
 
 auditConfig:
+  # undici WebSocket client CVEs in miniflare (dev-only, no production impact).
+  # Cannot override undici>=7.24.0 — it breaks miniflare's fetch (POST + 401 → 500).
+  # TODO: Remove once miniflare ships with undici >=7.24.0 as a direct dependency.
+  # https://github.com/cloudflare/workers-sdk/issues/12967
+  ignoreCves:
+    - CVE-2026-1525
+    - CVE-2026-1526
+    - CVE-2026-1527
+    - CVE-2026-1528
+    - CVE-2026-2229
+    - CVE-2026-2581
   ignoreGhsas:
     - GHSA-6cpc-mj5c-m9rq # false positive — matches npm "cli" package, not our "curl.md" workspace
 
@@ -15,6 +28,7 @@ minimumReleaseAge: 1440
 
 minimumReleaseAgeExclude:
   - incur
+  - kysely
 
 onlyBuiltDependencies:
   - bun

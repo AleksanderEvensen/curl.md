@@ -182,7 +182,7 @@ function Playground() {
   ]
 
   return (
-    <div className="min-h-dvh md:h-dvh relative flex flex-col px-6 pt-6 pb-24 text-lg md:pb-6">
+    <div className="relative flex min-h-dvh flex-col px-6 pt-6 pb-24 text-lg md:h-dvh md:pb-6">
       <div className="mx-auto flex min-h-0 w-full max-w-7xl grow flex-col gap-4">
         <div className="flex flex-col gap-1">
           <a
@@ -281,7 +281,7 @@ function Playground() {
                 </p>
                 {examples.map((example) => (
                   <button
-                    className="bg-gray-a2 text-gray9 not-disabled:hover:bg-gray-a3 dark:text-gray6 break-all p-3 text-start disabled:opacity-50"
+                    className="bg-gray-a2 text-gray9 not-disabled:hover:bg-gray-a3 dark:text-gray6 p-3 text-start break-all disabled:opacity-50"
                     disabled={mutation.isPending}
                     key={example.url}
                     onClick={() => {
@@ -347,7 +347,7 @@ function Playground() {
             {hasResult && (
               <div className="text-gray9 dark:text-gray6 -mx-6 flex flex-col gap-1 md:hidden">
                 {markdown && (
-                  <pre className="minimal-scrollbar bg-bg2 text-gray10 whitespace-pre-wrap break-words px-6 py-4">
+                  <pre className="minimal-scrollbar bg-bg2 text-gray10 px-6 py-4 break-words whitespace-pre-wrap">
                     {markdown}
                   </pre>
                 )}
@@ -368,7 +368,7 @@ function Playground() {
                 <div className="absolute end-2 top-2 z-10">
                   <CopyButton text={markdown} />
                 </div>
-                <pre className="minimal-scrollbar bg-bg2 text-gray10 min-h-0 grow overflow-auto whitespace-pre-wrap break-words p-4 [scrollbar-gutter:stable]">
+                <pre className="minimal-scrollbar bg-bg2 text-gray10 min-h-0 grow overflow-auto p-4 break-words whitespace-pre-wrap [scrollbar-gutter:stable]">
                   {markdown}
                 </pre>
               </>

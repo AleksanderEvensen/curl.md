@@ -34,7 +34,7 @@ function DeviceConfirmation() {
 
   if (!user_code)
     return (
-      <div className="min-h-dvh mx-auto flex max-w-md flex-col items-center justify-center px-6">
+      <div className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center px-6">
         <h1 className="text-lg font-bold">No device code provided</h1>
         <p className="text-gray11 mt-2">
           Please use the link from your terminal to confirm a device.
@@ -44,7 +44,7 @@ function DeviceConfirmation() {
 
   if (state === 'success')
     return (
-      <div className="min-h-dvh mx-auto flex max-w-md flex-col items-center justify-center px-6">
+      <div className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center px-6">
         <IconLucideCircleCheck className="text-green9 size-8" />
         <h1 className="mt-4 text-lg font-bold">You're all set.</h1>
         <p className="text-gray11 mt-2 text-center">
@@ -55,7 +55,7 @@ function DeviceConfirmation() {
     )
 
   return (
-    <div className="min-h-dvh mx-auto flex max-w-md flex-col items-center justify-center px-6">
+    <div className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center px-6">
       <div className="text-gray11 flex items-center gap-2">
         <IconLucideFingerprint className="size-4" />
         <span>Device confirmation</span>

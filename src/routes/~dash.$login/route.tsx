@@ -35,7 +35,7 @@ function DashboardLayout() {
   })
 
   return (
-    <div className="min-h-dvh mx-auto flex max-w-4xl flex-col px-6 pt-6 pb-16">
+    <div className="mx-auto flex min-h-dvh max-w-4xl flex-col px-6 pt-6 pb-16">
       <div className="flex items-center justify-between border-b pb-4">
         <div className="flex items-center gap-3">
           {account.avatar_url ? (
