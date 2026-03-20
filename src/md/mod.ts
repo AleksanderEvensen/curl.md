@@ -15,17 +15,16 @@ export function create(options: create.Options = {}): create.ReturnType {
         return new URL(input)
       })()
 
-      const rule = (() => {
+      const matched = (() => {
         for (const rule of rules) {
           for (const pattern of rule.patterns) {
-            if (typeof pattern === 'string') {
-              if (pattern === inputURL.hostname) return rule
-            } else if (pattern.test(inputURL.href)) return rule
+            const match = pattern.exec(inputURL)
+            if (match) return { rule, match }
           }
         }
       })()
 
-      const rewrittenUrl = rule?.rewrite?.(inputURL) ?? inputURL
+      const rewrittenUrl = matched?.rule?.rewrite?.(inputURL, matched.match) ?? inputURL
       const requestInit = {
         ...init,
         headers: {
@@ -40,7 +39,8 @@ export function create(options: create.Options = {}): create.ReturnType {
 
       let response: Response
       try {
-        if (rule?.fetch) response = await rule.fetch(rewrittenUrl, requestInit, context)
+        if (matched?.rule?.fetch)
+          response = await matched.rule.fetch(rewrittenUrl, requestInit, context)
         else if (options.transport) {
           const result = await options.transport(rewrittenUrl, requestInit, {
             ...context,
@@ -56,7 +56,7 @@ export function create(options: create.Options = {}): create.ReturnType {
       if (!response.ok) return { ok: false as const, status: response.status }
 
       const result = await (async () => {
-        if (rule?.extract) return rule.extract(response)
+        if (matched?.rule?.extract) return matched.rule.extract(response)
 
         const text = await response.text()
         const contentType = (response.headers.get('content-type') ?? '').toLowerCase()
@@ -108,8 +108,8 @@ export namespace create {
 }
 
 export type Rule = {
-  patterns: (string | RegExp)[]
-  rewrite?: (url: URL) => URL | undefined
+  patterns: URLPattern[]
+  rewrite?: (url: URL, match: URLPatternResult) => URL | undefined
   fetch?: (
     input: RequestInfo | URL,
     init: RequestInit | undefined,

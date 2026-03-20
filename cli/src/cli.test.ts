@@ -71,10 +71,10 @@ test('help', async () => {
       token    Manage API tokens (create, list, delete)
       update   Update curl.md CLI
 
-    Built-in Commands:
+    Integrations:
       completions  Generate shell completion script
-      mcp add      Register as an MCP server
-      skills add   Sync skill files to your agent
+      mcp add      Register as MCP server
+      skills add   Sync skill files to agents
 
     Global Options:
       --filter-output <keys>              Filter output by key paths (e.g. foo,bar.baz,a[0,3])
@@ -82,7 +82,7 @@ test('help', async () => {
       --help                              Show help
       --llms, --llms-full                 Print LLM-readable manifest
       --mcp                               Start as MCP stdio server
-      --schema                            Show JSON Schema for a command
+      --schema                            Show JSON Schema for command
       --token-count                       Print token count of output (instead of output)
       --token-limit <n>                   Limit output to n tokens
       --token-offset <n>                  Skip first n tokens of output

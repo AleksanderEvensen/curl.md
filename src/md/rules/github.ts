@@ -7,21 +7,22 @@ import { unified } from 'unified'
 import { z } from 'zod'
 import { defineRule, type FetchContext, type Meta } from '../mod.ts'
 
+const ownerRepoPattern = new URLPattern({ pathname: '/:owner/:repo{/*}?' })
+const apiRepoPattern = new URLPattern({ pathname: '/repos/:owner/:repo/:kind/:id' })
+
 export const githubRepo = defineRule<{ token?: string | Promise<string | undefined> | undefined }>({
   key: 'githubRepo',
-  patterns: [/^https:\/\/github\.com\/[^/]+\/[^/]+\/?$/],
+  patterns: [new URLPattern({ hostname: 'github.com', pathname: '/:owner/:repo{/}?' })],
   checks: [{ url: 'https://github.com/facebook/react', minLength: 100 }],
-  rewrite(url) {
-    const [, owner, repo] = url.pathname.split('/')
+  rewrite(_url, match) {
+    const { owner, repo } = match.pathname.groups
     return new URL(`https://raw.githubusercontent.com/${owner}/${repo}/HEAD/README.md`)
   },
   async fetch(input, init, context) {
     const url =
       input instanceof URL ? input : new URL(typeof input === 'string' ? input : input.url)
     const userAgent = new Headers(init?.headers).get('User-Agent') ?? ''
-    // url is the rewritten raw.githubusercontent.com URL
-    // Extract owner/repo from it: /owner/repo/HEAD/README.md
-    const [, owner, repo] = url.pathname.split('/')
+    const { owner, repo } = ownerRepoPattern.exec(url)!.pathname.groups
 
     const token = await context.options?.token
     const apiHeaders: Record<string, string> = { 'User-Agent': userAgent }
@@ -73,12 +74,11 @@ export const githubRepo = defineRule<{ token?: string | Promise<string | undefin
 
 export const githubBlob = defineRule({
   key: 'githubBlob',
-  patterns: [/^https:\/\/github\.com\/[^/]+\/[^/]+\/blob\//],
+  patterns: [new URLPattern({ hostname: 'github.com', pathname: '/:owner/:repo/blob/:path+' })],
   checks: [{ url: 'https://github.com/facebook/react/blob/main/README.md', contains: ['React'] }],
-  rewrite(url) {
-    const [, owner, repo, , ...rest] = url.pathname.split('/')
-    const path = rest.join('/')
-    if (!/\.mdx?$/.test(path)) return
+  rewrite(_url, match) {
+    const { owner, repo, path } = match.pathname.groups
+    if (!/\.mdx?$/.test(path!)) return
     return new URL(`https://raw.githubusercontent.com/${owner}/${repo}/${path}`)
   },
 })
@@ -86,10 +86,10 @@ export const githubBlob = defineRule({
 export const githubIssue = defineRule<{ token?: string | Promise<string | undefined> | undefined }>(
   {
     key: 'githubIssue',
-    patterns: [/^https:\/\/github\.com\/[^/]+\/[^/]+\/issues\/\d+$/],
+    patterns: [new URLPattern({ hostname: 'github.com', pathname: '/:owner/:repo/issues/:id' })],
     checks: [{ url: 'https://github.com/wevm/viem/issues/29' }],
-    rewrite(url) {
-      const [, owner, repo, , id] = url.pathname.split('/')
+    rewrite(_url, match) {
+      const { owner, repo, id } = match.pathname.groups
       return new URL(`https://api.github.com/repos/${owner}/${repo}/issues/${id}`)
     },
     async fetch(url, init, context) {
@@ -129,9 +129,9 @@ export const githubIssue = defineRule<{ token?: string | Promise<string | undefi
 export const githubPr = defineRule<{ token?: string | Promise<string | undefined> | undefined }>({
   key: 'githubPr',
   checks: [{ url: 'https://github.com/wevm/viem/pull/66' }],
-  patterns: [/^https:\/\/github\.com\/[^/]+\/[^/]+\/pull\/\d+$/],
-  rewrite(url) {
-    const [, owner, repo, , id] = url.pathname.split('/')
+  patterns: [new URLPattern({ hostname: 'github.com', pathname: '/:owner/:repo/pull/:id' })],
+  rewrite(_url, match) {
+    const { owner, repo, id } = match.pathname.groups
     return new URL(`https://api.github.com/repos/${owner}/${repo}/pulls/${id}`)
   },
   async fetch(url, init, context) {
@@ -183,8 +183,7 @@ async function fetchGithubApi(
 ) {
   const url = input instanceof URL ? input : new URL(typeof input === 'string' ? input : input.url)
   const userAgent = new Headers(init?.headers).get('User-Agent') ?? ''
-  // API path: /repos/{owner}/{repo}/{issues|pulls}/{id}
-  const [, , owner, repo, kind, id] = url.pathname.split('/')
+  const { owner, repo, kind, id } = apiRepoPattern.exec(url)!.pathname.groups
   const isPr = kind === 'pulls'
 
   // Use GraphQL when authenticated to fetch comments with pagination

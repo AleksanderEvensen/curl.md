@@ -3,7 +3,7 @@ import { defineRule } from '../mod.ts'
 
 export const githubDocs = defineRule({
   key: 'githubDocs',
-  patterns: ['docs.github.com'],
+  patterns: [new URLPattern({ hostname: 'docs.github.com' })],
   checks: [{ url: 'https://docs.github.com/actions', contains: ['Actions'], minLength: 100 }],
   rewrite(url) {
     const mdUrl = new URL(url.href)

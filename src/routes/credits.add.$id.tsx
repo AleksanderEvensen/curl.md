@@ -135,7 +135,7 @@ function CheckoutForm(props: { amount: number; id: string; locked: boolean }) {
 function PageWrapper(props: React.PropsWithChildren) {
   const { children } = props
   return (
-    <div className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center px-6">
+    <div className="min-h-dvh mx-auto flex max-w-md flex-col items-center justify-center px-6">
       <div className="border-gray-a2 w-full rounded-lg border p-6">
         <h1 className="mb-4 text-lg font-bold">Add Credits</h1>
         {children}

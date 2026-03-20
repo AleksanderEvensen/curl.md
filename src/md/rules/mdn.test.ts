@@ -1,3 +1,4 @@
+import assert from 'node:assert'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { expect, test } from 'vitest'
@@ -16,8 +17,11 @@ test('rewrites en-US docs URL to mdn/content repo', () => {
   const url = new URL(
     'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/map',
   )
-  const result = rule.rewrite!(url)!
-  expect(result.href).toBe(
+  const pattern = rule.patterns[0]
+  assert(pattern instanceof URLPattern)
+  const match = pattern.exec(url)!
+  const result = rule.rewrite!(url, match)
+  expect(result?.href).toBe(
     'https://raw.githubusercontent.com/mdn/content/main/files/en-us/web/javascript/reference/global_objects/array/map/index.md',
   )
 })
@@ -27,8 +31,11 @@ test('rewrites non-English locale to mdn/translated-content repo', () => {
   const url = new URL(
     'https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Global_Objects/Array/map',
   )
-  const result = rule.rewrite!(url)!
-  expect(result.href).toBe(
+  const pattern = rule.patterns[0]
+  assert(pattern instanceof URLPattern)
+  const match = pattern.exec(url)!
+  const result = rule.rewrite!(url, match)
+  expect(result?.href).toBe(
     'https://raw.githubusercontent.com/mdn/translated-content/main/files/ja/web/javascript/reference/global_objects/array/map/index.md',
   )
 })
@@ -36,8 +43,11 @@ test('rewrites non-English locale to mdn/translated-content repo', () => {
 test('lowercases slug in rewritten URL', () => {
   const rule = mdn()
   const url = new URL('https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement')
-  const result = rule.rewrite!(url)!
-  expect(result.pathname).toBe('/mdn/content/main/files/en-us/web/api/htmlelement/index.md')
+  const pattern = rule.patterns[0]
+  assert(pattern instanceof URLPattern)
+  const match = pattern.exec(url)!
+  const result = rule.rewrite!(url, match)
+  expect(result?.pathname).toBe('/mdn/content/main/files/en-us/web/api/htmlelement/index.md')
 })
 
 // Integration test
@@ -58,7 +68,7 @@ test('extract produces expected output for Array.prototype.map', async () => {
 
 // Extract behavior tests
 
-test('converts jsxref macros to inline code', async () => {
+test('converts jsxref macros to linked inline code', async () => {
   const md = create({
     rules: [mdn()],
     fetch: async () =>
@@ -69,7 +79,9 @@ test('converts jsxref macros to inline code', async () => {
   const result = await md.fetch('https://developer.mozilla.org/en-US/docs/Web/Test')
   expect(result.ok).toBe(true)
   if (!result.ok) return
-  expect(result.content).toContain('`Array`')
+  expect(result.content).toContain(
+    '[`Array`](/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)',
+  )
   expect(result.content).not.toContain('{{')
 })
 

@@ -1,3 +1,4 @@
+import assert from 'node:assert'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { expect, test } from 'vitest'
@@ -22,19 +23,28 @@ test('extract produces expected output for PR HTML', async () => {
 
 test('githubRepo rewrites to raw README.md', () => {
   const rule = githubRepo()
-  const result = rule.rewrite?.(new URL('https://github.com/owner/repo'))
+  const url = new URL('https://github.com/owner/repo')
+  const pattern = rule.patterns[0]
+  assert(pattern instanceof URLPattern)
+  const match = pattern.exec(url)
+  const result = rule.rewrite?.(url, match!)
   expect(result?.href).toBe('https://raw.githubusercontent.com/owner/repo/HEAD/README.md')
 })
 
 test('githubRepo rewrites with trailing slash', () => {
   const rule = githubRepo()
-  const result = rule.rewrite?.(new URL('https://github.com/owner/repo/'))
+  const url = new URL('https://github.com/owner/repo/')
+  const pattern = rule.patterns[0]
+  assert(pattern instanceof URLPattern)
+  const match = pattern.exec(url)
+  const result = rule.rewrite?.(url, match!)
   expect(result?.href).toBe('https://raw.githubusercontent.com/owner/repo/HEAD/README.md')
 })
 
 test('githubRepo pattern matches repo URLs', () => {
   const rule = githubRepo()
-  const pattern = rule.patterns[0] as RegExp
+  const pattern = rule.patterns[0]
+  assert(pattern instanceof URLPattern)
   expect(pattern.test('https://github.com/owner/repo')).toBe(true)
   expect(pattern.test('https://github.com/owner/repo/')).toBe(true)
   expect(pattern.test('https://github.com/owner/repo/issues/1')).toBe(false)
@@ -91,25 +101,41 @@ test('githubRepo works when api fails', async () => {
 
 test('githubBlob rewrites .md blob URL', () => {
   const rule = githubBlob()
-  const result = rule.rewrite?.(new URL('https://github.com/owner/repo/blob/main/docs/README.md'))
+  const url = new URL('https://github.com/owner/repo/blob/main/docs/README.md')
+  const pattern = rule.patterns[0]
+  assert(pattern instanceof URLPattern)
+  const match = pattern.exec(url)
+  const result = rule.rewrite?.(url, match!)
   expect(result?.href).toBe('https://raw.githubusercontent.com/owner/repo/main/docs/README.md')
 })
 
 test('githubBlob ignores non-md files', () => {
   const rule = githubBlob()
-  const result = rule.rewrite?.(new URL('https://github.com/owner/repo/blob/main/src/index.ts'))
+  const url = new URL('https://github.com/owner/repo/blob/main/src/index.ts')
+  const pattern = rule.patterns[0]
+  assert(pattern instanceof URLPattern)
+  const match = pattern.exec(url)
+  const result = rule.rewrite?.(url, match!)
   expect(result).toBeUndefined()
 })
 
 test('githubBlob rewrites .mdx blob URL', () => {
   const rule = githubBlob()
-  const result = rule.rewrite?.(new URL('https://github.com/owner/repo/blob/main/docs/page.mdx'))
+  const url = new URL('https://github.com/owner/repo/blob/main/docs/page.mdx')
+  const pattern = rule.patterns[0]
+  assert(pattern instanceof URLPattern)
+  const match = pattern.exec(url)
+  const result = rule.rewrite?.(url, match!)
   expect(result?.href).toBe('https://raw.githubusercontent.com/owner/repo/main/docs/page.mdx')
 })
 
 test('githubIssue rewrites to API URL', () => {
   const rule = githubIssue()
-  const result = rule.rewrite?.(new URL('https://github.com/wevm/viem/issues/123'))
+  const url = new URL('https://github.com/wevm/viem/issues/123')
+  const pattern = rule.patterns[0]
+  assert(pattern instanceof URLPattern)
+  const match = pattern.exec(url)
+  const result = rule.rewrite?.(url, match!)
   expect(result?.href).toBe('https://api.github.com/repos/wevm/viem/issues/123')
 })
 
@@ -141,7 +167,11 @@ test('githubIssue extracts from REST API response', async () => {
 
 test('githubPr rewrites to API URL', () => {
   const rule = githubPr()
-  const result = rule.rewrite?.(new URL('https://github.com/wevm/viem/pull/456'))
+  const url = new URL('https://github.com/wevm/viem/pull/456')
+  const pattern = rule.patterns[0]
+  assert(pattern instanceof URLPattern)
+  const match = pattern.exec(url)
+  const result = rule.rewrite?.(url, match!)
   expect(result?.href).toBe('https://api.github.com/repos/wevm/viem/pulls/456')
 })
 
@@ -198,14 +228,16 @@ test('githubPr closed but not merged', async () => {
 
 test('githubBlob pattern matches blob URLs', () => {
   const rule = githubBlob()
-  const pattern = rule.patterns[0] as RegExp
+  const pattern = rule.patterns[0]
+  assert(pattern instanceof URLPattern)
   expect(pattern.test('https://github.com/owner/repo/blob/main/file.md')).toBe(true)
   expect(pattern.test('https://github.com/owner/repo/issues/1')).toBe(false)
 })
 
 test('githubIssue pattern matches issue URLs', () => {
   const rule = githubIssue()
-  const pattern = rule.patterns[0] as RegExp
+  const pattern = rule.patterns[0]
+  assert(pattern instanceof URLPattern)
   expect(pattern.test('https://github.com/owner/repo/issues/123')).toBe(true)
   expect(pattern.test('https://github.com/owner/repo/issues/123/comments')).toBe(false)
 })
@@ -355,7 +387,8 @@ test('githubIssue returns error on stuck pagination cursor', async () => {
 
 test('githubPr pattern matches PR URLs', () => {
   const rule = githubPr()
-  const pattern = rule.patterns[0] as RegExp
+  const pattern = rule.patterns[0]
+  assert(pattern instanceof URLPattern)
   expect(pattern.test('https://github.com/owner/repo/pull/456')).toBe(true)
   expect(pattern.test('https://github.com/owner/repo/pull/456/files')).toBe(false)
 })

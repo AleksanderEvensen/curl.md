@@ -2,7 +2,9 @@ import { defineRule } from '../mod.ts'
 
 export const mdn = defineRule({
   key: 'mdn',
-  patterns: [/^https:\/\/developer\.mozilla\.org\/[a-zA-Z-]+\/docs\/.+/],
+  patterns: [
+    new URLPattern({ hostname: 'developer.mozilla.org', pathname: '/:locale/docs/:path+' }),
+  ],
   checks: [
     {
       url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/map',
@@ -12,13 +14,11 @@ export const mdn = defineRule({
       minLength: 500,
     },
   ],
-  rewrite(url) {
-    const match = url.pathname.match(/^\/([a-zA-Z-]+)\/docs\/(.+)/)
-    if (!match?.[1] || !match[2]) return
-    const lowerLocale = match[1].toLowerCase()
-    const repo = lowerLocale === 'en-us' ? 'mdn/content' : 'mdn/translated-content'
+  rewrite(_url, match) {
+    const locale = match.pathname.groups.locale?.toLowerCase()
+    const repo = locale === 'en-us' ? 'mdn/content' : 'mdn/translated-content'
     return new URL(
-      `https://raw.githubusercontent.com/${repo}/main/files/${lowerLocale}/${match[2].toLowerCase()}/index.md`,
+      `https://raw.githubusercontent.com/${repo}/main/files/${locale}/${match.pathname.groups.path!.toLowerCase()}/index.md`,
     )
   },
   async extract(response) {
@@ -41,18 +41,35 @@ export const mdn = defineRule({
       '',
     )
 
-    // Convert cross-reference macros to inline code
-    // {{jsxref("Array/map", "map()")}} → `map()`
-    // {{jsxref("Array")}} → `Array`
+    // Convert cross-reference macros to linked inline code
+    // {{jsxref("Array/map", "map()")}} → [`map()`](/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/map)
+    // {{jsxref("Array")}} → [`Array`](/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)
     text = text.replace(
       /\{\{(?:jsxref|cssxref|domxref|HTMLElement|SVGElement|SVGAttr|MathMLElement|CSSXref)\(["']([^"']+)["'](?:,\s*["']([^"']+)["'])?[^)]*\)\}\}/gi,
-      (_, ref, display) => `\`${display ?? ref.split('/').pop()}\``,
+      (_, ref: string, display: string | undefined) => {
+        const label = display ?? ref.split('/').pop()!
+        const path = xrefPath(ref, _)
+        if (!path) return `\`${label}\``
+        return `[\`${label}\`](${path})`
+      },
     )
 
-    // Convert HTTP macros to inline code
+    // Convert HTTP macros to linked inline code
     text = text.replace(
-      /\{\{(?:HTTPHeader|HTTPMethod|HTTPStatus|httpheader|httpmethod|httpstatus)\(["']([^"']+)["'](?:,\s*["']([^"']+)["'])?[^)]*\)\}\}/g,
-      (_, ref, display) => `\`${display ?? ref}\``,
+      /\{\{(?:HTTPHeader|HTTPMethod|HTTPStatus|httpheader|httpmethod|httpstatus)\(["']([^"']+)["'](?:,\s*["']([^"']+)["'])?[^)]*\)\}\}/gi,
+      (_, ref: string, display: string | undefined) => {
+        const label = display ?? ref
+        const type = _.match(/\{\{(\w+)/)?.[1]?.replace(/^http/i, 'HTTP')
+        const section = type?.startsWith('HTTPHeader')
+          ? 'Headers'
+          : type?.startsWith('HTTPMethod')
+            ? 'Methods'
+            : type?.startsWith('HTTPStatus')
+              ? 'Status'
+              : undefined
+        if (!section) return `\`${label}\``
+        return `[\`${label}\`](/en-US/docs/Web/HTTP/${section}/${ref})`
+      },
     )
 
     // Convert Glossary macros to plain text
@@ -90,3 +107,24 @@ export const mdn = defineRule({
     }
   },
 })
+
+const xrefBases: Record<string, string> = {
+  jsxref: '/en-US/docs/Web/JavaScript/Reference/Global_Objects/',
+  cssxref: '/en-US/docs/Web/CSS/',
+  domxref: '/en-US/docs/Web/API/',
+  htmlelement: '/en-US/docs/Web/HTML/Element/',
+  svgelement: '/en-US/docs/Web/SVG/Element/',
+  svgattr: '/en-US/docs/Web/SVG/Attribute/',
+  mathmlelement: '/en-US/docs/Web/MathML/Element/',
+}
+
+function xrefPath(ref: string, fullMatch: string): string | undefined {
+  const macroName = fullMatch.match(/\{\{(\w+)/)?.[1]?.toLowerCase()
+  if (!macroName) return undefined
+  const base = xrefBases[macroName]
+  if (!base) return undefined
+  // Normalize: strip trailing "()", replace dots with slashes for jsxref
+  let slug = ref.replace(/\(\)$/, '')
+  if (macroName === 'jsxref') slug = slug.replace(/\./g, '/').replace(/\/prototype\//gi, '/')
+  return `${base}${slug}`
+}

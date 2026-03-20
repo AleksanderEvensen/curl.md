@@ -31,7 +31,7 @@
     "test": "vitest --config test/vitest.config.ts"
   },
   "dependencies": {
-    "@cloudflare/vite-plugin": "^1.29.0",
+    "@cloudflare/vite-plugin": "^1.29.1",
     "@fontsource-variable/geist-mono": "^5.2.7",
     "@hono/zod-validator": "^0.7.6",
     "@octokit/core": "^7.0.6",
@@ -43,10 +43,10 @@
     "@takumi-rs/wasm": "^0.72.0",
     "@tanstack/react-query": "^5.90.21",
     "@tanstack/react-router": "^1.132.0",
-    "@tanstack/react-start": "^1.132.0",
+    "@tanstack/react-start": "^1.166.17",
     "@tanstack/router-plugin": "^1.132.0",
     "hono": "catalog:",
-    "kysely": "^0.28.11",
+    "kysely": "^0.28.13",
     "kysely-postgres-js": "^3.0.0",
     "nanoid": "^5.1.6",
     "postgres": "^3.4.8",
@@ -64,17 +64,17 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "~0.13.0",
+    "@cloudflare/vitest-pool-workers": "~0.13.2",
     "@iconify/json": "^2.2.344",
     "@svgr/core": "^8.1.0",
     "@svgr/plugin-jsx": "^8.1.0",
-    "@tailwindcss/vite": "insiders",
+    "@tailwindcss/vite": "^4.2.2",
     "@testcontainers/postgresql": "^11.13.0",
     "@types/hast": "^3.0.4",
     "@types/node": "^25.2.3",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
-    "@typescript/native-preview": "7.0.0-dev.20260216.1",
+    "@typescript/native-preview": "7.0.0-dev.20260318.1",
     "@vitejs/plugin-react": "^5.2.0",
     "knip": "^5.85.0",
     "kysely-ctl": "~0.20.0",
@@ -90,7 +90,7 @@
     "unplugin-icons": "^23.0.1",
     "vite": "^8.0.0",
     "vitest": "^4.1.0",
-    "wrangler": "^4.74.0"
+    "wrangler": "^4.75.0"
   },
   "simple-git-hooks": {
     "pre-commit": "pnpm exec lint-staged"

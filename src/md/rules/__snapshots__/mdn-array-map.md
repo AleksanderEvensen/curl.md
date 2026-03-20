@@ -1,4 +1,4 @@
-The **`map()`** method of `Array` instances creates
+The **`map()`** method of [`Array`](/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array) instances creates
 a new array populated with the results of calling a provided function on
 every element in the calling array.
 
@@ -44,7 +44,7 @@ The `map()` method is an [iterative method](/en-US/docs/Web/JavaScript/Reference
 
 The `map()` method is [generic](/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array#generic_array_methods). It only expects the `this` value to have a `length` property and integer-keyed properties.
 
-Since `map` builds a new array, calling it without using the returned array is an anti-pattern; use `forEach` or `for...of` instead.
+Since `map` builds a new array, calling it without using the returned array is an anti-pattern; use [`forEach`](/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/forEach) or [`for...of`](/en-US/docs/Web/JavaScript/Reference/Global_Objects/Statements/for///of) instead.
 
 ## Examples
 
@@ -92,7 +92,7 @@ It is common to use the callback with one argument (the element being traversed)
 
 While one might expect `[1, 2, 3]`, the actual result is `[1, NaN, NaN]`.
 
-`parseInt` is often used with one argument, but takes two. The first is an expression and the second is the radix to the callback function, `Array.prototype.map` passes 3 arguments: the element, the index, and the array. The third argument is ignored by `parseInt` — but _not_ the second one! This is the source of possible confusion.
+[`parseInt`](/en-US/docs/Web/JavaScript/Reference/Global_Objects/parseInt) is often used with one argument, but takes two. The first is an expression and the second is the radix to the callback function, `Array.prototype.map` passes 3 arguments: the element, the index, and the array. The third argument is ignored by [`parseInt`](/en-US/docs/Web/JavaScript/Reference/Global_Objects/parseInt) — but _not_ the second one! This is the source of possible confusion.
 
 Here is a concise example of the iteration steps:
 
@@ -108,7 +108,7 @@ To solve this, define another function that only takes one argument:
 ["1", "2", "3"].map((str) => parseInt(str, 10)); // [1, 2, 3]
 ```
 
-You can also use the `Number` function, which only takes one argument:
+You can also use the [`Number`](/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number) function, which only takes one argument:
 
 ```js
 ["1", "2", "3"].map(Number); // [1, 2, 3]
@@ -124,7 +124,7 @@ See [A JavaScript optional argument hazard](https://wirfs-brock.com/allen/posts/
 
 ### Mapped array contains undefined
 
-When `undefined` or nothing is returned, the resulting array contains `undefined`. If you want to delete the element instead, chain a `filter()` method, or use the `flatMap()` method and return an empty array to signify deletion.
+When [`undefined`](/en-US/docs/Web/JavaScript/Reference/Global_Objects/undefined) or nothing is returned, the resulting array contains `undefined`. If you want to delete the element instead, chain a [`filter()`](/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/filter) method, or use the [`flatMap()`](/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/flatMap) method and return an empty array to signify deletion.
 
 ```js
 const numbers = [1, 2, 3, 4];
@@ -264,7 +264,7 @@ const elems = document.querySelectorAll("select option:checked");
 const values = Array.prototype.map.call(elems, ({ value }) => value);
 ```
 
-You can also use `Array.from()` to transform `elems` to an array, and then access the `map()` method.
+You can also use [`Array.from()`](/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/from) to transform `elems` to an array, and then access the `map()` method.
 
 ## Specifications
 
@@ -275,8 +275,8 @@ You can also use `Array.from()` to transform `elems` to an array, and then acces
 - [Polyfill of `Array.prototype.map` in `core-js`](https://github.com/zloirock/core-js#ecmascript-array)
 - [es-shims polyfill of `Array.prototype.map`](https://www.npmjs.com/package/array.prototype.map)
 - [Indexed collections](/en-US/docs/Web/JavaScript/Guide/Indexed_collections) guide
-- `Array`
-- `Array.prototype.forEach()`
-- `Array.from()`
-- `TypedArray.prototype.map()`
-- `Map`
+- [`Array`](/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)
+- [`Array.prototype.forEach()`](/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/forEach)
+- [`Array.from()`](/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/from)
+- [`TypedArray.prototype.map()`](/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypedArray/map)
+- [`Map`](/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map)

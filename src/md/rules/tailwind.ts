@@ -3,7 +3,7 @@ import { defineRule } from '../mod.ts'
 
 export const tailwind = defineRule({
   key: 'tailwind',
-  patterns: ['tailwindcss.com'],
+  patterns: [new URLPattern({ hostname: 'tailwindcss.com' })],
   checks: [
     {
       url: 'https://tailwindcss.com/docs/padding',

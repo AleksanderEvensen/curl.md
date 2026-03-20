@@ -40,7 +40,7 @@ function InvitePage() {
 
   if (!invite)
     return (
-      <div className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center px-6">
+      <div className="min-h-dvh mx-auto flex max-w-md flex-col items-center justify-center px-6">
         <IconLucideX className="text-red9 size-10" />
         <h1 className="mt-4 text-lg font-bold">Invalid Invite</h1>
         <p className="text-gray9 dark:text-gray6 mt-2 text-center">
@@ -54,7 +54,7 @@ function InvitePage() {
 
   if (!login)
     return (
-      <div className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center px-6">
+      <div className="min-h-dvh mx-auto flex max-w-md flex-col items-center justify-center px-6">
         <h1 className="text-lg font-bold">
           Join {invite.organization.name ?? invite.organization.login}
         </h1>
@@ -72,7 +72,7 @@ function InvitePage() {
     )
 
   return (
-    <div className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center px-6">
+    <div className="min-h-dvh mx-auto flex max-w-md flex-col items-center justify-center px-6">
       <h1 className="text-lg font-bold">
         Join {invite.organization.name ?? invite.organization.login}
       </h1>
