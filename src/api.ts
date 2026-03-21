@@ -51,7 +51,9 @@ export const api = new Hono<{
         return authorizationHeader?.startsWith('Bearer ')
           ? authorizationHeader.replace('Bearer ', '')
           : undefined
-      })()
+      })() ??
+      c.req.query('token') ??
+      c.req.query('t')
 
     // Try API key (curlmd_ prefix)
     if (!cookie && sessionId?.startsWith(ApiKey.prefix)) {
@@ -1549,18 +1551,36 @@ export const api = new Hono<{
     ),
     validator(
       'query',
-      z.object({
-        fresh: z
+      (() => {
+        const fresh = z
           .union([z.literal('').transform(() => true), z.coerce.boolean()])
           .optional()
-          .default(false),
-        k: z
+          .default(false)
+        const keywords = z
           .string()
           .transform((v) => v.split(/[\s,]+/).filter(Boolean))
-          .optional(),
-        mode: z.enum(['rush', 'smart']).default('smart'),
-        q: z.string().optional(),
-      }),
+          .optional()
+        const mode = z.enum(['rush', 'smart']).default('smart')
+        const objective = z.string().optional()
+        return z
+          .object({
+            f: fresh,
+            fresh,
+            k: keywords,
+            keywords,
+            m: mode,
+            mode,
+            o: objective,
+            objective,
+            q: objective,
+          })
+          .transform((v) => ({
+            fresh: v.fresh || v.f,
+            keywords: v.keywords ?? v.k,
+            mode: v.mode === 'smart' && v.m !== 'smart' ? v.m : v.mode,
+            objective: v.objective ?? v.q ?? v.o,
+          }))
+      })(),
     ),
     async (c) => {
       if (narrowValidation) return validationError(c)
@@ -1619,7 +1639,7 @@ export const api = new Hono<{
       }
 
       const limit = (() => {
-        if (query.q)
+        if (query.objective)
           return {
             key: `query:${identity}` as const,
             max: c.var.session ? 10 : 3,
@@ -1718,8 +1738,8 @@ export const api = new Hono<{
         )
 
       const filteredContent = (() => {
-        if (query.k && query.k.length > 0)
-          return Md.filterSectionsByKeywords(response.content, query.k)
+        if (query.keywords && query.keywords.length > 0)
+          return Md.filterSectionsByKeywords(response.content, query.keywords)
         return response.content
       })()
 
@@ -1727,11 +1747,11 @@ export const api = new Hono<{
       let inputTokens = 0
       let outputTokens = 0
       let excerpt = filteredContent
-      if (query.q) {
+      if (query.objective) {
         try {
           const result = await (async () => {
             const queryCacheKey =
-              `query:${url.href}:${query.q}:${query.k?.join(',') ?? ''}:${query.mode}` as const
+              `query:${url.href}:${query.objective}:${query.keywords?.join(',') ?? ''}:${query.mode}` as const
             const cached = await c.env.KV.get(queryCacheKey)
             if (!query.fresh && cached)
               return { completionTokens: 0, excerpt: cached, promptTokens: 0 }
@@ -1753,7 +1773,7 @@ export const api = new Hono<{
                     { role: 'system', content: Constants.systemPrompt },
                     {
                       role: 'user',
-                      content: `<page_content>\n${chunk}\n</page_content>\n\nObjective: ${query.q}`,
+                      content: `<page_content>\n${chunk}\n</page_content>\n\nObjective: ${query.objective}`,
                     },
                   ],
                 }),
@@ -1792,7 +1812,7 @@ export const api = new Hono<{
       const tokensSaved = estimateTokenCount(response.content) - estimateTokenCount(excerpt)
 
       const costMills = (() => {
-        if (query.q) {
+        if (query.objective) {
           // CF cost in mills: tokens * pricePerMToken / 1000
           const cfCostMills =
             (inputTokens * mode.inputPricePerMToken + outputTokens * mode.outputPricePerMToken) /
@@ -1813,10 +1833,10 @@ export const api = new Hono<{
         cost_mills: costMills,
         hostname: url.hostname,
         id: requestId,
-        keywords: query.k?.join(',') || null,
+        keywords: query.keywords?.join(',') || null,
         markdownTokens: tokensCount,
-        mode: query.q ? query.mode : null,
-        objective: query.q || null,
+        mode: query.objective ? query.mode : null,
+        objective: query.objective || null,
         organization_id: c.var.organization_id,
         path: url.pathname,
         tokens_saved: tokensSaved,

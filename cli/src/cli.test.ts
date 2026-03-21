@@ -454,9 +454,9 @@ describe('auth', () => {
     })
 
     const { output } = await serve(['auth', 'check', '--token', token])
-    expect(output).toContain('Authenticated as')
+    expect(output).toContain('Logged in as')
     expect(output).toContain(account.login)
-    expect(output).toContain('via token')
+    expect(output).toContain('Auth: token')
     expect(output).toContain(token.slice(0, 12))
   })
 
@@ -485,9 +485,8 @@ describe('auth', () => {
     const session = await factory.session.insert({ account_id: account.id })
     Session.write({ session_id: session.id })
 
-    const { exitCode, output } = await serve(['auth', 'login'])
-    expect(exitCode).toBe(1)
-    expect(output).toContain('ALREADY_LOGGED_IN')
+    const { output } = await serve(['auth', 'login'])
+    expect(output).toContain('Already logged in')
   })
 
   test('login - expired device code', async () => {
@@ -663,7 +662,7 @@ describe('auth', () => {
     expect(Session.read()).not.toBeNull()
 
     const { output: checkOutput } = await serve(['auth', 'check'])
-    expect(checkOutput).toContain('Authenticated as')
+    expect(checkOutput).toContain('Logged in as')
   })
 })
 
@@ -1038,6 +1037,23 @@ describe('org', () => {
     expect(switchBackOutput).toContain('Switched to')
   })
 
+  test('list - non-TTY outputs tab-separated values without headers', async () => {
+    const account = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: account.id })
+    Session.write({ session_id: session.id })
+
+    const login = `nontty-org${Nanoid.generate()}`
+    await serve(['org', 'create', login, '--name', 'Test'])
+
+    const { output } = await serve(['org', 'list'])
+    const lines = output.trim().split('\n')
+    // No header row — first line is data
+    expect(lines[0]).toContain('\t')
+    // Should NOT contain table headers
+    expect(output).not.toContain('LOGIN')
+    expect(output).not.toContain('CREATED')
+  })
+
   test('create - invalid login', async () => {
     const account = await factory.account.insert({})
     const session = await factory.session.insert({ account_id: account.id })
@@ -1287,7 +1303,6 @@ describe('org invite', () => {
       Session.write({ session_id: session.id, organization_id: org.id })
 
       const { output } = await serve(['org', 'invite', 'create'])
-      expect(output).toContain('Invite created')
       expect(output).toContain('/invite/')
       expect(output).toContain('member')
       expect(output).toContain('0/')
@@ -1314,12 +1329,33 @@ describe('org invite', () => {
         '--max-uses',
         '5',
       ])
-      expect(output).toContain('Invite created')
       expect(output).toContain('/invite/')
       expect(output).toContain('admin')
       expect(output).toContain('0/5')
       expect(output).toContain('expires')
-      expect(output).toContain('Share this link to invite members.')
+      // callout suppressed in non-TTY
+    })
+
+    test('create - non-TTY outputs tab-delimited summary without callout', async () => {
+      const account = await factory.account.insert({})
+      const session = await factory.session.insert({ account_id: account.id })
+      const org = await factory.organization.insert({})
+      await factory.organization_member.insert({
+        organization_id: org.id,
+        account_id: account.id,
+        role: 'owner',
+      })
+      Session.write({ session_id: session.id, organization_id: org.id })
+
+      const { output } = await serve(['org', 'invite', 'create'])
+      // Summary: tab-delimited key:value
+      expect(output).toContain('url:\t')
+      expect(output).toContain('role:\t')
+      expect(output).toContain('uses:\t')
+      expect(output).toContain('expires:\t')
+      // No callout in non-TTY
+      expect(output).not.toContain('Share this link')
+      expect(output).not.toContain('!')
     })
 
     test('forbidden (regular member)', async () => {
@@ -2010,15 +2046,50 @@ describe('token', () => {
     Session.write({ session_id: session.id })
 
     const { output: createOutput } = await serve(['token', 'create', 'my-token'])
-    expect(createOutput).toContain('Token created')
     expect(createOutput).toContain('my-token')
     expect(createOutput).toContain('curlmd_')
-    expect(createOutput).toContain("Save this token. It won't be shown again.")
+    // callout suppressed in non-TTY
 
     const { output: listOutput } = await serve(['token', 'list'])
     expect(listOutput).toContain('my-token')
     expect(listOutput).toContain('curlmd_')
     expect(listOutput).toContain('never')
+  })
+
+  test('list - non-TTY outputs tab-separated values without headers', async () => {
+    const account = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: account.id })
+    Session.write({ session_id: session.id })
+
+    await serve(['token', 'create', 'pipe-test'])
+
+    const { output } = await serve(['token', 'list'])
+    const lines = output.trim().split('\n')
+    // No header row — first line is data
+    expect(lines[0]).toContain('\t')
+    expect(lines[0]).toContain('pipe-test')
+    expect(lines[0]).toContain('curlmd_')
+    // Should NOT contain table headers
+    expect(output).not.toContain('NAME')
+    expect(output).not.toContain('KEY')
+    expect(output).not.toContain('USED')
+    expect(output).not.toContain('CREATED')
+  })
+
+  test('create - non-TTY outputs tab-delimited summary without callout', async () => {
+    const account = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: account.id })
+    Session.write({ session_id: session.id })
+
+    const { output } = await serve(['token', 'create', 'pipe-create'])
+    // Summary: tab-delimited key:value
+    expect(output).toContain('name:\t')
+    expect(output).toContain('token:\t')
+    expect(output).toContain('pipe-create')
+    expect(output).toContain('curlmd_')
+    // No callout in non-TTY
+    expect(output).not.toContain('Save this token')
+    expect(output).not.toContain('!')
   })
 
   test('list - scopes to active org', async () => {

@@ -19,6 +19,8 @@ import {
   updateStandalone,
 } from './utils.ts'
 
+const aliases = ['md', 'curlmd']
+
 const env = z.object({
   CURLMD_API_KEY: z.string().optional().describe('API key for authentication'),
   CURLMD_BASE_URL: z.string().default('https://curl.md').describe('Base URL'),
@@ -30,8 +32,6 @@ const vars = z.object({
   commands: z.custom<Command[]>(),
   session: z.custom<Session.Data | null>(),
 })
-
-const aliases = ['md', 'curlmd']
 
 const cli = Cli.create('curl.md', {
   aliases,
@@ -135,15 +135,18 @@ const cli = Cli.create('curl.md', {
       })
 
     const keywords = c.options.keywords?.flatMap((k: string) => k.split(','))
+    const spinner = UI.createSpinner('')
     const res = await c.var.client.api[':url{.+}'].$get({
       param: { url: result.data },
       query: {
         fresh: c.options.fresh ? '' : undefined,
-        k: keywords?.join(','),
+        keywords: keywords?.join(','),
         mode: c.options.mode,
-        q: c.options.objective,
+        objective: c.options.objective,
       },
     })
+
+    spinner.stop()
 
     if (res.status === 401) {
       const err = parseApiError(await res.json(), {
@@ -383,8 +386,22 @@ const auth = Cli.create('auth', {
       const res = await c.var.client.api.auth.me.$get()
       const json = await res.json()
       if (!json.account) return expiredSession(c)
-      const suffix = c.var.apiKey ? pc.dim(` (via token ${c.var.apiKey.slice(0, 12)}•••)`) : ''
-      return c.ok(`Authenticated as ${pc.bold(json.account.login)}${suffix}`)
+
+      const authType = c.var.apiKey ? `token (${c.var.apiKey.slice(0, 12)}******)` : 'session'
+
+      const activeOrg = c.var.session?.organization_id
+        ? json.account.organizations.find(
+            (o: { id: string }) => o.id === c.var.session?.organization_id,
+          )
+        : null
+      const orgDisplay = activeOrg ? activeOrg.login : 'none'
+
+      const lines = [
+        UI.success(`Logged in as ${pc.bold(json.account.login)}`),
+        `- Auth: ${pc.bold(authType)}`,
+        `- Organization: ${pc.bold(orgDisplay)}`,
+      ]
+      return c.ok(lines.join('\n'))
     },
   })
   .command('login', {
@@ -396,10 +413,7 @@ const auth = Cli.create('auth', {
         const res = await c.var.client.api.auth.me.$get()
         const json = await res.json()
         if (json.account)
-          return c.error({
-            code: 'ALREADY_LOGGED_IN',
-            message: `Already logged in as ${pc.bold(json.account.login)}`,
-          })
+          return c.ok(UI.warn(`Already logged in as ${pc.bold(json.account.login)}`))
       }
 
       const deviceRes = await c.var.client.api.auth.device.$post()
@@ -416,10 +430,9 @@ const auth = Cli.create('auth', {
       const url = `${device.verification_uri}?user_code=${device.user_code}`
       openUrl(url)
 
-      console.log(pc.bold(`\nConfirmation Code: ${pc.green(device.user_code)}\n`))
-      console.log(
-        `${pc.dim('If something goes wrong, copy and paste this URL into your browser:')}\n${pc.blue(url)}\n`,
-      )
+      console.log(`\n${UI.warn(`Confirmation code: ${pc.bold(pc.green(device.user_code))}`)}\n`)
+      console.log(`  ${pc.dim('If something goes wrong, open this URL:')}`)
+      console.log(`  ${url}\n`)
 
       const spinner = UI.createSpinner('Waiting for authentication')
       const abort = new AbortController()
@@ -488,7 +501,7 @@ const auth = Cli.create('auth', {
           )
           const me = await meRes.json()
           const login = me.account?.login
-          return c.ok(`Logged in${login ? ` as ${pc.bold(login)}` : ''}`)
+          return c.ok(UI.success(`Logged in${login ? ` as ${pc.bold(login)}` : ''}`))
         }
       } catch (error) {
         spinner.stop()
@@ -505,9 +518,12 @@ const auth = Cli.create('auth', {
     output: z.string(),
     format: 'md',
     async run(c) {
-      if (!c.var.session) return c.ok('Already logged out.')
+      if (!c.var.session) return c.ok(UI.warn('Already logged out'))
+      const res = await c.var.client.api.auth.me.$get()
+      const json = await res.json()
+      const login = json.account?.login
       Session.delete()
-      return c.ok('Logged out.')
+      return c.ok(UI.success(`Logged out${login ? ` of ${pc.bold(login)}` : ''}`))
     },
   })
 
@@ -548,7 +564,7 @@ const credits = Cli.create('credits', {
       if (credits.payment_method) {
         while (true) {
           const choice = await UI.select(`Charge $${selectedAmount} to:`, [
-            `${credits.payment_method.brand.charAt(0).toUpperCase() + credits.payment_method.brand.slice(1)} •••• ${credits.payment_method.last4}`,
+            `${credits.payment_method.brand.charAt(0).toUpperCase() + credits.payment_method.brand.slice(1)} **** ${credits.payment_method.last4}`,
             'Select different amount',
             'Add new payment method',
           ])
@@ -770,17 +786,20 @@ const invite = Cli.create('invite', {
       const inv = json.invite
       const uses = inv.max_uses ? `0/${inv.max_uses}` : '0/∞'
       return c.ok(
-        UI.summary(
-          [
-            ['url', pc.bold(inv.url)],
-            ['role', inv.role],
-            ['uses', uses],
-            ['expires', UI.formatDate(new Date(inv.expires_at))],
-          ],
-          'Invite created',
-        ) +
-          '\n\n' +
+        [
+          UI.summary(
+            [
+              ['url', pc.bold(inv.url)],
+              ['role', inv.role],
+              ['uses', uses],
+              ['expires', UI.formatDateShort(new Date(inv.expires_at))],
+            ],
+            UI.success(pc.bold('Invite created')),
+          ),
           UI.callout('Share this link to invite members.'),
+        ]
+          .filter(Boolean)
+          .join('\n\n'),
       )
     },
   })
@@ -817,20 +836,19 @@ const invite = Cli.create('invite', {
         })
 
       const rows = json.invites.map((inv) => {
-        const expiresAt = new Date(inv.expires_at)
-        const expired = expiresAt < new Date()
-        const expiryCol = expired
-          ? `expired ${pc.dim(`(${UI.formatAbsoluteDate(expiresAt)})`)}`
-          : UI.formatDate(expiresAt)
+        const expired = new Date(inv.expires_at) < new Date()
+        const dim = (s: string) => (expired ? pc.dim(s) : s)
         return [
-          inv.token,
-          inv.role,
-          inv.max_uses ? `${inv.use_count}/${inv.max_uses}` : `${inv.use_count}/∞`,
-          expiryCol,
-          UI.formatDate(new Date(inv.created_at)),
+          expired ? pc.dim(inv.token) : pc.green(inv.token),
+          dim(inv.role),
+          dim(inv.max_uses ? `${inv.use_count}/${inv.max_uses}` : `${inv.use_count}/∞`),
+          pc.dim(UI.formatDateShort(new Date(inv.expires_at))),
+          pc.dim(UI.formatDateShort(new Date(inv.created_at))),
         ]
       })
-      return c.ok(UI.table(['token', 'role', 'uses', 'expires', 'created'], rows))
+      return c.ok(
+        UI.table(['token', 'role', 'uses', 'expires', 'created'], rows, { noTruncate: [0, 1] }),
+      )
     },
   })
   .command('revoke', {
@@ -1018,8 +1036,12 @@ const member = Cli.create('member', {
           },
         })
 
-      const rows = json.members.map((m) => [m.login, m.role, UI.formatDate(new Date(m.created_at))])
-      return c.ok(UI.table(['login', 'role', 'joined'], rows))
+      const rows = json.members.map((m) => [
+        pc.green(m.login),
+        m.role,
+        pc.dim(UI.formatDateShort(new Date(m.created_at))),
+      ])
+      return c.ok(UI.table(['login', 'role', 'joined'], rows, { noTruncate: [0, 1] }))
     },
   })
   .command('remove', {
@@ -1369,11 +1391,11 @@ const org = Cli.create('org', {
         })
 
       const rows = json.organizations.map((org) => [
-        org.id === activeId ? `${org.login}${pc.green('*')}` : org.login,
+        org.id === activeId ? pc.green(pc.bold(org.login)) : pc.green(org.login),
         org.name,
-        UI.formatDate(new Date(org.created_at)),
+        pc.dim(UI.formatDateShort(new Date(org.created_at))),
       ])
-      return c.ok(UI.table(['login', 'name', 'created'], rows))
+      return c.ok(UI.table(['login', 'name', 'created'], rows, { noTruncate: [0] }))
     },
   })
   .command('view', {
@@ -1526,15 +1548,18 @@ const token = Cli.create('token', {
 
       const json = await res.json()
       return c.ok(
-        UI.summary(
-          [
-            ['name', json.api_key.name],
-            ['token', pc.green(pc.bold(json.api_key.token))],
-          ],
-          'Token created',
-        ) +
-          '\n\n' +
+        [
+          UI.summary(
+            [
+              ['name', json.api_key.name],
+              ['token', pc.green(pc.bold(json.api_key.token))],
+            ],
+            UI.success(pc.bold('Token created')),
+          ),
           UI.callout("Save this token. It won't be shown again."),
+        ]
+          .filter(Boolean)
+          .join('\n\n'),
       )
     },
   })
@@ -1568,12 +1593,12 @@ const token = Cli.create('token', {
         return new Date(b.last_used_at).getTime() - new Date(a.last_used_at).getTime()
       })
       const rows = json.api_keys.map((key) => [
-        key.name,
-        `${key.key_prefix}•••`,
-        key.last_used_at ? UI.formatDate(new Date(key.last_used_at)) : 'never',
-        UI.formatDate(new Date(key.created_at)),
+        pc.green(key.name),
+        pc.cyan(`${key.key_prefix}******`),
+        pc.dim(key.last_used_at ? UI.formatDateShort(new Date(key.last_used_at)) : 'never'),
+        pc.dim(UI.formatDateShort(new Date(key.created_at))),
       ])
-      return c.ok(UI.table(['name', 'key', 'used', 'created'], rows))
+      return c.ok(UI.table(['name', 'key', 'used', 'created'], rows, { noTruncate: [0, 1] }))
     },
   })
   .command('delete', {
@@ -1644,7 +1669,7 @@ const token = Cli.create('token', {
         const choices = listJson.api_keys.map((k) => {
           const used = k.last_used_at ? UI.formatDate(new Date(k.last_used_at)) : 'never'
           const name = k.name.padEnd(maxName)
-          return `${name}   ${k.key_prefix}•••   ${used}   ${UI.formatDate(new Date(k.created_at))}`
+          return `${name}   ${k.key_prefix}******   ${used}   ${UI.formatDate(new Date(k.created_at))}`
         })
         const doneLabels = listJson.api_keys.map((k) => k.name)
         const index = await UI.select('Delete token:', choices, { doneLabels })
@@ -1718,14 +1743,18 @@ const update = Cli.create('update', {
         message: 'Could not determine latest version.',
       })
     if (!version.startsWith('http') && compareVersions(version, pkg.version) <= 0)
-      return c.ok(`Already up-to-date (${pkg.version}).`)
-    const spinner = UI.createSpinner(`Updating ${c.name} ${pkg.version} → ${version}`)
+      return c.ok(UI.warn(`Already up-to-date (${pc.cyan(pkg.version)})`))
+    const spinner = UI.createSpinner(
+      `Updating ${c.name} ${pc.cyan(pkg.version)} → ${pc.cyan(version)}`,
+    )
     try {
       if (isStandalone()) await updateStandalone(version, aliases)
       else await installGlobal(c.name, version)
       spinner.stop()
+      const url = `https://github.com/wevm/curl.md/releases/tag/${c.name}@${version}`
       return c.ok(
-        `Updated ${c.name}: ${pkg.version} → ${version}\nhttps://github.com/wevm/curl.md/releases/tag/${c.name}@${version}`,
+        UI.success(`Updated ${c.name} ${pc.cyan(pkg.version)} → ${pc.cyan(version)}`) +
+          `\n  ${pc.dim(url)}`,
       )
     } catch (error) {
       spinner.stop()

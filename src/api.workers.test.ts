@@ -501,6 +501,32 @@ describe('GET /api/auth/me', () => {
     })
   })
 
+  test('resolves API key from token query param', async () => {
+    const account = await factory.account.insert({})
+    const org = await factory.organization.insert({})
+    await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: account.id,
+    })
+    const token = ApiKey.generate()
+    const hash = await ApiKey.hash(token)
+    await factory.api_key.insert({
+      organization_id: org.id,
+      account_id: account.id,
+      key_hash: hash,
+      key_prefix: token.slice(0, 14),
+      name: 'query param key',
+    })
+
+    for (const param of ['token', 't']) {
+      const res = await api.request(`/api/auth/me?${param}=${token}`, {}, env)
+      expect(res.status).toBe(200)
+      const json = (await res.json()) as { account: { id: string } | null }
+      expect(json.account).not.toBeNull()
+      expect(json.account!.id).toBe(account.id)
+    }
+  })
+
   test('updates last_used_at on API key use', async () => {
     const account = await factory.account.insert({})
     const org = await factory.organization.insert({})
@@ -1699,6 +1725,38 @@ test('GET /api/:url fetches URL and returns markdown', async () => {
   const text = await res.text()
   expect(text).toContain('Hello')
   expect(text).toContain('World')
+})
+
+test('GET /api/:url supports query param aliases', async () => {
+  server.use(
+    http.get(
+      'https://alias-test.example.com/',
+      () =>
+        new HttpResponse(
+          '<html><body><h1>Introduction</h1><p>Hello</p><h1>Details</h1><p>World</p></body></html>',
+          { headers: { 'content-type': 'text/html' } },
+        ),
+    ),
+  )
+
+  // `k` alias for `keywords`
+  const kRes = await api.request(
+    '/api/alias-test.example.com?k=Introduction',
+    { headers: { 'cf-connecting-ip': '10.0.0.50' } },
+    env,
+  )
+  expect(kRes.status).toBe(200)
+  const kText = await kRes.text()
+  expect(kText).toContain('Hello')
+  expect(kText).not.toContain('World')
+
+  // `o` alias for `objective`
+  const oRes = await api.request(
+    '/api/alias-test.example.com?o=What+is+this+page+about',
+    { headers: { 'cf-connecting-ip': '10.0.0.51' } },
+    env,
+  )
+  expect(oRes.status).toBe(200)
 })
 
 test('GET /api/:url returns fetch rate limit headers', async () => {

@@ -1,63 +1,161 @@
 import pc from 'picocolors'
 import { relativeTime } from './utils.ts'
 
-export function table(headers: string[], rows: string[][]): string {
+export function table(
+  headers: string[],
+  rows: string[][],
+  options?: { noTruncate?: number[] },
+): string {
+  if (!process.stdout.isTTY) return rows.map((row) => row.map(stripAnsi).join('\t')).join('\n')
+
   const allRows = [headers, ...rows]
   const colWidths = headers.map((_, col) =>
     Math.max(...allRows.map((row) => stripAnsi(row[col] ?? '').length)),
   )
+  const naturalWidths = [...colWidths]
 
-  const indent = 0
-  const gap = 3
+  const minWidth = 4
+  const gap = 2
   const termWidth = process.stdout.columns || 80
   const totalGaps = (headers.length - 1) * gap
-  const naturalWidth = indent + colWidths.reduce((a, b) => a + b, 0) + totalGaps
-  const overflow = naturalWidth - termWidth
+  let availableWidth = termWidth - totalGaps
 
-  if (overflow > 0) {
-    let remaining = overflow
-    // Shrink widest columns first, minimum 4 chars (3 for "..." + 1 char)
-    const minWidth = 4
-    const sortedIndices = colWidths
-      .map((w, i) => ({ w, i }))
-      .sort((a, b) => b.w - a.w)
-      .map(({ i }) => i)
+  const noTruncate = new Set(options?.noTruncate ?? [])
+  const locked = new Set<number>()
 
-    for (const idx of sortedIndices) {
-      if (remaining <= 0) break
-      const w = colWidths[idx] ?? 0
-      const shrink = Math.min(remaining, w - minWidth)
-      if (shrink > 0) {
-        colWidths[idx] = w - shrink
-        remaining -= shrink
+  // Pass 1 — Lock noTruncate columns
+  for (const col of noTruncate) {
+    locked.add(col)
+    availableWidth -= colWidths[col] ?? 0
+  }
+
+  // Pass 2 — Lock short columns at natural width
+  let changed = true
+  while (changed) {
+    changed = false
+    const flexCols = colWidths.map((_, i) => i).filter((i) => !locked.has(i))
+    if (flexCols.length === 0) break
+    const fairShare = availableWidth / flexCols.length
+    for (const col of flexCols) {
+      if ((colWidths[col] ?? 0) <= fairShare) {
+        locked.add(col)
+        availableWidth -= colWidths[col] ?? 0
+        changed = true
       }
     }
   }
 
-  const formatRow = (row: string[], dim: boolean) =>
-    `${row
-      .map((cell, i) => {
-        const maxW = colWidths[i] ?? 0
-        const visible = stripAnsi(cell)
-        const truncated = visible.length > maxW ? truncateAnsi(cell, maxW - 3) + '\x1b[0m...' : cell
-        const pad = maxW - stripAnsi(truncated).length
-        const padded = truncated + ' '.repeat(Math.max(0, pad))
-        return dim ? pc.dim(padded) : padded
-      })
-      .join('   ')}`
+  // Pass 3 — Divide remaining equally among flex columns
+  const flexCols = colWidths.map((_, i) => i).filter((i) => !locked.has(i))
+  if (flexCols.length > 0) {
+    const equalShare = Math.max(0, availableWidth / flexCols.length)
+    for (const col of flexCols)
+      colWidths[col] = Math.max(minWidth, Math.min(colWidths[col] ?? 0, Math.floor(equalShare)))
+  }
 
-  return [formatRow(headers, true), ...rows.map((row) => formatRow(row, false))].join('\n')
+  // Pass 4 — Redistribute surplus
+  let surplus = availableWidth - flexCols.reduce((sum, col) => sum + (colWidths[col] ?? 0), 0)
+  for (const col of flexCols) {
+    const natural = naturalWidths[col] ?? 0
+    const assigned = colWidths[col] ?? 0
+    if (assigned < natural && surplus > 0) {
+      const give = Math.min(surplus, natural - assigned)
+      colWidths[col] = assigned + give
+      surplus -= give
+    }
+  }
+
+  // Pass 5 — Clamp total width to terminal
+  let totalWidth = colWidths.reduce((a, b) => a + b, 0) + totalGaps
+  // Shrink flex columns from right, then noTruncate columns from right
+  const shrinkOrder = [...flexCols.reverse(), ...[...noTruncate].reverse()]
+  for (const col of shrinkOrder) {
+    if (totalWidth <= termWidth) break
+    const over = totalWidth - termWidth
+    const w = colWidths[col] ?? 0
+    const shrink = Math.min(over, Math.max(0, w - minWidth))
+    colWidths[col] = w - shrink
+    totalWidth -= shrink
+  }
+
+  // Pass 6 — Collapse dim parentheticals and shrink columns
+  // eslint-disable-next-line no-control-regex
+  const dimParenRegex = / \x1b\[2m\(.*?\)\x1b\[22m$/
+  for (let col = 0; col < headers.length; col++) {
+    const maxW = colWidths[col] ?? 0
+    let canShrink = true
+    let effectiveMax = stripAnsi(headers[col] ?? '').length
+    for (const row of rows) {
+      const cell = row[col] ?? ''
+      const visible = stripAnsi(cell).length
+      if (visible <= maxW) {
+        effectiveMax = Math.max(effectiveMax, visible)
+        continue
+      }
+      const collapsed = cell.replace(dimParenRegex, '')
+      const collapsedLen = stripAnsi(collapsed).length
+      if (collapsedLen > maxW) {
+        canShrink = false
+        break
+      }
+      effectiveMax = Math.max(effectiveMax, collapsedLen)
+    }
+    if (canShrink) colWidths[col] = effectiveMax
+  }
+
+  const formatCell = (cell: string, i: number, isLast: boolean) => {
+    const maxW = colWidths[i] ?? 0
+    const visible = stripAnsi(cell)
+    let fitted = cell
+    if (visible.length > maxW) {
+      // Try dropping dim parenthetical suffix before resorting to "..." truncation
+      // eslint-disable-next-line no-control-regex
+      const collapsed = cell.replace(/ \x1b\[2m\(.*?\)\x1b\[22m$/, '')
+      if (stripAnsi(collapsed).length <= maxW) fitted = collapsed
+      else fitted = truncateAnsi(cell, maxW - 3) + '\x1b[0m...'
+    }
+    if (isLast) return fitted
+    const pad = maxW - stripAnsi(fitted).length
+    return fitted + ' '.repeat(Math.max(0, pad))
+  }
+
+  const headerLine = headers
+    .map((h, i) => {
+      const cell = formatCell(h.toUpperCase(), i, false)
+      return pc.underline(pc.dim(cell))
+    })
+    .join('  ')
+
+  const dataLines = rows.map((row) =>
+    row.map((cell, i) => formatCell(cell, i, i === row.length - 1)).join('  '),
+  )
+
+  return [headerLine, ...dataLines].join('\n')
 }
 
 export function summary(fields: [string, string][], title?: string): string {
+  if (!process.stdout.isTTY)
+    return fields.map(([label, value]) => `${label}:\t${stripAnsi(value)}`).join('\n')
+
   const maxLabel = Math.max(...fields.map(([label]) => label.length))
-  const lines = fields.map(([label, value]) => `${pc.dim(label.padStart(maxLabel))}   ${value}`)
+  const lines = fields.map(
+    ([label, value]) => `${pc.bold(`${label}:`)}${' '.repeat(maxLabel - label.length + 2)}${value}`,
+  )
   if (!title) return lines.join('\n')
-  return [pc.bold(title), '', ...lines].join('\n')
+  return [title, '', ...lines].join('\n')
 }
 
 export function callout(message: string): string {
-  return pc.yellow(message)
+  if (!process.stdout.isTTY) return ''
+  return `${pc.yellow('!')} ${message}`
+}
+
+export function success(message: string): string {
+  return `${pc.green('✓')} ${message}`
+}
+
+export function warn(message: string): string {
+  return `${pc.yellow('!')} ${message}`
 }
 
 export async function confirm(message: string): Promise<boolean> {
@@ -90,6 +188,13 @@ export function formatAbsoluteDate(date: Date): string {
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
+export function formatDateShort(date: Date): string {
+  const rel = relativeTime(date)
+  if (rel === 'now') return 'now'
+  const diffMs = Date.now() - date.getTime()
+  return diffMs >= 0 ? `${rel} ago` : `in ${rel}`
+}
+
 export function formatDate(date: Date): string {
   const rel = relativeTime(date)
   if (rel === 'now') return 'now'
@@ -98,14 +203,15 @@ export function formatDate(date: Date): string {
 
   const diffMs = Date.now() - date.getTime()
   const hours = Math.abs(diffMs) / (1000 * 60 * 60)
+  const qualified = diffMs >= 0 ? `${rel} ago` : `in ${rel}`
 
   if (hours < 24) {
     const hh = String(date.getHours()).padStart(2, '0')
     const mm = String(date.getMinutes()).padStart(2, '0')
-    return `${rel} ${pc.dim(`(${abs} ${hh}:${mm})`)}`
+    return `${qualified} ${pc.dim(`(${abs} ${hh}:${mm})`)}`
   }
 
-  return `${rel} ${pc.dim(`(${abs})`)}`
+  return `${qualified} ${pc.dim(`(${abs})`)}`
 }
 
 const ANSI_CLEAR_LINE = '\x1B[2K'
@@ -114,21 +220,23 @@ const SPINNER_FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', 
 
 export function createSpinner(message: string) {
   if (!process.stderr.isTTY) {
-    process.stderr.write(`${message}\n`)
+    if (message) process.stderr.write(`${message}\n`)
     return { stop() {} }
   }
 
   let frame = 0
+  const suffix = message ? ` ${message}` : ''
+  process.stderr.write('\x1b[?25l')
   const interval = setInterval(() => {
     const symbol = pc.cyan(SPINNER_FRAMES[frame])
-    process.stderr.write(`${ANSI_CURSOR_TO_START}${ANSI_CLEAR_LINE}${symbol} ${message}`)
+    process.stderr.write(`${ANSI_CURSOR_TO_START}${ANSI_CLEAR_LINE}${symbol}${suffix}`)
     frame = (frame + 1) % SPINNER_FRAMES.length
   }, 80).unref()
 
   return {
     stop() {
       clearInterval(interval)
-      process.stderr.write(`${ANSI_CURSOR_TO_START}${ANSI_CLEAR_LINE}`)
+      process.stderr.write(`${ANSI_CURSOR_TO_START}${ANSI_CLEAR_LINE}\x1b[?25h`)
     },
   }
 }
