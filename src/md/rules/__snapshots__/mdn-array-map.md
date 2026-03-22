@@ -268,7 +268,15 @@ You can also use [`Array.from()`](/en-US/docs/Web/JavaScript/Reference/Global_Ob
 
 ## Specifications
 
+| Specification |
+| --- |
+| https://tc39.es/ecma262/multipage/indexed-collections.html#sec-array.prototype.map |
+
 ## Browser compatibility
+
+| | Chrome | Edge | Firefox | Safari | Chrome Android | Safari iOS |
+| --- | --- | --- | --- | --- | --- | --- |
+| map | 1 | 12 | 1.5 | 3 | 1 | 1 |
 
 ## See also
 

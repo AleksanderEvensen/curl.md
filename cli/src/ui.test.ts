@@ -85,10 +85,11 @@ test('table: truncation resets ANSI styles before ellipsis', () => {
   const original = process.stdout.columns
   Object.defineProperty(process.stdout, 'columns', { value: 15, writable: true })
 
-  const styled = `2m ${pc.dim('(Mar 17, 2026 12:41)')}`
+  const styled = `${pc.dim('a long styled cell value')}`
   const result = table(['col'], [[styled]])
   // "..." should not be inside the dim escape sequence
   const ellipsisIdx = result.indexOf('...')
+  expect(ellipsisIdx).toBeGreaterThan(-1)
   const beforeEllipsis = result.slice(0, ellipsisIdx)
   expect(beforeEllipsis).toContain('\x1b[0m')
 

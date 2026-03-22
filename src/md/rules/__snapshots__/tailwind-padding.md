@@ -50,6 +50,7 @@ Utilities for controlling an element's padding.
 | `pl-px` | `padding-left: 1px;` |
 | `pl-(<custom-property>)` | `padding-left: var(<custom-property>);` |
 | `pl-[<value>]` | `padding-left: <value>;` |
+
 ## [Examples](#examples)
 
 ### [Basic example](#basic-example)

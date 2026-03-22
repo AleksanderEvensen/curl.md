@@ -44,6 +44,7 @@ Not sure what this means? [Click here to learn what changesets are](/changesets/
 | `dist/chunk-QPPA67TD.js` | 20.3 kB | +20.3 kB (new file) | 🆕 |
 | `dist/chunk-UOTWIWSE.js` | 1.63 kB | +1.63 kB (new file) | 🆕 |
 | `dist/chunk-Y6DUARPI.js` | 5.56 kB | +5.56 kB (new file) | 🆕 |
+
 ℹ️ **View Unchanged**
 
 | Filename | Size |
@@ -51,5 +52,6 @@ Not sure what this means? [Click here to learn what changesets are](/changesets/
 | `dist/chains.js` | 1.3 kB |
 | `dist/utils/index.js` | 856 B |
 | `dist/window.js` | 67 B |
+
 [compressed-size-action](/preactjs/compressed-size-action)
 </comment>

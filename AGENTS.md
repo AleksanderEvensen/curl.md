@@ -6,7 +6,7 @@ Agent guidance for this repository.
 
 ## Commands
 
-Prefer running these scripts instead of using `npx`.
+Prefer running these scripts instead of using `npx`. Use `pnpm` over `npx` for running binaries.
 
 - `pnpm check` - Lint and format with oxlint + oxfmt
 - `pnpm check:deps` - Check for unused dependencies with Knip (cli/ only)
@@ -14,7 +14,7 @@ Prefer running these scripts instead of using `npx`.
 - `pnpm db:codegen` - Generate database types
 - `pnpm db:migrate latest` - Run database migrations
 - `pnpm gen:fixtures:md:rules` - Re-fetch live sources for `src/md/rules` fixture tests
-  - Run `pnpm test --project app -- src/md/ --update` after to update snapshots
+  - Run `pnpm vitest --config test/vitest.config.ts --project md run src/md/ --update` after to update snapshots
 - `pnpm gen:types` - Generate Cloudflare worker types
 - `pnpm test` - Run tests with Vitest (includes all projects)
 - `pnpm test --project name` - Always try to scope tests to specific projects when possible

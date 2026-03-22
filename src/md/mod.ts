@@ -276,7 +276,7 @@ function normalizeMarkdown(content: string, origin?: string): string {
         match.replace(/\| *(:?)-+(:?) */g, '| $1---$2 '),
       )
       // Strip extra padding from table cells (skip separator rows)
-      .replace(/^(\|.*\|)\s*$/gm, (row) => {
+      .replace(/^(\|.*\|)[^\S\n]*$/gm, (row) => {
         if (/^\|[ :]*-+[ :]*\|/.test(row)) return row
         return row
           .replace(/\|\s*$/g, '|')

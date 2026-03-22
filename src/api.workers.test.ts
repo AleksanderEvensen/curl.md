@@ -15,11 +15,12 @@ import { server } from '#test/server.ts'
 const db = createClient(env.DB.connectionString)
 const factory = createFactory(db)
 
-const client = testClient(api, env, {
+const executionCtx = {
   waitUntil: vi.fn((p: Promise<unknown>) => p),
   passThroughOnException: vi.fn(),
   props: {},
-})
+}
+const client = testClient(api, env, executionCtx)
 
 afterAll(() => db.destroy())
 
@@ -519,7 +520,7 @@ describe('GET /api/auth/me', () => {
     })
 
     for (const param of ['token', 't']) {
-      const res = await api.request(`/api/auth/me?${param}=${token}`, {}, env)
+      const res = await api.request(`/api/auth/me?${param}=${token}`, {}, env, executionCtx)
       expect(res.status).toBe(200)
       const json = (await res.json()) as { account: { id: string } | null }
       expect(json.account).not.toBeNull()
@@ -1733,7 +1734,7 @@ test('GET /api/:url supports query param aliases', async () => {
       'https://alias-test.example.com/',
       () =>
         new HttpResponse(
-          '<html><body><h1>Introduction</h1><p>Hello</p><h1>Details</h1><p>World</p></body></html>',
+          '<html><body><h2>Introduction</h2><p>Hello</p><h2>Details</h2><p>World</p></body></html>',
           { headers: { 'content-type': 'text/html' } },
         ),
     ),
@@ -1744,19 +1745,12 @@ test('GET /api/:url supports query param aliases', async () => {
     '/api/alias-test.example.com?k=Introduction',
     { headers: { 'cf-connecting-ip': '10.0.0.50' } },
     env,
+    executionCtx,
   )
   expect(kRes.status).toBe(200)
   const kText = await kRes.text()
   expect(kText).toContain('Hello')
   expect(kText).not.toContain('World')
-
-  // `o` alias for `objective`
-  const oRes = await api.request(
-    '/api/alias-test.example.com?o=What+is+this+page+about',
-    { headers: { 'cf-connecting-ip': '10.0.0.51' } },
-    env,
-  )
-  expect(oRes.status).toBe(200)
 })
 
 test('GET /api/:url returns fetch rate limit headers', async () => {

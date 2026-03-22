@@ -103,6 +103,133 @@ test('strips Specifications and Compat macros', async () => {
   expect(result.content).toContain('Goodbye')
 })
 
+test('resolves {{Specifications}} to spec table from frontmatter', async () => {
+  const md = create({
+    rules: [mdn()],
+    fetch: async () =>
+      new Response(
+        '---\ntitle: Test\nspec-urls: https://example.spec.whatwg.org/\n---\n\n## Specifications\n\n{{Specifications}}\n\nContent',
+        { status: 200 },
+      ),
+  })
+  const result = await md.fetch('https://developer.mozilla.org/en-US/docs/Web/Test')
+  expect(result.ok).toBe(true)
+  if (!result.ok) return
+  expect(result.content).toContain('| Specification |')
+  expect(result.content).toContain('https://example.spec.whatwg.org/')
+  expect(result.content).not.toContain('{{Specifications}}')
+})
+
+test('resolves {{Specifications}} with multiple spec-urls', async () => {
+  const md = create({
+    rules: [mdn()],
+    fetch: async () =>
+      new Response(
+        '---\ntitle: Test\nspec-urls:\n  - https://a.spec.org/\n  - https://b.spec.org/\n---\n\n{{Specifications}}',
+        { status: 200 },
+      ),
+  })
+  const result = await md.fetch('https://developer.mozilla.org/en-US/docs/Web/Test')
+  expect(result.ok).toBe(true)
+  if (!result.ok) return
+  expect(result.content).toContain('https://a.spec.org/')
+  expect(result.content).toContain('https://b.spec.org/')
+})
+
+test('resolves {{Compat}} to browser compat table', async () => {
+  const rule = mdn()
+  const res = new Response(
+    '---\ntitle: Test\nbrowser-compat: api.Foo\n---\n\n## Browser compatibility\n\n{{Compat}}\n\nContent',
+    { status: 200 },
+  )
+  const originalFetch = globalThis.fetch
+  globalThis.fetch = async (input) => {
+    const url = input instanceof URL ? input.href : typeof input === 'string' ? input : input.url
+    if (url.includes('browser-compat-data'))
+      return new Response(
+        JSON.stringify({
+          api: {
+            Foo: {
+              __compat: {
+                support: {
+                  chrome: { version_added: '90' },
+                  edge: 'mirror',
+                  firefox: { version_added: '88' },
+                  safari: { version_added: false },
+                  chrome_android: 'mirror',
+                  safari_ios: 'mirror',
+                },
+              },
+            },
+          },
+        }),
+        { status: 200 },
+      )
+    return originalFetch(input)
+  }
+  try {
+    const result = await rule.extract!(res)
+    expect(result.content).toContain('| | Chrome |')
+    expect(result.content).toContain('| Foo | 90 |')
+    expect(result.content).toContain('| 88 |')
+    expect(result.content).toContain('| No |')
+    expect(result.content).not.toContain('{{Compat}}')
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('resolves {{Specifications}} from BCD spec_url when no spec-urls in frontmatter', async () => {
+  const rule = mdn()
+  const res = new Response(
+    '---\ntitle: Test\nbrowser-compat: api.Foo\n---\n\n## Specifications\n\n{{Specifications}}\n\n## Browser compatibility\n\n{{Compat}}',
+    { status: 200 },
+  )
+  const originalFetch = globalThis.fetch
+  globalThis.fetch = async (input) => {
+    const url = input instanceof URL ? input.href : typeof input === 'string' ? input : input.url
+    if (url.includes('browser-compat-data'))
+      return new Response(
+        JSON.stringify({
+          api: {
+            Foo: {
+              __compat: {
+                spec_url: 'https://example.spec.org/#foo',
+                support: { chrome: { version_added: '90' } },
+              },
+            },
+          },
+        }),
+        { status: 200 },
+      )
+    return originalFetch(input)
+  }
+  try {
+    const result = await rule.extract!(res)
+    expect(result.content).toContain('| Specification |')
+    expect(result.content).toContain('https://example.spec.org/#foo')
+    expect(result.content).not.toContain('{{Specifications}}')
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('strips {{Compat}} when no browser-compat in frontmatter', async () => {
+  const md = create({
+    rules: [mdn()],
+    fetch: async () =>
+      new Response('---\ntitle: Test\n---\n\nHello\n\n{{Compat}}\n\nGoodbye', {
+        status: 200,
+      }),
+  })
+  const result = await md.fetch('https://developer.mozilla.org/en-US/docs/Web/Test')
+  expect(result.ok).toBe(true)
+  if (!result.ok) return
+  expect(result.content).not.toContain('{{Compat}}')
+  expect(result.content).toContain('Hello')
+  expect(result.content).toContain('Goodbye')
+})
+
 test('converts optional_inline macro to _(optional)_', async () => {
   const md = create({
     rules: [mdn()],
