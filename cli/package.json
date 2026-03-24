@@ -38,8 +38,8 @@
   },
   "dependencies": {
     "hono": "catalog:",
-    "incur": "0.3.9",
-    "picocolors": "^1.1.1"
+    "incur": "0.3.11",
+    "picocolors": "1.1.1"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.8",

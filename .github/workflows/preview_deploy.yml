@@ -277,11 +277,19 @@ jobs:
             PREVIEW="[${APEX}.curl.md](https://${APEX}.curl.md)"
           fi
 
-          BODY=$(printf '%s\n\n%s\n%s\n%s' \
+          PSCALE_URL="https://app.planetscale.com/${{ secrets.PLANETSCALE_ORG }}/${{ secrets.PLANETSCALE_DB }}/branches/${PREVIEW_BRANCH_NAME}"
+          STRIPE_URL="https://dashboard.stripe.com/webhooks/${{ steps.stripe.outputs.id }}"
+
+          BODY=$(printf '%s\n\n%s\n%s\n%s\n\n%s\n\n%s\n%s\n\n%s' \
             "The latest preview deployment for ${SHA_SHORT}" \
             "| Name | Status | Preview | Updated (UTC) |" \
             "| :--- | :----- | :------ | :------------ |" \
-            "| [${APEX}](${DASH_URL}) | ${STATUS} | ${PREVIEW} | ${UPDATED} |")
+            "| [${APEX}](${DASH_URL}) | ${STATUS} | ${PREVIEW} | ${UPDATED} |" \
+            "<details><summary>Services</summary>" \
+            "- [Cloudflare](${DASH_URL})" \
+            "- [PlanetScale](${PSCALE_URL})" \
+            "- [Stripe](${STRIPE_URL})" \
+            "</details>")
 
           COMMENT_ID=$(gh api "repos/${{ github.repository }}/issues/${{ inputs.pr_number }}/comments" --paginate --jq '.[] | select(.body | contains("preview deployment")) | .id' | head -1)
 
