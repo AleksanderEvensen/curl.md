@@ -22,7 +22,7 @@ import {
 const aliases = ['md', 'curlmd']
 
 const env = z.object({
-  CURLMD_API_KEY: z.string().optional().describe('API key for authentication'),
+  CURLMD_API_KEY: z.string().optional().describe('API token for authentication'),
   CURLMD_BASE_URL: z.string().default('https://curl.md').describe('Base URL'),
 })
 
@@ -117,17 +117,17 @@ const cli = Cli.create('curl.md', {
         code: 'INVALID_URL',
         message: `Invalid URL: ${c.args.url}`,
         cta: {
-          description: 'URL must be a valid HTTP(S) address:',
+          description: 'URL must be valid HTTP(S) address:',
           commands: [
             {
               command: c.name,
               args: { url: 'example.com' },
-              description: 'Domain without protocol',
+              description: 'domain without protocol',
             },
             {
               command: c.name,
               args: { url: 'https://example.com/path' },
-              description: 'Full URL with protocol',
+              description: 'full URL with protocol',
             },
             ...c.var.commands,
           ],
@@ -160,7 +160,7 @@ const cli = Cli.create('curl.md', {
           commands: [
             {
               command: `${c.name} token create <name>`,
-              description: 'Create API token',
+              description: 'create API token',
             },
             ...c.var.commands,
           ],
@@ -190,7 +190,7 @@ const cli = Cli.create('curl.md', {
           commands: [
             {
               command: `${c.name} org switch`,
-              description: 'Switch organization',
+              description: 'switch organization',
             },
             ...c.var.commands,
           ],
@@ -216,13 +216,13 @@ const cli = Cli.create('curl.md', {
               ? [
                   {
                     command: `${c.name} credits add`,
-                    description: 'Add credits',
+                    description: 'add credits',
                   },
                 ]
               : [
                   {
                     command: `${c.name} auth login`,
-                    description: 'Log in for higher rate limits',
+                    description: 'log in for higher rate limits',
                   },
                 ]),
             ...c.var.commands,
@@ -243,13 +243,13 @@ const cli = Cli.create('curl.md', {
     if (!c.options.objective && text.length > 10_000)
       return c.ok(text, {
         cta: {
-          description: 'Narrow results with an objective:',
+          description: 'Narrow results with objective:',
           commands: [
             {
               command: c.name,
               args: { url: result.data },
               options: { objective: true },
-              description: 'Focus on a specific topic',
+              description: 'focus on a specific topic',
             },
             ...c.var.commands,
           ],
@@ -338,11 +338,11 @@ function authError(
       commands: [
         {
           command: `${c.name} auth login`,
-          description: 'Log in',
+          description: 'log in with browser',
         },
         {
-          command: `${c.name} auth check --token <token>`,
-          description: 'Use API token instead',
+          command: `${c.name} auth status --token <token>`,
+          description: 'use API token instead',
         },
         ...c.var.commands,
       ],
@@ -362,7 +362,7 @@ function noActiveOrg(
       commands: [
         {
           command: `${c.name} org switch`,
-          description: 'Switch organization',
+          description: 'switch organization',
         },
         ...c.var.commands,
       ],
@@ -371,39 +371,9 @@ function noActiveOrg(
 }
 
 const auth = Cli.create('auth', {
-  description: 'Authenticate with curl.md (check, login, logout)',
+  description: 'Authenticate with curl.md (login, logout, status)',
   vars,
 })
-  .command('check', {
-    description: 'Check authentication status',
-    middleware: [requireAuth],
-    options: z.object({
-      token: z.string().optional().describe('API token to check'),
-    }),
-    output: z.string(),
-    format: 'md',
-    async run(c) {
-      const res = await c.var.client.api.auth.me.$get()
-      const json = await res.json()
-      if (!json.account) return expiredSession(c)
-
-      const authType = c.var.apiKey ? `token (${c.var.apiKey.slice(0, 12)}******)` : 'session'
-
-      const activeOrg = c.var.session?.organization_id
-        ? json.account.organizations.find(
-            (o: { id: string }) => o.id === c.var.session?.organization_id,
-          )
-        : null
-      const orgDisplay = activeOrg ? activeOrg.login : 'none'
-
-      const lines = [
-        UI.success(`Logged in as ${pc.bold(json.account.login)}`),
-        `- Auth: ${pc.bold(authType)}`,
-        `- Organization: ${pc.bold(orgDisplay)}`,
-      ]
-      return c.ok(lines.join('\n'))
-    },
-  })
   .command('login', {
     description: 'Log in with curl.md',
     output: z.string(),
@@ -526,9 +496,39 @@ const auth = Cli.create('auth', {
       return c.ok(UI.success(`Logged out${login ? ` of ${pc.bold(login)}` : ''}`))
     },
   })
+  .command('status', {
+    description: 'Check authentication status',
+    middleware: [requireAuth],
+    options: z.object({
+      token: z.string().optional().describe('API token to check'),
+    }),
+    output: z.string(),
+    format: 'md',
+    async run(c) {
+      const res = await c.var.client.api.auth.me.$get()
+      const json = await res.json()
+      if (!json.account) return expiredSession(c)
+
+      const authType = c.var.apiKey ? `token (${c.var.apiKey.slice(0, 12)}******)` : 'session'
+
+      const activeOrg = c.var.session?.organization_id
+        ? json.account.organizations.find(
+            (o: { id: string }) => o.id === c.var.session?.organization_id,
+          )
+        : null
+      const orgDisplay = activeOrg ? activeOrg.login : 'none'
+
+      const lines = [
+        UI.success(`Logged in as ${pc.bold(json.account.login)}`),
+        `- Auth: ${pc.bold(authType)}`,
+        `- Organization: ${pc.bold(orgDisplay)}`,
+      ]
+      return c.ok(lines.join('\n'))
+    },
+  })
 
 const credits = Cli.create('credits', {
-  description: 'Manage prepaid credits (add, check)',
+  description: 'Manage prepaid credits (add, status)',
   vars,
 })
   .command('add', {
@@ -553,7 +553,7 @@ const credits = Cli.create('credits', {
       const commands = [
         {
           command: `${c.name} credits check`,
-          description: 'Check balance',
+          description: 'check balance',
         },
         ...c.var.commands,
       ]
@@ -579,8 +579,8 @@ const credits = Cli.create('credits', {
               'Amount:',
               values.map(
                 (v) =>
-                  `$${v}`.padEnd(maxLen + 1) +
-                  pc.dim(`(~${(Number(v) * 1000).toLocaleString()} requests)`),
+                  `$${v}`.padEnd(maxLen) +
+                  `  ${pc.dim(`~${(Number(v) * 1000).toLocaleString()} requests`)}`,
               ),
               { doneLabels: values.map((v) => `$${v}`) },
             )
@@ -674,8 +674,8 @@ const credits = Cli.create('credits', {
       return c.ok(result, { cta: { commands } })
     },
   })
-  .command('check', {
-    description: 'Check balance',
+  .command('status', {
+    description: 'Check credits',
     middleware: [requireAuth],
     output: z.string(),
     format: 'md',
@@ -691,12 +691,20 @@ const credits = Cli.create('credits', {
       const json = await res.json()
       const dollars = (json.balance_mills / 1_000).toFixed(3)
       const requests = json.balance_mills.toLocaleString()
-      return c.ok(`${pc.bold(`$${dollars}`)} ${pc.dim(`(~${requests} requests)`)}`, {
+      const lines =
+        json.balance_mills > 0
+          ? [
+              UI.success('Credits active'),
+              `- Balance: ${pc.bold(`$${dollars}`)}`,
+              `- Requests: ${pc.bold(`~${requests}`)}`,
+            ]
+          : [UI.error('No credits')]
+      return c.ok(lines.join('\n'), {
         cta: {
           commands: [
             {
               command: `${c.name} credits add`,
-              description: 'Add credits',
+              description: 'add credits',
             },
             ...c.var.commands,
           ],
@@ -744,7 +752,7 @@ const invite = Cli.create('invite', {
           commands: [
             {
               command: `${c.name} org switch ${json.organization.login}`,
-              description: `Switch to ${json.organization.login}`,
+              description: `switch to ${json.organization.login}`,
             },
             ...c.var.commands,
           ],
@@ -828,7 +836,7 @@ const invite = Cli.create('invite', {
             commands: [
               {
                 command: `${c.name} org invite create`,
-                description: 'Create invite link',
+                description: 'create invite link',
               },
               ...c.var.commands,
             ],
@@ -879,7 +887,7 @@ const invite = Cli.create('invite', {
                 commands: [
                   {
                     command: `${c.name} invite revoke ${inviteId} --force`,
-                    description: 'Force revoke',
+                    description: 'force revoke',
                   },
                   ...c.var.commands,
                 ],
@@ -895,7 +903,7 @@ const invite = Cli.create('invite', {
             message: 'Pass invite token directly in non-interactive mode.',
             cta: {
               commands: [
-                { command: `${c.name} invite revoke <invite>`, description: 'Revoke by token' },
+                { command: `${c.name} invite revoke <invite>`, description: 'revoke by token' },
                 ...c.var.commands,
               ],
             },
@@ -916,11 +924,7 @@ const invite = Cli.create('invite', {
 
         const maxToken = Math.max(...listJson.invites.map((inv) => inv.token.length))
         const choices = listJson.invites.map((inv) => {
-          const expiresAt = new Date(inv.expires_at)
-          const expired = expiresAt < new Date()
-          const uses = inv.max_uses ? `${inv.use_count}/${inv.max_uses}` : `${inv.use_count}/∞`
-          const expiry = expired ? 'expired' : UI.formatDate(expiresAt)
-          return `${inv.token.padEnd(maxToken)}   ${inv.role}   ${uses}   ${expiry}   ${UI.formatDate(new Date(inv.created_at))}`
+          return `${inv.token.padEnd(maxToken)}  ${pc.dim(inv.role)}`
         })
         const doneLabels = listJson.invites.map((inv) => inv.token)
         const index = await UI.select('Revoke invite:', choices, { doneLabels })
@@ -1029,7 +1033,7 @@ const member = Cli.create('member', {
             commands: [
               {
                 command: `${c.name} org member add <login>`,
-                description: 'Add member',
+                description: 'add member',
               },
               ...c.var.commands,
             ],
@@ -1095,7 +1099,7 @@ const member = Cli.create('member', {
                 commands: [
                   {
                     command: `${c.name} member remove ${login} --force`,
-                    description: 'Force remove',
+                    description: 'force remove',
                   },
                   ...c.var.commands,
                 ],
@@ -1111,17 +1115,14 @@ const member = Cli.create('member', {
             message: 'Pass member login directly in non-interactive mode.',
             cta: {
               commands: [
-                { command: `${c.name} member remove <login>`, description: 'Remove by login' },
+                { command: `${c.name} member remove <login>`, description: 'remove by login' },
                 ...c.var.commands,
               ],
             },
           })
         const maxLogin = Math.max(...listJson.members.map((m) => m.login.length))
-        const maxRole = Math.max(...listJson.members.map((m) => m.role.length))
         const choices = listJson.members.map((m) => {
-          const login = m.login.padEnd(maxLogin)
-          const role = m.role.padEnd(maxRole)
-          return `${login}   ${role}   ${UI.formatDate(new Date(m.created_at))}`
+          return `${m.login.padEnd(maxLogin)}  ${pc.dim(m.role)}`
         })
         const doneLabels = listJson.members.map((m) => m.login)
         const index = await UI.select('Remove member:', choices, { doneLabels })
@@ -1213,18 +1214,15 @@ const member = Cli.create('member', {
               commands: [
                 {
                   command: `${c.name} member role <login> --role <role>`,
-                  description: 'Change role',
+                  description: 'change role',
                 },
                 ...c.var.commands,
               ],
             },
           })
         const maxLogin = Math.max(...listJson.members.map((m) => m.login.length))
-        const maxRole = Math.max(...listJson.members.map((m) => m.role.length))
         const choices = listJson.members.map((m) => {
-          const login = m.login.padEnd(maxLogin)
-          const role = m.role.padEnd(maxRole)
-          return `${login}   ${role}   ${UI.formatDate(new Date(m.created_at))}`
+          return `${m.login.padEnd(maxLogin)}  ${pc.dim(m.role)}`
         })
         const doneLabels = listJson.members.map((m) => m.login)
         const index = await UI.select('Change role for:', choices, { doneLabels })
@@ -1248,13 +1246,9 @@ const member = Cli.create('member', {
       let role = c.options.role
       if (!role) {
         const roles = ['member', 'admin'] as const
-        const roleChoices = roles.map((r) => (r === match.role ? `${r} ${pc.dim('(current)')}` : r))
+        const roleChoices = roles.map((r) => (r === match.role ? `${r}  ${pc.dim('current')}` : r))
         const roleIndex = await UI.select('New role:', roleChoices, { doneLabels: [...roles] })
-        if (roleIndex === -1)
-          return c.error({
-            code: 'INVALID_SELECTION',
-            message: 'Selection cancelled.',
-          })
+        if (roleIndex === -1) return c.ok('Cancelled.')
         role = roles[roleIndex]
         if (!role)
           return c.error({
@@ -1274,7 +1268,7 @@ const member = Cli.create('member', {
               commands: [
                 {
                   command: `${c.name} member role ${login} --role ${role} --force`,
-                  description: 'Force role change',
+                  description: 'force role change',
                 },
                 ...c.var.commands,
               ],
@@ -1344,15 +1338,15 @@ const org = Cli.create('org', {
           commands: [
             {
               command: `${c.name} org switch ${json.login}`,
-              description: `Switch to organization`,
+              description: `switch to organization`,
             },
             {
               command: `${c.name} org invite create <login>`,
-              description: 'Create invite link',
+              description: 'create invite link',
             },
             {
               command: `${c.name} org member add <login>`,
-              description: 'Add member',
+              description: 'add member',
             },
             ...c.var.commands,
           ],
@@ -1383,7 +1377,7 @@ const org = Cli.create('org', {
             commands: [
               {
                 command: `${c.name} org create <login>`,
-                description: 'Create organization',
+                description: 'create organization',
               },
               ...c.var.commands,
             ],
@@ -1420,11 +1414,11 @@ const org = Cli.create('org', {
               hasOrgs
                 ? {
                     command: `${c.name} org switch`,
-                    description: 'Switch organization',
+                    description: 'switch organization',
                   }
                 : {
                     command: `${c.name} org create <login>`,
-                    description: 'Create organization',
+                    description: 'create organization',
                   },
               ...c.var.commands,
             ],
@@ -1484,6 +1478,7 @@ const org = Cli.create('org', {
         return c.ok(`Switched to ${pc.bold(match.login)}`)
       }
 
+      const currentOrgId = c.var.session?.organization_id
       const choices = [
         ...orgsJson.organizations.map((o) => ({
           label: o.login,
@@ -1495,15 +1490,19 @@ const org = Cli.create('org', {
         },
       ]
 
+      const labels = choices.map((c) => c.label)
+      const maxLabel = Math.max(...choices.map((c) => c.label.length))
       const index = await UI.select(
         'Switch to:',
-        choices.map((c) => c.label),
+        choices.map((c) => {
+          const isPersonal = !c.id
+          const isCurrent = c.id === currentOrgId && !isPersonal
+          const suffix = isPersonal ? pc.dim('account') : isCurrent ? pc.dim('current') : ''
+          return suffix ? `${c.label.padEnd(maxLabel)}  ${suffix}` : c.label
+        }),
+        { doneLabels: labels },
       )
-      if (index === -1)
-        return c.error({
-          code: 'INVALID_SELECTION',
-          message: 'Selection cancelled.',
-        })
+      if (index === -1) return c.ok('Cancelled.')
 
       const selected = choices[index]
       if (!selected)
@@ -1579,7 +1578,7 @@ const token = Cli.create('token', {
             commands: [
               {
                 command: `${c.name} token create <name>`,
-                description: 'Create API token',
+                description: 'create API token',
               },
               ...c.var.commands,
             ],
@@ -1638,7 +1637,7 @@ const token = Cli.create('token', {
                 commands: [
                   {
                     command: `${c.name} token delete ${match.name} --force`,
-                    description: 'Force delete',
+                    description: 'force delete',
                   },
                   ...c.var.commands,
                 ],
@@ -1654,7 +1653,7 @@ const token = Cli.create('token', {
             message: 'Pass token name directly in non-interactive mode.',
             cta: {
               commands: [
-                { command: `${c.name} token delete <name>`, description: 'Delete by name' },
+                { command: `${c.name} token delete <name>`, description: 'delete by name' },
                 ...c.var.commands,
               ],
             },
@@ -1667,9 +1666,7 @@ const token = Cli.create('token', {
         })
         const maxName = Math.max(...listJson.api_keys.map((k) => k.name.length))
         const choices = listJson.api_keys.map((k) => {
-          const used = k.last_used_at ? UI.formatDate(new Date(k.last_used_at)) : 'never'
-          const name = k.name.padEnd(maxName)
-          return `${name}   ${k.key_prefix}******   ${used}   ${UI.formatDate(new Date(k.created_at))}`
+          return `${k.name.padEnd(maxName)}  ${pc.dim(`${k.key_prefix}******`)}`
         })
         const doneLabels = listJson.api_keys.map((k) => k.name)
         const index = await UI.select('Delete token:', choices, { doneLabels })

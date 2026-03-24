@@ -11,14 +11,12 @@
     "build": "vite build",
     "build:cli": "pnpm --filter curl.md build",
     "check": "oxlint ${CI:+--deny-warnings} && oxfmt",
-    "check:deps": "knip -c config/knip.json",
     "check:types": "tsgo -b && pnpm -r check:types",
     "db": "docker exec -it curl-db psql -U postgres -d curl_dev",
     "db:command": "docker exec curl-db psql -U postgres -d curl_dev -c",
     "db:codegen": "node --experimental-strip-types scripts/dbCodegen.ts",
     "db:make": "kysely --config=config/kysely.config.ts migrate make",
     "db:migrate": "kysely --config=config/kysely.config.ts migrate",
-    "deploy": "pnpm run build && wrangler deploy",
     "deps": "pnpx taze -r --no-ignore-other-workspaces --ignore-paths node_modules",
     "deps:ci": "pnpx actions-up --dir .github",
     "dev": "vite dev --port 3000",
@@ -28,7 +26,8 @@
     "preinstall": "pnpx only-allow pnpm",
     "prepare": "pnpm gen:types && simple-git-hooks",
     "preview": "pnpm run build && vite preview",
-    "test": "vitest --config test/vitest.config.ts"
+    "test": "vitest --config test/vitest.config.ts",
+    "test:e2e": "playwright test --config test/playwright.config.ts"
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.29.1",
@@ -66,6 +65,7 @@
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "~0.13.2",
     "@iconify/json": "^2.2.344",
+    "@playwright/test": "^1.58.2",
     "@svgr/core": "^8.1.0",
     "@svgr/plugin-jsx": "^8.1.0",
     "@tailwindcss/vite": "^4.2.2",
@@ -76,12 +76,14 @@
     "@types/react-dom": "^19.2.0",
     "@typescript/native-preview": "7.0.0-dev.20260318.1",
     "@vitejs/plugin-react": "^5.2.0",
+    "emulate": "0.2.0",
     "knip": "^5.85.0",
     "kysely-ctl": "~0.20.0",
     "lint-staged": "^16.1.0",
     "msw": "^2.7.0",
     "oxfmt": "^0.40.0",
     "oxlint": "1.31.0",
+    "playwright": "^1.58.2",
     "simple-git-hooks": "^2.13.1",
     "tailwindcss": "^4.2.2",
     "testcontainers": "^11.13.0",
@@ -97,7 +99,8 @@
   },
   "lint-staged": {
     "*": "oxfmt --no-error-on-unmatched-pattern",
-    "*.{js,jsx,ts,tsx,mjs,cjs}": "oxlint"
+    "*.{js,jsx,ts,tsx,mjs,cjs}": "oxlint",
+    "*.{ts,tsx}": "bash -c 'pnpm check:types'"
   },
   "devEngines": {
     "runtime": {

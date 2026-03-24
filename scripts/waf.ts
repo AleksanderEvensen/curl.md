@@ -1,5 +1,5 @@
 // Deploys Cloudflare WAF custom rules to block bot-probed file extensions and paths.
-// Run: pnpm node --experimental-strip-types scripts/wafRules.ts
+// Run: pnpm node --experimental-strip-types scripts/waf.ts
 
 import { z } from 'zod'
 
@@ -14,8 +14,6 @@ const extensions = [
   '.env',
   '.eot',
   '.gif',
-  '.htm',
-  '.html',
   '.ico',
   '.jpeg',
   '.jpg',

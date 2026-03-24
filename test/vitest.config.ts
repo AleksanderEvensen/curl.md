@@ -7,6 +7,7 @@ const root = path.resolve(import.meta.dirname, '..')
 
 export default defineConfig({
   test: {
+    reporters: process.env.CI ? ['default', 'github-actions'] : ['default'],
     projects: [
       {
         test: {
@@ -19,7 +20,7 @@ export default defineConfig({
       {
         test: {
           name: 'cli',
-          globalSetup: ['cli/test/globalSetup.ts'],
+          globalSetup: ['cli/test/global.setup.ts'],
           setupFiles: ['cli/test/setup.ts'],
           hookTimeout: 60_000,
           include: ['cli/src/**/*.test.ts'],
@@ -64,7 +65,7 @@ export default defineConfig({
           name: 'workers',
           include: ['src/**/*.workers.test.ts'],
           root,
-          globalSetup: ['test/workers.globalSetup.ts'],
+          globalSetup: ['test/workers.global.setup.ts'],
           setupFiles: ['test/workers.setup.ts'],
         },
       },

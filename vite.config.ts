@@ -9,6 +9,7 @@ import icons from 'unplugin-icons/vite'
 import { defineConfig } from 'vite'
 import { getWranglerVar } from './config/wrangler.ts'
 import { createClient } from './db/client.ts'
+import { Env } from './test/env.ts'
 
 export default defineConfig(async () => ({
   server: {
@@ -30,16 +31,18 @@ export default defineConfig(async () => ({
     tailwindcss(),
     cloudflare({
       viteEnvironment: { name: 'ssr' },
-      // Override localConnectionString for CLI tests (testcontainers uses a random port)
-      ...(process.env.DB_URL && process.env.VITEST
+      // Override bindings for tests (testcontainers DB, emulate GitHub)
+      ...(process.env.VITEST || process.env.TEST
         ? {
+            remoteBindings: false,
             config(config) {
+              const parsed = Env.parse(process.env)
+              const DB_URL = parsed.DB_URL
               config.hyperdrive = config.hyperdrive?.map((h) => ({
                 ...h,
-                ...(process.env.DB_URL && {
-                  localConnectionString: process.env.DB_URL,
-                }),
+                localConnectionString: DB_URL,
               }))
+              config.vars = { ...config.vars, ...parsed }
             },
           }
         : {}),

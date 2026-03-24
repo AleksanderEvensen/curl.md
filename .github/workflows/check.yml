@@ -23,9 +23,9 @@ jobs:
           POSTGRES_PASSWORD: postgres
         options: >-
           --health-cmd pg_isready
-          --health-interval 10s
+          --health-interval 2s
           --health-retries 5
-          --health-timeout 5s
+          --health-timeout 2s
         ports: ['5432:5432']
     steps:
       - name: Checkout
@@ -38,9 +38,6 @@ jobs:
 
       - name: Audit dependencies
         run: pnpm audit
-
-      - name: Shellcheck
-        run: shellcheck public/install.sh
 
       - name: Lint
         run: pnpm check
@@ -77,10 +74,66 @@ jobs:
         run: pnpm check:types
 
       - name: Test
-        run: pnpm test --project app --project md --project cli --project workers
+        run: pnpm test --project app --project md --project workers
 
       - name: Build
         run: pnpm build
 
-      - name: Build CLI
+  cli:
+    name: CLI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup
+        uses: ./.github/actions/setup-pnpm
+
+      - name: Check dependencies
+        run: pnpm --filter curl.md check:deps
+
+      - name: Shellcheck
+        run: shellcheck public/install.sh
+
+      - name: Test
+        run: pnpm test --project cli
+
+      - name: Build
         run: pnpm build:cli
+
+  e2e:
+    name: E2E
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup
+        uses: ./.github/actions/setup-pnpm
+
+      - name: Cache Playwright
+        id: playwright-cache
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Install Playwright
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        run: pnpm test:e2e
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: test/test-results/
+          if-no-files-found: ignore
+          retention-days: 30
