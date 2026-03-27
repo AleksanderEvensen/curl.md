@@ -16,12 +16,12 @@ test('login via GitHub OAuth', async ({ page }) => {
 
   // Should redirect back to the app at /{login}
   await page.waitForURL('/testuser')
-  await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible()
+  await expect(page.getByText('Credits Remaining')).toBeVisible()
 
   // Visiting /login while authenticated should redirect to dashboard
   await page.goto('/login')
   await page.waitForURL('/testuser')
-  await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible()
+  await expect(page.getByText('Credits Remaining')).toBeVisible()
 })
 
 test('error page displays error and description', async ({ page }) => {

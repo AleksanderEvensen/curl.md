@@ -12,6 +12,7 @@ declare global {
   const IconLucideFingerprint: typeof import('~icons/lucide/fingerprint.jsx').default
   const IconLucideKey: typeof import('~icons/lucide/key.jsx').default
   const IconLucideLayoutDashboard: typeof import('~icons/lucide/layout-dashboard.jsx').default
+  const IconLucideLogOut: typeof import('~icons/lucide/log-out.jsx').default
   const IconLucideMonitor: typeof import('~icons/lucide/monitor.jsx').default
   const IconLucideMoon: typeof import('~icons/lucide/moon.jsx').default
   const IconLucideSettings: typeof import('~icons/lucide/settings.jsx').default

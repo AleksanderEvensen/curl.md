@@ -18,12 +18,7 @@ import { Route as AuthErrorRouteImport } from './routes/auth/error'
 import { Route as AuthDeviceRouteImport } from './routes/auth/device'
 import { Route as Char126dashLoginRouteRouteImport } from './routes/~dash.$login/route'
 import { Route as Char126dashLoginIndexRouteImport } from './routes/~dash.$login/index'
-import { Route as Char126dashLoginRequestsRouteImport } from './routes/~dash.$login/requests'
 import { Route as CreditsAddIdRouteImport } from './routes/credits.add.$id'
-import { Route as Char126dashLoginSettingsTokensRouteImport } from './routes/~dash.$login/settings.tokens'
-import { Route as Char126dashLoginSettingsMembersRouteImport } from './routes/~dash.$login/settings.members'
-import { Route as Char126dashLoginSettingsGeneralRouteImport } from './routes/~dash.$login/settings.general'
-import { Route as Char126dashLoginSettingsBillingRouteImport } from './routes/~dash.$login/settings.billing'
 
 const PlaygroundRoute = PlaygroundRouteImport.update({
   id: '/playground',
@@ -70,41 +65,11 @@ const Char126dashLoginIndexRoute = Char126dashLoginIndexRouteImport.update({
   path: '/',
   getParentRoute: () => Char126dashLoginRouteRoute,
 } as any)
-const Char126dashLoginRequestsRoute =
-  Char126dashLoginRequestsRouteImport.update({
-    id: '/requests',
-    path: '/requests',
-    getParentRoute: () => Char126dashLoginRouteRoute,
-  } as any)
 const CreditsAddIdRoute = CreditsAddIdRouteImport.update({
   id: '/credits/add/$id',
   path: '/credits/add/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
-const Char126dashLoginSettingsTokensRoute =
-  Char126dashLoginSettingsTokensRouteImport.update({
-    id: '/settings/tokens',
-    path: '/settings/tokens',
-    getParentRoute: () => Char126dashLoginRouteRoute,
-  } as any)
-const Char126dashLoginSettingsMembersRoute =
-  Char126dashLoginSettingsMembersRouteImport.update({
-    id: '/settings/members',
-    path: '/settings/members',
-    getParentRoute: () => Char126dashLoginRouteRoute,
-  } as any)
-const Char126dashLoginSettingsGeneralRoute =
-  Char126dashLoginSettingsGeneralRouteImport.update({
-    id: '/settings/general',
-    path: '/settings/general',
-    getParentRoute: () => Char126dashLoginRouteRoute,
-  } as any)
-const Char126dashLoginSettingsBillingRoute =
-  Char126dashLoginSettingsBillingRouteImport.update({
-    id: '/settings/billing',
-    path: '/settings/billing',
-    getParentRoute: () => Char126dashLoginRouteRoute,
-  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -116,12 +81,7 @@ export interface FileRoutesByFullPath {
   '/auth/error': typeof AuthErrorRoute
   '/invite/$token': typeof InviteTokenRoute
   '/credits/add/$id': typeof CreditsAddIdRoute
-  '/~dash/$login/requests': typeof Char126dashLoginRequestsRoute
   '/~dash/$login/': typeof Char126dashLoginIndexRoute
-  '/~dash/$login/settings/billing': typeof Char126dashLoginSettingsBillingRoute
-  '/~dash/$login/settings/general': typeof Char126dashLoginSettingsGeneralRoute
-  '/~dash/$login/settings/members': typeof Char126dashLoginSettingsMembersRoute
-  '/~dash/$login/settings/tokens': typeof Char126dashLoginSettingsTokensRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -132,12 +92,7 @@ export interface FileRoutesByTo {
   '/auth/error': typeof AuthErrorRoute
   '/invite/$token': typeof InviteTokenRoute
   '/credits/add/$id': typeof CreditsAddIdRoute
-  '/~dash/$login/requests': typeof Char126dashLoginRequestsRoute
   '/~dash/$login': typeof Char126dashLoginIndexRoute
-  '/~dash/$login/settings/billing': typeof Char126dashLoginSettingsBillingRoute
-  '/~dash/$login/settings/general': typeof Char126dashLoginSettingsGeneralRoute
-  '/~dash/$login/settings/members': typeof Char126dashLoginSettingsMembersRoute
-  '/~dash/$login/settings/tokens': typeof Char126dashLoginSettingsTokensRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -150,12 +105,7 @@ export interface FileRoutesById {
   '/auth/error': typeof AuthErrorRoute
   '/invite/$token': typeof InviteTokenRoute
   '/credits/add/$id': typeof CreditsAddIdRoute
-  '/~dash/$login/requests': typeof Char126dashLoginRequestsRoute
   '/~dash/$login/': typeof Char126dashLoginIndexRoute
-  '/~dash/$login/settings/billing': typeof Char126dashLoginSettingsBillingRoute
-  '/~dash/$login/settings/general': typeof Char126dashLoginSettingsGeneralRoute
-  '/~dash/$login/settings/members': typeof Char126dashLoginSettingsMembersRoute
-  '/~dash/$login/settings/tokens': typeof Char126dashLoginSettingsTokensRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -169,12 +119,7 @@ export interface FileRouteTypes {
     | '/auth/error'
     | '/invite/$token'
     | '/credits/add/$id'
-    | '/~dash/$login/requests'
     | '/~dash/$login/'
-    | '/~dash/$login/settings/billing'
-    | '/~dash/$login/settings/general'
-    | '/~dash/$login/settings/members'
-    | '/~dash/$login/settings/tokens'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -185,12 +130,7 @@ export interface FileRouteTypes {
     | '/auth/error'
     | '/invite/$token'
     | '/credits/add/$id'
-    | '/~dash/$login/requests'
     | '/~dash/$login'
-    | '/~dash/$login/settings/billing'
-    | '/~dash/$login/settings/general'
-    | '/~dash/$login/settings/members'
-    | '/~dash/$login/settings/tokens'
   id:
     | '__root__'
     | '/'
@@ -202,12 +142,7 @@ export interface FileRouteTypes {
     | '/auth/error'
     | '/invite/$token'
     | '/credits/add/$id'
-    | '/~dash/$login/requests'
     | '/~dash/$login/'
-    | '/~dash/$login/settings/billing'
-    | '/~dash/$login/settings/general'
-    | '/~dash/$login/settings/members'
-    | '/~dash/$login/settings/tokens'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -287,13 +222,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char126dashLoginIndexRouteImport
       parentRoute: typeof Char126dashLoginRouteRoute
     }
-    '/~dash/$login/requests': {
-      id: '/~dash/$login/requests'
-      path: '/requests'
-      fullPath: '/~dash/$login/requests'
-      preLoaderRoute: typeof Char126dashLoginRequestsRouteImport
-      parentRoute: typeof Char126dashLoginRouteRoute
-    }
     '/credits/add/$id': {
       id: '/credits/add/$id'
       path: '/credits/add/$id'
@@ -301,53 +229,15 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CreditsAddIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/~dash/$login/settings/tokens': {
-      id: '/~dash/$login/settings/tokens'
-      path: '/settings/tokens'
-      fullPath: '/~dash/$login/settings/tokens'
-      preLoaderRoute: typeof Char126dashLoginSettingsTokensRouteImport
-      parentRoute: typeof Char126dashLoginRouteRoute
-    }
-    '/~dash/$login/settings/members': {
-      id: '/~dash/$login/settings/members'
-      path: '/settings/members'
-      fullPath: '/~dash/$login/settings/members'
-      preLoaderRoute: typeof Char126dashLoginSettingsMembersRouteImport
-      parentRoute: typeof Char126dashLoginRouteRoute
-    }
-    '/~dash/$login/settings/general': {
-      id: '/~dash/$login/settings/general'
-      path: '/settings/general'
-      fullPath: '/~dash/$login/settings/general'
-      preLoaderRoute: typeof Char126dashLoginSettingsGeneralRouteImport
-      parentRoute: typeof Char126dashLoginRouteRoute
-    }
-    '/~dash/$login/settings/billing': {
-      id: '/~dash/$login/settings/billing'
-      path: '/settings/billing'
-      fullPath: '/~dash/$login/settings/billing'
-      preLoaderRoute: typeof Char126dashLoginSettingsBillingRouteImport
-      parentRoute: typeof Char126dashLoginRouteRoute
-    }
   }
 }
 
 interface Char126dashLoginRouteRouteChildren {
-  Char126dashLoginRequestsRoute: typeof Char126dashLoginRequestsRoute
   Char126dashLoginIndexRoute: typeof Char126dashLoginIndexRoute
-  Char126dashLoginSettingsBillingRoute: typeof Char126dashLoginSettingsBillingRoute
-  Char126dashLoginSettingsGeneralRoute: typeof Char126dashLoginSettingsGeneralRoute
-  Char126dashLoginSettingsMembersRoute: typeof Char126dashLoginSettingsMembersRoute
-  Char126dashLoginSettingsTokensRoute: typeof Char126dashLoginSettingsTokensRoute
 }
 
 const Char126dashLoginRouteRouteChildren: Char126dashLoginRouteRouteChildren = {
-  Char126dashLoginRequestsRoute: Char126dashLoginRequestsRoute,
   Char126dashLoginIndexRoute: Char126dashLoginIndexRoute,
-  Char126dashLoginSettingsBillingRoute: Char126dashLoginSettingsBillingRoute,
-  Char126dashLoginSettingsGeneralRoute: Char126dashLoginSettingsGeneralRoute,
-  Char126dashLoginSettingsMembersRoute: Char126dashLoginSettingsMembersRoute,
-  Char126dashLoginSettingsTokensRoute: Char126dashLoginSettingsTokensRoute,
 }
 
 const Char126dashLoginRouteRouteWithChildren =

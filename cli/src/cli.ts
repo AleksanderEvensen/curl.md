@@ -120,12 +120,12 @@ const cli = Cli.create('curl.md', {
           description: 'URL must be valid HTTP(S) address:',
           commands: [
             {
-              command: c.name,
+              command: c.displayName,
               args: { url: 'example.com' },
               description: 'domain without protocol',
             },
             {
-              command: c.name,
+              command: c.displayName,
               args: { url: 'https://example.com/path' },
               description: 'full URL with protocol',
             },
@@ -159,7 +159,7 @@ const cli = Cli.create('curl.md', {
           description: 'Create API token:',
           commands: [
             {
-              command: `${c.name} token create <name>`,
+              command: `${c.displayName} token create <name>`,
               description: 'create API token',
             },
             ...c.var.commands,
@@ -189,7 +189,7 @@ const cli = Cli.create('curl.md', {
           description: 'Switch organization:',
           commands: [
             {
-              command: `${c.name} org switch`,
+              command: `${c.displayName} org switch`,
               description: 'switch organization',
             },
             ...c.var.commands,
@@ -215,13 +215,13 @@ const cli = Cli.create('curl.md', {
             ...(c.var.session
               ? [
                   {
-                    command: `${c.name} credits add`,
+                    command: `${c.displayName} credits add`,
                     description: 'add credits',
                   },
                 ]
               : [
                   {
-                    command: `${c.name} auth login`,
+                    command: `${c.displayName} auth login`,
                     description: 'log in for higher rate limits',
                   },
                 ]),
@@ -246,7 +246,7 @@ const cli = Cli.create('curl.md', {
           description: 'Narrow results with objective:',
           commands: [
             {
-              command: c.name,
+              command: c.displayName,
               args: { url: result.data },
               options: { objective: true },
               description: 'focus on a specific topic',
@@ -304,7 +304,7 @@ cli.use((c, next) => {
       const ago = relativeTime(new Date(cache.released_at))
       if (ago) description += ` (released ${ago})`
     }
-    commands.push({ command: `${c.name} update`, description })
+    commands.push({ command: `${c.displayName} update`, description })
   }
   c.set('commands', commands)
 
@@ -317,7 +317,7 @@ const requireAuth = middleware<typeof vars>((c, next) => {
 })
 
 function expiredSession(
-  c: Pick<MiddlewareContext, 'error' | 'name'> & {
+  c: Pick<MiddlewareContext, 'displayName' | 'error'> & {
     var: { commands: Command[] }
   },
 ) {
@@ -326,7 +326,7 @@ function expiredSession(
 }
 
 function authError(
-  c: Pick<MiddlewareContext, 'error' | 'name'> & {
+  c: Pick<MiddlewareContext, 'displayName' | 'error'> & {
     var: { commands: Command[] }
   },
 ) {
@@ -337,11 +337,11 @@ function authError(
       description: 'Authenticate:',
       commands: [
         {
-          command: `${c.name} auth login`,
+          command: `${c.displayName} auth login`,
           description: 'log in with browser',
         },
         {
-          command: `${c.name} auth status --token <token>`,
+          command: `${c.displayName} auth status --token <token>`,
           description: 'use API token instead',
         },
         ...c.var.commands,
@@ -351,7 +351,7 @@ function authError(
 }
 
 function noActiveOrg(
-  c: Pick<MiddlewareContext, 'error' | 'name'> & {
+  c: Pick<MiddlewareContext, 'displayName' | 'error'> & {
     var: { commands: Command[] }
   },
 ) {
@@ -361,7 +361,7 @@ function noActiveOrg(
     cta: {
       commands: [
         {
-          command: `${c.name} org switch`,
+          command: `${c.displayName} org switch`,
           description: 'switch organization',
         },
         ...c.var.commands,
@@ -552,7 +552,7 @@ const credits = Cli.create('credits', {
 
       const commands = [
         {
-          command: `${c.name} credits check`,
+          command: `${c.displayName} credits check`,
           description: 'check balance',
         },
         ...c.var.commands,
@@ -703,7 +703,7 @@ const credits = Cli.create('credits', {
         cta: {
           commands: [
             {
-              command: `${c.name} credits add`,
+              command: `${c.displayName} credits add`,
               description: 'add credits',
             },
             ...c.var.commands,
@@ -751,7 +751,7 @@ const invite = Cli.create('invite', {
         cta: {
           commands: [
             {
-              command: `${c.name} org switch ${json.organization.login}`,
+              command: `${c.displayName} org switch ${json.organization.login}`,
               description: `switch to ${json.organization.login}`,
             },
             ...c.var.commands,
@@ -835,7 +835,7 @@ const invite = Cli.create('invite', {
           cta: {
             commands: [
               {
-                command: `${c.name} org invite create`,
+                command: `${c.displayName} org invite create`,
                 description: 'create invite link',
               },
               ...c.var.commands,
@@ -886,7 +886,7 @@ const invite = Cli.create('invite', {
               cta: {
                 commands: [
                   {
-                    command: `${c.name} invite revoke ${inviteId} --force`,
+                    command: `${c.displayName} invite revoke ${inviteId} --force`,
                     description: 'force revoke',
                   },
                   ...c.var.commands,
@@ -903,7 +903,10 @@ const invite = Cli.create('invite', {
             message: 'Pass invite token directly in non-interactive mode.',
             cta: {
               commands: [
-                { command: `${c.name} invite revoke <invite>`, description: 'revoke by token' },
+                {
+                  command: `${c.displayName} invite revoke <invite>`,
+                  description: 'revoke by token',
+                },
                 ...c.var.commands,
               ],
             },
@@ -1032,7 +1035,7 @@ const member = Cli.create('member', {
           cta: {
             commands: [
               {
-                command: `${c.name} org member add <login>`,
+                command: `${c.displayName} org member add <login>`,
                 description: 'add member',
               },
               ...c.var.commands,
@@ -1098,7 +1101,7 @@ const member = Cli.create('member', {
               cta: {
                 commands: [
                   {
-                    command: `${c.name} member remove ${login} --force`,
+                    command: `${c.displayName} member remove ${login} --force`,
                     description: 'force remove',
                   },
                   ...c.var.commands,
@@ -1115,7 +1118,10 @@ const member = Cli.create('member', {
             message: 'Pass member login directly in non-interactive mode.',
             cta: {
               commands: [
-                { command: `${c.name} member remove <login>`, description: 'remove by login' },
+                {
+                  command: `${c.displayName} member remove <login>`,
+                  description: 'remove by login',
+                },
                 ...c.var.commands,
               ],
             },
@@ -1213,7 +1219,7 @@ const member = Cli.create('member', {
             cta: {
               commands: [
                 {
-                  command: `${c.name} member role <login> --role <role>`,
+                  command: `${c.displayName} member role <login> --role <role>`,
                   description: 'change role',
                 },
                 ...c.var.commands,
@@ -1267,7 +1273,7 @@ const member = Cli.create('member', {
             cta: {
               commands: [
                 {
-                  command: `${c.name} member role ${login} --role ${role} --force`,
+                  command: `${c.displayName} member role ${login} --role ${role} --force`,
                   description: 'force role change',
                 },
                 ...c.var.commands,
@@ -1337,15 +1343,15 @@ const org = Cli.create('org', {
         cta: {
           commands: [
             {
-              command: `${c.name} org switch ${json.login}`,
+              command: `${c.displayName} org switch ${json.login}`,
               description: `switch to organization`,
             },
             {
-              command: `${c.name} org invite create <login>`,
+              command: `${c.displayName} org invite create <login>`,
               description: 'create invite link',
             },
             {
-              command: `${c.name} org member add <login>`,
+              command: `${c.displayName} org member add <login>`,
               description: 'add member',
             },
             ...c.var.commands,
@@ -1376,7 +1382,7 @@ const org = Cli.create('org', {
           cta: {
             commands: [
               {
-                command: `${c.name} org create <login>`,
+                command: `${c.displayName} org create <login>`,
                 description: 'create organization',
               },
               ...c.var.commands,
@@ -1413,11 +1419,11 @@ const org = Cli.create('org', {
             commands: [
               hasOrgs
                 ? {
-                    command: `${c.name} org switch`,
+                    command: `${c.displayName} org switch`,
                     description: 'switch organization',
                   }
                 : {
-                    command: `${c.name} org create <login>`,
+                    command: `${c.displayName} org create <login>`,
                     description: 'create organization',
                   },
               ...c.var.commands,
@@ -1577,7 +1583,7 @@ const token = Cli.create('token', {
           cta: {
             commands: [
               {
-                command: `${c.name} token create <name>`,
+                command: `${c.displayName} token create <name>`,
                 description: 'create API token',
               },
               ...c.var.commands,
@@ -1636,7 +1642,7 @@ const token = Cli.create('token', {
               cta: {
                 commands: [
                   {
-                    command: `${c.name} token delete ${match.name} --force`,
+                    command: `${c.displayName} token delete ${match.name} --force`,
                     description: 'force delete',
                   },
                   ...c.var.commands,
@@ -1653,7 +1659,7 @@ const token = Cli.create('token', {
             message: 'Pass token name directly in non-interactive mode.',
             cta: {
               commands: [
-                { command: `${c.name} token delete <name>`, description: 'delete by name' },
+                { command: `${c.displayName} token delete <name>`, description: 'delete by name' },
                 ...c.var.commands,
               ],
             },
