@@ -1,14 +1,3 @@
-packages:
-  - cli
-
-overrides:
-  h3: 2.0.1-rc.18
-  h3-v2: npm:h3@2.0.1-rc.18
-  # Override undici to avoid miniflare bug where POST + 401 → 500.
-  # TODO: Remove once miniflare ships with a fixed undici version.
-  # https://github.com/cloudflare/workers-sdk/issues/12967
-  miniflare>undici: 7.18.2
-
 auditConfig:
   # undici WebSocket client CVEs in miniflare (dev-only, no production impact).
   # Cannot override undici>=7.24.0 — it breaks miniflare's fetch (POST + 401 → 500).
@@ -24,6 +13,12 @@ auditConfig:
   ignoreGhsas:
     - GHSA-6cpc-mj5c-m9rq # false positive — matches npm "cli" package, not our "curl.md" workspace
 
+catalog:
+  hono: ^4.12.7
+
+packages:
+  - cli
+
 minimumReleaseAge: 1440
 
 minimumReleaseAgeExclude:
@@ -37,10 +32,20 @@ onlyBuiltDependencies:
   - simple-git-hooks
   - workerd
 
+overrides:
+  # Pin vulnerable transitive ranges until upstream packages refresh their lockfiles.
+  brace-expansion@>=2.0.0 <2.0.3: 2.0.3
+  h3: 2.0.1-rc.18
+  h3-v2: npm:h3@2.0.1-rc.18
+  # Override undici to avoid miniflare bug where POST + 401 → 500.
+  # TODO: Remove once miniflare ships with a fixed undici version.
+  # https://github.com/cloudflare/workers-sdk/issues/12967
+  miniflare>undici: 7.18.2
+  path-to-regexp@>=8.0.0 <8.4.0: 8.4.0
+  picomatch@>=4.0.0 <4.0.4: 4.0.4
+
 trustPolicy: no-downgrade
 
 trustPolicyExclude:
+  - reselect@5.1.1
   - semver@6.3.1
-
-catalog:
-  hono: ^4.12.7

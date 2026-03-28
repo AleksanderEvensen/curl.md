@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { Kysely } from 'kysely'
 import { z } from 'zod'
-import { dialect } from '../db/client.ts'
+import { dialect } from './client.ts'
 
 const env = z.parse(z.object({ DB_URL: z.string() }), process.env)
 

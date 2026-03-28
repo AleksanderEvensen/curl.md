@@ -11,7 +11,7 @@ export async function startDatabase() {
   const connectionString = container.getConnectionUri()
   const cwd = new URL('..', import.meta.url).pathname
   const res = await promisify(exec)(
-    `DB_URL=${connectionString} pnpm kysely --config=config/kysely.config.ts migrate latest`,
+    `DB_URL=${connectionString} pnpm kysely --config=db/kysely.config.ts migrate latest`,
     {
       cwd,
     },

@@ -16,6 +16,7 @@ export default Sentry.withSentry<Env, QueueHandlerMessage>(
   {
     fetch(request, env, ctx) {
       const url = new URL(request.url)
+
       // Route API requests to the Hono API handler
       if (url.pathname.startsWith('/api/')) return api.fetch(new Request(url, request), env, ctx)
       // Route dot-segment paths (e.g. curl.md/example.com) to the API handler under /api prefix
@@ -46,7 +47,14 @@ export default Sentry.withSentry<Env, QueueHandlerMessage>(
       if (path in staticAssets)
         return env.ASSETS.fetch(new URL(staticAssets[path as keyof typeof staticAssets], url))
       // Fall through to TanStack Start SSR handler for all other routes (app pages)
-      return serverEntry.fetch(request, { context: { ctx, env, request } })
+      try {
+        decodeURI(url.pathname)
+      } catch {
+        return new Response('Bad Request', { status: 400 })
+      }
+      return serverEntry.fetch(request, {
+        context: { ctx, env, request },
+      } as Parameters<typeof serverEntry.fetch>[1])
     },
     async queue(batch, env) {
       if (batch.queue.endsWith('-dlq')) {

@@ -49,7 +49,7 @@ Follow [PlanetScale Postgres skill](https://github.com/planetscale/database-skil
 - Use singular table names (`account` instead of `accounts`)
 - Use timestamps (like `deleted_at`) instead of boolean fields (`deleted`)
 - Use CHECK constraints instead of Postgres ENUMs for enum-like columns
-- When adding enum-like TEXT columns (with a fixed set of values), add them to `customTypes` in `scripts/dbCodegen.ts`
+- When adding enum-like TEXT columns (with a fixed set of values), add them to `customTypes` in `db/codegen.ts`
 - Use `DB.<table>` types from `db/types.gen.ts` for database record types. When only a subset of fields is needed, use `Pick<DB.<table>, "field1" | "field2">` instead of defining custom types.
 - Prefer snake_case field names when data originates from the database (e.g., `credential_id` not `credentialId`)
 - Naming conventions:
@@ -99,3 +99,7 @@ Follow [PlanetScale Postgres skill](https://github.com/planetscale/database-skil
 - **Tailwind CSS v4** - Use `@import "tailwindcss"` in CSS; utility classes in components
   - Use logical properties for RTL/LTR support (e.g. `ms-4`/`me-4` instead of `ml-4`/`mr-4`, `start-2`/`end-2` instead of `left-2`/`right-2`)
   - Do NOT concatenate class names for conditional styles. Use `data-*` attributes with Tailwind's `data-[...]` variant instead (e.g., `data-[active]:bg-blue9` + `data-active={cond ? '' : undefined}`)
+
+## Misc
+
+- Use `pnpm-workspace.yaml>overrides` instead of `package.json#pnpm.overrides`

@@ -34,7 +34,6 @@
     "../db",
     "../test",
     "../scripts",
-    "./kysely.config.ts",
     "../vite.config.ts",
     "../test/vitest.config.ts"
   ],

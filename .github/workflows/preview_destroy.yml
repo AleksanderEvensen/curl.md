@@ -1,4 +1,4 @@
-name: Preview Cleanup
+name: Preview Destroy
 
 on:
   pull_request:
@@ -15,8 +15,8 @@ env:
   PREVIEW_KV_NAME: curl-kv-pr${{ github.event.pull_request.number }}
 
 jobs:
-  cleanup:
-    name: Cleanup Preview
+  destroy:
+    name: Destroy
     if: contains(fromJSON('["COLLABORATOR", "MEMBER", "OWNER"]'), github.event.pull_request.author_association)
     runs-on: ubuntu-latest
     environment: preview
