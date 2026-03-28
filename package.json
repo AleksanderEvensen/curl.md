@@ -34,6 +34,7 @@
     "@cloudflare/vite-plugin": "^1.29.1",
     "@fontsource-variable/geist-mono": "^5.2.7",
     "@fontsource-variable/inter": "^5.2.8",
+    "@fontsource/silkscreen": "^5.2.8",
     "@hono/zod-validator": "^0.7.6",
     "@octokit/core": "^7.0.6",
     "@sentry/cloudflare": "^10.42.0",

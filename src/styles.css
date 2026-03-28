@@ -1,5 +1,6 @@
 @import '@fontsource-variable/geist-mono';
 @import '@fontsource-variable/inter';
+@import '@fontsource/silkscreen';
 @import 'tailwindcss';
 
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
@@ -7,6 +8,7 @@
 @theme {
   --font-mono: 'Geist Mono Variable', monospace;
   --font-sans: 'Inter Variable', sans-serif;
+  --font-pixel: 'Silkscreen', monospace;
   --color-*: initial;
 
   /* Geist Backgrounds */
