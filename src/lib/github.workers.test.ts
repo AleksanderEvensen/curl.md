@@ -5,7 +5,7 @@ import { createClient } from '#db/client.ts'
 import * as Crypto from '#lib/crypto.ts'
 import * as GitHub from '#lib/github.ts'
 import { createFactory } from '#test/factory.ts'
-import { server } from '#test/server.ts'
+import { server } from '#test/workers.server.ts'
 
 const db = createClient(env.DB.connectionString, { max: 1 })
 const factory = createFactory(db)

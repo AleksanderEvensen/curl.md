@@ -1,6 +1,6 @@
 import process from 'node:process'
 import { afterEach, beforeAll } from 'vitest'
-import { server } from './server.ts'
+import { server } from './workers.server.ts'
 
 // TODO: remove once porsager/postgres fixes CF polyfill read loop teardown (stream cancel after connection close)
 // https://github.com/cloudflare/workers-sdk/issues/11532

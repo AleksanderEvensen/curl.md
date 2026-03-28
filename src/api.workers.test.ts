@@ -10,7 +10,7 @@ import * as Cookie from '#lib/cookie.ts'
 import * as Crypto from '#lib/crypto.ts'
 import * as Nanoid from '#lib/nanoid.ts'
 import { createFactory } from '#test/factory.ts'
-import { server } from '#test/server.ts'
+import { server } from '#test/workers.server.ts'
 
 const db = createClient(env.DB.connectionString)
 const factory = createFactory(db)
