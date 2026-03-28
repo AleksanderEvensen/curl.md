@@ -56,16 +56,16 @@ test.each([
   expect(rewrite(factory, url)?.href).toBe(`${url}index.md`)
 })
 
-test('appendIndexMd: cloudflare appends /index.md', () => {
+test('cloudflare rewrites docs path to raw mdx', () => {
   expect(patternsMatchHostname(rules.cloudflare(), 'developers.cloudflare.com')).toBe(true)
   expect(rewrite(rules.cloudflare, 'https://developers.cloudflare.com/workers')?.href).toBe(
-    'https://developers.cloudflare.com/workers/index.md',
+    'https://raw.githubusercontent.com/cloudflare/cloudflare-docs/production/src/content/docs/workers.mdx',
   )
 })
 
-test('appendIndexMd: cloudflare appends index.md to trailing slash', () => {
+test('cloudflare keeps trailing slash paths on raw mdx candidate', () => {
   expect(rewrite(rules.cloudflare, 'https://developers.cloudflare.com/workers/')?.href).toBe(
-    'https://developers.cloudflare.com/workers/index.md',
+    'https://raw.githubusercontent.com/cloudflare/cloudflare-docs/production/src/content/docs/workers.mdx',
   )
 })
 

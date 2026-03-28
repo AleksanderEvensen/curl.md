@@ -99,6 +99,8 @@ describe('GET /api/auth/github/callback', () => {
         HttpResponse.json({
           error: 'bad_verification_code',
           error_description: 'Bad code',
+          error_uri:
+            'https://docs.github.com/apps/managing-oauth-apps/troubleshooting-oauth-app-access-token-request-errors/#bad-verification-code',
         }),
       ),
     )
@@ -124,6 +126,7 @@ describe('GET /api/auth/github/callback', () => {
       http.post('https://github.com/login/oauth/access_token', () =>
         HttpResponse.json({
           access_token: 'ghu_test123',
+          scope: '',
           token_type: 'bearer',
         }),
       ),
@@ -186,6 +189,7 @@ describe('GET /api/auth/github/callback', () => {
       http.post('https://github.com/login/oauth/access_token', () =>
         HttpResponse.json({
           access_token: 'ghu_existing',
+          scope: '',
           token_type: 'bearer',
         }),
       ),
@@ -228,6 +232,7 @@ describe('GET /api/auth/github/callback', () => {
       http.post('https://github.com/login/oauth/access_token', () =>
         HttpResponse.json({
           access_token: 'ghu_noemail',
+          scope: '',
           token_type: 'bearer',
         }),
       ),

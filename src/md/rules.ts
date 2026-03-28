@@ -1,8 +1,8 @@
 import { defineRule } from './mod.ts'
+import { cloudflare } from './rules/cloudflare.ts'
 import { githubBlob, githubIssue, githubPr, githubRepo } from './rules/github.ts'
 import {
   acceptMarkdown,
-  appendIndexMd,
   appendMd,
   appendMdWithIndex,
   prefixedWithIndex,
@@ -10,6 +10,7 @@ import {
 } from './rules/utils.ts'
 
 export { githubBlob, githubIssue, githubPr, githubRepo }
+export { cloudflare }
 export { githubDocs } from './rules/github-docs.ts'
 export { mdn } from './rules/mdn.ts'
 export { tailwind } from './rules/tailwind.ts'
@@ -130,12 +131,6 @@ export const wagmi = appendMdWithIndex({
   key: 'wagmi',
   patterns: [new URLPattern({ hostname: 'wagmi.sh' })],
   checks: [{ url: 'https://wagmi.sh/react/getting-started', contains: ['Wagmi'] }],
-})
-
-export const cloudflare = appendIndexMd({
-  key: 'cloudflare',
-  patterns: [new URLPattern({ hostname: 'developers.cloudflare.com' })],
-  checks: [{ url: 'https://developers.cloudflare.com/workers/', contains: ['Workers'] }],
 })
 
 export const deno = repo({

@@ -63,12 +63,12 @@ export function create(options: create.Options = {}): create.ReturnType {
         const isMarkdown =
           contentType.includes('text/markdown') ||
           contentType.includes('text/x-markdown') ||
-          rewrittenUrl.pathname.endsWith('.md')
+          /\.mdx?$/i.test(rewrittenUrl.pathname)
 
         if (isMarkdown) {
           const split = splitFrontmatter(text)
           return {
-            content: split.body,
+            content: rewrittenUrl.pathname.endsWith('.mdx') ? normalizeMdx(split.body) : split.body,
             meta: filterFrontmatterKeys(split.meta),
           }
         }
@@ -224,10 +224,22 @@ function splitFrontmatter(markdown: string): {
   const body = markdown.slice(end + 5).replace(/^\n+/, '')
   const meta: Record<string, string> = {}
   const lines = markdown.slice(4, end).split('\n')
+  let currentKey: string | undefined
+  let currentValue = ''
+
+  const flush = () => {
+    if (currentKey && currentValue) meta[currentKey] = currentValue
+  }
+
   for (const line of lines) {
+    if ((line[0] === ' ' || line[0] === '\t') && currentKey) {
+      currentValue = `${currentValue} ${line.trim()}`.trim()
+      continue
+    }
+
     const colonIdx = line.indexOf(':')
     if (colonIdx === -1) continue
-    if (line[0] === ' ' || line[0] === '\t') continue
+    flush()
     const key = line.slice(0, colonIdx).trim()
     let value = line.slice(colonIdx + 1).trim()
     if (
@@ -235,9 +247,51 @@ function splitFrontmatter(markdown: string): {
       (value.startsWith("'") && value.endsWith("'"))
     )
       value = value.slice(1, -1)
-    if (key && value) meta[key] = value
+    currentKey = key || undefined
+    currentValue = value
   }
+  flush()
   return { body, meta }
+}
+
+function normalizeMdx(content: string): string {
+  return normalizeFencedCodeBlockIndentation(
+    content
+      .replace(/^import\s+[\s\S]+?from\s+['"][^'"]+['"];?\n*/gm, '')
+      .replace(/^import\s+['"][^'"]+['"];?\n*/gm, '')
+      .replace(/<Type\s+text=(?:\{)?(?:"([^"]+)"|'([^']+)')(?:\})?\s*\/>/g, (_, a, b) => {
+        return ` \`${a ?? b}\``
+      })
+      .replace(/<MetaInfo\s+text=(?:\{)?(?:"([^"]+)"|'([^']+)')(?:\})?\s*\/>/g, (_, a, b) => {
+        return ` _${a ?? b}_`
+      })
+      .replace(/^\s*<Render\b[\s\S]*?\/>\s*\n*/gm, '')
+      .replace(/^<a\b[\s\S]*?<InlineBadge\b[^>]*\/>\s*<\/a>\s*\n*/gm, '')
+      .replace(/<br\s*\/>/g, '')
+      .replace(/^\s*<[A-Z][A-Za-z0-9]*(?:\s[^>\n]*)?\/>\s*$/gm, '')
+      .replace(/^\s*<\/?[A-Z][A-Za-z0-9]*(?:\s[^>\n]*)?>\s*$/gm, ''),
+  )
+}
+
+function normalizeFencedCodeBlockIndentation(content: string): string {
+  let fenceIndent: string | null = null
+  return content
+    .split('\n')
+    .map((line) => {
+      if (fenceIndent === null) {
+        const match = line.match(/^([ \t]*)```/)
+        if (match) fenceIndent = match[1] ?? ''
+        return line
+      }
+
+      if (line.startsWith(fenceIndent + '```')) {
+        fenceIndent = null
+        return line
+      }
+
+      return line.replace(/^[ \t]+(?=\S)/, (ws) => ws.replace(/\t/g, '  '))
+    })
+    .join('\n')
 }
 
 function normalizeMarkdown(content: string, origin?: string): string {
