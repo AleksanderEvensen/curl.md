@@ -32,7 +32,7 @@ export default defineConfig(async () => ({
     cloudflare({
       viteEnvironment: { name: 'ssr' },
       // Override bindings for tests (testcontainers DB, emulate GitHub)
-      ...(process.env.VITEST || process.env.TEST
+      ...(process.env.PLAYWRIGHT || process.env.VITEST
         ? {
             remoteBindings: false,
             config(config) {
@@ -43,6 +43,8 @@ export default defineConfig(async () => ({
                 localConnectionString: DB_URL,
               }))
               config.vars = { ...config.vars, ...parsed }
+              // Clear secrets so they're passed as plain vars (Vite plugin drops secret_text bindings)
+              delete config.secrets
             },
           }
         : {}),

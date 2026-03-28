@@ -7,7 +7,7 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? [['dot'], ['github']] : 'list',
-  globalSetup: 'playwright.global.setup.ts',
+  globalSetup: 'e2e.global.setup.ts',
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL,
     trace: 'on-first-retry',

@@ -102,4 +102,7 @@ Follow [PlanetScale Postgres skill](https://github.com/planetscale/database-skil
 
 ## Misc
 
+- Repo/project-level README is located at `.github/README.md`
 - Use `pnpm-workspace.yaml>overrides` instead of `package.json#pnpm.overrides`
+- `.env` is used instead of `.dev.vars`
+- Use `.github/TODO.md` for general TODOs not attached to specific files/lines

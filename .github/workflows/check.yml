@@ -61,7 +61,7 @@ jobs:
             echo "STRIPE_PUBLISHABLE_KEY=pk_test_fake"
             echo "STRIPE_SECRET_KEY=sk_test_fake"
             echo "STRIPE_WEBHOOK_SECRET=whsec_test_fake"
-            echo "TOKEN_ENCRYPTION_KEY=dGVzdC1lbmNyeXB0aW9uLWtleXRlc3QtZW5jcnlwdGk="
+            echo "TOKEN_ENCRYPTION_KEY=dummy"
             echo "WRANGLER_SEND_METRICS=false"
           } > .env
 

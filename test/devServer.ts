@@ -7,7 +7,12 @@ const scriptPath = new URL('devServer.ts', import.meta.url).pathname
 export function startDevServer(dbUrl: string, env?: Record<string, string>) {
   return new Promise<{ baseUrl: string; stop: () => void }>((resolve, reject) => {
     const child = fork(scriptPath, {
-      env: { ...process.env, ...env, TEST: '1', DB_URL: dbUrl },
+      env: {
+        ...process.env,
+        ...env,
+        PLAYWRIGHT: process.env.VITEST ? undefined : '1',
+        DB_URL: dbUrl,
+      },
       stdio: ['ignore', 'ignore', 'pipe', 'ipc'],
       execArgv: ['--experimental-strip-types', '--no-warnings'],
       detached: true,

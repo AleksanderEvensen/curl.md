@@ -1,7 +1,7 @@
 import geistMonoLatin from '@fontsource-variable/geist-mono/files/geist-mono-latin-wght-normal.woff2?url'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createRootRoute, HeadContent, Link, Outlet, Scripts } from '@tanstack/react-router'
-import { themeScript, useTheme } from '#lib/theme.ts'
+import { themeScript, useTheme } from '#hooks/useTheme.ts'
 import '../styles.css'
 
 const queryClient = new QueryClient()

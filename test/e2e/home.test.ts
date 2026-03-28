@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test'
-import { test } from '#test/playwright-utils.ts'
+import { test } from '#test/e2e-utils.ts'
 
 test('/ shows homepage when logged out', async ({ page }) => {
   await page.goto('/')

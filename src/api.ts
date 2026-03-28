@@ -18,7 +18,6 @@ import * as Crypto from '#lib/crypto.ts'
 import * as GitHub from '#lib/github.ts'
 import { invalidApiKey, narrowValidation, validationError, validator } from '#lib/hono.ts'
 import * as Nanoid from '#lib/nanoid.ts'
-import type { OneOf } from '#lib/types.ts'
 import * as Md from '#md/index.ts'
 import * as Og from '#og.tsx'
 
@@ -200,14 +199,15 @@ export const api = new Hono<{
         return c.redirect(errorUrl.toString())
       }
 
-      let tokenData: {
-        access_token: string
-        expires_in?: number
-        refresh_token?: string
-        refresh_token_expires_in?: number
-        scope: string
-        token_type: 'bearer'
-      }
+      let tokenData: z.infer<typeof tokenDataSchema>
+      const tokenDataSchema = z.object({
+        access_token: z.string(),
+        expires_in: z.number().optional(),
+        refresh_token: z.string().optional(),
+        refresh_token_expires_in: z.number().optional(),
+        scope: z.string(),
+        token_type: z.literal('bearer'),
+      })
       try {
         const tokenRes = await fetch(`${c.env.GH_URL}/login/oauth/access_token`, {
           method: 'POST',
@@ -218,19 +218,21 @@ export const api = new Hono<{
             code: query.code,
           }),
         })
-        const json = (await tokenRes.json()) as OneOf<
-          | typeof tokenData
-          | {
-              error:
-                | 'bad_verification_code'
-                | 'incorrect_client_credentials'
-                | 'redirect_uri_mismatch'
-                | 'unverified_user_email'
-              error_description: string
-              error_uri: string
-            }
-        >
-        if (json.error) {
+        const tokenResponseSchema = z.union([
+          tokenDataSchema,
+          z.object({
+            error: z.enum([
+              'bad_verification_code',
+              'incorrect_client_credentials',
+              'redirect_uri_mismatch',
+              'unverified_user_email',
+            ]),
+            error_description: z.string(),
+            error_uri: z.string(),
+          }),
+        ])
+        const json = z.parse(tokenResponseSchema, await tokenRes.json())
+        if ('error' in json) {
           errorUrl.searchParams.set('error', json.error)
           errorUrl.searchParams.set('error_description', 'Failed to get access token')
           return c.redirect(errorUrl.toString())
