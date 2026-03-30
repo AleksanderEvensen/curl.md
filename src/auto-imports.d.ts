@@ -13,6 +13,7 @@ declare global {
   const IconLucideKey: typeof import('~icons/lucide/key.jsx').default
   const IconLucideLayoutDashboard: typeof import('~icons/lucide/layout-dashboard.jsx').default
   const IconLucideLogOut: typeof import('~icons/lucide/log-out.jsx').default
+  const IconLucideMail: typeof import('~icons/lucide/mail.jsx').default
   const IconLucideMonitor: typeof import('~icons/lucide/monitor.jsx').default
   const IconLucideMoon: typeof import('~icons/lucide/moon.jsx').default
   const IconLucideSettings: typeof import('~icons/lucide/settings.jsx').default
@@ -31,4 +32,5 @@ declare global {
   const IconOcticonSync16: typeof import('~icons/octicon/sync16.jsx').default
   const IconOcticonXCircleFill16: typeof import('~icons/octicon/x-circle-fill16.jsx').default
   const IconOcticonZap16: typeof import('~icons/octicon/zap16.jsx').default
+  const IconSimpleIconsX: typeof import('~icons/simple-icons/x.jsx').default
 }

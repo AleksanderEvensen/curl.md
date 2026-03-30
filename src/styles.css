@@ -5,6 +5,10 @@
 
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
+html {
+  scroll-padding-top: 4rem;
+}
+
 @theme {
   --font-mono: 'Geist Mono Variable', monospace;
   --font-sans: 'Inter Variable', sans-serif;
