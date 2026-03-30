@@ -27,7 +27,7 @@ test('login via GitHub OAuth', async ({ page }) => {
 test('error page displays error and description', async ({ page }) => {
   await page.goto('/auth/error?error=server_error&error_description=Failed+to+reach+GitHub')
 
-  await expect(page.getByRole('heading', { name: 'server_error' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'server error' })).toBeVisible()
   await expect(page.getByText('Failed to reach GitHub')).toBeVisible()
   await expect(page.getByRole('link', { name: /try again/i })).toHaveAttribute('href', '/login')
 })

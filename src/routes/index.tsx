@@ -8,5 +8,5 @@ export const Route = createFileRoute('/')({
     if (login) throw redirect({ to: '/~dash/$login', params: { login } })
   },
   head,
-  component: Home,
+  component: () => <Home />,
 })

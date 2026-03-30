@@ -1,5 +1,6 @@
 declare const __GIT_SHA__: string
 declare const __HOST__: string
+declare const __ORIGIN__: string
 declare const __INITIAL_TOKENS_SAVED__: number
 declare const __SENTRY_DSN__: string
 

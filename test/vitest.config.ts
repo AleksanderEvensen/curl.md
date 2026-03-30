@@ -29,7 +29,10 @@ export default defineConfig({
         },
       },
       {
-        define: { __HOST__: JSON.stringify('curl.local') },
+        define: {
+          __HOST__: JSON.stringify('curl.local'),
+          __ORIGIN__: JSON.stringify('https://curl.local'),
+        },
         plugins: [
           cloudflareTest(async (config) => {
             const env = Env.parse(config.inject('env'))

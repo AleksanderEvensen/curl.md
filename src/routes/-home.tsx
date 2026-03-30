@@ -9,6 +9,7 @@ import { useAnimatedValue } from '#hooks/useAnimatedValue.ts'
 import { useCopyToClipboard } from '#hooks/useCopyToClipboard.ts'
 import { formatCost } from '#lib/format.ts'
 import { rpc } from '#lib/rpc.ts'
+import { getSessionLogin } from '#server/session.ts'
 import { getTokensSaved } from '#server/stats.ts'
 
 export function head() {
@@ -33,7 +34,14 @@ export function head() {
   }
 }
 
-export function Home() {
+export function Home(props: { login?: string | null | undefined }) {
+  const fetchLogin = useServerFn(getSessionLogin)
+  const { data: login } = Query.useQuery({
+    initialData: props.login,
+    queryFn: () => fetchLogin(),
+    queryKey: ['session-login'],
+  })
+
   return (
     <div className="relative flex min-h-dvh flex-col">
       <a
@@ -44,13 +52,23 @@ export function Home() {
       </a>
 
       <Nav>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5">
           <Link className="text-gray8 hover:text-gray10 px-3 py-1.5 text-sm" to="/">
             Docs
           </Link>
-          <Link className="bg-gray10 text-bg1 px-3 py-1.5 text-sm" to="/login">
-            Sign in
-          </Link>
+          {login ? (
+            <Link
+              className="bg-gray10 text-bg1 px-3 py-1.5 text-sm"
+              params={{ login }}
+              to="/~dash/$login"
+            >
+              Dashboard
+            </Link>
+          ) : (
+            <Link className="bg-gray10 text-bg1 px-3 py-1.5 text-sm" to="/login">
+              Sign in
+            </Link>
+          )}
         </div>
       </Nav>
 
@@ -360,12 +378,14 @@ function InstallTabs() {
 }
 
 function InstallCommand() {
-  const instructions = `I'd like you to set up https://curl.md, the best way to fetch URLs as markdown.
+  const { copied, copy } = useCopyToClipboard({
+    content: `I'd like you to set up https://curl.md, the best way to turn URLs into markdown.
 
-Install CLI and setup skill if I have npm: npm i -g curl.md && curl.md skills add
+If I have npm, install CLI and setup skill: npm i -g curl.md && curl.md skills add
 
-If not, do this instead: curl -fsSL https://curl.md/install.sh | bash`
-  const { copied, copy } = useCopyToClipboard({ content: instructions, timeout: 5_000 })
+If not, do this instead: curl -fsSL https://curl.md/install.sh | bash`,
+    timeout: 5_000,
+  })
 
   return (
     <button

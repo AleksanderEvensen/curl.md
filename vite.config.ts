@@ -76,6 +76,9 @@ export default defineConfig(async () => ({
         })(),
     ),
     __HOST__: JSON.stringify(getWranglerVar('HOST')),
+    __ORIGIN__: process.env.PLAYWRIGHT
+      ? `(typeof window !== 'undefined' ? window.location.origin : 'https://${getWranglerVar('HOST')}')`
+      : JSON.stringify(`https://${getWranglerVar('HOST')}`),
     __SENTRY_DSN__: JSON.stringify(process.env.SENTRY_DSN ?? ''),
     __INITIAL_TOKENS_SAVED__: await (async () => {
       try {

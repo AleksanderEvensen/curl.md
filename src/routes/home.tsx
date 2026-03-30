@@ -6,7 +6,9 @@ export const Route = createFileRoute('/home')({
   async beforeLoad() {
     const login = await getSessionLogin()
     if (!login) throw redirect({ to: '/' })
+    return { login }
   },
   head,
-  component: Home,
+  loader: ({ context }) => ({ login: context.login }),
+  component: () => <Home login={Route.useLoaderData().login} />,
 })
