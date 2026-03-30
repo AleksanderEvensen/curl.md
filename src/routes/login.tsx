@@ -1,5 +1,6 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { z } from 'zod'
+import { Nav } from '#components/Nav.tsx'
 import { getSessionLogin } from '#server/session.ts'
 
 export const Route = createFileRoute('/login')({
@@ -23,15 +24,24 @@ function Login() {
       ? `/api/auth/github?next=${encodeURIComponent(next)}`
       : '/api/auth/github'
   return (
-    <div className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center px-6">
-      <h1 className="text-lg font-bold">Sign in to {__HOST__}</h1>
-      <a
-        className="bg-gray12 text-gray1 hover:bg-gray11 mt-6 flex items-center gap-2 px-4 py-2"
-        href={href}
-      >
-        <IconOcticonMarkGithub16 className="size-5" />
-        Continue with GitHub
-      </a>
+    <div className="relative flex min-h-dvh flex-col">
+      <Nav />
+
+      <main className="flex flex-1 flex-col items-center justify-center px-6 pb-32">
+        <div className="flex w-full max-w-xs flex-col">
+          <h1 className="text-lg font-bold">Sign in</h1>
+          <p className="text-gray8 mt-2 text-sm leading-relaxed">
+            New to curl.md or been here before? Continue below to start curling.
+          </p>
+          <a
+            className="bg-gray10 text-bg1 mt-6 flex h-11 w-full items-center justify-center gap-2 px-4 transition-opacity hover:opacity-90"
+            href={href}
+          >
+            <IconOcticonMarkGithub16 className="size-5" />
+            Continue with GitHub
+          </a>
+        </div>
+      </main>
     </div>
   )
 }

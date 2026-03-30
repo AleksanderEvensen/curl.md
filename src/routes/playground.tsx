@@ -2,6 +2,7 @@ import * as Query from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import * as React from 'react'
 import { z } from 'zod'
+import { useCopyToClipboard } from '#hooks/useCopyToClipboard.ts'
 import { attribution } from '#lib/constants.ts'
 import { formatCost } from '#lib/format.ts'
 import { rpc } from '#lib/rpc.ts'
@@ -414,16 +415,12 @@ function Playground() {
 
 function CopyButton(props: { text: string }) {
   const { text } = props
-  const [copied, setCopied] = React.useState(false)
+  const { copied, copy } = useCopyToClipboard()
 
   return (
     <button
       className="text-gray9 hover:text-gray10 dark:text-gray6 flex items-center gap-1"
-      onClick={() => {
-        navigator.clipboard.writeText(text)
-        setCopied(true)
-        setTimeout(() => setCopied(false), 2_000)
-      }}
+      onClick={() => copy(text)}
       type="button"
     >
       {copied ? (

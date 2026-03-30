@@ -4,7 +4,9 @@ import { Link, type MetaDescriptor } from '@tanstack/react-router'
 import { useServerFn } from '@tanstack/react-start'
 import * as React from 'react'
 import { TextMorph } from 'torph/react'
+import { Nav } from '#components/Nav.tsx'
 import { useAnimatedValue } from '#hooks/useAnimatedValue.ts'
+import { useCopyToClipboard } from '#hooks/useCopyToClipboard.ts'
 import { formatCost } from '#lib/format.ts'
 import { rpc } from '#lib/rpc.ts'
 import { getTokensSaved } from '#server/stats.ts'
@@ -40,23 +42,20 @@ export function Home() {
       >
         Skip to content
       </a>
-      <nav className="bg-bg1 fixed inset-x-0 top-0 z-10 flex items-center justify-between px-6 py-4">
-        <span className="font-pixel text-base">
-          curl.md<span className="text-gray8">/&lt;url&gt;</span>
-        </span>
-        <div className="flex items-center gap-4">
-          <a className="text-gray8 hover:text-gray10 text-sm" href="/llms.txt">
+
+      <Nav>
+        <div className="flex items-center gap-1">
+          <Link className="text-gray8 hover:text-gray10 px-3 py-1.5 text-sm" to="/">
             Docs
-          </a>
+          </Link>
           <Link className="bg-gray10 text-bg1 px-3 py-1.5 text-sm" to="/login">
             Sign in
           </Link>
         </div>
-      </nav>
+      </Nav>
 
       <main className="flex-1" id="main">
         <div className="mx-auto flex w-full max-w-2xl flex-col px-6">
-          {/* Hero */}
           <TokensSaved />
           <h1 className="mt-8 text-4xl leading-[1.15] font-bold md:text-5xl">
             URL to markdown
@@ -88,96 +87,39 @@ export function Home() {
             </p>
           </div>
 
-          {/* FAQ */}
           <div className="mt-16 flex flex-col md:mt-32">
             <h2 className="text-lg font-bold">FAQ</h2>
             <div className="mt-4 flex flex-col">
-              <details className="group">
-                <summary className="flex cursor-pointer list-none items-center gap-3 py-3 text-sm">
-                  <span className="text-gray8 dark:text-gray7 text-xs leading-none group-open:rotate-90">
-                    ▶
-                  </span>
-                  What is curl.md?
-                </summary>
-                <p className="text-gray8 ps-5 pb-3 text-sm leading-relaxed">TODO</p>
-              </details>
-              <details className="group">
-                <summary className="flex cursor-pointer list-none items-center gap-3 py-3 text-sm">
-                  <span className="text-gray8 dark:text-gray7 text-xs leading-none group-open:rotate-90">
-                    ▶
-                  </span>
-                  How do I use curl.md?
-                </summary>
-                <p className="text-gray8 ps-5 pb-3 text-sm leading-relaxed">TODO</p>
-              </details>
-              <details className="group">
-                <summary className="flex cursor-pointer list-none items-center gap-3 py-3 text-sm">
-                  <span className="text-gray8 dark:text-gray7 text-xs leading-none group-open:rotate-90">
-                    ▶
-                  </span>
-                  How much does curl.md cost?
-                </summary>
-                <p className="text-gray8 ps-5 pb-3 text-sm leading-relaxed">TODO</p>
-              </details>
-              <details className="group">
-                <summary className="flex cursor-pointer list-none items-center gap-3 py-3 text-sm">
-                  <span className="text-gray8 dark:text-gray7 text-xs leading-none group-open:rotate-90">
-                    ▶
-                  </span>
-                  Which coding agents does curl.md support?
-                </summary>
-                <p className="text-gray8 ps-5 pb-3 text-sm leading-relaxed">TODO</p>
-              </details>
-              <details className="group">
-                <summary className="flex cursor-pointer list-none items-center gap-3 py-3 text-sm">
-                  <span className="text-gray8 dark:text-gray7 text-xs leading-none group-open:rotate-90">
-                    ▶
-                  </span>
-                  Is curl.md open source?
-                </summary>
-                <p className="text-gray8 ps-5 pb-3 text-sm leading-relaxed">
-                  Yes, curl.md is fully open source. The source code is public on{' '}
-                  <a
-                    className="underline"
-                    rel="noopener noreferrer"
-                    target="_blank"
-                    href="https://github.com/wevm/curl.md"
-                  >
-                    GitHub
-                  </a>{' '}
-                  under the{' '}
-                  <a
-                    className="underline"
-                    rel="noopener noreferrer"
-                    target="_blank"
-                    href="https://github.com/wevm/curl.md/blob/main/LICENSE"
-                  >
-                    MIT License
-                  </a>
-                  , meaning anyone can use, modify, or contribute to its development. Anyone from
-                  the community can file issues, submit pull requests, and extend functionality.
-                </p>
-              </details>
+              {faqs.map((faq) => (
+                <details className="group" key={faq.question}>
+                  <summary className="flex cursor-pointer list-none items-center gap-3 py-3 text-sm">
+                    <span className="text-gray8 dark:text-gray7 text-xs leading-none group-open:rotate-90">
+                      ▶
+                    </span>
+                    {faq.question}
+                  </summary>
+                  <div className="text-gray8 ps-5 pb-3 text-sm leading-relaxed">{faq.answer}</div>
+                </details>
+              ))}
             </div>
           </div>
         </div>
       </main>
 
-      {/* Footer */}
       <footer className="mt-24 flex w-full items-center justify-center gap-4 px-6 py-6 text-sm md:mt-48">
         <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6">
-          <a className="text-gray8 hover:text-gray10" href="/llms.txt">
+          <Link className="text-gray8 hover:text-gray10" to="/">
             Docs
-          </a>
-          <a className="text-gray8 hover:text-gray10" href="/terms">
+          </Link>
+          <Link className="text-gray8 hover:text-gray10" to="/">
             Terms
-          </a>
-          <a className="text-gray8 hover:text-gray10" href="/privacy">
+          </Link>
+          <Link className="text-gray8 hover:text-gray10" to="/">
             Privacy
-          </a>
+          </Link>
           <a
             className="text-gray8 hover:text-gray10"
-            href="https://status.curl.md"
+            href="#TODO"
             rel="noopener noreferrer"
             target="_blank"
           >
@@ -202,7 +144,6 @@ export function Home() {
         </div>
       </footer>
 
-      {/* URL Showcase */}
       <div className="mt-4 flex justify-center overflow-hidden pb-32">
         <UrlShowcase />
       </div>
@@ -210,27 +151,80 @@ export function Home() {
   )
 }
 
+const faqs = [
+  { question: 'What is curl.md?', answer: 'TODO' },
+  {
+    question: 'How do I use curl.md?',
+    answer: 'TODO',
+  },
+  { question: 'How much does curl.md cost?', answer: 'TODO' },
+  { question: 'Which coding agents does curl.md support?', answer: 'TODO' },
+  {
+    question: 'Is curl.md open source?',
+    answer: (
+      <>
+        Yes, curl.md is fully open source. The source code is public on{' '}
+        <a
+          className="underline"
+          href="https://github.com/wevm/curl.md"
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          GitHub
+        </a>{' '}
+        under the{' '}
+        <a
+          className="underline"
+          href="https://github.com/wevm/curl.md/blob/main/LICENSE"
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          MIT License
+        </a>
+        , meaning anyone can use, modify, or contribute to its development. Anyone from the
+        community can file issues, submit pull requests, and extend functionality.
+      </>
+    ),
+  },
+]
+
 const showcaseUrls = [
-  'react.dev',
-  'nextjs.org',
-  'docs.stripe.com',
-  'hono.dev',
-  'docs.anthropic.com',
-  'vite.dev',
   'bun.sh',
+  'developer.mozilla.org',
+  'developers.cloudflare.com',
+  'developers.openai.com',
+  'docs.anthropic.com',
+  'docs.astral.sh',
+  'docs.deno.com',
+  'docs.github.com',
+  'docs.stripe.com',
+  'docs.tempo.xyz',
+  'expressjs.com',
+  'ghostty.org',
+  'hono.dev',
+  'laravel.com',
+  'nextjs.org',
+  'nodejs.org',
+  'orm.drizzle.team',
+  'oxc.rs',
+  'planetscale.com',
+  'pnpm.io',
+  'prisma.io',
+  'react.dev',
+  'resend.com',
+  'rspack.rs',
+  'svelte.dev',
   'tailwindcss.com',
   'tanstack.com',
-  'nodejs.org',
-  'laravel.com',
-  'vercel.com',
-  'vitest.dev',
-  'developer.mozilla.org',
+  'typescriptlang.org',
   'ui.shadcn.com',
+  'vercel.com',
+  'viem.sh',
+  'vite.dev',
+  'vitest.dev',
   'vuejs.org',
-  'developers.cloudflare.com',
-  'docs.deno.com',
-  'developers.openai.com',
-  'resend.com',
+  'wagmi.sh',
+  'zero.rocicorp.dev',
 ]
 
 function UrlShowcase() {
@@ -335,7 +329,7 @@ const installCommands = [
 
 function InstallTabs() {
   const [tab, setTab] = React.useState(installCommands[0]!.name)
-  const [copied, setCopied] = React.useState(false)
+  const { copied, copy } = useCopyToClipboard()
   const active = installCommands.find((c) => c.name === tab)!
 
   return (
@@ -353,11 +347,7 @@ function InstallTabs() {
       </Tabs.List>
       <button
         className="bg-gray-a1/30 dark:bg-gray-a1 border-gray-a3 mt-0 flex w-full items-center justify-between gap-4 border px-3 py-3 text-start transition-opacity hover:opacity-80"
-        onClick={() => {
-          navigator.clipboard.writeText(active.plaintext)
-          setCopied(true)
-          setTimeout(() => setCopied(false), 2_000)
-        }}
+        onClick={() => copy(active.plaintext)}
         type="button"
       >
         <code>{active.display}</code>
@@ -375,26 +365,16 @@ function InstallCommand() {
 Install CLI and setup skill if I have npm: npm i -g curl.md && curl.md skills add
 
 If not, do this instead: curl -fsSL https://curl.md/install.sh | bash`
-  const [copied, setCopied] = React.useState(false)
+  const { copied, copy } = useCopyToClipboard({ content: instructions, timeout: 5_000 })
 
   return (
     <button
       className="bg-gray10 text-bg1 relative flex items-center py-3 ps-3 pe-10 text-start transition-opacity hover:opacity-90"
-      onClick={() => {
-        navigator.clipboard.writeText(instructions)
-        setCopied(true)
-        setTimeout(() => setCopied(false), 5_000)
-      }}
+      onClick={() => copy()}
       type="button"
     >
       <span>
-        {copied ? (
-          'Copied! Now paste into your agent'
-        ) : (
-          <>
-            Copy <span className="hidden md:inline">setup </span>instructions for my agent
-          </>
-        )}
+        {copied ? 'Copied! Now paste into your agent' : 'Copy setup instructions for my agent'}
       </span>
       <span className="absolute end-3">
         {copied ? <IconOcticonCheck16 className="text-teal9" /> : <IconOcticonCopy16 />}

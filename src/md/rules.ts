@@ -14,6 +14,7 @@ export { cloudflare }
 export { githubDocs } from './rules/github-docs.ts'
 export { mdn } from './rules/mdn.ts'
 export { tailwind } from './rules/tailwind.ts'
+export { zero } from './rules/zero.ts'
 
 export const curlMd = defineRule<{ fetch?: typeof globalThis.fetch }>({
   key: 'curlMd',
