@@ -41,7 +41,7 @@ test('version', async () => {
 test('help', async () => {
   const { output } = await serve(['--help'], { CURLMD_BASE_URL: undefined })
   expect(output).toMatchInlineSnapshot(`
-    "curl.md@x.y.z — Fetch any URL as Markdown
+    "curl.md@x.y.z — URL to markdown for agents
 
     Usage: curl.md <url> [options]
     Aliases: md, curlmd

@@ -37,7 +37,7 @@ function indexVariant(host: string, tokensSaved: number) {
         <span tw="text-[#ededed]">{host}/</span>
         <span tw="text-[#0cc0aa]">{'<url>'}</span>
       </div>
-      <div tw="text-[#a1a1a1] text-[48px] mt-[12px]">Fetch any URL as Markdown</div>
+      <div tw="text-[#a1a1a1] text-[48px] mt-[12px]">URL to markdown for agents</div>
       {tokensSaved > 0 && (
         <>
           <div tw="flex text-[48px] mt-[8px]">
@@ -61,7 +61,7 @@ function playgroundVariant(host: string, tokensSaved: number) {
         <span tw="text-[#ededed]">{host}/</span>
         <span tw="text-[#ededed]">playground</span>
       </div>
-      <div tw="text-[#a1a1a1] text-[48px] mt-[12px]">Fetch any URL as Markdown</div>
+      <div tw="text-[#a1a1a1] text-[48px] mt-[12px]">URL to markdown for agents</div>
       {tokensSaved > 0 && (
         <>
           <div tw="flex text-[48px] mt-[8px]">
@@ -87,7 +87,7 @@ function urlVariant(host: string, urlParam: string, tokensSaved: number) {
         <span tw="text-[#ededed]">{host}/</span>
         <span tw="text-[#0cc0aa]">{hostname}</span>
       </div>
-      <div tw="text-[#a1a1a1] text-[48px] mt-[12px]">Fetch any URL as Markdown</div>
+      <div tw="text-[#a1a1a1] text-[48px] mt-[12px]">URL to markdown for agents</div>
       {tokensSaved > 0 && (
         <>
           <div tw="flex text-[48px] mt-[8px]">

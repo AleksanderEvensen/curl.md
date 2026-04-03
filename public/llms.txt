@@ -1,11 +1,11 @@
 ---
 title: curl.md
-description: Fetch any URL as Markdown
+description: URL to markdown for agents
 ---
 
 # curl.md
 
-Fetch any URL as Markdown
+URL to markdown for agents
 
 ```sh
 # Fetch a URL

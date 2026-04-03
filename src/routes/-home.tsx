@@ -17,9 +17,9 @@ export function head() {
   return {
     meta: [
       { title: 'curl.md - URL to markdown for agents' },
-      { name: 'description', content: 'Fetch any URL as Markdown' },
+      { name: 'description', content: 'URL to markdown for agents' },
       { property: 'og:title', content: __HOST__ },
-      { property: 'og:description', content: 'Fetch any URL as Markdown' },
+      { property: 'og:description', content: 'URL to markdown for agents' },
       { property: 'og:image', content: ogImage },
       { property: 'og:image:width', content: '1200' },
       { property: 'og:image:height', content: '630' },
@@ -28,7 +28,7 @@ export function head() {
       { property: 'og:url', content: `https://${__HOST__}` },
       { name: 'twitter:card', content: 'summary_large_image' },
       { name: 'twitter:title', content: __HOST__ },
-      { name: 'twitter:description', content: 'Fetch any URL as Markdown' },
+      { name: 'twitter:description', content: 'URL to markdown for agents' },
       { name: 'twitter:image', content: ogImage },
     ] satisfies Array<MetaDescriptor>,
   }
@@ -285,7 +285,7 @@ function TokensSaved() {
       <span className="text-gray8">
         <span className="tabular-nums">{Math.round(animated).toLocaleString()}</span> tokens saved
       </span>
-      <a className="text-gray8/90 hover:underline" href="/docs/TODO">
+      <a className="text-gray8/90 hidden hover:underline md:inline" href="/docs/TODO">
         Install now
       </a>
     </p>
@@ -308,7 +308,7 @@ function CostSaved() {
   })
   return (
     <p className="text-gray8/90 mt-3 ps-3 text-xs tabular-nums">
-      Users saved ${formatCost(animated, 3)} @ $3/M input tokens
+      Users saved ${formatCost(animated, 3)} by using curl.md
     </p>
   )
 }
@@ -394,7 +394,13 @@ If not, do this instead: curl -fsSL https://curl.md/install.sh | bash`,
       type="button"
     >
       <span>
-        {copied ? 'Copied! Now paste into your agent' : 'Copy setup instructions for my agent'}
+        {copied ? (
+          'Copied! Now paste into your agent'
+        ) : (
+          <>
+            Copy <span className="hidden md:inline">setup</span> instructions for my agent
+          </>
+        )}
       </span>
       <span className="absolute end-3">
         {copied ? <IconOcticonCheck16 className="text-teal9" /> : <IconOcticonCopy16 />}

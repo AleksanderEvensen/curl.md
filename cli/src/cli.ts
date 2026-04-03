@@ -35,7 +35,7 @@ const vars = z.object({
 
 const cli = Cli.create('curl.md', {
   aliases,
-  description: 'Fetch any URL as Markdown',
+  description: 'URL to markdown for agents',
   version: pkg.version,
   env,
   vars,

@@ -54,7 +54,7 @@ describe('bun build --compile', () => {
   test('shows help', async () => {
     const { stdout } = await exec(bin, ['--help'])
     expect(stdout).toContain('curl.md')
-    expect(stdout).toContain('Fetch any URL as Markdown')
+    expect(stdout).toContain('URL to markdown for agents')
     expect(stdout).toContain('auth')
     expect(stdout).toContain('org')
     expect(stdout).toContain('update')

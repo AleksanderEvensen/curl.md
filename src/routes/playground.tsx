@@ -19,9 +19,9 @@ export const Route = createFileRoute('/playground')({
     return {
       meta: [
         { title: `Playground - ${__HOST__}` },
-        { name: 'description', content: 'Fetch any URL as Markdown' },
+        { name: 'description', content: 'URL to markdown for agents' },
         { property: 'og:title', content: `${__HOST__}/playground` },
-        { property: 'og:description', content: 'Fetch any URL as Markdown' },
+        { property: 'og:description', content: 'URL to markdown for agents' },
         { property: 'og:image', content: ogImage },
         { property: 'og:image:width', content: '1200' },
         { property: 'og:image:height', content: '630' },
@@ -30,7 +30,7 @@ export const Route = createFileRoute('/playground')({
         { property: 'og:url', content: `https://${__HOST__}/playground` },
         { name: 'twitter:card', content: 'summary_large_image' },
         { name: 'twitter:title', content: `${__HOST__}/playground` },
-        { name: 'twitter:description', content: 'Fetch any URL as Markdown' },
+        { name: 'twitter:description', content: 'URL to markdown for agents' },
         { name: 'twitter:image', content: ogImage },
       ],
     }

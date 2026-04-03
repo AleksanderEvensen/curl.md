@@ -1618,7 +1618,7 @@ export const api = new Hono<{
         )
         return c.html(
           html`<meta property="og:title" content="${`${c.env.HOST}/${url}`}" />
-<meta property="og:description" content="Fetch any URL as Markdown" />
+<meta property="og:description" content="URL to markdown for agents" />
 <meta property="og:image" content="${ogUrl}" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
@@ -1626,7 +1626,7 @@ export const api = new Hono<{
 <meta property="og:url" content="${`https://${c.env.HOST}/${url}`}" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="${`${c.env.HOST}/${url}`}" />
-<meta name="twitter:description" content="Fetch any URL as Markdown" />
+<meta name="twitter:description" content="URL to markdown for agents" />
 <meta name="twitter:image" content="${ogUrl}" />`,
           200,
         )

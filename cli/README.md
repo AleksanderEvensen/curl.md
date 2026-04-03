@@ -1,6 +1,6 @@
 # curl.md
 
-Fetch any URL as Markdown.
+URL to markdown for agents.
 
 ## Install
 

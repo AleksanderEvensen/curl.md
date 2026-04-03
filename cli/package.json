@@ -1,7 +1,7 @@
 {
   "name": "curl.md",
   "version": "0.0.12",
-  "description": "Fetch any URL as Markdown",
+  "description": "URL to markdown for agents",
   "license": "MIT",
   "repository": {
     "type": "git",
