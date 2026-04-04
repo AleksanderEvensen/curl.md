@@ -80,7 +80,7 @@
     "@types/react-dom": "^19.2.0",
     "@typescript/native-preview": "7.0.0-dev.20260318.1",
     "@vitejs/plugin-react": "^5.2.0",
-    "emulate": "0.2.0",
+    "emulate": "0.4.1",
     "kysely-ctl": "~0.20.0",
     "lint-staged": "^16.1.0",
     "msw": "^2.7.0",

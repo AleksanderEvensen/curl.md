@@ -15,7 +15,7 @@ import { creditAmounts } from '#lib/constants.ts'
 
 export const Route = createFileRoute('/credits/add/$id')({
   head() {
-    return { meta: [{ title: 'Add Credits' }] }
+    return { meta: [{ title: `Add Credits - ${__HOST__}` }] }
   },
   loader: ({ params }) => getPayment({ data: { id: params.id } }),
   component: AddCreditsPage,
@@ -107,32 +107,12 @@ function CheckoutForm(props: { amount: number; id: string; locked: boolean }) {
 
   return (
     <form
-      className="flex flex-col gap-4"
+      className="mt-4 flex flex-col gap-4"
       onSubmit={(e) => {
         e.preventDefault()
         payment.mutate()
       }}
     >
-      {props.locked ? (
-        <p className="text-gray8 text-sm">Amount: ${(amount / 100).toFixed(2)}</p>
-      ) : (
-        <RadioGroup
-          className="flex"
-          disabled={updateAmount.isPending}
-          onValueChange={(value) => updateAmount.mutate(Number(value))}
-          value={String(amount)}
-        >
-          {amounts.map((a) => (
-            <Radio.Root
-              className="border-gray-a3 text-gray9 data-[checked]:border-gray10 data-[checked]:bg-gray10 data-[checked]:text-bg1 flex-1 border px-3 py-2 text-center text-sm disabled:opacity-50"
-              key={a}
-              value={String(a)}
-            >
-              ${a / 100}
-            </Radio.Root>
-          ))}
-        </RadioGroup>
-      )}
       <PaymentElement
         options={{
           layout: {
@@ -144,14 +124,34 @@ function CheckoutForm(props: { amount: number; id: string; locked: boolean }) {
           },
         }}
       />
-      {payment.error ? <p className="text-red9 text-xs">{payment.error.message}</p> : null}
+      {props.locked ? (
+        <p className="text-gray8 text-sm">Amount: ${(amount / 100).toFixed(2)}</p>
+      ) : (
+        <RadioGroup
+          className="border-gray-a3 divide-gray-a3 flex flex-col divide-y border border-b-0 sm:flex-row sm:divide-x sm:border-e-0"
+          disabled={updateAmount.isPending}
+          onValueChange={(value) => updateAmount.mutate(Number(value))}
+          value={String(amount)}
+        >
+          {amounts.map((a) => (
+            <Radio.Root
+              className="text-gray9 hover:text-gray10 data-[checked]:bg-gray10 data-[checked]:text-bg1 flex-1 px-3 py-2 text-center text-sm select-none disabled:opacity-50"
+              key={a}
+              value={String(a)}
+            >
+              ${a / 100}
+            </Radio.Root>
+          ))}
+        </RadioGroup>
+      )}
       <button
         className="bg-gray10 text-bg1 flex h-11 items-center justify-center px-4 transition-opacity hover:opacity-90 disabled:opacity-50"
         disabled={!stripe || payment.isPending || updateAmount.isPending}
         type="submit"
       >
-        {payment.isPending ? 'Processing...' : `Pay $${(amount / 100).toFixed(2)}`}
+        {payment.isPending ? 'Processing' : 'Pay'}
       </button>
+      {payment.error && <p className="text-red9 -mt-1 text-sm">{payment.error.message}</p>}
     </form>
   )
 }
@@ -160,8 +160,8 @@ function PageWrapper(props: React.PropsWithChildren) {
   return (
     <div className="relative flex min-h-dvh flex-col">
       <Nav />
-      <main className="flex flex-1 flex-col items-center justify-center px-6 pb-32">
-        <div className="flex w-full max-w-xs flex-col">
+      <main className="flex flex-1 flex-col items-center justify-center px-6 pt-17 pb-32">
+        <div className="flex w-full max-w-sm flex-col">
           <h1 className="mb-4 text-lg font-bold">Add Credits</h1>
           {props.children}
         </div>

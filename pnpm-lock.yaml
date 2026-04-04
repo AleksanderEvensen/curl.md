@@ -14,6 +14,7 @@ overrides:
   brace-expansion@>=2.0.0 <2.0.3: 2.0.3
   h3: 2.0.1-rc.18
   h3-v2: npm:h3@2.0.1-rc.18
+  lodash@>=4.0.0 <4.18.0: 4.18.0
   miniflare>undici: 7.18.2
   path-to-regexp@>=8.0.0 <8.4.0: 8.4.0
   picomatch@>=4.0.0 <4.0.4: 4.0.4
@@ -168,8 +169,8 @@ importers:
         specifier: ^5.2.0
         version: 5.2.0(vite@8.0.0(@types/node@25.3.2)(esbuild@0.27.4)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3))
       emulate:
-        specifier: 0.2.0
-        version: 0.2.0(hono@4.12.7)
+        specifier: 0.4.1
+        version: 0.4.1(hono@4.12.7)
       kysely-ctl:
         specifier: ~0.20.0
         version: 0.20.0(kysely-postgres-js@3.0.0(kysely@0.28.14)(postgres@3.4.8))(kysely@0.28.14)(typescript@5.9.3)
@@ -3001,8 +3002,8 @@ packages:
   emoji-regex@9.2.2:
     resolution: {integrity: sha512-L18DaJsXSUk2+42pv8mLs5jJT2hqFkFE4j21wOmgbUqsZ2hL72NsUU785g9RXgo3s0ZNgVl42TiHp3ZtOv/Vyg==}
 
-  emulate@0.2.0:
-    resolution: {integrity: sha512-tjiJMgYc0U16g/UDB5jSZjN7QKBDPk1GmRRKOPGkH4GYyu7gx3s775zyJNhWQ2C6/eUTBuFkXjbyB75whS6wUA==}
+  emulate@0.4.1:
+    resolution: {integrity: sha512-96CEZB96M7fC5na1lFl9sL7AS5d2lRgJkZVb/e8ufbLMLLxEy2oHhN4E9d7+eJbtABne/CeumSRX2j7A9UDlEQ==}
     hasBin: true
 
   encodeurl@2.0.0:
@@ -3652,8 +3653,9 @@ packages:
   lodash.startcase@4.4.0:
     resolution: {integrity: sha512-+WKqsK294HMSc2jEbNgpHpd0JfIBhp7rEV4aqXWqFr6AlXov+SlcgB1Fv01y2kGe3Gc8nMW7VA0SrGuSkRfIEg==}
 
-  lodash@4.17.23:
-    resolution: {integrity: sha512-LgVTMpQtIopCi79SJeDiP0TfWi5CNEc/L/aRdTh3yIvmZXTnheWpKjSZhnvMl8iXbC1tFg9gdHHDMLoV7CnG+w==}
+  lodash@4.18.0:
+    resolution: {integrity: sha512-l1mfj2atMqndAHI3ls7XqPxEjV2J9ZkcNyHpoZA3r2T1LLwDB69jgkMWh71YKwhBbK0G2f4WSn05ahmQXVxupA==}
+    deprecated: Bad release. Please use lodash@4.17.21 instead.
 
   log-update@6.1.0:
     resolution: {integrity: sha512-9ie8ItPR6tjY5uYJh8K/Zrv/RMZ5VOlOWvtZdEHYSTFKZfIBPQa9tOAEeAWhd+AnIneLJ22w5fjOYtoutpWq5w==}
@@ -7193,7 +7195,7 @@ snapshots:
       graceful-fs: 4.2.11
       is-stream: 2.0.1
       lazystream: 1.0.1
-      lodash: 4.17.23
+      lodash: 4.18.0
       normalize-path: 3.0.0
       readable-stream: 4.7.0
 
@@ -7675,7 +7677,7 @@ snapshots:
 
   emoji-regex@9.2.2: {}
 
-  emulate@0.2.0(hono@4.12.7):
+  emulate@0.4.1(hono@4.12.7):
     dependencies:
       '@hono/node-server': 1.19.11(hono@4.12.7)
       commander: 14.0.3
@@ -8410,7 +8412,7 @@ snapshots:
 
   lodash.startcase@4.4.0: {}
 
-  lodash@4.17.23: {}
+  lodash@4.18.0: {}
 
   log-update@6.1.0:
     dependencies:
