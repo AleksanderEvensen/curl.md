@@ -40,6 +40,7 @@ const botPaths = [
   '/.git',
   '/actuator',
   '/cgi-bin',
+  '/info.php',
   '/phpmyadmin',
   '/telescope',
   '/wordpress',

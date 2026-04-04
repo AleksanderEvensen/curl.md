@@ -24,6 +24,8 @@ export default defineConfig(async () => ({
         const socketErrors = new Set(['ERR_STREAM_WRITE_AFTER_END', 'EPIPE', 'ECONNRESET'])
         process.on('uncaughtException', (err) => {
           if ('code' in err && socketErrors.has(err.code as string)) return
+          // Miniflare cancels in-flight requests when the worker restarts during HMR
+          if (err.message?.includes('Workers runtime canceled this request')) return
           throw err
         })
       },

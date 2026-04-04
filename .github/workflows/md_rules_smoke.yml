@@ -1,4 +1,4 @@
-name: MD Rules Smoke Test
+name: Rules Smoke Test
 
 on:
   schedule:
@@ -9,8 +9,8 @@ permissions:
   contents: read
 
 jobs:
-  smoke:
-    name: Smoke Test
+  test:
+    name: Test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

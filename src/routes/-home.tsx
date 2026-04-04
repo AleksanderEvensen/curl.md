@@ -281,7 +281,9 @@ function TokensSaved() {
   })
   return (
     <p className="mt-24 flex items-center gap-3 text-sm md:mt-44">
-      <span className="text-teal8 border-teal9/30 shrink-0 border px-1 py-0.5 text-xs">LIVE</span>
+      <span className="text-teal8 border-teal9/30 shrink-0 border px-1 py-0.5 text-xs uppercase">
+        Live
+      </span>
       <span className="text-gray8">
         <span className="tabular-nums">{Math.round(animated).toLocaleString()}</span> tokens saved
       </span>
@@ -353,13 +355,13 @@ function InstallTabs() {
   return (
     <Tabs.Root value={tab} onValueChange={(value) => setTab(value as typeof tab)}>
       <Tabs.List className="relative z-10 ms-px -mb-px flex">
-        {installCommands.map((cmd) => (
+        {installCommands.map((command) => (
           <Tabs.Tab
             className="text-gray9 data-[active]:text-gray10 data-[active]:border-gray10 border-b border-transparent px-3 py-2"
-            key={cmd.name}
-            value={cmd.name}
+            key={command.name}
+            value={command.name}
           >
-            {cmd.name}
+            {command.name}
           </Tabs.Tab>
         ))}
       </Tabs.List>
@@ -403,7 +405,11 @@ If not, do this instead: curl -fsSL https://curl.md/install.sh | bash`,
         )}
       </span>
       <span className="absolute end-3">
-        {copied ? <IconOcticonCheck16 className="text-teal9" /> : <IconOcticonCopy16 />}
+        {copied ? (
+          <IconOcticonCheck16 className="text-teal9 size-4" />
+        ) : (
+          <IconOcticonCopy16 className="size-4" />
+        )}
       </span>
     </button>
   )

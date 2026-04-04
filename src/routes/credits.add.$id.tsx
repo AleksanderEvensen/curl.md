@@ -11,18 +11,18 @@ import Stripe from 'stripe'
 import { z } from 'zod/mini'
 import { Nav } from '#components/Nav.tsx'
 import { useTheme } from '#hooks/useTheme.ts'
-import { creditAmounts } from '#lib/constants.ts'
+import { creditAmounts, pricing } from '#lib/constants.ts'
 
 export const Route = createFileRoute('/credits/add/$id')({
   head() {
     return { meta: [{ title: `Add Credits - ${__HOST__}` }] }
   },
   loader: ({ params }) => getPayment({ data: { id: params.id } }),
-  component: AddCreditsPage,
+  component: Component,
 })
 
-function AddCreditsPage() {
-  const { id } = Route.useParams()
+function Component() {
+  const params = Route.useParams()
   const data = Route.useLoaderData()
 
   const { resolvedTheme } = useTheme()
@@ -33,38 +33,37 @@ function AddCreditsPage() {
 
   if (!data || !stripePromise)
     return (
-      <PageWrapper>
-        <p className="text-gray8 text-sm leading-relaxed">Payment session not found or expired.</p>
-      </PageWrapper>
+      <PageWrapper
+        title="Payment Session Not Found"
+        description="Payment session either expired or not found. Close this page and try again."
+      />
     )
 
   return (
-    <PageWrapper>
-      <Elements
-        key={resolvedTheme}
-        options={{
-          appearance: {
-            disableAnimations: true,
-            theme: resolvedTheme === 'dark' ? 'night' : 'stripe',
-            variables: {
-              borderRadius: '0px',
-              colorBackground: c(resolvedTheme, 'bg1'),
-              colorDanger: c(resolvedTheme, 'red9'),
-              colorPrimary: c(resolvedTheme, 'gray10'),
-              colorText: c(resolvedTheme, 'gray10'),
-              colorTextSecondary: c(resolvedTheme, 'gray8'),
-              fontFamily: '"Geist Mono Variable", monospace',
-              fontSizeBase: '14px',
-            },
+    <Elements
+      options={{
+        appearance: {
+          disableAnimations: true,
+          theme: resolvedTheme === 'dark' ? 'night' : 'stripe',
+          variables: {
+            borderRadius: '0px',
+            colorBackground: c(resolvedTheme, 'bga1'),
+            colorDanger: c(resolvedTheme, 'red9'),
+            colorSuccess: c(resolvedTheme, 'green9'),
+            colorPrimary: c(resolvedTheme, 'gray10'),
+            colorText: c(resolvedTheme, 'gray10'),
+            colorTextSecondary: c(resolvedTheme, 'gray8'),
+            fontFamily: '"Geist Mono Variable", monospace',
+            fontSizeBase: '14px',
           },
-          clientSecret: data.pi_secret,
-          customerSessionClientSecret: data.cs_secret,
-        }}
-        stripe={stripePromise}
-      >
-        <CheckoutForm amount={data.amount} id={id} locked={data.locked} />
-      </Elements>
-    </PageWrapper>
+        },
+        clientSecret: data.pi_secret,
+        customerSessionClientSecret: data.cs_secret,
+      }}
+      stripe={stripePromise}
+    >
+      <CheckoutForm amount={data.amount} id={params.id} locked={data.locked} />
+    </Elements>
   )
 }
 
@@ -98,71 +97,69 @@ function CheckoutForm(props: { amount: number; id: string; locked: boolean }) {
   })
 
   if (payment.isSuccess)
-    return (
-      <div className="flex flex-col gap-1 py-8">
-        <p className="text-lg font-bold">Payment successful</p>
-        <p className="text-gray8 text-sm leading-relaxed">You can close this page.</p>
-      </div>
-    )
+    return <PageWrapper title="Payment Successful" description="Time to get curling." />
 
   return (
-    <form
-      className="mt-4 flex flex-col gap-4"
-      onSubmit={(e) => {
-        e.preventDefault()
-        payment.mutate()
-      }}
-    >
-      <PaymentElement
-        options={{
-          layout: {
-            type: 'accordion',
-            defaultCollapsed: true,
-            radios: false,
-            spacedAccordionItems: true,
-            visibleAccordionItemsCount: 3,
-          },
+    <PageWrapper title="Add Credits" description="Add prepaid credits to your account.">
+      <form
+        className="flex flex-col gap-4"
+        onSubmit={(e) => {
+          e.preventDefault()
+          payment.mutate()
         }}
-      />
-      {props.locked ? (
-        <p className="text-gray8 text-sm">Amount: ${(amount / 100).toFixed(2)}</p>
-      ) : (
-        <RadioGroup
-          className="border-gray-a3 divide-gray-a3 flex flex-col divide-y border border-b-0 sm:flex-row sm:divide-x sm:border-e-0"
-          disabled={updateAmount.isPending}
-          onValueChange={(value) => updateAmount.mutate(Number(value))}
-          value={String(amount)}
-        >
-          {amounts.map((a) => (
-            <Radio.Root
-              className="text-gray9 hover:text-gray10 data-[checked]:bg-gray10 data-[checked]:text-bg1 flex-1 px-3 py-2 text-center text-sm select-none disabled:opacity-50"
-              key={a}
-              value={String(a)}
-            >
-              ${a / 100}
-            </Radio.Root>
-          ))}
-        </RadioGroup>
-      )}
-      <button
-        className="bg-gray10 text-bg1 flex h-11 items-center justify-center px-4 transition-opacity hover:opacity-90 disabled:opacity-50"
-        disabled={!stripe || payment.isPending || updateAmount.isPending}
-        type="submit"
       >
-        {payment.isPending ? 'Processing' : 'Pay'}
-      </button>
-      {payment.error && <p className="text-red9 -mt-1 text-sm">{payment.error.message}</p>}
-    </form>
+        {props.locked ? (
+          <p className="text-gray8 text-sm">Amount: ${(amount / 100).toFixed(2)}</p>
+        ) : (
+          <RadioGroup
+            className="grid grid-cols-1 gap-2 sm:grid-cols-2"
+            disabled={updateAmount.isPending}
+            onValueChange={(value) => updateAmount.mutate(Number(value))}
+            value={String(amount)}
+          >
+            {amounts.map((amount) => (
+              <Radio.Root
+                className="group border-gray-a3 text-gray8 hover:text-gray10 data-[checked]:border-gray10 data-[checked]:text-gray10 bg-gray-a1 flex items-center justify-between border px-3 py-2 text-sm select-none disabled:opacity-50"
+                key={amount}
+                value={String(amount)}
+              >
+                <span className="font-semibold">${amount / 100}</span>
+                <span className="text-gray8 text-xs">~{estimateRequests(amount)} requests</span>
+              </Radio.Root>
+            ))}
+          </RadioGroup>
+        )}
+        <PaymentElement
+          options={{
+            layout: {
+              defaultCollapsed: true,
+              radios: false,
+              type: 'accordion',
+              visibleAccordionItemsCount: 2,
+            },
+          }}
+        />
+        <button
+          className="bg-gray10 text-bg1 flex h-11 items-center justify-center px-4 transition-opacity hover:opacity-90 disabled:opacity-50"
+          disabled={!stripe || payment.isPending || updateAmount.isPending}
+          type="submit"
+        >
+          {payment.isPending ? 'Processing' : 'Pay'}
+        </button>
+        {payment.error && <p className="text-red9 -mt-1 text-sm">{payment.error.message}</p>}
+      </form>
+    </PageWrapper>
   )
 }
 
-function PageWrapper(props: React.PropsWithChildren) {
+function PageWrapper(props: React.PropsWithChildren<{ description: string; title: string }>) {
   return (
     <div className="relative flex min-h-dvh flex-col">
       <Nav />
-      <main className="flex flex-1 flex-col items-center justify-center px-6 pt-17 pb-32">
-        <div className="flex w-full max-w-sm flex-col">
-          <h1 className="mb-4 text-lg font-bold">Add Credits</h1>
+      <main className="flex flex-1 flex-col items-center px-6 pt-48 pb-32">
+        <div className="flex w-full flex-col sm:max-w-sm">
+          <h1 className="text-lg font-bold">{props.title}</h1>
+          <p className="text-gray8 mt-2 mb-6 text-sm leading-relaxed">{props.description}</p>
           {props.children}
         </div>
       </main>
@@ -206,12 +203,21 @@ const deletePayment = createServerFn({ method: 'POST' })
 // lightningcss compiles light-dark() so getComputedStyle can't resolve them
 const colors = {
   bg1: { light: 'hsl(0 0% 98%)', dark: 'hsl(0 0% 0%)' },
+  bga1: { light: 'hsl(0 0% 96%)', dark: 'hsl(0 0% 6%)' },
   gray8: { light: 'hsl(0 0% 49%)', dark: 'hsl(0 0% 49%)' },
   gray10: { light: 'hsl(0 0% 9%)', dark: 'hsl(0 0% 93%)' },
+  blue9: { light: 'hsl(211 100% 42%)', dark: 'hsl(210 100% 66%)' },
+  green9: { light: 'hsl(133 50% 32%)', dark: 'hsl(131 43% 57%)' },
   red9: { light: 'hsl(358 66% 48%)', dark: 'hsl(358 100% 69%)' },
 } as const
 
 function c(theme: 'light' | 'dark', name: keyof typeof colors) {
   const value = colors[name]
   return typeof value === 'string' ? value : value[theme]
+}
+
+function estimateRequests(amountCents: number) {
+  const mills = amountCents * 10
+  const costPerRequest = pricing.fetchCostMills + pricing.queryBaseCostMills * pricing.queryMarkup
+  return Math.floor(mills / costPerRequest).toLocaleString()
 }

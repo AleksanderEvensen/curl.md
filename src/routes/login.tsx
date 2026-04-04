@@ -1,5 +1,7 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
+import { hc } from 'hono/client'
 import { z } from 'zod'
+import type { api } from '#api.ts'
 import { Nav } from '#components/Nav.tsx'
 import { getSessionLogin } from '#server/session.ts'
 
@@ -12,24 +14,28 @@ export const Route = createFileRoute('/login')({
     const login = await getSessionLogin()
     if (login) throw redirect({ to: '/~dash/$login', params: { login } })
   },
-  component: Login,
+  component: Component,
 })
 
-function Login() {
-  const { next } = Route.useSearch()
+function Component() {
+  const search = Route.useSearch()
   const href = (() => {
     const isPreview = __HOST__ !== 'curl.md' && __HOST__ !== 'curl.local'
-    if (isPreview)
-      return `https://curl.md/api/auth/github?next=${encodeURIComponent(next ? `${__ORIGIN__}${next}` : __ORIGIN__)}`
-    if (next) return `/api/auth/github?next=${encodeURIComponent(next)}`
-    return '/api/auth/github'
+    const rpc = hc<typeof api>(isPreview ? 'https://curl.md' : __ORIGIN__)
+    const next = isPreview
+      ? search.next
+        ? `${__ORIGIN__}${search.next}`
+        : __ORIGIN__
+      : search.next
+    const url = rpc.api.auth.github.$url(next ? { query: { next } } : undefined)
+    if (isPreview) return url.toString()
+    return url.pathname + url.search
   })()
   return (
     <div className="relative flex min-h-dvh flex-col">
       <Nav />
-
-      <main className="flex flex-1 flex-col items-center justify-center px-6 pb-32">
-        <div className="flex w-full max-w-xs flex-col">
+      <main className="flex flex-1 flex-col items-center px-6 pt-48 pb-32">
+        <div className="flex w-full flex-col sm:max-w-sm">
           <h1 className="text-lg font-bold">Sign in</h1>
           <p className="text-gray8 mt-2 text-sm leading-relaxed">
             New to curl.md or been here before? Continue below to start curling.

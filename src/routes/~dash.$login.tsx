@@ -25,10 +25,10 @@ export const Route = createFileRoute('/~dash/$login')({
   },
   loader: ({ context }) =>
     getDashboardData({ data: { entityId: context.entity.id, entityType: context.entity.type } }),
-  component: Dashboard,
+  component: Component,
 })
 
-function Dashboard() {
+function Component() {
   const { account, entity } = Route.useRouteContext()
   const router = useRouter()
   const loaderData = Route.useLoaderData()
@@ -135,7 +135,7 @@ function StatCard(props: { label: string; value: string }) {
 
 const getLayoutData = createServerFn({ method: 'GET' })
   .inputValidator((d: { login: string }) => d)
-  .handler(async ({ data: { login } }) => {
+  .handler(async (c) => {
     const request = getRequest()
     const db = createClient(env.DB.connectionString)
     const sessionId = await Cookie.parseSigned(
@@ -163,14 +163,14 @@ const getLayoutData = createServerFn({ method: 'GET' })
     if (!account) return false
 
     // Check if login matches the logged-in account
-    if (account.login === login)
+    if (account.login === c.data.login)
       return { account, entity: { type: 'account' as const, ...account } }
 
     // Check if login matches an organization the user belongs to
     const org = await db
       .selectFrom('organization')
       .innerJoin('organization_member', 'organization_member.organization_id', 'organization.id')
-      .where('organization.login', '=', login)
+      .where('organization.login', '=', c.data.login)
       .where('organization.deleted_at', 'is', null)
       .where('organization_member.account_id', '=', accountId)
       .select(['organization.id', 'organization.login', 'organization.name'])
@@ -182,7 +182,7 @@ const getLayoutData = createServerFn({ method: 'GET' })
 
 const getDashboardData = createServerFn({ method: 'GET' })
   .inputValidator((d: { entityId: string; entityType: 'account' | 'organization' }) => d)
-  .handler(async ({ data }) => {
+  .handler(async (c) => {
     const request = getRequest()
     const db = createClient(env.DB.connectionString)
     const sessionId = await Cookie.parseSigned(
@@ -192,10 +192,10 @@ const getDashboardData = createServerFn({ method: 'GET' })
     )
     if (!sessionId) return { balance_mills: 0, payment_method: null, tokens_saved: 0 }
 
-    const table = data.entityType === 'organization' ? 'organization' : 'account'
+    const table = c.data.entityType === 'organization' ? 'organization' : 'account'
     const billing = await db
       .selectFrom(table)
-      .where('id', '=', data.entityId)
+      .where('id', '=', c.data.entityId)
       .select(['balance_mills', 'stripe_customer_id'])
       .executeTakeFirst()
 
@@ -212,10 +212,10 @@ const getDashboardData = createServerFn({ method: 'GET' })
       if (card) paymentMethod = { brand: card.brand, last4: card.last4 }
     }
 
-    const requestColumn = data.entityType === 'organization' ? 'organization_id' : 'account_id'
+    const requestColumn = c.data.entityType === 'organization' ? 'organization_id' : 'account_id'
     const statsResult = await db
       .selectFrom('request')
-      .where(requestColumn, '=', data.entityId)
+      .where(requestColumn, '=', c.data.entityId)
       .select((eb) => eb.fn.sum<number>('tokens_saved').as('total'))
       .executeTakeFirst()
 

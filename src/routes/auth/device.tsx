@@ -1,8 +1,8 @@
+import { useMutation } from '@tanstack/react-query'
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { getRequest } from '@tanstack/react-start/server'
 import { env } from 'cloudflare:workers'
-import { useState } from 'react'
 import { z } from 'zod'
 import { Nav } from '#components/Nav.tsx'
 import { createClient } from '#db/client.ts'
@@ -28,26 +28,37 @@ export const Route = createFileRoute('/auth/device')({
       throw redirect({ href: `${url.pathname}${url.search}` })
     }
   },
-  component: DeviceConfirmation,
+  component: Component,
 })
 
-function DeviceConfirmation() {
+function Component() {
   const search = Route.useSearch()
   const navigate = Route.useNavigate()
-  const [state, setState] = useState<'idle' | 'confirming' | 'success' | 'error'>(
-    search.code_confirmed ? 'success' : 'idle',
-  )
-  const [errorMessage, setErrorMessage] = useState('')
+
+  const confirm = useMutation({
+    async mutationFn(user_code: string) {
+      const res = await rpc.api.auth.device.confirm.$post({
+        json: { user_code },
+      })
+      if (res.status === 400 || res.status === 401 || res.status === 404) {
+        const json = await res.json()
+        throw new Error(json.message)
+      }
+    },
+    onSuccess() {
+      navigate({ search: { ...search, code_confirmed: true } })
+    },
+  })
 
   const user_code = search.user_code
   if (!user_code)
     return (
       <div className="relative flex min-h-dvh flex-col">
         <Nav />
-        <main className="flex flex-1 flex-col items-center justify-center px-6 pb-32">
-          <div className="flex w-full max-w-xs flex-col">
+        <main className="flex flex-1 flex-col items-center px-6 pt-48 pb-32">
+          <div className="flex w-fit max-w-full flex-col items-center md:items-start">
             <h1 className="text-lg font-bold">No device code provided</h1>
-            <p className="text-gray8 mt-2 text-sm leading-relaxed">
+            <p className="text-gray8 mt-2 max-w-md text-center text-sm leading-relaxed md:text-start">
               Please use the link from your terminal to confirm a device.
             </p>
           </div>
@@ -55,10 +66,17 @@ function DeviceConfirmation() {
       </div>
     )
 
+  const state = (() => {
+    if (search.code_confirmed || confirm.isSuccess) return 'success'
+    if (confirm.isPending) return 'confirming'
+    if (confirm.isError) return 'error'
+    return 'idle'
+  })()
+
   return (
     <div className="relative flex min-h-dvh flex-col">
       <Nav />
-      <main className="flex flex-1 flex-col items-center justify-center px-6 pb-32">
+      <main className="flex flex-1 flex-col items-center px-6 pt-48 pb-32">
         <div className="flex w-fit max-w-full flex-col items-center md:items-start">
           <h1 className="text-lg font-bold">
             {state === 'success' ? 'You\u2019re all set' : 'Device confirmation'}
@@ -70,10 +88,10 @@ function DeviceConfirmation() {
           </p>
 
           <div className="mt-8 flex flex-wrap justify-center gap-2 md:justify-start">
-            {user_code.split('').map((char: string, i: number) => (
+            {user_code.split('').map((char, index) => (
               <div
                 className="bg-gray-a1 flex items-center justify-center px-4 py-3 text-xl font-bold md:px-5 md:py-4 md:text-2xl"
-                key={`${i}-${char}`}
+                key={`${index}-${char}`}
               >
                 {char}
               </div>
@@ -82,7 +100,7 @@ function DeviceConfirmation() {
 
           {state === 'error' && (
             <p className="text-red9 mt-4 text-sm">
-              {errorMessage || 'Something went wrong. Please try again.'}
+              {confirm.error?.message || 'Something went wrong. Please try again.'}
             </p>
           )}
 
@@ -94,28 +112,10 @@ function DeviceConfirmation() {
                 className="bg-gray10 text-bg1 flex h-11 items-center px-4 transition-opacity hover:opacity-90 disabled:opacity-50"
                 data-confirming={state === 'confirming' ? '' : undefined}
                 disabled={state === 'confirming'}
-                onClick={async () => {
-                  setState('confirming')
-                  try {
-                    const res = await rpc.api.auth.device.confirm.$post({
-                      json: { user_code },
-                    })
-                    if (res.status === 400 || res.status === 401 || res.status === 404) {
-                      const json = await res.json()
-                      setErrorMessage(json.message)
-                      setState('error')
-                      return
-                    }
-                    setState('success')
-                    navigate({ search: { ...search, code_confirmed: true } })
-                  } catch {
-                    setErrorMessage('Failed to confirm device.')
-                    setState('error')
-                  }
-                }}
+                onClick={() => confirm.mutate(user_code)}
                 type="button"
               >
-                {state === 'confirming' ? 'Confirming...' : 'Confirm code'}
+                {state === 'confirming' ? 'Confirming' : 'Confirm code'}
               </button>
               <a
                 className="border-gray-a3 text-gray9 hover:bg-gray-a1 hover:text-gray10 focus:bg-gray-a1 focus:text-gray10 flex h-11 items-center border px-4"

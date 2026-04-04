@@ -36,10 +36,10 @@ export const Route = createFileRoute('/playground')({
     }
   },
   validateSearch: searchSchema,
-  component: Playground,
+  component: Component,
 })
 
-function Playground() {
+function Component() {
   const search = Route.useSearch()
   const navigate = useNavigate()
   const [url, setUrl] = React.useState(search.url ?? '')
