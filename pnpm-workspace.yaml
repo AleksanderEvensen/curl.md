@@ -36,6 +36,7 @@ onlyBuiltDependencies:
 overrides:
   # Pin vulnerable transitive ranges until upstream packages refresh their lockfiles.
   brace-expansion@>=2.0.0 <2.0.3: 2.0.3
+  defu@<=6.1.4: 6.1.5
   h3: 2.0.1-rc.18
   h3-v2: npm:h3@2.0.1-rc.18
   lodash@>=4.0.0 <4.18.0: 4.18.0

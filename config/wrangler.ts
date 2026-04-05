@@ -1,5 +1,6 @@
 import * as fs from 'node:fs'
 import JSONC from 'tiny-jsonc'
+import type { Plugin } from 'vite'
 import { z } from 'zod/v4/mini'
 
 export function getWranglerVar(name: keyof z.infer<typeof wranglerVars>) {
@@ -28,3 +29,25 @@ const wranglerJsoncCodec = z.codec(
     encode: (value) => JSON.stringify(value),
   },
 )
+
+// Rewrites Host/Origin headers to localhost for /cdn-cgi/explorer requests
+// so they pass Miniflare's origin validation when accessed via a custom domain.
+export function explorerOriginRewrite(): Plugin {
+  return {
+    name: 'explorer-origin-rewrite',
+    enforce: 'pre',
+    configureServer(server) {
+      server.middlewares.use((req, _res, next) => {
+        const url = req.originalUrl ?? ''
+        if (url.startsWith('/cdn-cgi/explorer')) {
+          const raw = req.rawHeaders
+          for (let i = 0; i < raw.length; i += 2) {
+            if (raw[i]?.toLowerCase() === 'host') raw[i + 1] = 'localhost'
+            if (raw[i]?.toLowerCase() === 'origin') raw[i + 1] = 'http://localhost'
+          }
+        }
+        next()
+      })
+    },
+  }
+}

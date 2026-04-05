@@ -1,3 +1,4 @@
+import net from 'node:net'
 import { createEmulator } from 'emulate'
 import { startDatabase } from './containers.ts'
 import { startDevServer } from './devServer.ts'
@@ -13,7 +14,7 @@ export default async function globalSetup() {
   console.log('e2e: starting github emulator')
   const emulator = await createEmulator({
     service: 'github',
-    port: 4001,
+    port: await getFreePort(),
     seed: {
       tokens: {
         gho_test_token: { login: 'testuser', scopes: ['user:email'] },
@@ -32,7 +33,7 @@ export default async function globalSetup() {
   console.log('e2e: started github emulator')
 
   console.log('e2e: starting stripe emulator')
-  const stripeEmulator = await createEmulator({ service: 'stripe', port: 4002 })
+  const stripeEmulator = await createEmulator({ service: 'stripe', port: await getFreePort() })
   console.log('e2e: started stripe emulator')
 
   console.log('e2e: starting dev server')
@@ -54,4 +55,15 @@ export default async function globalSetup() {
     await stripeEmulator.close()
     await container.stop()
   }
+}
+
+function getFreePort(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const server = net.createServer()
+    server.listen(0, () => {
+      const addr = server.address() as net.AddressInfo
+      server.close(() => resolve(addr.port))
+    })
+    server.on('error', reject)
+  })
 }

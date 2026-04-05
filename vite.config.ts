@@ -7,7 +7,7 @@ import autoImport from 'unplugin-auto-import/vite'
 import iconsResolver from 'unplugin-icons/resolver'
 import icons from 'unplugin-icons/vite'
 import { defineConfig } from 'vite'
-import { getWranglerVar } from './config/wrangler.ts'
+import { explorerOriginRewrite, getWranglerVar } from './config/wrangler.ts'
 import { createClient } from './db/client.ts'
 import { Env } from './test/env.ts'
 
@@ -17,11 +17,13 @@ export default defineConfig(async () => ({
   },
   plugins: [
     tailwindcss(),
+    explorerOriginRewrite(),
     cloudflare({
       viteEnvironment: { name: 'ssr' },
       // Override bindings for tests (testcontainers DB, emulate GitHub)
       ...(process.env.PLAYWRIGHT || process.env.VITEST
         ? {
+            ...(process.env.PLAYWRIGHT ? { inspectorPort: false } : {}),
             remoteBindings: false,
             config(config) {
               const parsed = Env.parse(process.env)
