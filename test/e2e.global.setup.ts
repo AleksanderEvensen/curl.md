@@ -31,11 +31,16 @@ export default async function globalSetup() {
   })
   console.log('e2e: started github emulator')
 
+  console.log('e2e: starting stripe emulator')
+  const stripeEmulator = await createEmulator({ service: 'stripe', port: 4002 })
+  console.log('e2e: started stripe emulator')
+
   console.log('e2e: starting dev server')
   const server = await startDevServer(container.getConnectionUri(), {
     ...env,
     GH_API_URL: emulator.url,
     GH_URL: emulator.url,
+    STRIPE_API_URL: stripeEmulator.url,
   })
   console.log('e2e: started dev server')
 
@@ -46,6 +51,7 @@ export default async function globalSetup() {
   return async () => {
     server.stop()
     await emulator.close()
+    await stripeEmulator.close()
     await container.stop()
   }
 }

@@ -202,7 +202,12 @@ const getDashboardData = createServerFn({ method: 'GET' })
     let paymentMethod: { brand: string; last4: string } | null = null
     if (billing?.stripe_customer_id) {
       const { default: Stripe } = await import('stripe')
-      const stripe = new Stripe(env.STRIPE_SECRET_KEY)
+      const stripeUrl = new URL(env.STRIPE_API_URL)
+      const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
+        host: stripeUrl.hostname,
+        port: Number(stripeUrl.port) || (stripeUrl.protocol === 'https:' ? 443 : 80),
+        protocol: stripeUrl.protocol.replace(':', '') as 'http' | 'https',
+      })
       const methods = await stripe.paymentMethods.list({
         customer: billing.stripe_customer_id,
         type: 'card',

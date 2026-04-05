@@ -80,9 +80,8 @@ export function Home(props: { login?: string | null | undefined }) {
             <br className="hidden md:block" /> for agents
           </h1>
           <p className="text-gray8 mt-4 text-lg leading-relaxed">
-            Turn websites into optimized, low token output.
-            <br className="hidden md:block" /> Free to use. No account needed. Works with every
-            agent.
+            Turn websites into optimized, low token output to supercharge your context. Works with
+            every agent.
           </p>
 
           <div className="mt-12 flex flex-col gap-6">

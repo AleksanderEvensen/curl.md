@@ -185,7 +185,12 @@ const changeAmount = createServerFn({ method: 'POST' })
     if (!allowedAmounts.has(c.data.amount)) throw new Error('invalid_amount')
     const data = await env.KV.get(`payment:${c.data.id}`, 'json')
     if (!data || data.locked) throw new Error('not_found')
-    const stripe = new Stripe(env.STRIPE_SECRET_KEY)
+    const url = new URL(env.STRIPE_API_URL)
+    const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
+      host: url.hostname,
+      port: Number(url.port) || (url.protocol === 'https:' ? 443 : 80),
+      protocol: url.protocol.replace(':', '') as 'http' | 'https',
+    })
     const piId = data.pi_secret.slice(0, data.pi_secret.indexOf('_secret_'))
     await stripe.paymentIntents.update(piId, { amount: c.data.amount })
     await env.KV.put(`payment:${c.data.id}`, JSON.stringify({ ...data, amount: c.data.amount }), {

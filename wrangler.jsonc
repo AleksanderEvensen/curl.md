@@ -77,6 +77,7 @@
     "GH_API_URL": "https://api.github.com",
     "GH_URL": "https://github.com",
     "HOST": "curl.local",
+    "STRIPE_API_URL": "https://api.stripe.com",
   },
   "env": {
     "production": {
@@ -156,6 +157,7 @@
         "GH_API_URL": "https://api.github.com",
         "GH_URL": "https://github.com",
         "HOST": "curl.md",
+        "STRIPE_API_URL": "https://api.stripe.com",
       },
       "routes": [{ "pattern": "curl.md", "custom_domain": true }],
       "triggers": {
@@ -245,6 +247,7 @@
         "GH_API_URL": "https://api.github.com",
         "GH_URL": "https://github.com",
         "HOST": "__PREVIEW_APEX__.curl.md",
+        "STRIPE_API_URL": "https://api.stripe.com",
       },
       "routes": [{ "pattern": "__PREVIEW_APEX__.curl.md", "custom_domain": true }],
       "triggers": {

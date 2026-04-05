@@ -637,7 +637,7 @@ export const api = new Hono<{
 
     let method: Pick<Stripe.PaymentMethod.Card, 'brand' | 'last4'> | null = null
     if (billing.stripe_customer_id) {
-      const stripe = new Stripe(c.env.STRIPE_SECRET_KEY)
+      const stripe = new Stripe(c.env.STRIPE_SECRET_KEY, stripeOptions(c.env.STRIPE_API_URL))
       const methods = await stripe.paymentMethods.list({
         customer: billing.stripe_customer_id,
         type: 'card',
@@ -692,7 +692,7 @@ export const api = new Hono<{
         .executeTakeFirst()
       if (!billing) return c.json({ code: 'not_found', message: 'Not found' }, 404)
 
-      const stripe = new Stripe(c.env.STRIPE_SECRET_KEY)
+      const stripe = new Stripe(c.env.STRIPE_SECRET_KEY, stripeOptions(c.env.STRIPE_API_URL))
 
       let stripeCustomerId = billing.stripe_customer_id
 
@@ -711,7 +711,7 @@ export const api = new Hono<{
         if (result?.stripe_customer_id) {
           stripeCustomerId = result.stripe_customer_id
         } else {
-          // Another request won the race — use existing customer
+          // Another request won the race (use existing customer)
           const existing = await c.var.db
             .selectFrom(entityType)
             .where('id', '=', entityId)
@@ -733,27 +733,32 @@ export const api = new Hono<{
         ...(json.save ? { setup_future_usage: 'off_session' } : {}),
       })
 
-      const customerSession = await stripe.customerSessions.create({
-        components: {
-          payment_element: {
-            enabled: true,
-            features: {
-              payment_method_redisplay: 'enabled',
-              payment_method_remove: 'disabled',
-              payment_method_save: 'enabled',
-              payment_method_save_usage: 'off_session',
+      // TODO: Remove try-catch once merged https://github.com/vercel-labs/emulate/pull/47
+      let csSecret: string | null = null
+      try {
+        const customerSession = await stripe.customerSessions.create({
+          components: {
+            payment_element: {
+              enabled: true,
+              features: {
+                payment_method_redisplay: 'enabled',
+                payment_method_remove: 'disabled',
+                payment_method_save: 'enabled',
+                payment_method_save_usage: 'off_session',
+              },
             },
           },
-        },
-        customer: stripeCustomerId,
-      })
+          customer: stripeCustomerId,
+        })
+        csSecret = customerSession.client_secret
+      } catch {}
 
       const paymentId = Nanoid.generate()
       await c.env.KV.put(
         `payment:${paymentId}`,
         JSON.stringify({
           amount,
-          cs_secret: customerSession.client_secret,
+          cs_secret: csSecret,
           locked: json.locked ?? false,
           pi_secret: paymentIntent.client_secret,
         }),
@@ -814,7 +819,7 @@ export const api = new Hono<{
       if (!stripeCustomerId)
         return c.json({ code: 'no_payment_method', message: 'No payment method on file' }, 400)
 
-      const stripe = new Stripe(c.env.STRIPE_SECRET_KEY)
+      const stripe = new Stripe(c.env.STRIPE_SECRET_KEY, stripeOptions(c.env.STRIPE_API_URL))
 
       const methods = await stripe.paymentMethods.list({
         customer: stripeCustomerId,
@@ -1455,7 +1460,7 @@ export const api = new Hono<{
     const signature = c.req.header('stripe-signature')
     if (!signature) return c.json({ code: 'missing_signature', message: 'Missing signature' }, 400)
 
-    const stripe = new Stripe(c.env.STRIPE_SECRET_KEY)
+    const stripe = new Stripe(c.env.STRIPE_SECRET_KEY, stripeOptions(c.env.STRIPE_API_URL))
 
     let event: Stripe.Event
     try {
@@ -1911,4 +1916,14 @@ async function rateLimit(
   )
 
   return { error: false } as const
+}
+
+function stripeOptions(apiUrl: string) {
+  const url = new URL(apiUrl)
+  // TODO: Pin Stripe API version
+  return {
+    host: url.hostname,
+    port: Number(url.port) || (url.protocol === 'https:' ? 443 : 80),
+    protocol: url.protocol.replace(':', '') as 'http' | 'https',
+  }
 }
