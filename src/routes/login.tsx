@@ -12,7 +12,7 @@ export const Route = createFileRoute('/login')({
   validateSearch: z.object({ next: z.string().optional() }),
   async beforeLoad() {
     const login = await getSessionLogin()
-    if (login) throw redirect({ to: '/~dash/$login', params: { login } })
+    if (login) throw redirect({ to: '/$login', params: { login } })
   },
   component: Component,
 })
@@ -33,7 +33,7 @@ function Component() {
   })()
   return (
     <div className="relative flex min-h-dvh flex-col">
-      <Nav />
+      <Nav.Root fixed />
       <main className="flex flex-1 flex-col items-center px-6 pt-48 pb-32">
         <div className="flex w-full flex-col sm:max-w-sm">
           <h1 className="text-lg font-bold">Sign in</h1>

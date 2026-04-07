@@ -12,12 +12,16 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as PlaygroundRouteImport } from './routes/playground'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as HomeRouteImport } from './routes/home'
+import { Route as DocsRouteImport } from './routes/docs'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as Char126dashLoginRouteImport } from './routes/~dash.$login'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as AuthErrorRouteImport } from './routes/auth/error'
 import { Route as AuthDeviceRouteImport } from './routes/auth/device'
+import { Route as DashLoginRouteRouteImport } from './routes/_dash.$login/route'
+import { Route as DashLoginIndexRouteImport } from './routes/_dash.$login/index'
 import { Route as CreditsAddIdRouteImport } from './routes/credits.add.$id'
+import { Route as DashLoginSettingsRouteImport } from './routes/_dash.$login/settings'
+import { Route as DashLoginBillingRouteImport } from './routes/_dash.$login/billing'
 
 const PlaygroundRoute = PlaygroundRouteImport.update({
   id: '/playground',
@@ -34,14 +38,14 @@ const HomeRoute = HomeRouteImport.update({
   path: '/home',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DocsRoute = DocsRouteImport.update({
+  id: '/docs',
+  path: '/docs',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const Char126dashLoginRoute = Char126dashLoginRouteImport.update({
-  id: '/~dash/$login',
-  path: '/~dash/$login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InviteTokenRoute = InviteTokenRouteImport.update({
@@ -59,91 +63,134 @@ const AuthDeviceRoute = AuthDeviceRouteImport.update({
   path: '/auth/device',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashLoginRouteRoute = DashLoginRouteRouteImport.update({
+  id: '/_dash/$login',
+  path: '/$login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashLoginIndexRoute = DashLoginIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DashLoginRouteRoute,
+} as any)
 const CreditsAddIdRoute = CreditsAddIdRouteImport.update({
   id: '/credits/add/$id',
   path: '/credits/add/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashLoginSettingsRoute = DashLoginSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => DashLoginRouteRoute,
+} as any)
+const DashLoginBillingRoute = DashLoginBillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
+  getParentRoute: () => DashLoginRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/docs': typeof DocsRoute
   '/home': typeof HomeRoute
   '/login': typeof LoginRoute
   '/playground': typeof PlaygroundRoute
+  '/$login': typeof DashLoginRouteRouteWithChildren
   '/auth/device': typeof AuthDeviceRoute
   '/auth/error': typeof AuthErrorRoute
   '/invite/$token': typeof InviteTokenRoute
-  '/~dash/$login': typeof Char126dashLoginRoute
+  '/$login/billing': typeof DashLoginBillingRoute
+  '/$login/settings': typeof DashLoginSettingsRoute
   '/credits/add/$id': typeof CreditsAddIdRoute
+  '/$login/': typeof DashLoginIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/docs': typeof DocsRoute
   '/home': typeof HomeRoute
   '/login': typeof LoginRoute
   '/playground': typeof PlaygroundRoute
   '/auth/device': typeof AuthDeviceRoute
   '/auth/error': typeof AuthErrorRoute
   '/invite/$token': typeof InviteTokenRoute
-  '/~dash/$login': typeof Char126dashLoginRoute
+  '/$login/billing': typeof DashLoginBillingRoute
+  '/$login/settings': typeof DashLoginSettingsRoute
   '/credits/add/$id': typeof CreditsAddIdRoute
+  '/$login': typeof DashLoginIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/docs': typeof DocsRoute
   '/home': typeof HomeRoute
   '/login': typeof LoginRoute
   '/playground': typeof PlaygroundRoute
+  '/_dash/$login': typeof DashLoginRouteRouteWithChildren
   '/auth/device': typeof AuthDeviceRoute
   '/auth/error': typeof AuthErrorRoute
   '/invite/$token': typeof InviteTokenRoute
-  '/~dash/$login': typeof Char126dashLoginRoute
+  '/_dash/$login/billing': typeof DashLoginBillingRoute
+  '/_dash/$login/settings': typeof DashLoginSettingsRoute
   '/credits/add/$id': typeof CreditsAddIdRoute
+  '/_dash/$login/': typeof DashLoginIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/docs'
     | '/home'
     | '/login'
     | '/playground'
+    | '/$login'
     | '/auth/device'
     | '/auth/error'
     | '/invite/$token'
-    | '/~dash/$login'
+    | '/$login/billing'
+    | '/$login/settings'
     | '/credits/add/$id'
+    | '/$login/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/docs'
     | '/home'
     | '/login'
     | '/playground'
     | '/auth/device'
     | '/auth/error'
     | '/invite/$token'
-    | '/~dash/$login'
+    | '/$login/billing'
+    | '/$login/settings'
     | '/credits/add/$id'
+    | '/$login'
   id:
     | '__root__'
     | '/'
+    | '/docs'
     | '/home'
     | '/login'
     | '/playground'
+    | '/_dash/$login'
     | '/auth/device'
     | '/auth/error'
     | '/invite/$token'
-    | '/~dash/$login'
+    | '/_dash/$login/billing'
+    | '/_dash/$login/settings'
     | '/credits/add/$id'
+    | '/_dash/$login/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  DocsRoute: typeof DocsRoute
   HomeRoute: typeof HomeRoute
   LoginRoute: typeof LoginRoute
   PlaygroundRoute: typeof PlaygroundRoute
+  DashLoginRouteRoute: typeof DashLoginRouteRouteWithChildren
   AuthDeviceRoute: typeof AuthDeviceRoute
   AuthErrorRoute: typeof AuthErrorRoute
   InviteTokenRoute: typeof InviteTokenRoute
-  Char126dashLoginRoute: typeof Char126dashLoginRoute
   CreditsAddIdRoute: typeof CreditsAddIdRoute
 }
 
@@ -170,18 +217,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HomeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/docs': {
+      id: '/docs'
+      path: '/docs'
+      fullPath: '/docs'
+      preLoaderRoute: typeof DocsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/~dash/$login': {
-      id: '/~dash/$login'
-      path: '/~dash/$login'
-      fullPath: '/~dash/$login'
-      preLoaderRoute: typeof Char126dashLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/invite/$token': {
@@ -205,6 +252,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthDeviceRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_dash/$login': {
+      id: '/_dash/$login'
+      path: '/$login'
+      fullPath: '/$login'
+      preLoaderRoute: typeof DashLoginRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_dash/$login/': {
+      id: '/_dash/$login/'
+      path: '/'
+      fullPath: '/$login/'
+      preLoaderRoute: typeof DashLoginIndexRouteImport
+      parentRoute: typeof DashLoginRouteRoute
+    }
     '/credits/add/$id': {
       id: '/credits/add/$id'
       path: '/credits/add/$id'
@@ -212,18 +273,49 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CreditsAddIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_dash/$login/settings': {
+      id: '/_dash/$login/settings'
+      path: '/settings'
+      fullPath: '/$login/settings'
+      preLoaderRoute: typeof DashLoginSettingsRouteImport
+      parentRoute: typeof DashLoginRouteRoute
+    }
+    '/_dash/$login/billing': {
+      id: '/_dash/$login/billing'
+      path: '/billing'
+      fullPath: '/$login/billing'
+      preLoaderRoute: typeof DashLoginBillingRouteImport
+      parentRoute: typeof DashLoginRouteRoute
+    }
   }
 }
 
+interface DashLoginRouteRouteChildren {
+  DashLoginBillingRoute: typeof DashLoginBillingRoute
+  DashLoginSettingsRoute: typeof DashLoginSettingsRoute
+  DashLoginIndexRoute: typeof DashLoginIndexRoute
+}
+
+const DashLoginRouteRouteChildren: DashLoginRouteRouteChildren = {
+  DashLoginBillingRoute: DashLoginBillingRoute,
+  DashLoginSettingsRoute: DashLoginSettingsRoute,
+  DashLoginIndexRoute: DashLoginIndexRoute,
+}
+
+const DashLoginRouteRouteWithChildren = DashLoginRouteRoute._addFileChildren(
+  DashLoginRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  DocsRoute: DocsRoute,
   HomeRoute: HomeRoute,
   LoginRoute: LoginRoute,
   PlaygroundRoute: PlaygroundRoute,
+  DashLoginRouteRoute: DashLoginRouteRouteWithChildren,
   AuthDeviceRoute: AuthDeviceRoute,
   AuthErrorRoute: AuthErrorRoute,
   InviteTokenRoute: InviteTokenRoute,
-  Char126dashLoginRoute: Char126dashLoginRoute,
   CreditsAddIdRoute: CreditsAddIdRoute,
 }
 export const routeTree = rootRouteImport

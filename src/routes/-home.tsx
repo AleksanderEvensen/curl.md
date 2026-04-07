@@ -44,23 +44,19 @@ export function Home(props: { login?: string | null | undefined }) {
 
   return (
     <div className="relative flex min-h-dvh flex-col">
-      <a
-        className="bg-gray10 text-bg1 sr-only z-20 text-sm focus:not-sr-only focus:fixed focus:start-6 focus:top-4 focus:block focus:px-3 focus:py-1.5"
-        href="#main"
-      >
-        Skip to content
-      </a>
+      <Nav.Skip />
 
-      <Nav>
-        <div className="flex items-center gap-1.5">
-          <Link className="text-gray8 hover:text-gray10 px-3 py-1.5 text-sm" to="/">
+      <Nav.Root fixed>
+        <Nav.Logo />
+        <Nav.Group>
+          <Link className="text-gray8 hover:text-gray10 px-3 py-1.5 text-sm" to="/docs">
             Docs
           </Link>
           {login ? (
             <Link
               className="bg-gray10 text-bg1 px-3 py-1.5 text-sm"
               params={{ login }}
-              to="/~dash/$login"
+              to="/$login"
             >
               Dashboard
             </Link>
@@ -69,10 +65,10 @@ export function Home(props: { login?: string | null | undefined }) {
               Sign in
             </Link>
           )}
-        </div>
-      </Nav>
+        </Nav.Group>
+      </Nav.Root>
 
-      <main className="flex-1" id="main">
+      <main className="flex-1" id={Nav.skipId}>
         <div className="mx-auto flex w-full max-w-2xl flex-col px-6">
           <TokensSaved />
           <h1 className="mt-8 text-4xl leading-[1.15] font-bold md:text-5xl">
@@ -125,7 +121,7 @@ export function Home(props: { login?: string | null | undefined }) {
 
       <footer className="mt-24 flex w-full items-center justify-center gap-4 px-6 py-6 text-sm md:mt-48">
         <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6">
-          <Link className="text-gray8 hover:text-gray10" to="/">
+          <Link className="text-gray8 hover:text-gray10" to="/docs">
             Docs
           </Link>
           <Link className="text-gray8 hover:text-gray10" to="/">
@@ -286,9 +282,9 @@ function TokensSaved() {
       <span className="text-gray8">
         <span className="tabular-nums">{Math.round(animated).toLocaleString()}</span> tokens saved
       </span>
-      <a className="text-gray8/90 hidden hover:underline md:inline" href="/docs/TODO">
+      <Link className="text-gray8/90 hidden hover:underline md:inline" to="/docs">
         Install now
-      </a>
+      </Link>
     </p>
   )
 }
@@ -365,7 +361,7 @@ function InstallTabs() {
         ))}
       </Tabs.List>
       <button
-        className="bg-gray-a1/30 dark:bg-gray-a1 border-gray-a3 mt-0 flex w-full items-center justify-between gap-4 border px-3 py-3 text-start transition-opacity hover:opacity-80"
+        className="bg-gray-a1/50 border-gray-a3 mt-0 flex w-full items-center justify-between gap-4 border px-3 py-3 text-start transition-opacity hover:opacity-80"
         onClick={() => copy(active.plaintext)}
         type="button"
       >

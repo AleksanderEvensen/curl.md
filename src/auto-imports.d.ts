@@ -7,6 +7,10 @@
 export {}
 declare global {
   const IconLucideArrowUpRight: typeof import('~icons/lucide/arrow-up-right.jsx').default
+  const IconLucideChevronDown: typeof import('~icons/lucide/chevron-down.jsx').default
+  const IconLucideChevronLeft: typeof import('~icons/lucide/chevron-left.jsx').default
+  const IconLucideChevronRight: typeof import('~icons/lucide/chevron-right.jsx').default
+  const IconLucideChevronsUpDown: typeof import('~icons/lucide/chevrons-up-down.jsx').default
   const IconLucideCircleCheck: typeof import('~icons/lucide/circle-check.jsx').default
   const IconLucideCreditCard: typeof import('~icons/lucide/credit-card.jsx').default
   const IconLucideFingerprint: typeof import('~icons/lucide/fingerprint.jsx').default
@@ -20,17 +24,48 @@ declare global {
   const IconLucideSun: typeof import('~icons/lucide/sun.jsx').default
   const IconLucideUsers: typeof import('~icons/lucide/users.jsx').default
   const IconLucideX: typeof import('~icons/lucide/x.jsx').default
+  const IconOcticonAlert16: typeof import('~icons/octicon/alert16.jsx').default
   const IconOcticonBook16: typeof import('~icons/octicon/book16.jsx').default
   const IconOcticonCheck16: typeof import('~icons/octicon/check16.jsx').default
+  const IconOcticonChevronDown16: typeof import('~icons/octicon/chevron-down16.jsx').default
+  const IconOcticonChevronLeft16: typeof import('~icons/octicon/chevron-left16.jsx').default
+  const IconOcticonChevronRight16: typeof import('~icons/octicon/chevron-right16.jsx').default
+  const IconOcticonCircleSlash16: typeof import('~icons/octicon/circle-slash16.jsx').default
   const IconOcticonClippy16: typeof import('~icons/octicon/clippy16.jsx').default
   const IconOcticonCopy16: typeof import('~icons/octicon/copy16.jsx').default
+  const IconOcticonCreditCard16: typeof import('~icons/octicon/credit-card16.jsx').default
+  const IconOcticonGear16: typeof import('~icons/octicon/gear16.jsx').default
   const IconOcticonGitCommit16: typeof import('~icons/octicon/git-commit16.jsx').default
   const IconOcticonGitPullRequest16: typeof import('~icons/octicon/git-pull-request16.jsx').default
+  const IconOcticonGlobe16: typeof import('~icons/octicon/globe16.jsx').default
+  const IconOcticonGoal16: typeof import('~icons/octicon/goal16.jsx').default
+  const IconOcticonGraph16: typeof import('~icons/octicon/graph16.jsx').default
+  const IconOcticonInfo16: typeof import('~icons/octicon/info16.jsx').default
+  const IconOcticonKebabHorizontal16: typeof import('~icons/octicon/kebab-horizontal16.jsx').default
+  const IconOcticonKey16: typeof import('~icons/octicon/key16.jsx').default
+  const IconOcticonLinkExternal16: typeof import('~icons/octicon/link-external16.jsx').default
   const IconOcticonMarkGithub16: typeof import('~icons/octicon/mark-github16.jsx').default
   const IconOcticonMarkdown16: typeof import('~icons/octicon/markdown16.jsx').default
+  const IconOcticonMeter16: typeof import('~icons/octicon/meter16.jsx').default
   const IconOcticonPaintbrush16: typeof import('~icons/octicon/paintbrush16.jsx').default
+  const IconOcticonPeople16: typeof import('~icons/octicon/people16.jsx').default
+  const IconOcticonPlus16: typeof import('~icons/octicon/plus16.jsx').default
+  const IconOcticonSignOut16: typeof import('~icons/octicon/sign-out16.jsx').default
+  const IconOcticonStop16: typeof import('~icons/octicon/stop16.jsx').default
   const IconOcticonSync16: typeof import('~icons/octicon/sync16.jsx').default
+  const IconOcticonTag16: typeof import('~icons/octicon/tag16.jsx').default
+  const IconOcticonTerminal16: typeof import('~icons/octicon/terminal16.jsx').default
+  const IconOcticonThreeBars16: typeof import('~icons/octicon/three-bars16.jsx').default
+  const IconOcticonTrash16: typeof import('~icons/octicon/trash16.jsx').default
+  const IconOcticonUnfold16: typeof import('~icons/octicon/unfold16.jsx').default
+  const IconOcticonX16: typeof import('~icons/octicon/x16.jsx').default
   const IconOcticonXCircleFill16: typeof import('~icons/octicon/x-circle-fill16.jsx').default
   const IconOcticonZap16: typeof import('~icons/octicon/zap16.jsx').default
+  const IconSimpleIconsAmericanexpress: typeof import('~icons/simple-icons/americanexpress.jsx').default
+  const IconSimpleIconsDinersclub: typeof import('~icons/simple-icons/dinersclub.jsx').default
+  const IconSimpleIconsDiscover: typeof import('~icons/simple-icons/discover.jsx').default
+  const IconSimpleIconsJcb: typeof import('~icons/simple-icons/jcb.jsx').default
+  const IconSimpleIconsMastercard: typeof import('~icons/simple-icons/mastercard.jsx').default
+  const IconSimpleIconsVisa: typeof import('~icons/simple-icons/visa.jsx').default
   const IconSimpleIconsX: typeof import('~icons/simple-icons/x.jsx').default
 }

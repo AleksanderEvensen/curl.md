@@ -1063,19 +1063,7 @@ export const api = new Hono<{
         return c.json({ code: 'unauthorized', message: 'Authentication required' }, 401)
 
       const json = c.req.valid('json')
-      const reservedLogins = new Set([
-        ...Constants.knownRoutes,
-        'account',
-        'admin',
-        'api',
-        'app',
-        'blog',
-        'curl',
-        'dash',
-        'docs',
-        'org',
-      ])
-      if (reservedLogins.has(json.login))
+      if (Constants.reservedLogins.has(json.login))
         return c.json({ code: 'login_reserved', message: 'Login is reserved' }, 409)
 
       const existingLogin = await c.var.db
@@ -1732,10 +1720,14 @@ export const api = new Hono<{
         ]),
       })
 
+      let cached = false
       const response = await (async () => {
         const pageCacheKey = `page:${url.href}` as const
-        const cached = await c.env.KV.get(pageCacheKey, 'json')
-        if (!query.fresh && cached) return { ...cached, ok: true as const, status: 200 }
+        const pageCached = await c.env.KV.get(pageCacheKey, 'json')
+        if (!query.fresh && pageCached) {
+          cached = true
+          return { ...pageCached, ok: true as const, status: 200 }
+        }
         const result = await md.fetch(url)
         if (!result.ok) return result
         c.executionCtx.waitUntil(
@@ -1772,9 +1764,11 @@ export const api = new Hono<{
           const result = await (async () => {
             const queryCacheKey =
               `query:${url.href}:${query.objective}:${query.keywords?.join(',') ?? ''}:${query.mode}` as const
-            const cached = await c.env.KV.get(queryCacheKey)
-            if (!query.fresh && cached)
-              return { completionTokens: 0, excerpt: cached, promptTokens: 0 }
+            const queryCached = await c.env.KV.get(queryCacheKey)
+            if (!query.fresh && queryCached) {
+              cached = true
+              return { completionTokens: 0, excerpt: queryCached, promptTokens: 0 }
+            }
 
             const extractChunk = async (chunk: string) => {
               const output = z.parse(
@@ -1852,6 +1846,7 @@ export const api = new Hono<{
         account_id: c.var.session?.account_id ?? null,
         api_key_id: c.var.api_key_id,
         billable,
+        cached,
         cost_mills: costMills,
         hostname: url.hostname,
         id: requestId,
@@ -1872,7 +1867,8 @@ export const api = new Hono<{
       const commonHeaders: Record<string, string> = {
         ...rateLimitHeaders,
         'access-control-expose-headers':
-          'retry-after, x-cost-mills, x-credits-remaining, x-ratelimit-limit, x-ratelimit-remaining, x-ratelimit-reset, x-request-id, x-tokens-count, x-tokens-saved',
+          'retry-after, x-cache, x-cost-mills, x-credits-remaining, x-ratelimit-limit, x-ratelimit-remaining, x-ratelimit-reset, x-request-id, x-tokens-count, x-tokens-saved',
+        'x-cache': cached ? 'HIT' : 'MISS',
         'x-cost-mills': String(costMills),
         'x-request-id': requestId,
         'x-tokens-count': String(tokensCount),
