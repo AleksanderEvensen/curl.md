@@ -1,28 +1,21 @@
 import { Menu } from '@base-ui/react/menu'
-import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js'
-import { loadStripe } from '@stripe/stripe-js'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { createFileRoute, useNavigate, useRouter } from '@tanstack/react-router'
+import { createFileRoute, Outlet, useNavigate } from '@tanstack/react-router'
 import { useServerFn } from '@tanstack/react-start'
 import * as React from 'react'
 import { z } from 'zod/v4'
 import { Dashboard } from '#components/Dashboard.tsx'
-import { Dialog } from '#components/Dialog.tsx'
-import { stripeAppearance } from '#components/stripe.ts'
-import { useTheme } from '#hooks/useTheme.ts'
-import { creditAmounts } from '#lib/constants.ts'
+import { creditAmounts, maxSavedPaymentMethods } from '#lib/constants.ts'
 import { estimateRequests, formatMills } from '#lib/format.ts'
 import { rpc } from '#lib/rpc.ts'
-import {
-  getBillingData,
-  getTransactions,
-  removePaymentMethod,
-  setupPaymentMethod,
-  type PaymentMethod,
-} from '#server/billing.ts'
+import { getBillingData, getTransactions, setDefaultPaymentMethod } from '#server/billing.ts'
 
 const PAGE_SIZE = 10
-const searchSchema = z.object({ modal: z.string().optional() })
+const checkoutRefreshDuration = 20_000
+const searchSchema = z.object({
+  notice: z.enum(['credits_added']).optional(),
+  notice_amount: z.coerce.number().optional(),
+})
 
 export const Route = createFileRoute('/_dash/$login/billing')({
   head: () => ({ meta: [{ title: `Billing - ${__HOST__}` }] }),
@@ -47,44 +40,102 @@ export const Route = createFileRoute('/_dash/$login/billing')({
 function Component() {
   const { entity } = Route.useRouteContext()
   const loaderData = Route.useLoaderData()
-  const { modal } = Route.useSearch()
+  const search = Route.useSearch()
   const navigate = useNavigate()
-  const router = useRouter()
   const fetchBilling = useServerFn(getBillingData)
   const queryClient = useQueryClient()
+  const [refreshAfterCheckout, setRefreshAfterCheckout] = React.useState(false)
+  const [addCreditsNotice, setAddCreditsNotice] = React.useState<{
+    kind: 'error' | 'success'
+    message: string
+  } | null>(null)
+
+  React.useEffect(() => {
+    if (!refreshAfterCheckout) return
+
+    const timeout = window.setTimeout(() => setRefreshAfterCheckout(false), checkoutRefreshDuration)
+    return () => window.clearTimeout(timeout)
+  }, [refreshAfterCheckout])
+
+  React.useEffect(() => {
+    if (search.notice !== 'credits_added' || search.notice_amount === undefined) return
+
+    setAddCreditsNotice({
+      kind: 'success',
+      message: `Payment successful. $${formatMills(search.notice_amount * 10)} in credits will update shortly.`,
+    })
+    setRefreshAfterCheckout(true)
+    navigate({ params: { login: entity.login }, replace: true, search: {}, to: '/$login/billing' })
+  }, [entity.login, navigate, search.notice, search.notice_amount])
 
   const { data } = useQuery({
     initialData: loaderData.billing,
     queryKey: ['dashboard-billing', entity.id],
     queryFn: () => fetchBilling({ data: { entityId: entity.id, entityType: entity.type } }),
-    refetchInterval: 10_000,
+    refetchInterval: refreshAfterCheckout ? 2_000 : 10_000,
+    refetchOnMount: 'always',
   })
+  const hasReachedPaymentMethodLimit = data.payment_methods.length >= maxSavedPaymentMethods
 
-  const setupOpen = modal === 'add_payment_method'
-  const setSetupOpen = React.useCallback(
-    (open: boolean) =>
+  const refreshBilling = React.useCallback(() => {
+    setRefreshAfterCheckout(true)
+    void queryClient.invalidateQueries({ queryKey: ['dashboard-billing', entity.id] })
+    void queryClient.invalidateQueries({ queryKey: ['transactions', entity.id] })
+  }, [entity.id, queryClient])
+
+  const openCreditsDialog = React.useCallback(
+    (paymentId: string) =>
       navigate({
-        from: '/$login/billing',
-        search: (prev) => ({ ...prev, modal: open ? 'add_payment_method' : undefined }),
+        params: { login: entity.login, paymentId },
+        to: '/$login/billing/add_credits/$paymentId',
       }),
-    [navigate],
+    [entity.login, navigate],
   )
 
-  const [deleteTarget, setDeleteTarget] = React.useState<PaymentMethod | null>(null)
+  const openSetupDialog = React.useCallback(
+    () => navigate({ params: { login: entity.login }, to: '/$login/billing/add_payment_method' }),
+    [entity.login, navigate],
+  )
 
-  const remove = useMutation({
+  const openRemoveDialog = React.useCallback(
+    (paymentMethodId: string) =>
+      navigate({
+        params: { login: entity.login, paymentMethodId },
+        to: '/$login/billing/remove_payment_method/$paymentMethodId',
+      }),
+    [entity.login, navigate],
+  )
+
+  const setDefault = useMutation({
     mutationFn: (paymentMethodId: string) =>
-      removePaymentMethod({
+      setDefaultPaymentMethod({
         data: { entityId: entity.id, entityType: entity.type, paymentMethodId },
       }),
     onSuccess() {
-      setDeleteTarget(null)
-      queryClient.invalidateQueries({ queryKey: ['dashboard-billing', entity.id] })
+      void queryClient.invalidateQueries({ queryKey: ['dashboard-billing', entity.id] })
     },
   })
 
   const addCredits = useMutation({
     async mutationFn(amount: (typeof creditAmounts)[number]) {
+      if (data.payment_methods.length > 0) {
+        const res = await rpc.api.credits.charge.$post({
+          json: {
+            amount,
+            ...(entity.type === 'organization' ? { organization_id: entity.id } : {}),
+          },
+        })
+        if (res.status === 200) return { kind: 'charge', result: await res.json() } as const
+
+        if (res.status === 400) {
+          const json = await res.json()
+          if (json.code !== 'no_payment_method') throw new Error(json.message)
+        } else {
+          const json = await res.json()
+          throw new Error(json.message)
+        }
+      }
+
       const res = await rpc.api.credits.add.$post({
         json: {
           amount,
@@ -92,17 +143,39 @@ function Component() {
           ...(entity.type === 'organization' ? { organization_id: entity.id } : {}),
         },
       })
-      if (res.status !== 200) throw new Error('Failed to create payment')
-      return res.json()
+      if (res.status !== 200) {
+        const json = await res.json()
+        throw new Error(json.message)
+      }
+
+      return { kind: 'add', result: await res.json() } as const
     },
-    onSuccess(data) {
-      const url = new URL(data.url)
-      url.searchParams.set('next', `/${entity.login}/billing`)
-      router.navigate({ to: `${url.pathname}?${url.searchParams}` })
+    onMutate() {
+      setAddCreditsNotice(null)
+    },
+    onError(error) {
+      setAddCreditsNotice({ kind: 'error', message: error.message })
+    },
+    onSuccess(data, amount) {
+      if (data.kind === 'charge') {
+        if (data.result.status === 'requires_action') {
+          openCreditsDialog(data.result.payment_id)
+          return
+        }
+
+        refreshBilling()
+        setAddCreditsNotice({
+          kind: 'success',
+          message: `Payment successful. $${formatMills(Number(amount) * 10)} in credits will update shortly.`,
+        })
+        return
+      }
+
+      openCreditsDialog(data.result.payment_id)
     },
   })
 
-  const balanceDollars = formatMills(data.balance_mills, 2)
+  const balanceDollars = formatMills(data.balance_mills)
   const amounts = creditAmounts.map(Number)
 
   return (
@@ -130,7 +203,15 @@ function Component() {
           </button>
         ))}
       </div>
-      {addCredits.isError && <p className="text-red9 mt-2 text-sm">{addCredits.error.message}</p>}
+      {addCreditsNotice && (
+        <p
+          className="data-[error]:text-red9 data-[success]:text-green9 mt-2 text-sm"
+          data-error={addCreditsNotice.kind === 'error' ? '' : undefined}
+          data-success={addCreditsNotice.kind === 'success' ? '' : undefined}
+        >
+          {addCreditsNotice.message}
+        </p>
+      )}
 
       <Dashboard.Section title="Payment Methods">
         {data.payment_methods.length > 0 ? (
@@ -140,7 +221,7 @@ function Component() {
                 className="border-gray3 flex items-center justify-between gap-3 border-b px-3 py-2 last:border-b-0"
                 key={pm.id}
               >
-                <div className="flex min-w-0 flex-col gap-0.5 md:flex-row md:items-center md:gap-3">
+                <div className="flex min-w-0 items-center gap-3">
                   <CardBrandIcon brand={pm.brand} />
                   <div className="min-w-0 text-sm">
                     <div className="truncate">
@@ -151,6 +232,11 @@ function Component() {
                         <span className="text-gray8">{pm.funding} </span>
                       )}
                       <span className="text-gray8">&bull;&bull;&bull;&bull; {pm.last4}</span>
+                      {pm.is_default && (
+                        <span className="border-gray-a3 text-gray8 ms-2 inline-flex items-center border px-1 py-0.5 text-xs leading-none uppercase">
+                          Default
+                        </span>
+                      )}
                     </div>
                     <div className="text-gray8 md:hidden">
                       Valid until {pm.exp_month}/{String(pm.exp_year).slice(-2)}
@@ -168,9 +254,24 @@ function Component() {
                     <Menu.Portal>
                       <Menu.Positioner align="end" sideOffset={4}>
                         <Menu.Popup className="bg-bg1 border-gray-a3 before:bg-gray-a1/50 relative min-w-36 border px-1 py-1 before:absolute before:inset-0 before:-z-1">
+                          {!pm.is_default && (
+                            <>
+                              <Menu.Item
+                                className="text-gray9 hover:bg-gray-a2 hover:text-gray10 flex items-center gap-2 p-1.5 text-sm disabled:opacity-30"
+                                disabled={setDefault.isPending}
+                                onClick={() => setDefault.mutate(pm.id)}
+                              >
+                                {setDefault.isPending && setDefault.variables === pm.id
+                                  ? 'Setting as default'
+                                  : 'Set As Default'}
+                              </Menu.Item>
+                              <div className="border-gray-a2 -mx-1 my-1 border-t" />
+                            </>
+                          )}
                           <Menu.Item
                             className="text-red9 hover:bg-red2/80 flex items-center gap-2 p-1.5 text-sm"
-                            onClick={() => setDeleteTarget(pm)}
+                            disabled={setDefault.isPending}
+                            onClick={() => openRemoveDialog(pm.id)}
                           >
                             Remove
                           </Menu.Item>
@@ -183,15 +284,17 @@ function Component() {
             ))}
           </div>
         ) : null}
-        <button
-          className="bg-gray10 text-bg1 self-start px-3 py-1.5 text-sm transition-opacity hover:opacity-90 data-[has-methods]:mt-3"
-          data-has-methods={data.payment_methods.length > 0 ? '' : undefined}
-          onClick={() => setSetupOpen(true)}
-          type="button"
-        >
-          Add payment method
-        </button>
-        {remove.isError && <p className="text-red9 mt-2 text-sm">{remove.error.message}</p>}
+        {!hasReachedPaymentMethodLimit && (
+          <button
+            className="bg-gray10 text-bg1 self-start px-3 py-1.5 text-sm transition-opacity hover:opacity-90 data-[has-methods]:mt-3"
+            data-has-methods={data.payment_methods.length > 0 ? '' : undefined}
+            onClick={openSetupDialog}
+            type="button"
+          >
+            Add payment method
+          </button>
+        )}
+        {setDefault.isError && <p className="text-red9 mt-2 text-sm">{setDefault.error.message}</p>}
       </Dashboard.Section>
 
       <TransactionHistory
@@ -199,180 +302,12 @@ function Component() {
         entityId={entity.id}
         entityType={entity.type}
         initialData={loaderData.transactions}
+        refreshAfterCheckout={refreshAfterCheckout}
         timezone={data.timezone}
       />
 
-      <Dialog.Root
-        open={setupOpen}
-        onOpenChange={(open) => {
-          if (!open) setSetupOpen(false)
-        }}
-      >
-        <Dialog.Portal>
-          <Dialog.Backdrop />
-          <Dialog.Popup>
-            <Dialog.CloseX />
-            <Dialog.Title>Add payment method</Dialog.Title>
-            {setupOpen && (
-              <SetupFormLoader
-                entityId={entity.id}
-                entityType={entity.type}
-                onSuccess={() => {
-                  setSetupOpen(false)
-                  queryClient.invalidateQueries({ queryKey: ['dashboard-billing', entity.id] })
-                }}
-              />
-            )}
-          </Dialog.Popup>
-        </Dialog.Portal>
-      </Dialog.Root>
-
-      <Dialog.Root
-        open={deleteTarget !== null}
-        onOpenChange={(open) => {
-          if (!open && !remove.isPending) setDeleteTarget(null)
-        }}
-      >
-        <Dialog.Portal>
-          <Dialog.Backdrop />
-          <Dialog.Popup>
-            <Dialog.CloseX />
-            <Dialog.Title>Remove payment method</Dialog.Title>
-            <Dialog.Description>
-              Are you sure you want to remove{' '}
-              <span className="text-gray12 font-medium">
-                {deleteTarget?.brand} &bull;&bull;&bull;&bull; {deleteTarget?.last4}
-              </span>
-              ? This action cannot be undone.
-            </Dialog.Description>
-            <div className="flex justify-end gap-2">
-              <Dialog.Close
-                className="text-gray9 hover:bg-gray-a2 px-3 py-1.5 text-sm"
-                disabled={remove.isPending}
-              >
-                Cancel
-              </Dialog.Close>
-              <button
-                className="bg-red9 text-bg1 px-3 py-1.5 text-sm disabled:opacity-50"
-                disabled={remove.isPending}
-                onClick={() => {
-                  if (deleteTarget) remove.mutate(deleteTarget.id)
-                }}
-                type="button"
-              >
-                {remove.isPending ? 'Removing' : 'Remove'}
-              </button>
-            </div>
-          </Dialog.Popup>
-        </Dialog.Portal>
-      </Dialog.Root>
+      <Outlet />
     </Dashboard.Content>
-  )
-}
-
-function SetupFormLoader(props: {
-  entityId: string
-  entityType: 'account' | 'organization'
-  onSuccess: () => void
-}) {
-  const setup = useMutation({
-    mutationFn: () =>
-      setupPaymentMethod({ data: { entityId: props.entityId, entityType: props.entityType } }),
-  })
-
-  React.useEffect(() => {
-    setup.mutate()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  return (
-    <div className="flex min-h-64 flex-col gap-4">
-      <div className="min-h-48">
-        {setup.isError ? (
-          <p className="text-red9 text-sm">{setup.error.message}</p>
-        ) : setup.data && (!setup.data.client_secret || !setup.data.publishable_key) ? (
-          <p className="text-red9 text-sm">Failed to initialize payment form.</p>
-        ) : !setup.data ? null : (
-          <SetupForm
-            clientSecret={setup.data.client_secret}
-            onSuccess={props.onSuccess}
-            publishableKey={setup.data.publishable_key}
-          />
-        )}
-      </div>
-      <div className="flex justify-end gap-2">
-        <Dialog.Close className="text-gray9 hover:bg-gray-a2 px-3 py-1.5 text-sm">
-          Cancel
-        </Dialog.Close>
-        <button
-          className="bg-gray10 text-bg1 px-3 py-1.5 text-sm disabled:opacity-50"
-          disabled={!setup.data}
-          form="setup-payment-method"
-          type="submit"
-        >
-          Save
-        </button>
-      </div>
-    </div>
-  )
-}
-
-function SetupForm(props: { clientSecret: string; onSuccess: () => void; publishableKey: string }) {
-  const { resolvedTheme } = useTheme()
-  const stripePromise = React.useMemo(
-    () => loadStripe(props.publishableKey),
-    [props.publishableKey],
-  )
-
-  return (
-    <Elements
-      options={{
-        appearance: stripeAppearance(resolvedTheme),
-        clientSecret: props.clientSecret,
-      }}
-      stripe={stripePromise}
-    >
-      <SetupFormInner onSuccess={props.onSuccess} />
-    </Elements>
-  )
-}
-
-function SetupFormInner(props: { onSuccess: () => void }) {
-  const stripe = useStripe()
-  const elements = useElements()
-
-  const confirm = useMutation({
-    async mutationFn() {
-      if (!stripe || !elements) throw new Error('Stripe not loaded.')
-      const returnUrl = new URL(window.location.href)
-      returnUrl.searchParams.delete('modal')
-      const result = await stripe.confirmSetup({
-        confirmParams: { return_url: returnUrl.toString() },
-        elements,
-        redirect: 'if_required',
-      })
-      if (result.error) throw new Error(result.error.message ?? 'Setup failed.')
-    },
-    onSuccess() {
-      props.onSuccess()
-    },
-  })
-
-  return (
-    <form
-      id="setup-payment-method"
-      onSubmit={(e) => {
-        e.preventDefault()
-        confirm.mutate()
-      }}
-    >
-      <PaymentElement
-        options={{
-          layout: { defaultCollapsed: false, type: 'tabs' },
-          wallets: { link: 'never' },
-        }}
-      />
-      {confirm.isError && <p className="text-red9 mt-2 text-sm">{confirm.error.message}</p>}
-    </form>
   )
 }
 
@@ -383,15 +318,19 @@ function TransactionHistory(props: {
   entityId: string
   entityType: 'account' | 'organization'
   initialData: Awaited<ReturnType<typeof getTransactions>>
+  refreshAfterCheckout: boolean
   timezone?: string | undefined
 }) {
   const [page, setPage] = React.useState(0)
   const fetchTransactions = useServerFn(getTransactions)
-  const queryClient = useQueryClient()
 
-  queryClient.setQueryData(['transactions', props.entityId, 0], props.initialData)
+  React.useEffect(() => {
+    if (!props.refreshAfterCheckout) return
+    setPage(0)
+  }, [props.refreshAfterCheckout])
 
   const { data } = useQuery({
+    initialData: page === 0 ? props.initialData : undefined,
     queryKey: ['transactions', props.entityId, page],
     queryFn: () =>
       fetchTransactions({
@@ -403,8 +342,10 @@ function TransactionHistory(props: {
         },
       }),
     placeholderData: keepPreviousData,
+    refetchInterval: page === 0 && props.refreshAfterCheckout ? 2_000 : false,
+    refetchOnMount: 'always',
     retry: false,
-    staleTime: 60_000,
+    staleTime: props.refreshAfterCheckout ? 0 : 60_000,
   })
 
   if (!data || data.total === 0) return null
@@ -440,7 +381,13 @@ function TransactionHistory(props: {
           </div>
         )}
       </div>
-      <Dashboard.Table className="text-sm">
+      <Dashboard.Table className="min-w-[36rem] table-fixed text-sm md:min-w-0">
+        <colgroup>
+          <col className="w-[48%]" />
+          <col className="w-[18%]" />
+          <col className="w-[17%]" />
+          <col className="w-[17%]" />
+        </colgroup>
         <Dashboard.Table.Thead>
           <Dashboard.Table.Th className="w-px whitespace-nowrap">Date</Dashboard.Table.Th>
           <Dashboard.Table.Th className="w-px whitespace-nowrap">Type</Dashboard.Table.Th>
@@ -471,7 +418,7 @@ function TransactionHistory(props: {
                   {tx.amount_mills >= 0 ? '+' : '-'}${formatMills(tx.amount_mills)}
                 </Dashboard.Table.Td>
                 <Dashboard.Table.Td className="text-gray8 ps-6 text-end whitespace-nowrap tabular-nums">
-                  ${formatMills(balanceAfter, 3)}
+                  ${formatMills(balanceAfter)}
                 </Dashboard.Table.Td>
               </Dashboard.Table.Tr>
             )

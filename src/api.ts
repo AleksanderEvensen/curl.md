@@ -16,8 +16,9 @@ import * as Constants from '#lib/constants.ts'
 import * as Cookie from '#lib/cookie.ts'
 import * as Crypto from '#lib/crypto.ts'
 import * as GitHub from '#lib/github.ts'
-import { invalidApiKey, narrowValidation, validationError, validator } from '#lib/hono.ts'
+import * as hono from '#lib/hono.ts'
 import * as Nanoid from '#lib/nanoid.ts'
+import * as StripeUtils from '#lib/stripe.ts'
 import * as Md from '#md/index.ts'
 import * as Og from '#og.tsx'
 
@@ -110,14 +111,14 @@ export const api = new Hono<{
   })
   .get(
     '/api/auth/github',
-    validator(
+    hono.validator(
       'query',
       z.object({
         next: z.optional(z.union([z.string(), z.undefined()])),
       }),
     ),
     (c) => {
-      if (narrowValidation) return validationError(c)
+      if (hono.narrowValidation) return hono.validationError(c)
       const query = c.req.valid('query')
       const state = crypto.randomUUID()
       Cookie.set(c, 'curl.state', state, {
@@ -151,7 +152,7 @@ export const api = new Hono<{
   )
   .get(
     '/api/auth/github/callback',
-    validator(
+    hono.validator(
       'query',
       z.object({
         code: z.string(),
@@ -160,7 +161,7 @@ export const api = new Hono<{
       }),
     ),
     async (c) => {
-      if (narrowValidation) return validationError(c)
+      if (hono.narrowValidation) return hono.validationError(c)
       const query = c.req.valid('query')
 
       // Redirect to preview callback before reading/destroying the state cookie
@@ -411,7 +412,7 @@ export const api = new Hono<{
     },
   )
   .post('/api/auth/device', async (c) => {
-    const rl = await rateLimit(c.env.KV, c.executionCtx, {
+    const rl = await hono.rateLimit(c.env.KV, c.executionCtx, {
       ip: c.req.header('cf-connecting-ip') ?? 'unknown',
       key: 'device',
       max: 15,
@@ -445,9 +446,9 @@ export const api = new Hono<{
   })
   .post(
     '/api/auth/device/confirm',
-    validator('json', z.object({ user_code: z.string() })),
+    hono.validator('json', z.object({ user_code: z.string() })),
     async (c) => {
-      if (narrowValidation) return validationError(c)
+      if (hono.narrowValidation) return hono.validationError(c)
       if (!c.var.session)
         return c.json({ code: 'unauthorized', message: 'Authentication required' }, 401)
       const json = c.req.valid('json')
@@ -471,43 +472,47 @@ export const api = new Hono<{
       return c.json({ ok: true }, 200)
     },
   )
-  .post('/api/auth/device/token', validator('json', z.object({ code: z.string() })), async (c) => {
-    if (narrowValidation) return validationError(c)
+  .post(
+    '/api/auth/device/token',
+    hono.validator('json', z.object({ code: z.string() })),
+    async (c) => {
+      if (hono.narrowValidation) return hono.validationError(c)
 
-    const rl = await rateLimit(c.env.KV, c.executionCtx, {
-      ip: c.req.header('cf-connecting-ip') ?? 'unknown',
-      key: 'device_token',
-      max: 30,
-      window: 60,
-    })
-    if (rl.error)
-      return c.json({ code: 'rate_limit_exceeded', message: 'Rate limit exceeded' }, 429, {
-        'retry-after': String(rl.reset - Math.floor(Date.now() / 1000)),
+      const rl = await hono.rateLimit(c.env.KV, c.executionCtx, {
+        ip: c.req.header('cf-connecting-ip') ?? 'unknown',
+        key: 'device_token',
+        max: 30,
+        window: 60,
       })
+      if (rl.error)
+        return c.json({ code: 'rate_limit_exceeded', message: 'Rate limit exceeded' }, 429, {
+          'retry-after': String(rl.reset - Math.floor(Date.now() / 1000)),
+        })
 
-    const json = c.req.valid('json')
-    const deviceCode = await c.var.db
-      .selectFrom('device_code')
-      .where('code', '=', json.code)
-      .select(['account_id', 'expires_at', 'id', 'status'])
-      .executeTakeFirst()
-    if (!deviceCode || deviceCode.expires_at <= new Date())
-      return c.json({ code: 'expired_token', message: 'Token has expired' }, 400)
-    if (deviceCode.status === 'pending')
-      return c.json({ code: 'authorization_pending', message: 'Authorization pending' }, 400)
-    if (!deviceCode.account_id)
-      return c.json({ code: 'expired_token', message: 'Token has expired' }, 400)
-    const session = await c.var.db
-      .insertInto('session')
-      .values({
-        account_id: deviceCode.account_id,
-        expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-      })
-      .returning('id')
-      .executeTakeFirstOrThrow()
-    await c.var.db.deleteFrom('device_code').where('id', '=', deviceCode.id).execute()
-    return c.json({ session_id: session.id }, 200)
-  })
+      const json = c.req.valid('json')
+      const deviceCode = await c.var.db
+        .selectFrom('device_code')
+        .where('code', '=', json.code)
+        .select(['account_id', 'expires_at', 'id', 'status'])
+        .executeTakeFirst()
+      if (!deviceCode || deviceCode.expires_at <= new Date())
+        return c.json({ code: 'expired_token', message: 'Token has expired' }, 400)
+      if (deviceCode.status === 'pending')
+        return c.json({ code: 'authorization_pending', message: 'Authorization pending' }, 400)
+      if (!deviceCode.account_id)
+        return c.json({ code: 'expired_token', message: 'Token has expired' }, 400)
+      const session = await c.var.db
+        .insertInto('session')
+        .values({
+          account_id: deviceCode.account_id,
+          expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+        })
+        .returning('id')
+        .executeTakeFirstOrThrow()
+      await c.var.db.deleteFrom('device_code').where('id', '=', deviceCode.id).execute()
+      return c.json({ session_id: session.id }, 200)
+    },
+  )
   .post('/api/auth/logout', async (c) => {
     const sessionId = await Cookie.getSigned(c, c.env.COOKIE_SECRET, 'curl.session')
     if (sessionId) await c.var.db.deleteFrom('session').where('id', '=', sessionId).execute()
@@ -553,7 +558,7 @@ export const api = new Hono<{
   })
   .get(
     '/api/cli/latest',
-    validator(
+    hono.validator(
       'query',
       z.object({
         arch: z.string().optional(),
@@ -564,7 +569,7 @@ export const api = new Hono<{
     ),
     // TODO: log install/update analytics from query params (current, os, arch, standalone)
     async (c) => {
-      if (narrowValidation) return validationError(c)
+      if (hono.narrowValidation) return hono.validationError(c)
 
       // Try KV cache first
       const cached = await c.env.KV.get('cli:latest', 'json')
@@ -628,22 +633,36 @@ export const api = new Hono<{
         )
     }
 
+    const entityType = organizationId ? 'organization' : 'account'
+    const entityId = organizationId ?? c.var.session.account_id
     const billing = await c.var.db
-      .selectFrom(organizationId ? 'organization' : 'account')
-      .where('id', '=', organizationId ?? c.var.session.account_id)
-      .select(['balance_mills', 'stripe_customer_id'])
+      .selectFrom(entityType)
+      .where('id', '=', entityId)
+      .select(['balance_mills', 'default_payment_method_id', 'stripe_customer_id'])
       .executeTakeFirst()
     if (!billing) return c.json({ code: 'not_found', message: 'Not found' }, 404)
 
     let method: Pick<Stripe.PaymentMethod.Card, 'brand' | 'last4'> | null = null
     if (billing.stripe_customer_id) {
-      const stripe = new Stripe(c.env.STRIPE_SECRET_KEY, stripeOptions(c.env.STRIPE_API_URL))
-      const methods = await stripe.paymentMethods.list({
-        customer: billing.stripe_customer_id,
-        type: 'card',
-        limit: 1,
-      })
-      const card = methods.data[0]?.card
+      const stripe = new Stripe(
+        c.env.STRIPE_SECRET_KEY,
+        StripeUtils.stripeOptions(c.env.STRIPE_API_URL),
+      )
+      const paymentMethods = await StripeUtils.listCardPaymentMethods(
+        stripe,
+        billing.stripe_customer_id,
+      )
+      const defaultPaymentMethod = StripeUtils.getDefaultPaymentMethod(
+        billing.default_payment_method_id,
+        paymentMethods,
+      )
+      if (defaultPaymentMethod?.id !== billing.default_payment_method_id)
+        await c.var.db
+          .updateTable(entityType)
+          .set({ default_payment_method_id: defaultPaymentMethod?.id ?? null })
+          .where('id', '=', entityId)
+          .execute()
+      const card = defaultPaymentMethod?.card
       if (card) method = { brand: card.brand, last4: card.last4 }
     }
 
@@ -651,7 +670,7 @@ export const api = new Hono<{
   })
   .post(
     '/api/credits/add',
-    validator(
+    hono.validator(
       'json',
       z.object({
         amount: z.enum(Constants.creditAmounts),
@@ -661,7 +680,7 @@ export const api = new Hono<{
       }),
     ),
     async (c) => {
-      if (narrowValidation) return validationError(c)
+      if (hono.narrowValidation) return hono.validationError(c)
       if (!c.var.session)
         return c.json({ code: 'unauthorized', message: 'Authentication required' }, 401)
 
@@ -692,7 +711,10 @@ export const api = new Hono<{
         .executeTakeFirst()
       if (!billing) return c.json({ code: 'not_found', message: 'Not found' }, 404)
 
-      const stripe = new Stripe(c.env.STRIPE_SECRET_KEY, stripeOptions(c.env.STRIPE_API_URL))
+      const stripe = new Stripe(
+        c.env.STRIPE_SECRET_KEY,
+        StripeUtils.stripeOptions(c.env.STRIPE_API_URL),
+      )
 
       let stripeCustomerId = billing.stripe_customer_id
 
@@ -724,34 +746,34 @@ export const api = new Hono<{
       }
 
       if (!stripeCustomerId) return c.json({ code: 'not_found', message: 'Not found' }, 404)
+      const savedPaymentMethods = await StripeUtils.listCardPaymentMethods(
+        stripe,
+        stripeCustomerId,
+        Constants.maxSavedPaymentMethods + 1,
+      )
+      const canSavePaymentMethod = savedPaymentMethods.length < Constants.maxSavedPaymentMethods
 
       const paymentIntent = await stripe.paymentIntents.create({
         amount,
         currency: 'usd',
         customer: stripeCustomerId,
         metadata: { entity_type: entityType, entity_id: entityId },
-        ...(json.save ? { setup_future_usage: 'off_session' } : {}),
+        ...(json.save && canSavePaymentMethod ? { setup_future_usage: 'off_session' } : {}),
       })
 
-      // TODO: Remove try-catch once merged https://github.com/vercel-labs/emulate/pull/47
       let csSecret: string | null = null
+      let savedPaymentMethodsUnavailable = false
       try {
-        const customerSession = await stripe.customerSessions.create({
-          components: {
-            payment_element: {
-              enabled: true,
-              features: {
-                payment_method_redisplay: 'enabled',
-                payment_method_remove: 'disabled',
-                payment_method_save: 'enabled',
-                payment_method_save_usage: 'off_session',
-              },
-            },
-          },
-          customer: stripeCustomerId,
-        })
+        const customerSession = await StripeUtils.createPaymentElementCustomerSession(
+          stripe,
+          stripeCustomerId,
+          canSavePaymentMethod,
+        )
         csSecret = customerSession.client_secret
-      } catch {}
+      } catch (error) {
+        Sentry.captureException(error)
+        savedPaymentMethodsUnavailable = savedPaymentMethods.length > 0
+      }
 
       const paymentId = Nanoid.generate()
       await c.env.KV.put(
@@ -759,8 +781,10 @@ export const api = new Hono<{
         JSON.stringify({
           amount,
           cs_secret: csSecret,
+          has_saved_payment_methods: savedPaymentMethods.length > 0,
           locked: json.locked ?? false,
           pi_secret: paymentIntent.client_secret,
+          saved_payment_methods_unavailable: savedPaymentMethodsUnavailable,
         }),
         { expirationTtl: 1800 },
       )
@@ -776,7 +800,7 @@ export const api = new Hono<{
   )
   .post(
     '/api/credits/charge',
-    validator(
+    hono.validator(
       'json',
       z.object({
         amount: z.enum(Constants.creditAmounts),
@@ -784,7 +808,7 @@ export const api = new Hono<{
       }),
     ),
     async (c) => {
-      if (narrowValidation) return validationError(c)
+      if (hono.narrowValidation) return hono.validationError(c)
       if (!c.var.session)
         return c.json({ code: 'unauthorized', message: 'Authentication required' }, 401)
 
@@ -811,7 +835,7 @@ export const api = new Hono<{
       const billing = await c.var.db
         .selectFrom(entityType)
         .where('id', '=', entityId)
-        .select('stripe_customer_id')
+        .select(['default_payment_method_id', 'stripe_customer_id'])
         .executeTakeFirst()
       if (!billing) return c.json({ code: 'not_found', message: 'Not found' }, 404)
 
@@ -819,44 +843,38 @@ export const api = new Hono<{
       if (!stripeCustomerId)
         return c.json({ code: 'no_payment_method', message: 'No payment method on file' }, 400)
 
-      const stripe = new Stripe(c.env.STRIPE_SECRET_KEY, stripeOptions(c.env.STRIPE_API_URL))
+      const stripe = new Stripe(
+        c.env.STRIPE_SECRET_KEY,
+        StripeUtils.stripeOptions(c.env.STRIPE_API_URL),
+      )
 
-      const methods = await stripe.paymentMethods.list({
-        customer: stripeCustomerId,
-        type: 'card',
-        limit: 1,
-      })
-      if (!methods.data[0])
+      const paymentMethods = await StripeUtils.listCardPaymentMethods(stripe, stripeCustomerId)
+      const defaultPaymentMethod = StripeUtils.getDefaultPaymentMethod(
+        billing.default_payment_method_id,
+        paymentMethods,
+      )
+      if (!defaultPaymentMethod)
         return c.json({ code: 'no_payment_method', message: 'No payment method on file' }, 400)
+      if (defaultPaymentMethod.id !== billing.default_payment_method_id)
+        await c.var.db
+          .updateTable(entityType)
+          .set({ default_payment_method_id: defaultPaymentMethod.id })
+          .where('id', '=', entityId)
+          .execute()
 
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount,
-        confirm: true,
-        currency: 'usd',
-        customer: stripeCustomerId,
-        metadata: { entity_type: entityType, entity_id: entityId },
-        off_session: true,
-        payment_method: methods.data[0].id,
-      })
+      const createRequiresActionResponse = async (paymentIntent: Stripe.PaymentIntent) => {
+        if (!paymentIntent.client_secret)
+          return c.json({ code: 'payment_failed', message: 'Payment failed' }, 400)
 
-      if (paymentIntent.status === 'succeeded')
-        return c.json({ payment_id: paymentIntent.id, status: 'succeeded' } as const, 200)
-
-      if (paymentIntent.status === 'requires_action') {
-        const customerSession = await stripe.customerSessions.create({
-          components: {
-            payment_element: {
-              enabled: true,
-              features: {
-                payment_method_redisplay: 'enabled',
-                payment_method_remove: 'disabled',
-                payment_method_save: 'enabled',
-                payment_method_save_usage: 'off_session',
-              },
-            },
-          },
-          customer: stripeCustomerId,
-        })
+        // Only enable saving in the Payment Element when the customer is still below our cap.
+        const canSavePaymentMethod =
+          (await StripeUtils.getSavedPaymentMethodCount(stripe, stripeCustomerId)) <
+          Constants.maxSavedPaymentMethods
+        const customerSession = await StripeUtils.createPaymentElementCustomerSession(
+          stripe,
+          stripeCustomerId,
+          canSavePaymentMethod,
+        )
 
         const paymentId = Nanoid.generate()
         await c.env.KV.put(
@@ -879,6 +897,47 @@ export const api = new Hono<{
           200,
         )
       }
+
+      let paymentIntent: Stripe.PaymentIntent
+      try {
+        paymentIntent = await stripe.paymentIntents.create({
+          amount,
+          confirm: true,
+          currency: 'usd',
+          customer: stripeCustomerId,
+          metadata: { entity_type: entityType, entity_id: entityId },
+          off_session: true,
+          payment_method: defaultPaymentMethod.id,
+        })
+      } catch (error) {
+        if (
+          error instanceof Stripe.errors.StripeCardError &&
+          error.code === 'authentication_required' &&
+          error.payment_intent
+        )
+          return createRequiresActionResponse(error.payment_intent)
+
+        if (error instanceof Stripe.errors.StripeError)
+          return c.json(
+            {
+              code: 'payment_failed',
+              // Stripe's generic message is vague here; show a clearer recovery path.
+              message:
+                error instanceof Stripe.errors.StripeCardError &&
+                error.decline_code === 'fraudulent'
+                  ? 'Your card was declined as fraudulent. Try a different payment method.'
+                  : error.message,
+            },
+            400,
+          )
+        throw error
+      }
+
+      if (paymentIntent.status === 'succeeded')
+        return c.json({ payment_id: paymentIntent.id, status: 'succeeded' } as const, 200)
+
+      if (paymentIntent.status === 'requires_action')
+        return createRequiresActionResponse(paymentIntent)
 
       return c.json({ code: 'payment_failed', message: 'Payment failed' }, 400)
     },
@@ -978,10 +1037,10 @@ export const api = new Hono<{
 
     return c.json({ organization }, 200)
   })
-  .get('/api/og.png', validator('query', Og.schema), async (c) => {
-    if (narrowValidation) return validationError(c)
+  .get('/api/og.png', hono.validator('query', Og.schema), async (c) => {
+    if (hono.narrowValidation) return hono.validationError(c)
 
-    const rl = await rateLimit(c.env.KV, c.executionCtx, {
+    const rl = await hono.rateLimit(c.env.KV, c.executionCtx, {
       ip: c.req.header('cf-connecting-ip') ?? 'unknown',
       key: 'og',
       max: import.meta.env.DEV ? 60 : 30,
@@ -1043,7 +1102,7 @@ export const api = new Hono<{
   })
   .post(
     '/api/orgs',
-    validator(
+    hono.validator(
       'json',
       z.object({
         login: z
@@ -1058,7 +1117,7 @@ export const api = new Hono<{
       }),
     ),
     async (c) => {
-      if (narrowValidation) return validationError(c)
+      if (hono.narrowValidation) return hono.validationError(c)
       if (!c.var.session)
         return c.json({ code: 'unauthorized', message: 'Authentication required' }, 401)
 
@@ -1107,7 +1166,7 @@ export const api = new Hono<{
   )
   .post(
     '/api/orgs/:id/invites',
-    validator(
+    hono.validator(
       'json',
       z.object({
         expires_in: z.number().int().positive().optional(),
@@ -1116,7 +1175,7 @@ export const api = new Hono<{
       }),
     ),
     async (c) => {
-      if (narrowValidation) return validationError(c)
+      if (hono.narrowValidation) return hono.validationError(c)
       if (!c.var.session)
         return c.json({ code: 'unauthorized', message: 'Authentication required' }, 401)
 
@@ -1240,7 +1299,7 @@ export const api = new Hono<{
   })
   .post(
     '/api/orgs/:id/members',
-    validator(
+    hono.validator(
       'json',
       z.object({
         login: z.string(),
@@ -1248,7 +1307,7 @@ export const api = new Hono<{
       }),
     ),
     async (c) => {
-      if (narrowValidation) return validationError(c)
+      if (hono.narrowValidation) return hono.validationError(c)
       if (!c.var.session)
         return c.json({ code: 'unauthorized', message: 'Authentication required' }, 401)
 
@@ -1295,9 +1354,9 @@ export const api = new Hono<{
   )
   .patch(
     '/api/orgs/:id/members/:memberId',
-    validator('json', z.object({ role: z.enum(['member', 'admin']) })),
+    hono.validator('json', z.object({ role: z.enum(['member', 'admin']) })),
     async (c) => {
-      if (narrowValidation) return validationError(c)
+      if (hono.narrowValidation) return hono.validationError(c)
       if (!c.var.session)
         return c.json({ code: 'unauthorized', message: 'Authentication required' }, 401)
 
@@ -1370,9 +1429,9 @@ export const api = new Hono<{
   })
   .post(
     '/api/tokens',
-    validator('json', z.object({ name: z.string().min(1).max(255) })),
+    hono.validator('json', z.object({ name: z.string().min(1).max(255) })),
     async (c) => {
-      if (narrowValidation) return validationError(c)
+      if (hono.narrowValidation) return hono.validationError(c)
       if (!c.var.session)
         return c.json({ code: 'unauthorized', message: 'Authentication required' }, 401)
       if (c.var.api_key_id)
@@ -1448,7 +1507,10 @@ export const api = new Hono<{
     const signature = c.req.header('stripe-signature')
     if (!signature) return c.json({ code: 'missing_signature', message: 'Missing signature' }, 400)
 
-    const stripe = new Stripe(c.env.STRIPE_SECRET_KEY, stripeOptions(c.env.STRIPE_API_URL))
+    const stripe = new Stripe(
+      c.env.STRIPE_SECRET_KEY,
+      StripeUtils.stripeOptions(c.env.STRIPE_API_URL),
+    )
 
     let event: Stripe.Event
     try {
@@ -1535,7 +1597,7 @@ export const api = new Hono<{
   })
   .get(
     '/api/:url{.+}',
-    validator(
+    hono.validator(
       'param',
       z.object({
         url: z
@@ -1557,7 +1619,7 @@ export const api = new Hono<{
           ),
       }),
     ),
-    validator(
+    hono.validator(
       'query',
       (() => {
         const fresh = z
@@ -1591,8 +1653,8 @@ export const api = new Hono<{
       })(),
     ),
     async (c) => {
-      if (narrowValidation) return validationError(c)
-      if (narrowValidation) return invalidApiKey(c)
+      if (hono.narrowValidation) return hono.validationError(c)
+      if (hono.narrowValidation) return hono.invalidApiKey(c)
       const url = new URL(c.req.valid('param').url)
       const query = c.req.valid('query')
 
@@ -1891,35 +1953,3 @@ export const api = new Hono<{
       })
     },
   )
-
-async function rateLimit(
-  kv: KV,
-  ctx: { waitUntil: (p: Promise<unknown>) => void },
-  config: { ip: string; key: string; max: number; window: number },
-) {
-  const key = `ratelimit:${config.key}:${config.ip}` as const
-  const now = Math.floor(Date.now() / 1000)
-  const record = await kv.get(key, 'json')
-
-  const reset = record && record.reset > now ? record.reset : now + config.window
-  const count = record && record.reset > now ? record.count + 1 : 1
-  if (count > config.max) return { error: true, reset } as const
-
-  ctx.waitUntil(
-    kv.put(key, JSON.stringify({ count, reset }), {
-      expirationTtl: config.window,
-    }),
-  )
-
-  return { error: false } as const
-}
-
-function stripeOptions(apiUrl: string) {
-  const url = new URL(apiUrl)
-  // TODO: Pin Stripe API version
-  return {
-    host: url.hostname,
-    port: Number(url.port) || (url.protocol === 'https:' ? 443 : 80),
-    protocol: url.protocol.replace(':', '') as 'http' | 'https',
-  }
-}

@@ -1,14 +1,37 @@
 import * as Sentry from '@sentry/react'
-import { createRouter } from '@tanstack/react-router'
+import { createRouteMask, createRouter } from '@tanstack/react-router'
 import { rpc } from '#lib/rpc.ts'
 import { routeTree } from './routeTree.gen'
 
 export function getRouter() {
   const router = createRouter({
-    routeTree,
     context: {},
-    scrollRestoration: true,
     defaultPreloadStaleTime: 0,
+    routeMasks: [
+      createRouteMask({
+        from: '/$login/billing/add_credits/$paymentId',
+        params: (prev) => ({ login: prev.login }),
+        routeTree,
+        to: '/$login/billing',
+        unmaskOnReload: true,
+      }),
+      createRouteMask({
+        from: '/$login/billing/add_payment_method',
+        params: (prev) => ({ login: prev.login }),
+        routeTree,
+        to: '/$login/billing',
+        unmaskOnReload: true,
+      }),
+      createRouteMask({
+        from: '/$login/billing/remove_payment_method/$paymentMethodId',
+        params: (prev) => ({ login: prev.login }),
+        routeTree,
+        to: '/$login/billing',
+        unmaskOnReload: true,
+      }),
+    ],
+    routeTree,
+    scrollRestoration: true,
   })
 
   if (!router.isServer)

@@ -1,10 +1,9 @@
 import geistMonoLatin from '@fontsource-variable/geist-mono/files/geist-mono-latin-wght-normal.woff2?url'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createRootRoute, HeadContent, Link, Outlet, Scripts } from '@tanstack/react-router'
+import * as React from 'react'
 import { themeScript, useTheme } from '#hooks/useTheme.ts'
 import '../styles.css'
-
-const queryClient = new QueryClient()
 
 export const Route = createRootRoute({
   head() {
@@ -41,6 +40,8 @@ export const Route = createRootRoute({
 })
 
 function RootComponent() {
+  const [queryClient] = React.useState(() => new QueryClient())
+
   return (
     <QueryClientProvider client={queryClient}>
       <div className="font-mono text-sm">
@@ -73,6 +74,10 @@ function RootDocument(props: React.PropsWithChildren) {
           dangerouslySetInnerHTML={{ __html: themeScript }}
           suppressHydrationWarning
         />
+        <script
+          // oxlint-disable-next-line react/no-danger: reload script is static
+          dangerouslySetInnerHTML={{ __html: maskedRouteReloadScript }}
+        />
         <HeadContent />
       </head>
       <body>
@@ -82,3 +87,23 @@ function RootDocument(props: React.PropsWithChildren) {
     </html>
   )
 }
+
+const maskedRouteReloadScript = `
+(() => {
+  const billingDialogPath = new RegExp(
+    '^/[^/]+/billing/(add_payment_method|add_credits/[^/]+|remove_payment_method/[^/]+)$',
+  )
+  const tempLocation = window.history.state?.__tempLocation
+  if (!tempLocation?.pathname) return
+  if (
+    tempLocation.pathname === window.location.pathname &&
+    (tempLocation.search ?? '') === window.location.search &&
+    (tempLocation.hash ?? '') === window.location.hash
+  ) return
+  if (!billingDialogPath.test(tempLocation.pathname))
+    return
+  window.location.replace(
+    tempLocation.pathname + (tempLocation.search ?? '') + (tempLocation.hash ?? ''),
+  )
+})()
+`
