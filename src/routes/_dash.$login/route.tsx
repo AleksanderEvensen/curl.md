@@ -118,7 +118,7 @@ function Component() {
           data-open={open ? '' : undefined}
           onClick={() => setOpen(false)}
         >
-          <div className="flex flex-col gap-0.5 ps-4 pe-1 pb-4">
+          <div className="flex flex-col gap-0.5 ps-4 pe-4 pb-4">
             <SidebarLink
               activeOptions={{ exact: true }}
               icon={<IconOcticonMeter16 />}
