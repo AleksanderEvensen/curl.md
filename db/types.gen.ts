@@ -22,8 +22,8 @@ type account = {
   avatar_url: string | null
   balance_mills: k.Generated<number>
   created_at: GeneratedTimestamp
-  deleted_at: Timestamp | null
   default_payment_method_id: string | null
+  deleted_at: Timestamp | null
   email: string
   id: k.Generated<string>
   login: string
@@ -80,8 +80,8 @@ type device_code = {
 type organization = {
   balance_mills: k.Generated<number>
   created_at: GeneratedTimestamp
-  deleted_at: Timestamp | null
   default_payment_method_id: string | null
+  deleted_at: Timestamp | null
   id: k.Generated<string>
   login: string
   name: string
@@ -112,16 +112,20 @@ type organization_member = {
 type request = {
   account_id: string | null
   api_key_id: string | null
-  cached: boolean | null
+  cached: boolean
   created_at: GeneratedTimestamp
+  extracted_tokens: number | null
+  filtered_tokens: number | null
   hostname: string
   id: k.Generated<string>
   keywords: string | null
+  markdown_tokens: k.Generated<number>
   mode: 'rush' | 'smart' | null
   objective: string | null
   organization_id: string | null
   path: string
-  tokens_saved: number | null
+  source_tokens: k.Generated<number>
+  source_tokens_method: k.Generated<'estimated' | 'html' | 'markdown'>
   url: string
   user_agent: string | null
 }

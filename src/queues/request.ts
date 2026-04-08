@@ -1,5 +1,7 @@
 import { env } from 'cloudflare:workers'
+import { estimateTokenCount } from 'tokenx'
 import type { Database } from '#db/client.ts'
+import type { DB } from '#db/types.gen.ts'
 
 export async function processRequestMessage(
   message: Message<processRequestMessage.Body>,
@@ -14,21 +16,25 @@ export async function processRequestMessage(
       account_id: body.account_id,
       api_key_id: body.api_key_id,
       cached: body.cached,
+      extracted_tokens: body.extracted_tokens,
+      filtered_tokens: body.filtered_tokens,
       hostname: body.hostname,
       id: body.id,
       keywords: body.keywords,
+      markdown_tokens: body.markdown_tokens,
       mode: body.mode,
       objective: body.objective,
       organization_id: body.organization_id,
       path: body.path,
-      tokens_saved: body.tokens_saved,
+      source_tokens: body.source_tokens,
+      source_tokens_method: body.source_tokens_method,
       url: body.url,
       user_agent: body.user_agent,
     })
     .onConflict((oc) => oc.column('id').doNothing())
     .execute()
 
-  if (body.tokens_saved) await env.KV.delete('stats:tokens_saved')
+  await invalidateTokensSavedCache(body.hostname)
 
   // Deduct credits if billable
   const billingEntity = body.organization_id ?? body.account_id
@@ -77,6 +83,8 @@ export async function processRequestMessage(
       .executeTakeFirstOrThrow()
     await env.KV.put(`balance:${billingEntity}`, String(newBalance.balance_mills))
   }
+
+  if (body.source_tokens_method === 'estimated') await enrichSourceTokensFromHtml(body, db)
 }
 
 processRequestMessage.queueName = 'curl-request' as const
@@ -91,13 +99,49 @@ export namespace processRequestMessage {
     hostname: string
     id: string
     keywords: string | null
-    markdownTokens: number
+    extracted_tokens: number | null
+    filtered_tokens: number | null
+    markdown_tokens: number
     mode: 'rush' | 'smart' | null
     objective: string | null
     organization_id: string | null
     path: string
-    tokens_saved: number | null
+    source_tokens: number
+    source_tokens_method: DB.request['source_tokens_method']
     url: string
     user_agent: string | undefined
   }
+}
+
+async function enrichSourceTokensFromHtml(body: processRequestMessage.Body, db: Database) {
+  try {
+    const response = await fetch(body.url, {
+      headers: { 'User-Agent': `Mozilla/5.0 (compatible; ${env.HOST}/1.0; +https://${env.HOST})` },
+      redirect: 'follow',
+    })
+    if (!response.ok) return
+
+    const contentType = (response.headers.get('content-type') ?? '').toLowerCase()
+    if (!contentType.includes('text/html') && !contentType.includes('application/xhtml+xml')) return
+
+    const sourceTokens = estimateTokenCount(await response.text())
+    const updated = await db
+      .updateTable('request')
+      .set({ source_tokens: sourceTokens, source_tokens_method: 'html' })
+      .where('id', '=', body.id)
+      .where('source_tokens', '<', sourceTokens)
+      .where('source_tokens_method', '=', 'estimated')
+      .executeTakeFirst()
+
+    if (Number(updated.numUpdatedRows ?? 0) > 0) await invalidateTokensSavedCache(body.hostname)
+  } catch {
+    // Best-effort enrichment only; keep the markdown fallback when HTML fetch fails.
+  }
+}
+
+async function invalidateTokensSavedCache(hostname: string) {
+  await Promise.all([
+    env.KV.delete('stats:tokens_saved'),
+    env.KV.delete(`stats:tokens_saved:${hostname}`),
+  ])
 }

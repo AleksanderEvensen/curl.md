@@ -1,3 +1,5 @@
+import { estimateTokenCount } from 'tokenx'
+import type { DB } from '#db/types.gen.ts'
 import { filterFrontmatterKeys, fromHtml } from './fromHtml.ts'
 
 export function create(options: create.Options = {}): create.ReturnType {
@@ -55,15 +57,30 @@ export function create(options: create.Options = {}): create.ReturnType {
 
       if (!response.ok) return { ok: false as const, status: response.status }
 
+      const contentType = (response.headers.get('content-type') ?? '').toLowerCase()
+      const isMarkdown =
+        contentType.includes('text/markdown') ||
+        contentType.includes('text/x-markdown') ||
+        /\.mdx?$/i.test(rewrittenUrl.pathname)
+      const usesShortcut =
+        rewrittenUrl.href !== inputURL.href ||
+        Boolean(matched?.rule?.extract) ||
+        Boolean(matched?.rule?.fetch)
+      let sourceTokens: number | undefined
+      let sourceTokensMethod: DB.request['source_tokens_method'] = usesShortcut
+        ? 'estimated'
+        : 'markdown'
+
       const result = await (async () => {
-        if (matched?.rule?.extract) return matched.rule.extract(response)
+        if (matched?.rule?.extract) {
+          if (contentType.includes('text/html') || contentType.includes('application/xhtml+xml')) {
+            sourceTokens = estimateTokenCount(await response.clone().text())
+            sourceTokensMethod = 'html'
+          }
+          return matched.rule.extract(response)
+        }
 
         const text = await response.text()
-        const contentType = (response.headers.get('content-type') ?? '').toLowerCase()
-        const isMarkdown =
-          contentType.includes('text/markdown') ||
-          contentType.includes('text/x-markdown') ||
-          /\.mdx?$/i.test(rewrittenUrl.pathname)
 
         if (isMarkdown) {
           const split = splitFrontmatter(text)
@@ -73,6 +90,8 @@ export function create(options: create.Options = {}): create.ReturnType {
           }
         }
 
+        sourceTokens = estimateTokenCount(text)
+        sourceTokensMethod = 'html'
         return fromHtml(text, { baseUrl: inputURL.href })
       })()
 
@@ -85,6 +104,10 @@ export function create(options: create.Options = {}): create.ReturnType {
         status: response.status,
         content: normalizeMarkdown(result.content, inputURL.origin),
         meta: sortMeta(result.meta),
+        extras: {
+          source_tokens: sourceTokens,
+          source_tokens_method: sourceTokensMethod,
+        },
       }
     },
   }
@@ -103,7 +126,16 @@ export namespace create {
       input: RequestInfo | URL,
       init?: RequestInit | undefined,
     ) => Promise<
-      | { ok: true; status: number; content: string; meta: Meta }
+      | {
+          ok: true
+          status: number
+          content: string
+          meta: Meta
+          extras: {
+            source_tokens: number | undefined
+            source_tokens_method: DB.request['source_tokens_method']
+          }
+        }
       | { ok: false; status: number; error?: string }
     >
   }
