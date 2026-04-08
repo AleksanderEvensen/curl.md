@@ -71,7 +71,7 @@ function AddCreditsDialogLoader(props: {
 
   if (isPending) return <p className="text-gray8 text-sm">Loading payment form...</p>
 
-  if (!data || !stripePromise)
+  if (!data?.pi_secret || !stripePromise)
     return <p className="text-red9 text-sm">Payment session expired or not found.</p>
 
   return (

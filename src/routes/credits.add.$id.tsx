@@ -33,7 +33,7 @@ function Component() {
     [data?.publishable_key, data],
   )
 
-  if (!data || !stripePromise)
+  if (!data?.pi_secret || !stripePromise)
     return (
       <PageWrapper title="Add Credits" description="Add prepaid credits to your account.">
         <p className="text-red9 border-red-a3 flex h-11 items-center gap-2 border px-3 text-sm">

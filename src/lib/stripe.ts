@@ -70,6 +70,20 @@ export async function getSavedPaymentMethodCount(stripe: Stripe, stripeCustomerI
   ).length
 }
 
+export function getPaymentIntentSecret(
+  paymentIntent: Pick<Stripe.PaymentIntent, 'client_secret' | 'id'>,
+  stripeApiUrl: string,
+) {
+  if (paymentIntent.client_secret) return paymentIntent.client_secret
+  if (!paymentIntent.id) return null
+
+  const hostname = new URL(stripeApiUrl).hostname
+  if (hostname === 'api.stripe.com' || hostname.endsWith('.stripe.com')) return null
+
+  // emulate omits payment intent client secrets; synthesize the conventional shape for tests.
+  return `${paymentIntent.id}_secret_emulate`
+}
+
 export async function listCardPaymentMethods(
   stripe: Stripe,
   stripeCustomerId: string,

@@ -853,6 +853,49 @@ describe('POST /api/credits/add', () => {
     expect(json.url).toMatch(/^https:\/\/curl\.local\/credits\/add\//)
   })
 
+  test('returns payment_failed when payment intent has no client secret', async () => {
+    const account = await factory.account.insert({})
+    await db
+      .updateTable('account')
+      .set({ stripe_customer_id: `cus_${Nanoid.generate()}` })
+      .where('id', '=', account.id)
+      .execute()
+    const session = await factory.session.insert({ account_id: account.id })
+
+    server.use(
+      http.get('https://api.stripe.com/v1/payment_methods', () =>
+        HttpResponse.json({ data: [], object: 'list' }),
+      ),
+      http.post('https://api.stripe.com/v1/payment_intents', () =>
+        HttpResponse.json({
+          id: 'pi_missing_secret',
+          object: 'payment_intent',
+        }),
+      ),
+    )
+    const beforeKeys = new Set(
+      (await env.KV.list({ prefix: 'payment:' })).keys.map((key) => key.name),
+    )
+
+    const res = await client.api.credits.add.$post(
+      { json: { amount: '500' } },
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
+        },
+      },
+    )
+    expect(res.status).toBe(400)
+    await expect(res.json()).resolves.toEqual({
+      code: 'payment_failed',
+      message: 'Payment failed',
+    })
+    const afterKeys = new Set(
+      (await env.KV.list({ prefix: 'payment:' })).keys.map((key) => key.name),
+    )
+    expect(afterKeys).toEqual(beforeKeys)
+  })
+
   test('disables card saving when max payment methods already exist', async () => {
     const account = await factory.account.insert({})
     await db

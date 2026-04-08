@@ -760,6 +760,12 @@ export const api = new Hono<{
         metadata: { entity_type: entityType, entity_id: entityId },
         ...(json.save && canSavePaymentMethod ? { setup_future_usage: 'off_session' } : {}),
       })
+      const paymentIntentSecret = StripeUtils.getPaymentIntentSecret(
+        paymentIntent,
+        c.env.STRIPE_API_URL,
+      )
+      if (!paymentIntentSecret)
+        return c.json({ code: 'payment_failed', message: 'Payment failed' }, 400)
 
       let csSecret: string | null = null
       let savedPaymentMethodsUnavailable = false
@@ -783,7 +789,7 @@ export const api = new Hono<{
           cs_secret: csSecret,
           has_saved_payment_methods: savedPaymentMethods.length > 0,
           locked: json.locked ?? false,
-          pi_secret: paymentIntent.client_secret,
+          pi_secret: paymentIntentSecret,
           saved_payment_methods_unavailable: savedPaymentMethodsUnavailable,
         }),
         { expirationTtl: 1800 },
@@ -863,7 +869,11 @@ export const api = new Hono<{
           .execute()
 
       const createRequiresActionResponse = async (paymentIntent: Stripe.PaymentIntent) => {
-        if (!paymentIntent.client_secret)
+        const paymentIntentSecret = StripeUtils.getPaymentIntentSecret(
+          paymentIntent,
+          c.env.STRIPE_API_URL,
+        )
+        if (!paymentIntentSecret)
           return c.json({ code: 'payment_failed', message: 'Payment failed' }, 400)
 
         // Only enable saving in the Payment Element when the customer is still below our cap.
@@ -883,7 +893,7 @@ export const api = new Hono<{
             amount,
             cs_secret: customerSession.client_secret,
             locked: true,
-            pi_secret: paymentIntent.client_secret,
+            pi_secret: paymentIntentSecret,
           }),
           { expirationTtl: 1800 },
         )
