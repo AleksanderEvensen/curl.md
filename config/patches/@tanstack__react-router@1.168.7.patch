@@ -1,0 +1,56 @@
+diff --git a/dist/esm/headContentUtils.js b/dist/esm/headContentUtils.js
+index fef47fc424ed16eb2c8bc09edd69d59d3c2baf22..b059b6a979f076a937392b91f01a0c0ca585be68 100644
+--- a/dist/esm/headContentUtils.js
++++ b/dist/esm/headContentUtils.js
+@@ -1,5 +1,5 @@
+ import { useRouter } from "./useRouter.js";
+-import { deepEqual, escapeHtml, getAssetCrossOrigin, resolveManifestAssetLink } from "@tanstack/router-core";
++import { deepEqual, escapeHtml, getAssetCrossOrigin, getUnmaskOnReloadScript, resolveManifestAssetLink, routePathToRegExpSource } from "@tanstack/router-core";
+ import * as React$1 from "react";
+ import { useStore } from "@tanstack/react-store";
+ import { isServer } from "@tanstack/router-core/isServer";
+@@ -96,12 +96,14 @@ function buildTagsFromMatches(router, nonce, matches, assetCrossOrigin) {
+ 		},
+ 		children
+ 	}));
++	const unmaskOnReloadScript = buildUnmaskOnReloadHeadScript(router, nonce);
+ 	return uniqBy([
+ 		...resultMeta,
+ 		...preloadLinks,
+ 		...constructedLinks,
+ 		...assetLinks,
+ 		...styles,
++		...unmaskOnReloadScript ? [unmaskOnReloadScript] : [],
+ 		...headScripts
+ 	], (d) => JSON.stringify(d));
+ }
+@@ -215,16 +217,29 @@ var useTags = (assetCrossOrigin) => {
+ 		},
+ 		children
+ 	})), deepEqual);
++	const unmaskOnReloadScript = React$1.useMemo(() => buildUnmaskOnReloadHeadScript(router, nonce), [router, nonce]);
+ 	return uniqBy([
+ 		...meta,
+ 		...preloadLinks,
+ 		...links,
+ 		...styles,
++		...unmaskOnReloadScript ? [unmaskOnReloadScript] : [],
+ 		...headScripts
+ 	], (d) => {
+ 		return JSON.stringify(d);
+ 	});
+ };
++function buildUnmaskOnReloadHeadScript(router, nonce) {
++	const routeMaskSources = (router.options.routeMasks ?? []).filter((routeMask) => routeMask.unmaskOnReload && typeof routeMask.from === "string").map((routeMask) => routePathToRegExpSource(routeMask.from));
++	if (!routeMaskSources.length) return void 0;
++	const script = getUnmaskOnReloadScript(routeMaskSources);
++	if (!script) return void 0;
++	return {
++		tag: "script",
++		attrs: nonce ? { nonce } : void 0,
++		children: script
++	};
++}
+ function uniqBy(arr, fn) {
+ 	const seen = /* @__PURE__ */ new Set();
+ 	return arr.filter((item) => {

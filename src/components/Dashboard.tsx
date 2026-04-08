@@ -8,7 +8,7 @@ function Content(props: React.PropsWithChildren) {
 function Heading(props: React.PropsWithChildren<{ level: 1 | 2 }>) {
   if (props.level === 1)
     return (
-      <h1 className="bg-bg1 pt-5 pb-4 text-lg font-bold md:sticky md:top-0 md:z-10">
+      <h1 className="bg-bg1 pt-5 pb-4 text-lg font-bold md:sticky md:top-0 md:z-20">
         {props.children}
       </h1>
     )

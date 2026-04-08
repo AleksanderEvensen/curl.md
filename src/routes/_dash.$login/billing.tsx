@@ -441,27 +441,33 @@ function LocalTime(props: { timezone?: string | undefined; value: Date | string 
 }
 
 function CardBrandIcon(props: { brand: string }) {
-  const className = 'size-8'
+  const containerClassName = 'flex size-8 shrink-0 items-center justify-center'
   switch (props.brand) {
     case 'amex':
       return (
-        <IconSimpleIconsAmericanexpress
-          aria-label="American Express"
-          className={className}
-          role="img"
-        />
+        <span className={containerClassName}>
+          <IconSimpleIconsAmericanexpress
+            aria-label="American Express"
+            className="h-5 w-auto"
+            role="img"
+          />
+        </span>
       )
     case 'diners':
-      return <IconSimpleIconsDinersclub aria-label="Diners Club" className={className} role="img" />
+      return <IconSimpleIconsDinersclub aria-label="Diners Club" className="size-8" role="img" />
     case 'discover':
-      return <IconSimpleIconsDiscover aria-label="Discover" className={className} role="img" />
+      return <IconSimpleIconsDiscover aria-label="Discover" className="size-8" role="img" />
     case 'jcb':
-      return <IconSimpleIconsJcb aria-label="JCB" className={className} role="img" />
+      return <IconSimpleIconsJcb aria-label="JCB" className="size-8" role="img" />
     case 'mastercard':
-      return <IconSimpleIconsMastercard aria-label="Mastercard" className={className} role="img" />
+      return (
+        <span className={containerClassName}>
+          <IconSimpleIconsMastercard aria-label="Mastercard" className="h-5 w-auto" role="img" />
+        </span>
+      )
     case 'visa':
-      return <IconSimpleIconsVisa aria-label="Visa" className={className} role="img" />
+      return <IconSimpleIconsVisa aria-label="Visa" className="size-8" role="img" />
     default:
-      return <IconOcticonCreditCard16 aria-hidden className={`text-gray8 ${className}`} />
+      return <IconOcticonCreditCard16 aria-hidden className="text-gray8 size-8" />
   }
 }

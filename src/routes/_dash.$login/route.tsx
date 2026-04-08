@@ -90,76 +90,80 @@ function Component() {
   return (
     <div className="relative flex min-h-dvh flex-col md:flex-row" data-dashboard>
       <Nav.Skip />
-      <aside className="bg-bg1 border-gray-a3 sticky top-0 z-10 flex flex-row flex-wrap items-center justify-between border-b px-4 py-4 md:fixed md:top-0 md:h-dvh md:w-52 md:flex-col md:flex-nowrap md:items-stretch md:justify-start md:border-e md:border-b-0">
-        <AccountSwitcher
-          account={account}
-          entity={entity}
-          logout={logout}
-          onCreateOrg={() => setCreateOrgOpen(true)}
-          others={others}
-          switchTo={switchTo}
-        />
-        <button
-          className="hover:bg-gray-a2 p-1.5 md:hidden"
-          onClick={() => setOpen((o) => !o)}
-          type="button"
-        >
-          {open ? (
-            <IconOcticonX16 className="size-4" />
-          ) : (
-            <IconOcticonThreeBars16 className="size-4" />
-          )}
-        </button>
+      <aside className="bg-bg1 border-gray-a3 sticky top-0 z-10 flex flex-row flex-wrap items-center justify-between border-b md:fixed md:top-0 md:h-dvh md:w-52 md:flex-col md:flex-nowrap md:items-stretch md:justify-start md:overflow-hidden md:border-e md:border-b-0">
+        <div className="flex w-full items-center justify-between px-4 py-4 md:block">
+          <AccountSwitcher
+            account={account}
+            entity={entity}
+            logout={logout}
+            onCreateOrg={() => setCreateOrgOpen(true)}
+            others={others}
+            switchTo={switchTo}
+          />
+          <button
+            className="hover:bg-gray-a2 p-1.5 md:hidden"
+            onClick={() => setOpen((o) => !o)}
+            type="button"
+          >
+            {open ? (
+              <IconOcticonX16 className="size-4" />
+            ) : (
+              <IconOcticonThreeBars16 className="size-4" />
+            )}
+          </button>
+        </div>
 
         <nav
-          className="mt-4 hidden w-full flex-col gap-0.5 data-[open]:flex md:flex"
+          className="minimal-scrollbar mt-4 hidden w-full flex-col data-[open]:flex md:mt-0 md:flex md:min-h-0 md:flex-1 md:overflow-y-auto md:[scrollbar-gutter:stable]"
           data-open={open ? '' : undefined}
           onClick={() => setOpen(false)}
         >
-          <SidebarLink
-            activeOptions={{ exact: true }}
-            icon={<IconOcticonMeter16 />}
-            params={{ login: entity.login }}
-            to="/$login"
-          >
-            Overview
-          </SidebarLink>
-          <SidebarDisabled icon={<IconOcticonGlobe16 />}>Requests</SidebarDisabled>
-          {entity.type === 'organization' && (
-            <SidebarDisabled icon={<IconOcticonPeople16 />}>Members</SidebarDisabled>
-          )}
-          <SidebarDisabled icon={<IconOcticonKey16 />}>API Tokens</SidebarDisabled>
-          <SidebarLink
-            icon={<IconOcticonCreditCard16 />}
-            params={{ login: entity.login }}
-            to="/$login/billing"
-          >
-            Billing
-          </SidebarLink>
-          <SidebarLink
-            icon={<IconOcticonGear16 />}
-            params={{ login: entity.login }}
-            to="/$login/settings"
-          >
-            Settings
-          </SidebarLink>
+          <div className="flex flex-col gap-0.5 px-4 pb-4">
+            <SidebarLink
+              activeOptions={{ exact: true }}
+              icon={<IconOcticonMeter16 />}
+              params={{ login: entity.login }}
+              to="/$login"
+            >
+              Overview
+            </SidebarLink>
+            <SidebarDisabled icon={<IconOcticonGlobe16 />}>Requests</SidebarDisabled>
+            {entity.type === 'organization' && (
+              <SidebarDisabled icon={<IconOcticonPeople16 />}>Members</SidebarDisabled>
+            )}
+            <SidebarDisabled icon={<IconOcticonKey16 />}>API Tokens</SidebarDisabled>
+            <SidebarLink
+              icon={<IconOcticonCreditCard16 />}
+              params={{ login: entity.login }}
+              to="/$login/billing"
+            >
+              Billing
+            </SidebarLink>
+            <SidebarLink
+              icon={<IconOcticonGear16 />}
+              params={{ login: entity.login }}
+              to="/$login/settings"
+            >
+              Settings
+            </SidebarLink>
 
-          <div className="border-gray-a3 my-1.5 border-t" />
+            <div className="border-gray-a3 my-1.5 border-t" />
 
-          <Link
-            className="text-gray8 hover:text-gray10 hover:bg-gray-a2 flex items-center gap-2 px-2 py-1.5 text-sm"
-            to="/docs"
-          >
-            <IconOcticonBook16 />
-            Docs
-          </Link>
-          <Link
-            className="text-gray8 hover:text-gray10 hover:bg-gray-a2 flex items-center gap-2 px-2 py-1.5 text-sm"
-            to="/playground"
-          >
-            <IconOcticonTerminal16 />
-            Playground
-          </Link>
+            <Link
+              className="text-gray8 hover:text-gray10 hover:bg-gray-a2 flex items-center gap-2 px-2 py-1.5 text-sm"
+              to="/docs"
+            >
+              <IconOcticonBook16 />
+              Docs
+            </Link>
+            <Link
+              className="text-gray8 hover:text-gray10 hover:bg-gray-a2 flex items-center gap-2 px-2 py-1.5 text-sm"
+              to="/playground"
+            >
+              <IconOcticonTerminal16 />
+              Playground
+            </Link>
+          </div>
         </nav>
       </aside>
       <CreateOrgDialog

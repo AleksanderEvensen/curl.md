@@ -149,7 +149,7 @@ function UsageChart(props: { daily: Array<{ date: string; tokens: number }> }) {
       <div className="flex items-center gap-2">
         <ToggleGroup
           className="border-gray-a3 flex border p-0.5 text-xs"
-          defaultValue={[mode]}
+          value={[mode]}
           onValueChange={(value) => {
             if (value.length > 0) setMode(value[0] as 'cost' | 'tokens')
           }}
