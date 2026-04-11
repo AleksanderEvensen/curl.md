@@ -53,6 +53,38 @@ test('Auth.createResolver reads organization fresh and clears cached auth when s
   expect(headersCalls).toBe(1)
 })
 
+test('Auth.createResolver forceRefresh remints cached auth headers', async () => {
+  const expiresAt = new Date(Date.now() + 5 * 60_000).toISOString() // 5 minutes
+  let headersCalls = 0
+  server.use(
+    http.post(`${env.CURLMD_BASE_URL}/api/auth/headers`, async () => {
+      headersCalls++
+      return HttpResponse.json({
+        authorization: `Bearer curlmd_at_${headersCalls}`,
+        expires_at: expiresAt,
+      })
+    }),
+  )
+
+  Session.write({
+    refresh_token: 'curlmd_rt_cached',
+    refresh_token_expires_at: new Date(Date.now() + 120_000).toISOString(), // 2 minutes
+  })
+  const resolveAuthHeaders = Auth.createResolver(env.CURLMD_BASE_URL)
+
+  expect(await resolveAuthHeaders()).toEqual({
+    authorization: 'Bearer curlmd_at_1',
+    expires_at: expiresAt,
+    organization_id: null,
+  })
+  expect(await resolveAuthHeaders({ forceRefresh: true })).toEqual({
+    authorization: 'Bearer curlmd_at_2',
+    expires_at: expiresAt,
+    organization_id: null,
+  })
+  expect(headersCalls).toBe(2)
+})
+
 test('Auth.waitForLogin clears stale organization and succeeds when auth.me fails', async () => {
   const refreshTokenExpiresAt = new Date(Date.now() + 120_000).toISOString() // 2 minutes
   server.use(

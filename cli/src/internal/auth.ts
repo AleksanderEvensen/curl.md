@@ -13,13 +13,17 @@ export const Auth = {
     let pendingAuth: Promise<Omit<Auth.Headers, 'organization_id'> | null> | null = null
     let pendingRefreshToken: string | null = null
 
-    return async function resolveAuth(): Promise<Auth.Headers | null> {
+    return async function resolveAuth(
+      options: Auth.ResolveOptions = {},
+    ): Promise<Auth.Headers | null> {
       if (apiKey)
         return {
           authorization: `Bearer ${apiKey}`,
           expires_at: null,
           organization_id: null,
         }
+
+      if (options.forceRefresh) clearCachedAuth()
 
       const currentSession = Session.read(baseUrl)
       if (!currentSession) {
@@ -76,8 +80,7 @@ export const Auth = {
       }
 
       if (latestSession.refresh_token !== refreshToken) {
-        cachedAuth = null
-        cachedRefreshToken = null
+        clearCachedAuth()
         return resolveAuth()
       }
 
@@ -90,10 +93,14 @@ export const Auth = {
     }
 
     function clearCache() {
-      cachedAuth = null
-      cachedRefreshToken = null
+      clearCachedAuth()
       pendingAuth = null
       pendingRefreshToken = null
+    }
+
+    function clearCachedAuth() {
+      cachedAuth = null
+      cachedRefreshToken = null
     }
   },
 
@@ -244,6 +251,10 @@ export declare namespace Auth {
     authorization: string
     expires_at: string | null
     organization_id: string | null
+  }
+
+  export type ResolveOptions = {
+    forceRefresh?: boolean | undefined
   }
 
   export type Result<T> = { ok: true; data: T } | { ok: false; error: Error }

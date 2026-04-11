@@ -951,6 +951,56 @@ test('caches session auth headers in memory', async () => {
   fs.rmSync(tmpDir, { force: true, recursive: true })
 })
 
+test('retries once on session 401 with forced auth refresh', async () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'curlmd-pi-retry-401-'))
+  vi.stubEnv('XDG_DATA_HOME', tmpDir)
+
+  const requests: CapturedRequest[] = []
+  let fetchCount = 0
+  let headersCalls = 0
+
+  server.use(
+    http.post('*', async ({ request }) => {
+      const url = new URL(request.url)
+      if (url.origin !== new URL(defaultBaseUrl).origin || url.pathname !== '/api/auth/headers')
+        return passthrough()
+      headersCalls++
+      return HttpResponse.json({
+        authorization: `Bearer access-token-${headersCalls === 1 ? 'stale' : 'fresh'}`,
+        expires_at: '2099-01-01T00:00:00.000Z',
+      })
+    }),
+    http.get('*', async ({ request }) => {
+      const url = new URL(request.url)
+      if (url.origin !== new URL(defaultBaseUrl).origin) return passthrough()
+      requests.push(captureRequest(request))
+      fetchCount++
+      if (fetchCount === 1) return HttpResponse.json({ message: 'Unauthorized' }, { status: 401 })
+      return HttpResponse.json({ content: '# Retried' })
+    }),
+  )
+
+  Session.write({
+    refresh_token: 'rt_test',
+    refresh_token_expires_at: '2099-01-01T00:00:00.000Z',
+  })
+
+  const { tools } = loadExtension()
+  const result = await tools[0]!.execute('call_1', { url: 'https://example.com' })
+
+  expect(headersCalls).toBe(2)
+  expect(fetchCount).toBe(2)
+  expect(requests.map((request) => request.headers.authorization)).toEqual([
+    'Bearer access-token-stale',
+    'Bearer access-token-fresh',
+  ])
+  expect(result.details.auth).toBe('session')
+  expect(result.content).toEqual([{ text: '# Retried', type: 'text' }])
+
+  Session.delete()
+  fs.rmSync(tmpDir, { force: true, recursive: true })
+})
+
 test('prefers CURLMD_API_KEY for authentication', async () => {
   const requests: CapturedRequest[] = []
 

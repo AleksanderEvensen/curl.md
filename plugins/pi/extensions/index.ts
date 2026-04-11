@@ -455,7 +455,7 @@ export default function (pi: ExtensionAPI) {
       })
 
       if (res.status === 401 && authType === 'session') {
-        authHeaders = await resolver()
+        authHeaders = await resolver({ forceRefresh: true })
         if (!authHeaders) authType = 'anon'
         const client = createClient(baseUrl, {
           headers: apiKey ? createHeaders(null) : createHeaders(authHeaders),
