@@ -44,4 +44,6 @@ jobs:
         run: pnpm build:cli
 
       - name: Publish preview
-        run: pnpx pkg-pr-new publish --pnpm ./cli
+        run: |
+          node --experimental-strip-types scripts/formatPackage.ts
+          pnpx pkg-pr-new publish --pnpm ./cli ./plugins/pi

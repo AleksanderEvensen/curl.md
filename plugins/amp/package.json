@@ -1,0 +1,11 @@
+{
+  "name": "@curl.md/amp",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check:types": "tsgo --noEmit"
+  },
+  "devDependencies": {
+    "@ampcode/plugin": "0.0.0-dev"
+  }
+}
