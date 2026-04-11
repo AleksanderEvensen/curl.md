@@ -15,12 +15,6 @@ export function dataDir() {
   return path.join(os.homedir(), '.local', 'share', 'curl-md')
 }
 
-export function configDir() {
-  if (process.env.XDG_CONFIG_HOME) return path.join(process.env.XDG_CONFIG_HOME, 'curl-md')
-  if (process.platform === 'win32') return path.join(process.env.APPDATA || os.homedir(), 'curl-md')
-  return path.join(os.homedir(), '.config', 'curl-md')
-}
-
 export function compareVersions(a: string, b: string): number {
   const pa = a.replace(/^v/, '').split('.').map(Number)
   const pb = b.replace(/^v/, '').split('.').map(Number)

@@ -1,7 +1,7 @@
 import fs from 'node:fs'
-import os from 'node:os'
 import path from 'node:path'
 import { defaultBaseUrl } from '../client.ts'
+import { dataDir } from '../utils.ts'
 
 export const Session = {
   path(baseUrl?: string) {
@@ -74,11 +74,4 @@ export declare namespace Session {
     refresh_token?: string | undefined
     refresh_token_expires_at?: string | undefined
   }
-}
-
-function dataDir() {
-  if (process.env.XDG_DATA_HOME) return path.join(process.env.XDG_DATA_HOME, 'curl-md')
-  if (process.platform === 'win32')
-    return path.join(process.env.LOCALAPPDATA || os.homedir(), 'curl-md')
-  return path.join(os.homedir(), '.local', 'share', 'curl-md')
 }

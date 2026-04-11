@@ -2,6 +2,15 @@
   "name": "curl.md",
   "version": "0.0.15",
   "description": "URL to markdown for agents",
+  "contributors": [
+    "awkweb.eth <t@wevm.dev>",
+    "jxom.eth <j@wevm.dev>"
+  ],
+  "funding": "https://github.com/sponsors/wevm",
+  "keywords": [
+    "curl.md",
+    "markdown"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -30,6 +39,7 @@
     "CHANGELOG.md",
     "dist"
   ],
+  "sideEffects": false,
   "type": "module",
   "types": "./dist/exports/index.d.ts",
   "imports": {

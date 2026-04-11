@@ -2,6 +2,11 @@
   "name": "@curl.md/pi",
   "version": "0.0.1",
   "description": "curl.md Pi extension",
+  "contributors": [
+    "awkweb.eth <t@wevm.dev>",
+    "jxom.eth <j@wevm.dev>"
+  ],
+  "funding": "https://github.com/sponsors/wevm",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -9,6 +14,9 @@
     "directory": "plugins/pi"
   },
   "keywords": [
+    "curl.md",
+    "markdown",
+    "pi",
     "pi-package"
   ],
   "files": [
