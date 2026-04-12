@@ -5,8 +5,11 @@ Amp plugin for `curl.md`.
 ## Install
 
 ```sh
-pnpm dlx @curl.md/amp install
+npx @curl.md/amp install
 ```
+
+Successful installs print the Amp config path and create
+`~/.config/amp/plugins/curlmd.ts`.
 
 ## License
 
