@@ -22,6 +22,7 @@ test('uses XDG_CONFIG_HOME when present', () => {
 test('installs the package and writes the global shim', async () => {
   tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'curlmd-amp-install-'))
   const spawn = vi.fn(() => ({ status: 0 }))
+  vi.spyOn(console, 'log').mockImplementation(() => {})
 
   const result = await installAmpPlugin({
     ampConfigDir: tempDir,
@@ -30,11 +31,15 @@ test('installs the package and writes the global shim', async () => {
   })
 
   expect(result.packageSpec).toBe('@curl.md/amp@0.0.1')
-  expect(spawn).toHaveBeenCalledWith('npm', ['install', '--save-exact', '@curl.md/amp@0.0.1'], {
-    cwd: tempDir,
-    env: process.env,
-    stdio: 'inherit',
-  })
+  expect(spawn).toHaveBeenCalledWith(
+    'npm',
+    ['install', '--silent', '--save-exact', '@curl.md/amp@0.0.1'],
+    {
+      cwd: tempDir,
+      env: process.env,
+      stdio: 'inherit',
+    },
+  )
 
   await expect(fs.readFile(path.join(tempDir, 'package.json'), 'utf8')).resolves.toBe(`{
   "name": "amp-plugins",
@@ -77,7 +82,9 @@ test('runs when invoked through a symlinked bin path', async () => {
 
   expect(result.status).toBe(0)
   expect(result.stderr).toBe('')
-  expect(result.stdout).toContain(`Installed @curl.md/amp@0.0.1 to ${ampConfigDir}`)
+  expect(result.stdout).toContain(`Installed @curl.md/amp@`)
+  expect(result.stdout).toContain(` to ${ampConfigDir}`)
+  expect(result.stdout).toContain("Run 'PLUGINS=all amp' to load plugins")
 
   await expect(fs.readFile(path.join(ampConfigDir, 'plugins', 'curlmd.ts'), 'utf8')).resolves.toBe(
     [

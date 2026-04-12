@@ -35,7 +35,7 @@ if (isMain) {
       const result = await installAmpPlugin()
       console.log(`Installed ${result.packageSpec} to ${result.ampConfigDir}`)
       console.log(`Plugin shim: ${result.shimPath}`)
-      console.log("Run 'amp' to get started")
+      console.log("Run 'PLUGINS=all amp' to load plugins")
       console.log('If auth is needed, set `CURLMD_API_KEY` or run `curl.md auth login`.')
     } catch (error) {
       console.error(`error: ${error instanceof Error ? error.message : String(error)}`)
@@ -109,7 +109,7 @@ export async function installAmpPlugin(
   // Install the plugin package into that config-local node_modules.
   const result = (options.spawnSync || spawnSync)(
     platform === 'win32' ? 'npm.cmd' : 'npm',
-    ['install', '--save-exact', packageSpec],
+    ['install', '--silent', '--save-exact', packageSpec],
     {
       cwd: ampConfigDir,
       env,
