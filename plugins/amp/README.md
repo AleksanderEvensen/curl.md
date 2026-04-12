@@ -1,11 +1,11 @@
-# @curl.md/pi
+# @curl.md/amp
 
-Pi extension for `curl.md`.
+Amp plugin for `curl.md`.
 
 ## Install
 
 ```sh
-pi install @curl.md/pi
+pnpm dlx @curl.md/amp install
 ```
 
 ## License
