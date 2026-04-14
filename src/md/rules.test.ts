@@ -62,28 +62,32 @@ test('cloudflare rewrites docs path to raw mdx', () => {
   )
 })
 
-test('curlDocs rewrites docs root to raw GitHub docs index', () => {
+test('curlDocs rewrites docs root to generated markdown index', () => {
   expect(patternsMatch(rules.curlDocs(), 'https://curl.md/docs')).toBe(true)
   expect(rewrite(rules.curlDocs, 'https://curl.md/docs')?.href).toBe(
-    'https://raw.githubusercontent.com/wevm/curl.md/main/docs/index.mdx',
+    'https://curl.md/docs/index.md',
   )
 })
 
-test('curlDocs rewrites docs pages to raw GitHub docs mdx', () => {
+test('curlDocs rewrites docs pages to generated markdown', () => {
   expect(
     patternsMatch(rules.curlDocs(), 'https://curl.local/docs/getting_started/installation'),
   ).toBe(true)
   expect(
     rewrite(rules.curlDocs, 'https://curl.local/docs/getting_started/installation')?.href,
-  ).toBe(
-    'https://raw.githubusercontent.com/wevm/curl.md/main/docs/getting_started/installation.mdx',
-  )
+  ).toBe('https://curl.local/docs/getting_started/installation.md')
 })
 
-test('curlDocs rewrites preview hosts to raw GitHub docs mdx', () => {
+test('curlDocs rewrites preview hosts to generated markdown', () => {
   expect(
     rewrite(rules.curlDocs, 'https://preview-123.curl.md/docs/getting_started/quick_start')?.href,
-  ).toBe('https://raw.githubusercontent.com/wevm/curl.md/main/docs/getting_started/quick_start.mdx')
+  ).toBe('https://preview-123.curl.md/docs/getting_started/quick_start.md')
+})
+
+test('curlDocs keeps generated markdown paths unchanged', () => {
+  expect(rewrite(rules.curlDocs, 'https://curl.md/docs/reference/kitchen_sink.md')?.href).toBe(
+    'https://curl.md/docs/reference/kitchen_sink.md',
+  )
 })
 
 test('cloudflare keeps trailing slash paths on raw mdx candidate', () => {

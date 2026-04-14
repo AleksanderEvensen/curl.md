@@ -27,14 +27,15 @@ export const curlDocs = defineRule({
   checks: [
     {
       url: 'https://curl.md/docs/getting_started/installation',
-      contains: ['curl.md auth login', 'Amp Plugin'],
-      title: 'Installation',
+      contains: ['# Installation', 'curl.md auth login', 'Amp Plugin'],
     },
   ],
   rewrite(url) {
+    if (url.pathname.endsWith('.md')) return url
+
     const path = url.pathname.replace(/^\/docs/, '')
     const pathname = path === '' || path === '/' ? '/index' : path.replace(/\/$/, '')
-    return new URL(`https://raw.githubusercontent.com/wevm/curl.md/main/docs${pathname}.mdx`)
+    return new URL(`https://${url.hostname}/docs${pathname}.md`)
   },
 })
 
