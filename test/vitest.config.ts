@@ -1,5 +1,10 @@
 import path from 'node:path'
 import { cloudflareTest } from '@cloudflare/vitest-pool-workers'
+import react from '@vitejs/plugin-react'
+import { playwright } from '@vitest/browser-playwright'
+import autoImport from 'unplugin-auto-import/vite'
+import iconsResolver from 'unplugin-icons/resolver'
+import icons from 'unplugin-icons/vite'
 import { defineConfig } from 'vitest/config'
 import { Env } from './env.ts'
 
@@ -12,7 +17,7 @@ export default defineConfig({
       {
         test: {
           name: 'app',
-          include: ['src/**/!(*workers).test.ts'],
+          include: ['config/**/*.test.ts', 'src/**/!(*workers).test.ts'],
           exclude: ['src/md/**'],
           root,
         },
@@ -70,6 +75,34 @@ export default defineConfig({
           root,
           globalSetup: ['test/workers.global.setup.ts'],
           setupFiles: ['test/workers.setup.ts'],
+        },
+      },
+      {
+        plugins: [
+          icons({ compiler: 'jsx', jsx: 'react' }),
+          autoImport({
+            dts: false,
+            include: [/\.[jt]sx?$/],
+            resolvers: [
+              iconsResolver({
+                prefix: 'Icon',
+                extension: 'jsx',
+                alias: { octicon: 'octicon', 'simple-icons': 'simple-icons' },
+              }),
+            ],
+          }),
+          react(),
+        ],
+        test: {
+          browser: {
+            enabled: true,
+            headless: true,
+            instances: [{ browser: 'chromium' }],
+            provider: playwright(),
+          },
+          include: ['src/**/*.browser.test.tsx'],
+          name: 'browser',
+          root,
         },
       },
       {

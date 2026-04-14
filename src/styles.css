@@ -4,10 +4,6 @@
 
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
-html {
-  scroll-padding-top: 4rem;
-}
-
 @theme {
   --font-mono: 'Geist Mono Variable', monospace;
   --font-pixel: 'Silkscreen', monospace;
@@ -17,6 +13,7 @@ html {
   /* Geist Backgrounds */
   --color-bg1: light-dark(hsl(0 0% 98%), hsl(0 0% 0%));
   --color-bg2: light-dark(hsl(0 0% 100%), hsl(0 0% 4%));
+  --color-docs-surface: light-dark(hsl(0 0% 95%), hsl(0 0% 6%));
 
   /* Geist Gray Scale */
   --color-gray1: light-dark(hsl(0 0% 95%), hsl(0 0% 10%));
@@ -174,6 +171,10 @@ html::-webkit-scrollbar-track {
 html::-webkit-scrollbar-thumb {
   background: var(--color-gray-a3);
   border-radius: 3px;
+}
+
+html {
+  scrollbar-gutter: auto;
 }
 
 @media (min-width: 768px) {

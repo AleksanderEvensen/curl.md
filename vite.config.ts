@@ -7,6 +7,7 @@ import autoImport from 'unplugin-auto-import/vite'
 import iconsResolver from 'unplugin-icons/resolver'
 import icons from 'unplugin-icons/vite'
 import { defineConfig } from 'vite'
+import { docs } from './config/docs.ts'
 import { cloudflareDevWorkarounds, getWranglerVar } from './config/wrangler.ts'
 import { createClient } from './db/client.ts'
 import { requestTokensSavedSumSql } from './db/utils.ts'
@@ -53,6 +54,7 @@ export default defineConfig(async () => ({
         }),
       ],
     }),
+    docs(),
     viteReact(),
   ],
   define: {
