@@ -131,6 +131,16 @@
   outline-width: 2px;
 }
 
+:where(
+  [class*='focus-visible:ring-'],
+  [class*='focus:ring-'],
+  [class*='focus-visible:outline-none'],
+  [class*='focus:outline-none'],
+  [class~='outline-none']
+):focus-visible {
+  outline: none;
+}
+
 form button:focus-visible {
   outline-offset: -1px;
 }
@@ -146,7 +156,6 @@ input {
 }
 
 input:focus-visible {
-  outline: none;
   caret-color: var(--color-blue9);
 }
 

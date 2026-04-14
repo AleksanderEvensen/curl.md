@@ -27,11 +27,14 @@ declare global {
   const IconLucideMonitor: typeof import('~icons/lucide/monitor.jsx').default
   const IconLucideMoon: typeof import('~icons/lucide/moon.jsx').default
   const IconLucideOctagonAlert: typeof import('~icons/lucide/octagon-alert.jsx').default
+  const IconLucideRefreshCw: typeof import('~icons/lucide/refresh-cw.jsx').default
   const IconLucideSearch: typeof import('~icons/lucide/search.jsx').default
   const IconLucideSettings: typeof import('~icons/lucide/settings.jsx').default
   const IconLucideShieldAlert: typeof import('~icons/lucide/shield-alert.jsx').default
   const IconLucideSparkles: typeof import('~icons/lucide/sparkles.jsx').default
   const IconLucideSun: typeof import('~icons/lucide/sun.jsx').default
+  const IconLucideTag: typeof import('~icons/lucide/tag.jsx').default
+  const IconLucideTarget: typeof import('~icons/lucide/target.jsx').default
   const IconLucideTriangleAlert: typeof import('~icons/lucide/triangle-alert.jsx').default
   const IconLucideUsers: typeof import('~icons/lucide/users.jsx').default
   const IconLucideX: typeof import('~icons/lucide/x.jsx').default
@@ -50,6 +53,7 @@ declare global {
   const IconOcticonClippy16: typeof import('~icons/octicon/clippy16.jsx').default
   const IconOcticonCopy16: typeof import('~icons/octicon/copy16.jsx').default
   const IconOcticonCreditCard16: typeof import('~icons/octicon/credit-card16.jsx').default
+  const IconOcticonDatabase16: typeof import('~icons/octicon/database16.jsx').default
   const IconOcticonFile: typeof import('~icons/octicon/file.jsx').default
   const IconOcticonGear16: typeof import('~icons/octicon/gear16.jsx').default
   const IconOcticonGitCommit16: typeof import('~icons/octicon/git-commit16.jsx').default

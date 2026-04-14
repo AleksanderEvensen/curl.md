@@ -69,11 +69,17 @@ function Component() {
   const matches = useMatches()
   const leafRouteId = matches[matches.length - 1]?.routeId
   const switchTo =
-    leafRouteId === '/_dash/$login/billing'
-      ? '/$login/billing'
-      : leafRouteId === '/_dash/$login/settings'
-        ? '/$login/settings'
-        : '/$login'
+    leafRouteId === '/_dash/$login/api_tokens'
+      ? '/$login/api_tokens'
+      : leafRouteId === '/_dash/$login/billing'
+        ? '/$login/billing'
+        : leafRouteId === '/_dash/$login/members'
+          ? '/$login/members'
+          : leafRouteId === '/_dash/$login/requests'
+            ? '/$login/requests'
+            : leafRouteId === '/_dash/$login/settings'
+              ? '/$login/settings'
+              : '/$login'
   const [open, setOpen] = React.useState(false)
   const { modal } = Route.useSearch()
   const navigate = useNavigate()
@@ -99,21 +105,24 @@ function Component() {
       {
         icon: <IconOcticonGlobe16 />,
         label: 'Requests',
-        enabled: false,
+        to: '/$login/requests',
+        enabled: true,
       },
       ...(entity.type === 'organization'
         ? [
             {
               icon: <IconOcticonPeople16 />,
               label: 'Members',
-              enabled: false,
+              to: '/$login/members',
+              enabled: true,
             },
           ]
         : []),
       {
         icon: <IconOcticonKey16 />,
         label: 'API Tokens',
-        enabled: false,
+        to: '/$login/api_tokens',
+        enabled: true,
       },
       {
         icon: <IconOcticonCreditCard16 />,
@@ -145,7 +154,7 @@ function Component() {
             switchTo={switchTo}
           />
           <button
-            className="hover:bg-gray-a2 p-1.5 md:hidden"
+            className="hover:bg-gray-a2 flex size-9 items-center justify-center md:hidden"
             onClick={() => setOpen((o) => !o)}
             type="button"
           >
@@ -158,7 +167,7 @@ function Component() {
         </div>
 
         <nav
-          className="minimal-scrollbar mt-4 hidden w-full flex-col [scrollbar-gutter:auto] data-[open]:flex md:mt-0 md:flex md:min-h-0 md:flex-1 md:overflow-y-auto"
+          className="minimal-scrollbar hidden w-full flex-col [scrollbar-gutter:auto] data-[open]:flex md:mt-0 md:flex md:min-h-0 md:flex-1 md:overflow-y-auto"
           data-open={open ? '' : undefined}
           onClick={() => setOpen(false)}
         >
@@ -239,7 +248,16 @@ function AccountSwitcher(props: {
               <Menu.Item
                 className="text-gray9 hover:bg-gray-a2 hover:text-gray10 flex items-center gap-2 p-1.5 text-sm select-none"
                 key={e.login}
-                render={<Link params={{ login: e.login }} to={props.switchTo} />}
+                render={
+                  <Link
+                    params={{ login: e.login }}
+                    to={
+                      props.switchTo === '/$login/members' && e.type === 'account'
+                        ? '/$login'
+                        : props.switchTo
+                    }
+                  />
+                }
               >
                 <EntityAvatar
                   avatarUrl={e.type === 'account' ? props.account.avatar_url : undefined}

@@ -23,7 +23,10 @@ import { Route as DashLoginRouteRouteImport } from './routes/_dash.$login/route'
 import { Route as DashLoginIndexRouteImport } from './routes/_dash.$login/index'
 import { Route as CreditsAddIdRouteImport } from './routes/credits.add.$id'
 import { Route as DashLoginSettingsRouteImport } from './routes/_dash.$login/settings'
+import { Route as DashLoginRequestsRouteImport } from './routes/_dash.$login/requests'
+import { Route as DashLoginMembersRouteImport } from './routes/_dash.$login/members'
 import { Route as DashLoginBillingRouteImport } from './routes/_dash.$login/billing'
+import { Route as DashLoginApi_tokensRouteImport } from './routes/_dash.$login/api_tokens'
 import { Route as DashLoginBillingAdd_payment_methodRouteImport } from './routes/_dash.$login/billing.add_payment_method'
 import { Route as DashLoginBillingRemove_payment_methodPaymentMethodIdRouteImport } from './routes/_dash.$login/billing.remove_payment_method.$paymentMethodId'
 import { Route as DashLoginBillingAdd_creditsPaymentIdRouteImport } from './routes/_dash.$login/billing.add_credits.$paymentId'
@@ -98,9 +101,24 @@ const DashLoginSettingsRoute = DashLoginSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => DashLoginRouteRoute,
 } as any)
+const DashLoginRequestsRoute = DashLoginRequestsRouteImport.update({
+  id: '/requests',
+  path: '/requests',
+  getParentRoute: () => DashLoginRouteRoute,
+} as any)
+const DashLoginMembersRoute = DashLoginMembersRouteImport.update({
+  id: '/members',
+  path: '/members',
+  getParentRoute: () => DashLoginRouteRoute,
+} as any)
 const DashLoginBillingRoute = DashLoginBillingRouteImport.update({
   id: '/billing',
   path: '/billing',
+  getParentRoute: () => DashLoginRouteRoute,
+} as any)
+const DashLoginApi_tokensRoute = DashLoginApi_tokensRouteImport.update({
+  id: '/api_tokens',
+  path: '/api_tokens',
   getParentRoute: () => DashLoginRouteRoute,
 } as any)
 const DashLoginBillingAdd_payment_methodRoute =
@@ -134,7 +152,10 @@ export interface FileRoutesByFullPath {
   '/docs/$': typeof DocsSplatRoute
   '/invite/$token': typeof InviteTokenRoute
   '/docs/': typeof DocsIndexRoute
+  '/$login/api_tokens': typeof DashLoginApi_tokensRoute
   '/$login/billing': typeof DashLoginBillingRouteWithChildren
+  '/$login/members': typeof DashLoginMembersRoute
+  '/$login/requests': typeof DashLoginRequestsRoute
   '/$login/settings': typeof DashLoginSettingsRoute
   '/credits/add/$id': typeof CreditsAddIdRoute
   '/$login/': typeof DashLoginIndexRoute
@@ -152,7 +173,10 @@ export interface FileRoutesByTo {
   '/docs/$': typeof DocsSplatRoute
   '/invite/$token': typeof InviteTokenRoute
   '/docs': typeof DocsIndexRoute
+  '/$login/api_tokens': typeof DashLoginApi_tokensRoute
   '/$login/billing': typeof DashLoginBillingRouteWithChildren
+  '/$login/members': typeof DashLoginMembersRoute
+  '/$login/requests': typeof DashLoginRequestsRoute
   '/$login/settings': typeof DashLoginSettingsRoute
   '/credits/add/$id': typeof CreditsAddIdRoute
   '/$login': typeof DashLoginIndexRoute
@@ -173,7 +197,10 @@ export interface FileRoutesById {
   '/docs/$': typeof DocsSplatRoute
   '/invite/$token': typeof InviteTokenRoute
   '/docs/': typeof DocsIndexRoute
+  '/_dash/$login/api_tokens': typeof DashLoginApi_tokensRoute
   '/_dash/$login/billing': typeof DashLoginBillingRouteWithChildren
+  '/_dash/$login/members': typeof DashLoginMembersRoute
+  '/_dash/$login/requests': typeof DashLoginRequestsRoute
   '/_dash/$login/settings': typeof DashLoginSettingsRoute
   '/credits/add/$id': typeof CreditsAddIdRoute
   '/_dash/$login/': typeof DashLoginIndexRoute
@@ -195,7 +222,10 @@ export interface FileRouteTypes {
     | '/docs/$'
     | '/invite/$token'
     | '/docs/'
+    | '/$login/api_tokens'
     | '/$login/billing'
+    | '/$login/members'
+    | '/$login/requests'
     | '/$login/settings'
     | '/credits/add/$id'
     | '/$login/'
@@ -213,7 +243,10 @@ export interface FileRouteTypes {
     | '/docs/$'
     | '/invite/$token'
     | '/docs'
+    | '/$login/api_tokens'
     | '/$login/billing'
+    | '/$login/members'
+    | '/$login/requests'
     | '/$login/settings'
     | '/credits/add/$id'
     | '/$login'
@@ -233,7 +266,10 @@ export interface FileRouteTypes {
     | '/docs/$'
     | '/invite/$token'
     | '/docs/'
+    | '/_dash/$login/api_tokens'
     | '/_dash/$login/billing'
+    | '/_dash/$login/members'
+    | '/_dash/$login/requests'
     | '/_dash/$login/settings'
     | '/credits/add/$id'
     | '/_dash/$login/'
@@ -355,11 +391,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashLoginSettingsRouteImport
       parentRoute: typeof DashLoginRouteRoute
     }
+    '/_dash/$login/requests': {
+      id: '/_dash/$login/requests'
+      path: '/requests'
+      fullPath: '/$login/requests'
+      preLoaderRoute: typeof DashLoginRequestsRouteImport
+      parentRoute: typeof DashLoginRouteRoute
+    }
+    '/_dash/$login/members': {
+      id: '/_dash/$login/members'
+      path: '/members'
+      fullPath: '/$login/members'
+      preLoaderRoute: typeof DashLoginMembersRouteImport
+      parentRoute: typeof DashLoginRouteRoute
+    }
     '/_dash/$login/billing': {
       id: '/_dash/$login/billing'
       path: '/billing'
       fullPath: '/$login/billing'
       preLoaderRoute: typeof DashLoginBillingRouteImport
+      parentRoute: typeof DashLoginRouteRoute
+    }
+    '/_dash/$login/api_tokens': {
+      id: '/_dash/$login/api_tokens'
+      path: '/api_tokens'
+      fullPath: '/$login/api_tokens'
+      preLoaderRoute: typeof DashLoginApi_tokensRouteImport
       parentRoute: typeof DashLoginRouteRoute
     }
     '/_dash/$login/billing/add_payment_method': {
@@ -419,13 +476,19 @@ const DashLoginBillingRouteWithChildren =
   DashLoginBillingRoute._addFileChildren(DashLoginBillingRouteChildren)
 
 interface DashLoginRouteRouteChildren {
+  DashLoginApi_tokensRoute: typeof DashLoginApi_tokensRoute
   DashLoginBillingRoute: typeof DashLoginBillingRouteWithChildren
+  DashLoginMembersRoute: typeof DashLoginMembersRoute
+  DashLoginRequestsRoute: typeof DashLoginRequestsRoute
   DashLoginSettingsRoute: typeof DashLoginSettingsRoute
   DashLoginIndexRoute: typeof DashLoginIndexRoute
 }
 
 const DashLoginRouteRouteChildren: DashLoginRouteRouteChildren = {
+  DashLoginApi_tokensRoute: DashLoginApi_tokensRoute,
   DashLoginBillingRoute: DashLoginBillingRouteWithChildren,
+  DashLoginMembersRoute: DashLoginMembersRoute,
+  DashLoginRequestsRoute: DashLoginRequestsRoute,
   DashLoginSettingsRoute: DashLoginSettingsRoute,
   DashLoginIndexRoute: DashLoginIndexRoute,
 }

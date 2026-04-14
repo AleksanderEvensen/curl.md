@@ -57,12 +57,18 @@ function Component() {
 
       <UsageChart daily={data.daily} />
 
-      <Dashboard.Section title="Setup Tools">
+      <section className="bg-gray-a1/50 border-gray-a3 mt-3 border px-4 py-4">
         <div className="flex flex-col gap-3">
+          <div>
+            <h2 className="text-sm font-bold">Setup Tools</h2>
+            <div className="text-gray8 mt-1 text-sm">
+              Copy agent instructions or install and authenticate via the CLI.
+            </div>
+          </div>
           <InstallCommand />
           <InstallTabs />
         </div>
-      </Dashboard.Section>
+      </section>
     </Dashboard.Content>
   )
 }
@@ -228,30 +234,34 @@ function InstallTabs() {
           </Tabs.Tab>
         ))}
       </Tabs.List>
-      <button
-        className="bg-gray-a1/50 border-gray-a3 hover:bg-gray-a2/50 mt-0 flex w-full items-center justify-between gap-4 border border-b-0 px-3 py-3 text-start transition-colors"
-        onClick={() => copy(active.plaintext)}
-        type="button"
-      >
-        <code>{active.display}</code>
-        <span className="text-gray8 shrink-0">
-          {copied ? <IconOcticonCheck16 className="text-teal9" /> : <IconOcticonCopy16 />}
-        </span>
-      </button>
-      <AuthLoginCommand />
+      <div className="bg-bg1 border-gray-a3 overflow-hidden border">
+        <button
+          className="hover:bg-gray-a2/50 focus-visible:ring-blue8 flex w-full items-center justify-between gap-4 px-3 py-3 text-start transition-colors outline-none focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset"
+          onClick={() => copy(active.plaintext)}
+          type="button"
+        >
+          <code className="block min-w-0 text-sm [overflow-wrap:anywhere] whitespace-pre-wrap">
+            {active.display}
+          </code>
+          <span className="text-gray8 shrink-0">
+            {copied ? <IconOcticonCheck16 className="text-teal9" /> : <IconOcticonCopy16 />}
+          </span>
+        </button>
+        <AuthLoginCommand separator />
+      </div>
     </Tabs.Root>
   )
 }
 
-function AuthLoginCommand() {
+function AuthLoginCommand(props: { separator?: boolean }) {
   const { copied, copy } = useCopyToClipboard()
   return (
     <button
-      className="bg-gray-a1/50 border-gray-a3 hover:bg-gray-a2/50 flex w-full items-center justify-between gap-4 border px-3 py-3 text-start transition-colors"
+      className={`hover:bg-gray-a2/50 focus-visible:ring-blue8 flex w-full items-center justify-between gap-4 px-3 py-3 text-start transition-colors outline-none focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset ${props.separator ? 'border-gray-a3 border-t' : ''}`}
       onClick={() => copy('curl.md auth login')}
       type="button"
     >
-      <code>
+      <code className="block min-w-0 text-sm [overflow-wrap:anywhere] whitespace-pre-wrap">
         <span className="text-gray8">curl.md</span> <span className="text-gray10">auth login</span>
       </code>
       <span className="text-gray8 shrink-0">
@@ -272,28 +282,30 @@ If not, do this instead: curl -fsSL https://curl.md/install.sh | bash`,
   })
 
   return (
-    <button
-      className="bg-gray10 text-bg1 relative flex items-center py-3 ps-3 pe-10 text-start transition-opacity hover:opacity-90"
-      onClick={() => copy()}
-      type="button"
-    >
-      <span>
-        {copied ? (
-          'Copied! Now paste into your agent'
-        ) : (
-          <>
-            Copy <span className="hidden md:inline">setup</span> instructions for my agent
-          </>
-        )}
-      </span>
-      <span className="absolute end-3">
-        {copied ? (
-          <IconOcticonCheck16 className="text-teal9 size-4" />
-        ) : (
-          <IconOcticonCopy16 className="size-4" />
-        )}
-      </span>
-    </button>
+    <div className="bg-bg1 border-gray-a3 overflow-hidden border">
+      <button
+        className="hover:bg-gray-a2/50 focus-visible:ring-blue8 flex w-full items-center justify-between gap-4 px-3 py-3 text-start transition-colors outline-none focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset"
+        onClick={() => copy()}
+        type="button"
+      >
+        <code className="block min-w-0 text-sm [overflow-wrap:anywhere] whitespace-pre-wrap not-italic">
+          {copied ? (
+            'Copied! Now paste into your agent'
+          ) : (
+            <>
+              Copy <span className="hidden md:inline">setup</span> instructions for my agent
+            </>
+          )}
+        </code>
+        <span className="text-gray8 shrink-0">
+          {copied ? (
+            <IconOcticonCheck16 className="text-teal9 size-4" />
+          ) : (
+            <IconOcticonCopy16 className="size-4" />
+          )}
+        </span>
+      </button>
+    </div>
   )
 }
 

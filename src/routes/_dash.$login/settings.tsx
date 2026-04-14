@@ -64,6 +64,10 @@ function SettingsForm(props: {
       await updateEntity({ data: { entityId: entity.id, entityType: entity.type, ...data } })
       return data
     },
+    onError() {
+      setPendingData(null)
+      setConfirmLogin('')
+    },
     onSuccess(data) {
       setPendingData(null)
       setConfirmLogin('')
@@ -74,7 +78,7 @@ function SettingsForm(props: {
   return (
     <>
       <form
-        className={`flex flex-col gap-3 ${props.className ?? ''}`}
+        className={`bg-gray-a1/50 border-gray-a3 flex flex-col gap-4 border p-4 ${props.className ?? ''}`}
         noValidate
         onInput={(e) => {
           const form = e.currentTarget
@@ -103,7 +107,6 @@ function SettingsForm(props: {
         }}
       >
         <div className="flex flex-col gap-1.5">
-          <span className="text-gray8 text-xs">Avatar</span>
           <div className="flex items-center gap-3">
             {entity.avatar_url ? (
               <img alt={entity.name ?? entity.login} className="size-16" src={entity.avatar_url} />
@@ -113,7 +116,7 @@ function SettingsForm(props: {
               </span>
             )}
             <button
-              className="bg-gray-a2 text-gray8 cursor-not-allowed px-3 py-1.5 text-sm opacity-50"
+              className="bg-gray-a2 text-gray8 h-8 cursor-not-allowed px-3 text-sm opacity-50"
               disabled
               type="button"
             >
@@ -125,7 +128,7 @@ function SettingsForm(props: {
           <Field.Label className="text-gray8 text-xs">Name</Field.Label>
           <Field.Control
             autoComplete="off"
-            className="bg-gray-a1/50 border-gray-a3 data-[invalid]:border-red9 w-full border px-3 py-2 text-sm"
+            className="bg-bg1 border-gray-a3 data-[invalid]:border-red9 h-9 w-full border px-3 text-sm"
             data-1p-ignore
             defaultValue={entity.name ?? ''}
             placeholder="Display name"
@@ -139,7 +142,7 @@ function SettingsForm(props: {
           <Field.Label className="text-gray8 text-xs">Login</Field.Label>
           <Field.Control
             autoComplete="off"
-            className="bg-gray-a1/50 border-gray-a3 data-[invalid]:border-red9 w-full border px-3 py-2 text-sm"
+            className="bg-bg1 border-gray-a3 data-[invalid]:border-red9 h-9 w-full border px-3 text-sm"
             data-1p-ignore
             defaultValue={entity.login}
             pattern="^[a-z0-9][a-z0-9\-]*[a-z0-9]$"
@@ -154,7 +157,7 @@ function SettingsForm(props: {
           </Field.Error>
         </Field.Root>
         <button
-          className="bg-gray10 text-bg1 self-start px-3 py-1.5 text-sm disabled:opacity-50"
+          className="bg-gray10 text-bg1 h-8 self-start px-3 text-sm disabled:opacity-50"
           disabled={!isDirty || update.isPending}
           type="submit"
         >
@@ -205,7 +208,7 @@ function SettingsForm(props: {
                 Cancel
               </Dialog.Close>
               <button
-                className="bg-red9 text-bg1 px-3 py-1.5 text-sm disabled:opacity-50"
+                className="bg-amber9 px-3 py-1.5 text-sm text-white hover:opacity-90 disabled:opacity-50 dark:text-black"
                 disabled={confirmLogin !== entity.login || update.isPending}
                 onClick={() => {
                   if (pendingData) update.mutate(pendingData)
@@ -240,8 +243,8 @@ function DeleteOrganization(props: {
   })
 
   return (
-    <Dashboard.Section title="Danger">
-      <div className="border-red9/30 border p-4">
+    <Dashboard.Section title="Danger Zone">
+      <div className="bg-red9/8 border-red9/30 border p-4">
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-sm font-medium">Delete organization</p>
@@ -331,8 +334,8 @@ function DeleteAccount(props: { account: { id: string; login: string }; onDelete
   })
 
   return (
-    <Dashboard.Section title="Danger">
-      <div className="border-red9/30 border p-4">
+    <Dashboard.Section title="Danger Zone">
+      <div className="bg-red9/5 border-red9/30 border p-4">
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-sm font-medium">Delete account</p>

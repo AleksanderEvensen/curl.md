@@ -312,6 +312,7 @@ function Component() {
 }
 
 const knownCardBrands = new Set(['amex', 'diners', 'discover', 'jcb', 'mastercard', 'visa'])
+const transactionTimeFormatters = new Map<string, Intl.DateTimeFormat>()
 
 function TransactionHistory(props: {
   balanceMills: number
@@ -323,6 +324,7 @@ function TransactionHistory(props: {
 }) {
   const [page, setPage] = React.useState(0)
   const fetchTransactions = useServerFn(getTransactions)
+  const queryClient = useQueryClient()
 
   React.useEffect(() => {
     if (!props.refreshAfterCheckout) return
@@ -348,6 +350,35 @@ function TransactionHistory(props: {
     staleTime: props.refreshAfterCheckout ? 0 : 60_000,
   })
 
+  React.useEffect(() => {
+    if (!data) return
+
+    const totalPages = Math.ceil(data.total / PAGE_SIZE)
+    if (page >= totalPages - 1) return
+
+    void queryClient.prefetchQuery({
+      queryKey: ['transactions', props.entityId, page + 1],
+      queryFn: () =>
+        fetchTransactions({
+          data: {
+            entityId: props.entityId,
+            entityType: props.entityType,
+            limit: PAGE_SIZE,
+            offset: (page + 1) * PAGE_SIZE,
+          },
+        }),
+      staleTime: props.refreshAfterCheckout ? 0 : 60_000,
+    })
+  }, [
+    data,
+    fetchTransactions,
+    page,
+    props.entityId,
+    props.entityType,
+    props.refreshAfterCheckout,
+    queryClient,
+  ])
+
   if (!data || data.total === 0) return null
 
   const totalPages = Math.ceil(data.total / PAGE_SIZE)
@@ -355,13 +386,15 @@ function TransactionHistory(props: {
   return (
     <section className="mt-8">
       <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-gray8 text-xs font-medium tracking-wide uppercase">History</h2>
+        <span className="text-gray8 text-xs font-medium tracking-wide uppercase">
+          Transaction History
+        </span>
         {totalPages > 1 && (
           <div className="flex items-center gap-2">
             {page > 0 && (
               <button
                 aria-label="Previous history page"
-                className="text-gray9 hover:bg-gray-a2 hover:text-gray12 p-0.5"
+                className="text-gray8 hover:bg-gray-a2 hover:text-gray12 p-0.5"
                 onClick={() => setPage(page - 1)}
                 type="button"
               >
@@ -373,7 +406,7 @@ function TransactionHistory(props: {
             </span>
             <button
               aria-label="Next history page"
-              className="text-gray9 hover:bg-gray-a2 hover:text-gray12 p-0.5 disabled:opacity-30"
+              className="text-gray8 hover:bg-gray-a2 hover:text-gray12 p-0.5 disabled:opacity-30"
               disabled={page >= totalPages - 1}
               onClick={() => setPage(page + 1)}
               type="button"
@@ -385,13 +418,13 @@ function TransactionHistory(props: {
       </div>
       <Dashboard.Table className="min-w-[36rem] table-fixed text-sm md:min-w-0">
         <colgroup>
-          <col className="w-[48%]" />
-          <col className="w-[18%]" />
-          <col className="w-[17%]" />
-          <col className="w-[17%]" />
+          <col className="w-[38%]" />
+          <col className="w-[20%]" />
+          <col className="w-[21%]" />
+          <col className="w-[21%]" />
         </colgroup>
         <Dashboard.Table.Thead>
-          <Dashboard.Table.Th className="w-px whitespace-nowrap">Date</Dashboard.Table.Th>
+          <Dashboard.Table.Th className="w-px whitespace-nowrap">Time</Dashboard.Table.Th>
           <Dashboard.Table.Th className="w-px whitespace-nowrap">Type</Dashboard.Table.Th>
           <Dashboard.Table.Th align="end">Amount</Dashboard.Table.Th>
           <Dashboard.Table.Th align="end" className="ps-6">
@@ -406,7 +439,7 @@ function TransactionHistory(props: {
               data.transactions.slice(0, i).reduce((sum, t) => sum + t.amount_mills, 0)
             return (
               <Dashboard.Table.Tr key={`${tx.created_at}-${i}`}>
-                <Dashboard.Table.Td className="text-gray8 whitespace-nowrap">
+                <Dashboard.Table.Td className="whitespace-nowrap">
                   <LocalTime timezone={props.timezone} value={tx.created_at} />
                 </Dashboard.Table.Td>
                 <Dashboard.Table.Td className="whitespace-nowrap capitalize">
@@ -432,14 +465,52 @@ function TransactionHistory(props: {
 }
 
 function LocalTime(props: { timezone?: string | undefined; value: Date | string }) {
-  return new Date(props.value).toLocaleString(undefined, {
-    day: 'numeric',
-    hour: 'numeric',
+  const timeZone = props.timezone ?? 'UTC'
+  const date = new Date(props.value)
+  const formatter = getTransactionTimeFormatter(timeZone)
+  const parts = formatter.formatToParts(date)
+  const currentYear = formatter
+    .formatToParts(new Date())
+    .find((part) => part.type === 'year')?.value
+  const day = parts.find((part) => part.type === 'day')?.value
+  const fractionalSecond = parts.find((part) => part.type === 'fractionalSecond')?.value
+  const hour = parts.find((part) => part.type === 'hour')?.value
+  const minute = parts.find((part) => part.type === 'minute')?.value
+  const month = parts.find((part) => part.type === 'month')?.value
+  const second = parts.find((part) => part.type === 'second')?.value
+  const year = parts.find((part) => part.type === 'year')?.value
+
+  if (!currentYear || !day || !fractionalSecond || !hour || !minute || !month || !second || !year)
+    throw new Error(`Could not format transaction time for ${timeZone}`)
+  const datePrefix =
+    year === currentYear ? `${month.toUpperCase()} ${day}` : `${month.toUpperCase()} ${day} ${year}`
+  const time = `${hour}:${minute}:${second}`
+
+  return (
+    <time dateTime={date.toISOString()}>
+      <span className="text-gray7">{datePrefix}</span> <span className="text-gray12">{time}</span>
+      <span className="text-gray7">.{fractionalSecond}</span>
+    </time>
+  )
+}
+
+function getTransactionTimeFormatter(timeZone: string) {
+  const existing = transactionTimeFormatters.get(timeZone)
+  if (existing) return existing
+
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    day: '2-digit',
+    fractionalSecondDigits: 2,
+    hour: '2-digit',
+    hourCycle: 'h23',
     minute: '2-digit',
     month: 'short',
-    timeZone: props.timezone ?? 'UTC',
+    second: '2-digit',
+    timeZone,
     year: 'numeric',
   })
+  transactionTimeFormatters.set(timeZone, formatter)
+  return formatter
 }
 
 function CardBrandIcon(props: { brand: string }) {

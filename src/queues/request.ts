@@ -94,11 +94,11 @@ export namespace processRequestMessage {
     billable: boolean
     cached: boolean
     cost_mills: number
+    extracted_tokens: number | null
+    filtered_tokens: number | null
     hostname: string
     id: string
     keywords: string | null
-    extracted_tokens: number | null
-    filtered_tokens: number | null
     markdown_tokens: number
     mode: 'rush' | 'smart' | null
     objective: string | null
