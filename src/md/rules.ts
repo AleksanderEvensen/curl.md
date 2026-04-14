@@ -16,7 +16,7 @@ export { mdn } from './rules/mdn.ts'
 export { tailwind } from './rules/tailwind.ts'
 export { zero } from './rules/zero.ts'
 
-export const curlDocs = defineRule({
+export const curlDocs = defineRule<{ fetch?: typeof globalThis.fetch }>({
   key: 'curlDocs',
   patterns: [
     new URLPattern({ hostname: 'curl.:tld(md|local)', pathname: '/docs' }),
@@ -26,7 +26,7 @@ export const curlDocs = defineRule({
   ],
   checks: [
     {
-      url: 'https://curl.md/docs/getting_started/installation',
+      url: 'https://curl.md/docs/getting-started/installation',
       contains: ['# Installation', 'curl.md auth login', 'Amp Plugin'],
     },
   ],
@@ -36,6 +36,10 @@ export const curlDocs = defineRule({
     const path = url.pathname.replace(/^\/docs/, '')
     const pathname = path === '' || path === '/' ? '/index' : path.replace(/\/$/, '')
     return new URL(`https://${url.hostname}/docs${pathname}.md`)
+  },
+  async fetch(input, init, { options }) {
+    const fetch = options.fetch ?? globalThis.fetch
+    return fetch(input, init)
   },
 })
 

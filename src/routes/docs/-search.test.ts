@@ -211,7 +211,7 @@ test('doc search strips code fence markers from snippets', () => {
       {
         description: undefined,
         headings: [{ id: 'code-blocks', level: 2, text: 'Code Blocks' }],
-        path: 'reference/kitchen_sink',
+        path: 'reference/kitchen-sink',
         source: `## Code Blocks
 
 \`\`\`sh
@@ -228,7 +228,7 @@ $ curl.md https://example.com
         title: 'Kitchen Sink',
       },
     ],
-    ['reference/kitchen_sink'],
+    ['reference/kitchen-sink'],
   )
 
   const results = docsSearch.search('curl.md example')
@@ -236,7 +236,7 @@ $ curl.md https://example.com
     expect.objectContaining({
       hash: 'code-blocks',
       kind: 'section',
-      path: 'reference/kitchen_sink',
+      path: 'reference/kitchen-sink',
     }),
   )
 
@@ -256,7 +256,7 @@ test('doc search indexes step headings from :::steps as sections', () => {
           { id: 'start-the-dev-server', level: 3, text: '2. Start the dev server' },
           { id: 'open-the-app', level: 3, text: '3. Open the app' },
         ],
-        path: 'reference/kitchen_sink',
+        path: 'reference/kitchen-sink',
         source: `## Steps
 
 :::steps
@@ -280,7 +280,7 @@ Visit [https://curl.local](https://curl.local) once the server is running.
         title: 'Kitchen Sink',
       },
     ],
-    ['reference/kitchen_sink'],
+    ['reference/kitchen-sink'],
   )
 
   const results = docsSearch.search('install dependencies')
@@ -341,7 +341,7 @@ test('doc search ignores package manager codegroup tabs', () => {
       {
         description: undefined,
         headings: [{ id: 'code-groups', level: 2, text: 'Code Groups' }],
-        path: 'reference/kitchen_sink',
+        path: 'reference/kitchen-sink',
         source: `## Code Groups
 
 \`\`\`sh title="npm"
@@ -361,7 +361,7 @@ Use the install script if you do not want to use a package manager.
         title: 'Kitchen Sink',
       },
     ],
-    ['reference/kitchen_sink'],
+    ['reference/kitchen-sink'],
   )
 
   expect(docsSearch.search('npm')).toEqual([])
@@ -371,7 +371,7 @@ Use the install script if you do not want to use a package manager.
     expect.objectContaining({
       hash: 'code-groups',
       kind: 'section',
-      path: 'reference/kitchen_sink',
+      path: 'reference/kitchen-sink',
     }),
   )
 })

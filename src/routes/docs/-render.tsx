@@ -28,7 +28,11 @@ export function DocContent(props: {
   const [activeHeadingId, setActiveHeadingId] = React.useState<string | undefined>(undefined)
   const [hydrated, setHydrated] = React.useState(false)
   const [mobileOutlineOpen, setMobileOutlineOpen] = React.useState(false)
+  const [mobileOutlinePanelWidth, setMobileOutlinePanelWidth] = React.useState<number | undefined>(
+    undefined,
+  )
   const mobileOutlineContentRef = React.useRef<HTMLDivElement>(null)
+  const mobileOutlineTriggerRef = React.useRef<HTMLButtonElement>(null)
   const honorHashUntilRef = React.useRef(0)
   const hasHeadings = doc.headings.length > 0
   const hasPagination = Boolean(pagination.previous || pagination.next)
@@ -168,6 +172,22 @@ export function DocContent(props: {
     }
   }, [doc.path, doc.headings, hasHeadings])
 
+  useBrowserLayoutEffect(() => {
+    const content = mobileOutlineContentRef.current
+    if (!content || !hasHeadings) return
+
+    const updatePanelWidth = () => {
+      const nextWidth = Math.max(0, content.clientWidth - 32)
+      setMobileOutlinePanelWidth((current) => (current === nextWidth ? current : nextWidth))
+    }
+
+    updatePanelWidth()
+
+    const resizeObserver = new ResizeObserver(updatePanelWidth)
+    resizeObserver.observe(content)
+    return () => resizeObserver.disconnect()
+  }, [hasHeadings])
+
   return (
     <codeGroupStoreContext.Provider value={codeGroupStore}>
       <div className="mx-auto grid w-full max-w-[76rem] grid-cols-1 lg:grid-cols-[minmax(0,56rem)_16rem] lg:gap-12">
@@ -190,6 +210,7 @@ export function DocContent(props: {
                     <Menu.Trigger
                       className="border-gray-a3 text-gray9 hover:bg-gray-a2 hover:text-gray10 data-[popup-open]:bg-gray-a2 data-[popup-open]:text-gray10 flex shrink-0 items-center gap-2.5 rounded-none border px-2 py-2 text-xs font-medium outline-none"
                       data-mobile-doc-outline-trigger=""
+                      ref={mobileOutlineTriggerRef}
                     >
                       <span>On this page</span>
                       <IconOcticonChevronRight16
@@ -207,15 +228,22 @@ export function DocContent(props: {
                   <Menu.Portal>
                     <Menu.Positioner
                       align="start"
-                      anchor={mobileOutlineContentRef}
-                      className="z-40 ms-4 w-[calc(var(--anchor-width)-2rem)] min-w-0 md:w-fit md:max-w-[min(calc(var(--anchor-width)-2rem),36rem)] md:min-w-96 lg:hidden"
+                      anchor={mobileOutlineTriggerRef}
+                      className="z-40 w-[var(--mobile-doc-outline-panel-width)] min-w-0 md:w-fit md:max-w-[min(var(--mobile-doc-outline-panel-width),36rem)] md:min-w-96 lg:hidden"
                       collisionAvoidance={{ align: 'none', fallbackAxisSide: 'none', side: 'none' }}
                       collisionPadding={0}
                       data-mobile-doc-outline-positioner=""
-                      sideOffset={8}
+                      sideOffset={4}
+                      style={
+                        {
+                          '--mobile-doc-outline-panel-width': mobileOutlinePanelWidth
+                            ? `${mobileOutlinePanelWidth}px`
+                            : 'calc(100vw - 2rem)',
+                        } as React.CSSProperties
+                      }
                     >
                       <Menu.Popup
-                        className="bg-bg1 border-gray-a3 max-h-[min(24rem,calc(100dvh-9rem))] w-full overflow-x-hidden overflow-y-auto overscroll-contain border p-0 shadow-2xl outline-none md:w-auto"
+                        className="bg-bg1 border-gray-a3 minimal-scrollbar max-h-[min(24rem,calc(100dvh-9rem))] w-full overflow-x-hidden overflow-y-auto overscroll-contain border p-0 shadow-2xl outline-none md:w-auto"
                         data-doc-mobile-outline-panel=""
                         id="docs-mobile-outline"
                       >

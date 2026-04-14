@@ -181,13 +181,27 @@ function Component() {
           <Nav.Logo to="/docs" />
           <DocsTopLinks />
           <Nav.Group>
-            <SearchTrigger
-              onClick={() => {
-                restoreSearchTriggerFocusRef.current = true
-                setSearchOpen(true)
-              }}
-              triggerRef={searchTriggerRef}
-            />
+            <div className="flex items-center gap-0">
+              <SearchTrigger
+                onClick={() => {
+                  restoreSearchTriggerFocusRef.current = true
+                  setSearchOpen(true)
+                }}
+                triggerRef={searchTriggerRef}
+              />
+              <button
+                aria-label={open ? 'Close navigation' : 'Open navigation'}
+                className="hover:bg-gray-a2 flex h-11 w-11 items-center justify-center p-0 md:hidden"
+                onClick={() => setOpen((o) => !o)}
+                type="button"
+              >
+                {open ? (
+                  <IconOcticonX16 className="size-4" />
+                ) : (
+                  <IconOcticonThreeBars16 className="size-4" />
+                )}
+              </button>
+            </div>
             <div className="hidden items-center gap-1.5 md:flex">
               <a
                 aria-label="GitHub"
@@ -225,18 +239,6 @@ function Component() {
                 </Link>
               )}
             </div>
-            <button
-              aria-label={open ? 'Close navigation' : 'Open navigation'}
-              className="hover:bg-gray-a2 p-1.5 md:hidden"
-              onClick={() => setOpen((o) => !o)}
-              type="button"
-            >
-              {open ? (
-                <IconOcticonX16 className="size-4" />
-              ) : (
-                <IconOcticonThreeBars16 className="size-4" />
-              )}
-            </button>
           </Nav.Group>
         </div>
       </nav>
@@ -330,7 +332,7 @@ function Component() {
         }}
       >
         <Dialog.Portal>
-          <Dialog.Popup className="mt-[0.75rem] mb-[0.25rem] max-h-[calc(100dvh-1rem)] min-h-0 max-w-[min(42rem,calc(100vw-1rem))] gap-0 overflow-hidden border-0 p-3 md:p-5">
+          <Dialog.Popup className="mt-0 mb-0 max-h-[calc(100dvh-1rem)] min-h-0 max-w-none gap-0 overflow-hidden border-0 p-5 md:mt-[0.75rem] md:mb-[0.25rem] md:max-w-[min(42rem,calc(100vw-1rem))] md:p-5">
             <DocsSearchDialog
               onClear={() => setSearchQuery('')}
               onClearRecents={() => setRecentSearchResults([])}
@@ -479,7 +481,7 @@ function SearchTrigger(props: {
   return (
     <button
       aria-label="Search"
-      className="hover:bg-gray-a2 group sm:bg-gray-a2 dark:sm:bg-bg2 sm:text-gray8 sm:hover:text-gray10 flex items-center justify-center p-1.5 text-sm sm:me-2 sm:h-8 sm:w-auto sm:justify-start sm:gap-2 sm:p-0 sm:ps-2.5 sm:pe-1"
+      className="hover:bg-gray-a2 group sm:bg-gray-a2 dark:sm:bg-bg2 sm:text-gray8 sm:hover:text-gray10 flex h-11 w-11 items-center justify-center p-0 text-sm sm:me-2 sm:h-8 sm:w-auto sm:justify-start sm:gap-2 sm:p-0 sm:ps-2.5 sm:pe-1"
       onClick={props.onClick}
       ref={props.triggerRef}
       type="button"
@@ -660,7 +662,7 @@ function DocsSearchDialog(props: {
           Close search
         </button>
 
-        <div className="border-gray-a3 bg-bg2 flex items-center gap-1.5 border p-4">
+        <div className="border-gray-a3 bg-bg2 flex items-center gap-1.5 border px-3 py-3 md:p-4">
           <span aria-hidden="true" className="text-gray8 flex w-5 shrink-0 items-center">
             <IconOcticonSearch16 className="size-4" />
           </span>
@@ -672,11 +674,11 @@ function DocsSearchDialog(props: {
             placeholder="Search documentation"
           />
 
-          <div className="ms-auto flex items-center gap-2">
+          <div className="ms-auto flex items-center gap-2.5 md:gap-2">
             {props.query ? (
               <button
                 aria-label="Clear docs search"
-                className="text-gray8 hover:text-gray10 hover:bg-gray-a2 p-1"
+                className="text-gray8 hover:text-gray10 hover:bg-gray-a2 flex h-10 w-10 items-center justify-center p-0 md:h-auto md:w-auto md:p-1"
                 onClick={props.onClear}
                 type="button"
               >
@@ -686,7 +688,7 @@ function DocsSearchDialog(props: {
             <button
               aria-label={props.showDetails ? 'Hide body previews' : 'Show body previews'}
               aria-pressed={props.showDetails}
-              className="text-gray8 hover:text-gray10 hover:bg-gray-a2 data-[active]:bg-gray-a2 data-[active]:text-gray10 p-1"
+              className="text-gray8 hover:text-gray10 hover:bg-gray-a2 data-[active]:bg-gray-a2 data-[active]:text-gray10 flex h-10 w-10 items-center justify-center p-0 md:h-auto md:w-auto md:p-1"
               data-active={props.showDetails ? '' : undefined}
               onClick={props.toggleDetails}
               type="button"
@@ -695,7 +697,7 @@ function DocsSearchDialog(props: {
             </button>
             <button
               aria-label="Close search"
-              className="text-gray8 hover:text-gray10 hover:bg-gray-a2 p-1 md:hidden"
+              className="text-gray8 hover:text-gray10 hover:bg-gray-a2 flex h-10 w-10 items-center justify-center p-0 md:hidden"
               onClick={props.onClose}
               type="button"
             >
@@ -725,7 +727,7 @@ function DocsSearchDialog(props: {
             >
               {(result, index) => (
                 <Combobox.Item
-                  className="border-gray-a3 bg-gray-a1/30 text-gray8 hover:bg-gray-a2 data-[highlighted]:border-blue6 data-[highlighted]:text-gray10 block cursor-default border p-4 outline-none"
+                  className="border-gray-a3 bg-gray-a1/30 text-gray8 hover:bg-gray-a2 data-[highlighted]:border-blue6 data-[highlighted]:text-gray10 block cursor-default border p-3 outline-none md:p-4"
                   data-details={props.showDetails ? '' : undefined}
                   index={index}
                   key={getSearchResultId(result)}

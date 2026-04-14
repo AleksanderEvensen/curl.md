@@ -2378,6 +2378,37 @@ test('GET /api/:url fetches URL and returns markdown', async () => {
   expect(text).toContain('World')
 })
 
+test('GET /api/:url fetches curl.md docs via assets', async () => {
+  const fetchSpy = vi.spyOn(env.ASSETS, 'fetch').mockResolvedValueOnce(
+    new HttpResponse('# Kitchen Sink\n\nRendered from assets.', {
+      headers: { 'content-type': 'text/markdown' },
+    }),
+  )
+
+  try {
+    const res = await client.api[':url{.+}'].$get(
+      {
+        param: { url: 'curl.md/docs/reference/kitchen_sink' },
+        query: { fresh: '' },
+      },
+      { headers: { 'cf-connecting-ip': '10.0.0.3' } },
+    )
+
+    expect(res.status).toBe(200)
+    expect(res.headers.get('content-type')).toContain('text/markdown')
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+
+    const request = fetchSpy.mock.calls[0]?.[0]
+    expect(request instanceof Request ? request.url : String(request)).toBe(
+      'https://curl.md/docs/reference/kitchen_sink.md',
+    )
+
+    await expect(res.text()).resolves.toContain('Kitchen Sink')
+  } finally {
+    fetchSpy.mockRestore()
+  }
+})
+
 test('GET /api/:url supports query param aliases', async () => {
   server.use(
     http.get(

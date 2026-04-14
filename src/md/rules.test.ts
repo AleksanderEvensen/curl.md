@@ -3,7 +3,7 @@ import type { defineRule } from './mod.ts'
 import * as rules from './rules.ts'
 
 /** Call rewrite with a dummy match (these rules don't use match) */
-function rewrite(factory: defineRule.ReturnType, url: string) {
+function rewrite(factory: defineRule.ReturnType<any>, url: string) {
   return factory().rewrite?.(new URL(url), {} as URLPatternResult)
 }
 
@@ -11,7 +11,7 @@ function patternsMatch(rule: { patterns: URLPattern[] }, url: string) {
   return rule.patterns.some((pattern) => pattern.test(url))
 }
 
-function checkUrl(factory: defineRule.ReturnType) {
+function checkUrl(factory: defineRule.ReturnType<any>) {
   const url = factory.checks?.[0]?.url
   if (!url) throw new Error(`Rule "${factory.key}" has no checks`)
   return url
@@ -71,22 +71,22 @@ test('curlDocs rewrites docs root to generated markdown index', () => {
 
 test('curlDocs rewrites docs pages to generated markdown', () => {
   expect(
-    patternsMatch(rules.curlDocs(), 'https://curl.local/docs/getting_started/installation'),
+    patternsMatch(rules.curlDocs(), 'https://curl.local/docs/getting-started/installation'),
   ).toBe(true)
   expect(
-    rewrite(rules.curlDocs, 'https://curl.local/docs/getting_started/installation')?.href,
-  ).toBe('https://curl.local/docs/getting_started/installation.md')
+    rewrite(rules.curlDocs, 'https://curl.local/docs/getting-started/installation')?.href,
+  ).toBe('https://curl.local/docs/getting-started/installation.md')
 })
 
 test('curlDocs rewrites preview hosts to generated markdown', () => {
   expect(
-    rewrite(rules.curlDocs, 'https://preview-123.curl.md/docs/getting_started/quick_start')?.href,
-  ).toBe('https://preview-123.curl.md/docs/getting_started/quick_start.md')
+    rewrite(rules.curlDocs, 'https://preview-123.curl.md/docs/getting-started/quick-start')?.href,
+  ).toBe('https://preview-123.curl.md/docs/getting-started/quick-start.md')
 })
 
 test('curlDocs keeps generated markdown paths unchanged', () => {
-  expect(rewrite(rules.curlDocs, 'https://curl.md/docs/reference/kitchen_sink.md')?.href).toBe(
-    'https://curl.md/docs/reference/kitchen_sink.md',
+  expect(rewrite(rules.curlDocs, 'https://curl.md/docs/reference/kitchen-sink.md')?.href).toBe(
+    'https://curl.md/docs/reference/kitchen-sink.md',
   )
 })
 

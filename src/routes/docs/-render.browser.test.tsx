@@ -3,7 +3,7 @@ import { flushSync } from 'react-dom'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, expect, test, vi } from 'vitest'
 import { page } from 'vitest/browser'
-import kitchenSinkDocSource from '#docs/reference/kitchen_sink.mdx?raw'
+import kitchenSinkDocSource from '#docs/reference/kitchen-sink.mdx?raw'
 import { DocContent, DocSearchPreview, getDocSearchPreviewAnchor } from './-render.tsx'
 import {
   getDocHeadings,
@@ -203,14 +203,18 @@ test('mobile outline panel stays positioned within the sticky bar region', async
   await waitForAnimationFrame()
 
   const bar = document.querySelector('[data-mobile-doc-outline-bar]')
+  const trigger = document.querySelector('[data-mobile-doc-outline-trigger]')
   const positioner = document.querySelector('[data-mobile-doc-outline-positioner]')
   const popup = document.querySelector('[data-doc-mobile-outline-panel]')
   if (!(bar instanceof HTMLElement)) throw new Error('Expected mobile outline bar to render')
+  if (!(trigger instanceof HTMLElement))
+    throw new Error('Expected mobile outline trigger to render')
   if (!(positioner instanceof HTMLElement))
     throw new Error('Expected mobile outline positioner to render')
   if (!(popup instanceof HTMLElement)) throw new Error('Expected mobile outline popup to render')
 
   const barRect = bar.getBoundingClientRect()
+  const triggerRect = trigger.getBoundingClientRect()
   const positionerRect = positioner.getBoundingClientRect()
   const popupRect = popup.getBoundingClientRect()
 
@@ -218,6 +222,7 @@ test('mobile outline panel stays positioned within the sticky bar region', async
   expect(positionerRect.width).toBeLessThanOrEqual(window.innerWidth)
   expect(positionerRect.left).toBeGreaterThanOrEqual(barRect.left)
   expect(positionerRect.left).toBeLessThan(barRect.right)
+  expect(positionerRect.top - triggerRect.bottom).toBeLessThan(12)
   expect(Math.abs(popupRect.width - positionerRect.width)).toBeLessThan(2)
 })
 
@@ -361,7 +366,7 @@ test('code groups switch the visible panel when tabs are clicked', async () => {
 })
 
 test('code groups sync matching labels through the query param', async () => {
-  window.history.replaceState(null, '', '/docs/reference/kitchen_sink?tab=pnpm')
+  window.history.replaceState(null, '', '/docs/reference/kitchen-sink?tab=pnpm')
   const rendered = renderDocContent(createSyncedCodeGroupDoc())
   await waitForAnimationFrame()
   const groups = rendered.container.querySelectorAll('[data-docs-code-group]')
@@ -379,7 +384,7 @@ test('code groups sync matching labels through the query param', async () => {
 })
 
 test('synced code groups keep focus on the interacted tab', async () => {
-  window.history.replaceState(null, '', '/docs/reference/kitchen_sink?tab=pnpm')
+  window.history.replaceState(null, '', '/docs/reference/kitchen-sink?tab=pnpm')
   const rendered = renderDocContent(createSyncedCodeGroupDoc())
   await waitForAnimationFrame()
   const groups = rendered.container.querySelectorAll('[data-docs-code-group]')
@@ -400,7 +405,7 @@ test('synced code groups keep focus on the interacted tab', async () => {
 })
 
 test('code groups still read the legacy codegroup query param', async () => {
-  window.history.replaceState(null, '', '/docs/reference/kitchen_sink?codegroup=pnpm')
+  window.history.replaceState(null, '', '/docs/reference/kitchen-sink?codegroup=pnpm')
   const rendered = renderDocContent(createSyncedCodeGroupDoc())
   await waitForAnimationFrame()
   const groups = rendered.container.querySelectorAll('[data-docs-code-group]')
@@ -645,7 +650,7 @@ function createDoc(): Doc {
     })),
     path: 'test',
     source: '# Test',
-    sourcePath: 'docs/getting_started/installation.mdx',
+    sourcePath: 'docs/getting-started/installation.mdx',
     title: 'Test',
   }
 }
@@ -678,7 +683,7 @@ function createCodeGroupDoc(): Doc {
     headings: [],
     path: 'test',
     source: '# Test\n',
-    sourcePath: 'docs/reference/kitchen_sink.mdx',
+    sourcePath: 'docs/reference/kitchen-sink.mdx',
     title: 'Test',
   }
 }
@@ -736,7 +741,7 @@ function createSyncedCodeGroupDoc(): Doc {
     headings: [],
     path: 'test',
     source: '# Test\n',
-    sourcePath: 'docs/reference/kitchen_sink.mdx',
+    sourcePath: 'docs/reference/kitchen-sink.mdx',
     title: 'Test',
   }
 }
@@ -825,7 +830,7 @@ function createStyledCodeBlockDoc(): Doc {
     headings: [],
     path: 'test',
     source: '# Test\n',
-    sourcePath: 'docs/reference/kitchen_sink.mdx',
+    sourcePath: 'docs/reference/kitchen-sink.mdx',
     title: 'Test',
   }
 }
@@ -847,7 +852,7 @@ function createTitledCodeBlockDoc(): Doc {
     headings: [],
     path: 'test',
     source: '# Test\n',
-    sourcePath: 'docs/reference/kitchen_sink.mdx',
+    sourcePath: 'docs/reference/kitchen-sink.mdx',
     title: 'Test',
   }
 }
@@ -873,7 +878,7 @@ function createCopyPageDoc(): Doc {
     source: `# Installation
 
 Install curl.md in the environment you use most.`,
-    sourcePath: 'docs/getting_started/installation.mdx',
+    sourcePath: 'docs/getting-started/installation.mdx',
     title: 'Installation',
   }
 }
@@ -937,7 +942,7 @@ function createCompactDoc(): Doc {
     headings: sections.map((section) => ({ id: section.id, level: 2, text: section.text })),
     path: 'test',
     source: '# Test',
-    sourcePath: 'docs/reference/kitchen_sink.mdx',
+    sourcePath: 'docs/reference/kitchen-sink.mdx',
     title: 'Test',
   }
 }
@@ -974,7 +979,7 @@ function createTableDoc(): Doc {
     headings: [],
     path: 'test',
     source: '# Test\n',
-    sourcePath: 'docs/reference/kitchen_sink.mdx',
+    sourcePath: 'docs/reference/kitchen-sink.mdx',
     title: 'Test',
   }
 }
@@ -1013,7 +1018,7 @@ function createInlineShikiCodeDoc(): Doc {
     headings: [],
     path: 'test',
     source: '# Test\n',
-    sourcePath: 'docs/reference/kitchen_sink.mdx',
+    sourcePath: 'docs/reference/kitchen-sink.mdx',
     title: 'Test',
   }
 }
@@ -1028,7 +1033,7 @@ function createFooterDoc(): Doc {
     lastUpdated: '2026-04-12T17:38:00.000Z',
     path: 'test',
     source: '# Test\n',
-    sourcePath: 'docs/reference/kitchen_sink.mdx',
+    sourcePath: 'docs/reference/kitchen-sink.mdx',
     title: 'Test',
   }
 }
@@ -1067,7 +1072,7 @@ function createSearchPreviewDoc(): Pick<Doc, 'Component' | 'path'> {
         </>
       )
     },
-    path: 'reference/kitchen_sink',
+    path: 'reference/kitchen-sink',
   }
 }
 
@@ -1098,7 +1103,7 @@ function createNoticeSearchPreviewDoc(): Pick<Doc, 'Component' | 'path'> {
         </>
       )
     },
-    path: 'reference/kitchen_sink',
+    path: 'reference/kitchen-sink',
   }
 }
 

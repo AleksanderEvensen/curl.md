@@ -8,7 +8,7 @@ export const config = {
       label: 'CLI',
       ...linkOptions({
         hash: 'cli',
-        params: { _splat: 'getting_started/installation' },
+        params: { _splat: 'getting-started/installation' },
         to: '/docs/$',
       }),
     },

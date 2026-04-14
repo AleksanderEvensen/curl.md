@@ -4,8 +4,8 @@ export const sidebar = [
     type: 'group',
     label: 'Getting Started',
     items: [
-      { type: 'link', label: 'Installation', path: '/getting_started/installation' },
-      { type: 'link', label: 'Quick Start', path: '/getting_started/quick_start' },
+      { type: 'link', label: 'Installation', path: '/getting-started/installation' },
+      { type: 'link', label: 'Quick Start', path: '/getting-started/quick-start' },
     ],
   },
   {
@@ -13,7 +13,7 @@ export const sidebar = [
     label: 'Development',
     items: [
       { type: 'link', label: 'Contributing', path: '/development/contributing' },
-      { type: 'link', label: 'Kitchen Sink', path: '/reference/kitchen_sink' },
+      { type: 'link', label: 'Kitchen Sink', path: '/reference/kitchen-sink' },
     ],
   },
 ] satisfies Array<SidebarItem>

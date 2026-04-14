@@ -1861,8 +1861,13 @@ export const api = new Hono<{
         },
         rules: {
           ...Md.rules,
+          [Md.rules.curlDocs.key]: Md.rules.curlDocs({
+            fetch: (req, init) =>
+              c.env.ASSETS.fetch(req instanceof Request ? req : new Request(req, init)),
+          }),
           [Md.rules.curlMd.key]: Md.rules.curlMd({
-            fetch: (req) => c.env.ASSETS.fetch(req),
+            fetch: (req, init) =>
+              c.env.ASSETS.fetch(req instanceof Request ? req : new Request(req, init)),
           }),
           ...Md.sites.github({
             token: c.var.session
