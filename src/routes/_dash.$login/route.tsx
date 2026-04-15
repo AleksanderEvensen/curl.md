@@ -69,8 +69,8 @@ function Component() {
   const matches = useMatches()
   const leafRouteId = matches[matches.length - 1]?.routeId
   const switchTo =
-    leafRouteId === '/_dash/$login/api_tokens'
-      ? '/$login/api_tokens'
+    leafRouteId === '/_dash/$login/tokens'
+      ? '/$login/tokens'
       : leafRouteId === '/_dash/$login/billing'
         ? '/$login/billing'
         : leafRouteId === '/_dash/$login/members'
@@ -121,7 +121,7 @@ function Component() {
       {
         icon: <IconOcticonKey16 />,
         label: 'API Tokens',
-        to: '/$login/api_tokens',
+        to: '/$login/tokens',
         enabled: true,
       },
       {
@@ -205,6 +205,13 @@ function Component() {
             >
               <IconOcticonTerminal16 />
               Playground
+            </Link>
+            <Link
+              className="text-gray8 hover:text-gray10 hover:bg-gray-a2 flex w-full items-center gap-2 px-2 py-1.5 text-sm"
+              to="/home"
+            >
+              <IconOcticonHome16 />
+              Home
             </Link>
           </div>
         </nav>

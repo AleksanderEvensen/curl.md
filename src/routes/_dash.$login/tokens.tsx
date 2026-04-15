@@ -2,7 +2,7 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { Dashboard } from '#components/Dashboard.tsx'
 import { DashboardCliHelp } from '#components/DashboardCliHelp.tsx'
 
-export const Route = createFileRoute('/_dash/$login/api_tokens')({
+export const Route = createFileRoute('/_dash/$login/tokens')({
   head: () => ({ meta: [{ title: `API Tokens - ${__HOST__}` }] }),
   component: Component,
 })
@@ -20,7 +20,11 @@ function Component() {
       >
         API token management lives in the CLI for now. Run the following to see available commands.
         Learn more in the{' '}
-        <Link className="underline underline-offset-2" to="/docs">
+        <Link
+          className="underline underline-offset-2"
+          params={{ _splat: 'guide/cli' }}
+          to="/docs/$"
+        >
           documentation
         </Link>
         .

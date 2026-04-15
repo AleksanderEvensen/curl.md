@@ -418,10 +418,10 @@ function TransactionHistory(props: {
       </div>
       <Dashboard.Table className="min-w-[36rem] table-fixed text-sm md:min-w-0">
         <colgroup>
-          <col className="w-[38%]" />
-          <col className="w-[20%]" />
-          <col className="w-[21%]" />
-          <col className="w-[21%]" />
+          <col className="w-[32%]" />
+          <col className="w-[30%]" />
+          <col className="w-[19%]" />
+          <col className="w-[19%]" />
         </colgroup>
         <Dashboard.Table.Thead>
           <Dashboard.Table.Th className="w-px whitespace-nowrap">Time</Dashboard.Table.Th>
@@ -442,8 +442,11 @@ function TransactionHistory(props: {
                 <Dashboard.Table.Td className="whitespace-nowrap">
                   <LocalTime timezone={props.timezone} value={tx.created_at} />
                 </Dashboard.Table.Td>
-                <Dashboard.Table.Td className="whitespace-nowrap capitalize">
-                  {tx.type}
+                <Dashboard.Table.Td className="whitespace-nowrap">
+                  <span className="capitalize">{tx.type}</span>
+                  {tx.type === 'request' && tx.reference_id ? (
+                    <span className="text-gray8 ms-2">{tx.reference_id}</span>
+                  ) : null}
                 </Dashboard.Table.Td>
                 <Dashboard.Table.Td
                   className="data-[credit]:text-green9 data-[debit]:text-red9 text-end whitespace-nowrap tabular-nums"

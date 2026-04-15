@@ -36,6 +36,7 @@ export function UsageChart(props: {
   const yAxisWidth = isCost
     ? Math.max(...ticks.map((t) => formatCostCompact(t).length)) * 8 + 8
     : Math.max(...ticks.map((t) => formatCompact(t).length)) * 8 + 8
+
   return (
     <div
       aria-label={`Usage chart: ${data.map((d) => `${d.label} ${isCost ? `$${formatDollars(d.value)}` : `${d.tokens.toLocaleString()} tokens`}`).join(', ')}`}
@@ -96,7 +97,12 @@ export function UsageChart(props: {
             cursor={{ fill: 'var(--color-gray3)' }}
             isAnimationActive={false}
           />
-          <Bar dataKey="value" fill="var(--color-blue9)" isAnimationActive={false} />
+          <Bar
+            dataKey="value"
+            fill="var(--color-blue9)"
+            isAnimationActive={false}
+            minPointSize={(value) => (Number(value) > 0 ? 3 : 0)}
+          />
         </BarChart>
       )}
     </div>

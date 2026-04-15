@@ -65,6 +65,7 @@ declare global {
   const IconOcticonGoal16: typeof import('~icons/octicon/goal16.jsx').default
   const IconOcticonGraph16: typeof import('~icons/octicon/graph16.jsx').default
   const IconOcticonHash16: typeof import('~icons/octicon/hash16.jsx').default
+  const IconOcticonHome16: typeof import('~icons/octicon/home16.jsx').default
   const IconOcticonInfo16: typeof import('~icons/octicon/info16.jsx').default
   const IconOcticonKebabHorizontal16: typeof import('~icons/octicon/kebab-horizontal16.jsx').default
   const IconOcticonKey16: typeof import('~icons/octicon/key16.jsx').default

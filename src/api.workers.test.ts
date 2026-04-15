@@ -4131,6 +4131,320 @@ describe('DELETE /api/orgs/:id/members/:memberId', () => {
   })
 })
 
+describe('GET /api/requests', () => {
+  test('returns 401 when unauthenticated', async () => {
+    const res = await client.api.requests.$get({ query: {} })
+    expect(res.status).toBe(401)
+    await expect(res.json()).resolves.toEqual({
+      code: 'unauthorized',
+      message: 'Authentication required',
+    })
+  })
+
+  test('returns paginated account requests ordered newest first', async () => {
+    const account = await factory.account.insert({})
+    const otherAccount = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: account.id })
+
+    const olderRequest = await factory.request.insert({
+      account_id: account.id,
+      created_at: '2026-04-10T00:00:00.000Z',
+      extracted_tokens: 200,
+      keywords: 'guide',
+      objective: 'Summarize docs',
+      source_tokens: 700,
+      url: 'https://example.com/guide',
+    })
+    await factory.request.insert({
+      account_id: account.id,
+      created_at: '2026-04-11T00:00:00.000Z',
+      extracted_tokens: null,
+      filtered_tokens: 300,
+      keywords: null,
+      objective: null,
+      source_tokens: 900,
+      url: 'https://example.com/new',
+    })
+    await factory.request.insert({
+      account_id: account.id,
+      created_at: '2026-04-12T00:00:00.000Z',
+      source_tokens: 100,
+      url: 'https://other.test/ignore',
+    })
+    await factory.request.insert({
+      account_id: otherAccount.id,
+      created_at: '2026-04-13T00:00:00.000Z',
+      source_tokens: 1000,
+      url: 'https://example.com/out-of-scope',
+    })
+
+    const res = await api.request(
+      '/api/requests?search=example.com&limit=1&page=2',
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
+        },
+      },
+      env,
+      executionCtx,
+    )
+
+    expect(res.status).toBe(200)
+    await expect(res.json()).resolves.toEqual({
+      requests: [
+        {
+          cached: false,
+          created_at: '2026-04-10T00:00:00.000Z',
+          id: olderRequest.id,
+          keywords: 'guide',
+          objective: 'Summarize docs',
+          tokens_saved: 500,
+          url: 'https://example.com/guide',
+        },
+      ],
+      total: 2,
+    })
+  })
+
+  test('scopes requests to organization when org header set', async () => {
+    const account = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: account.id })
+    const org = await factory.organization.insert({})
+    await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: account.id,
+      role: 'member',
+    })
+
+    const accountRequest = await factory.request.insert({
+      account_id: account.id,
+      organization_id: null,
+    })
+    const orgRequest = await factory.request.insert({
+      account_id: null,
+      organization_id: org.id,
+    })
+    // Test realistic case: org request with account_id also populated
+    const orgRequestWithAccount = await factory.request.insert({
+      account_id: account.id,
+      organization_id: org.id,
+    })
+
+    const res = await client.api.requests.$get(
+      { query: {} },
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
+          'x-organization-id': org.id,
+        },
+      },
+    )
+    expect(res.status).toBe(200)
+    const json = (await res.json()) as { requests: any[]; total: number }
+    expect(json.total).toBe(2)
+    expect(json.requests.map((r) => r.id)).toContain(orgRequest.id)
+    expect(json.requests.map((r) => r.id)).toContain(orgRequestWithAccount.id)
+    expect(json.requests.map((r) => r.id)).not.toContain(accountRequest.id)
+  })
+
+  test('filters by search query on URL', async () => {
+    const account = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: account.id })
+    await factory.request.insert({
+      account_id: account.id,
+      organization_id: null,
+      url: 'https://example.com/foo',
+    })
+    await factory.request.insert({
+      account_id: account.id,
+      organization_id: null,
+      url: 'https://other.com/bar',
+    })
+
+    const res = await client.api.requests.$get(
+      { query: { search: 'example' } },
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
+        },
+      },
+    )
+    expect(res.status).toBe(200)
+    const json = (await res.json()) as { requests: any[]; total: number }
+    expect(json.total).toBe(1)
+    expect(json.requests[0]?.url).toContain('example.com')
+  })
+})
+
+describe('GET /api/requests/:id', () => {
+  test('returns 401 when unauthenticated', async () => {
+    const res = await client.api.requests[':id'].$get({ param: { id: 'test-id' } })
+    expect(res.status).toBe(401)
+    await expect(res.json()).resolves.toEqual({
+      code: 'unauthorized',
+      message: 'Authentication required',
+    })
+  })
+
+  test('returns request detail for authenticated account', async () => {
+    const account = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: account.id })
+    const request = await factory.request.insert({
+      account_id: account.id,
+      cached: true,
+      created_at: '2026-04-14T00:00:00.000Z',
+      extracted_tokens: 200,
+      filtered_tokens: 300,
+      hostname: 'example.com',
+      markdown_tokens: 400,
+      mode: 'smart',
+      objective: 'Summarize the page',
+      keywords: 'docs,api',
+      path: '/docs',
+      source_tokens: 1000,
+      source_tokens_method: 'html',
+      url: 'https://example.com/docs',
+    })
+
+    const res = await client.api.requests[':id'].$get(
+      { param: { id: request.id } },
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
+        },
+      },
+    )
+    expect(res.status).toBe(200)
+    await expect(res.json()).resolves.toEqual({
+      request: {
+        cached: true,
+        created_at: '2026-04-14T00:00:00.000Z',
+        extracted_tokens: 200,
+        filtered_tokens: 300,
+        hostname: 'example.com',
+        id: request.id,
+        keywords: 'docs,api',
+        markdown_tokens: 400,
+        mode: 'smart',
+        objective: 'Summarize the page',
+        path: '/docs',
+        source_tokens: 1000,
+        source_tokens_method: 'html',
+        tokens_saved: 800,
+        url: 'https://example.com/docs',
+      },
+    })
+  })
+
+  test('returns 404 for non-existent request', async () => {
+    const account = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: account.id })
+
+    const res = await client.api.requests[':id'].$get(
+      { param: { id: 'nonexistent' } },
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
+        },
+      },
+    )
+    expect(res.status).toBe(404)
+    await expect(res.json()).resolves.toEqual({
+      code: 'not_found',
+      message: 'Not found',
+    })
+  })
+
+  test('returns 404 for request from different account', async () => {
+    const account1 = await factory.account.insert({})
+    const account2 = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: account1.id })
+    const request = await factory.request.insert({
+      account_id: account2.id,
+      organization_id: null,
+    })
+
+    const res = await client.api.requests[':id'].$get(
+      { param: { id: request.id } },
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
+        },
+      },
+    )
+    expect(res.status).toBe(404)
+  })
+
+  test('returns detail for org-scoped request when organization_id set', async () => {
+    const account = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: account.id })
+    const org = await factory.organization.insert({})
+    await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: account.id,
+      role: 'owner',
+    })
+    // Realistic case: org request with account_id also populated
+    const orgRequest = await factory.request.insert({
+      account_id: account.id,
+      organization_id: org.id,
+      url: 'https://org.example.com/test',
+      mode: 'rush',
+      objective: 'test org objective',
+      keywords: 'org,test',
+    })
+
+    const res = await client.api.requests[':id'].$get(
+      { param: { id: orgRequest.id } },
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
+          'x-organization-id': org.id,
+        },
+      },
+    )
+    expect(res.status).toBe(200)
+    const json = (await res.json()) as { request: any }
+    expect(json.request.id).toBe(orgRequest.id)
+    expect(json.request.url).toBe('https://org.example.com/test')
+    expect(json.request.mode).toBe('rush')
+    expect(json.request.objective).toBe('test org objective')
+    expect(json.request.keywords).toBe('org,test')
+  })
+
+  test('returns 404 for org request when accessing as different org', async () => {
+    const account = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: account.id })
+    const org1 = await factory.organization.insert({})
+    const org2 = await factory.organization.insert({})
+    await factory.organization_member.insert({
+      organization_id: org1.id,
+      account_id: account.id,
+      role: 'owner',
+    })
+    await factory.organization_member.insert({
+      organization_id: org2.id,
+      account_id: account.id,
+      role: 'owner',
+    })
+    const org2Request = await factory.request.insert({
+      organization_id: org2.id,
+      url: 'https://org2.example.com/test',
+    })
+
+    const res = await client.api.requests[':id'].$get(
+      { param: { id: org2Request.id } },
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
+          'x-organization-id': org1.id,
+        },
+      },
+    )
+    expect(res.status).toBe(404)
+  })
+})
+
 describe('POST /api/stripe/webhook', () => {
   test('returns 400 when signature missing', async () => {
     const res = await api.request(

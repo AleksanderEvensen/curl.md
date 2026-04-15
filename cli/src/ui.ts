@@ -1,6 +1,27 @@
 import pc from 'picocolors'
 import { relativeTime } from './utils.ts'
 
+export function stripAnsi(value: string): string {
+  // eslint-disable-next-line no-control-regex
+  return value.replace(/\x1b\[[0-9;]*m/g, '')
+}
+
+export function wrapAnsiValue(value: string, width: number, indent: number) {
+  const plain = stripAnsi(value)
+  if (plain.length <= width || value.includes('\x1b[')) return value
+
+  const lines: string[] = []
+  let remaining = value
+  while (remaining.length > width) {
+    let breakIndex = remaining.lastIndexOf(' ', width)
+    if (breakIndex <= 0) breakIndex = width
+    lines.push(remaining.slice(0, breakIndex).trimEnd())
+    remaining = remaining.slice(breakIndex).trimStart()
+  }
+  lines.push(remaining)
+  return lines.join(`\n${' '.repeat(indent)}`)
+}
+
 export function table(
   headers: string[],
   rows: string[][],
@@ -328,11 +349,6 @@ export function select(
 
     process.stdin.on('data', onData)
   })
-}
-
-function stripAnsi(str: string): string {
-  // eslint-disable-next-line no-control-regex
-  return str.replace(/\x1b\[[0-9;]*m/g, '')
 }
 
 // eslint-disable-next-line no-control-regex

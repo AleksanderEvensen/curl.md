@@ -11,6 +11,7 @@ import { stringify as yamlStringify } from 'yaml'
 import { z } from 'zod'
 import { createClient, type Database } from '#db/client.ts'
 import type { DB } from '#db/types.gen.ts'
+import { requestTokensSavedSql } from '#db/utils.ts'
 import * as ApiKey from '#lib/apiKey.ts'
 import * as Constants from '#lib/constants.ts'
 import * as Cookie from '#lib/cookie.ts'
@@ -1691,6 +1692,115 @@ export const api = new Hono<{
         502,
       )
     return c.json({ ok: true }, 200)
+  })
+  .get(
+    '/api/requests',
+    hono.validator(
+      'query',
+      z.object({
+        limit: z.coerce.number().int().positive().default(20),
+        page: z.coerce.number().int().positive().default(1),
+        search: z.string().optional(),
+      }),
+    ),
+    async (c) => {
+      if (hono.narrowValidation) return hono.validationError(c)
+      if (!c.var.session)
+        return c.json({ code: 'unauthorized' as const, message: 'Authentication required' }, 401)
+
+      const query = c.req.valid('query')
+      const entityId = c.var.organization_id ?? c.var.session.account_id
+      const ownerColumn = c.var.organization_id ? 'organization_id' : 'account_id'
+      const baseQuery = c.var.db.selectFrom('request').where(ownerColumn, '=', entityId)
+      const filteredQuery = query.search
+        ? baseQuery.where('url', 'ilike', `%${query.search}%`)
+        : baseQuery
+      const offset = (query.page - 1) * query.limit
+
+      const [countResult, requests] = await Promise.all([
+        filteredQuery
+          .select((eb) => eb.fn.countAll<number>().as('total'))
+          .executeTakeFirstOrThrow(),
+        filteredQuery
+          .select(['id', 'url', 'created_at', 'cached', 'objective', 'keywords'])
+          .select(requestTokensSavedSql().as('tokens_saved'))
+          .orderBy('created_at', 'desc')
+          .orderBy('id', 'desc')
+          .offset(offset)
+          .limit(query.limit)
+          .execute(),
+      ])
+
+      return c.json(
+        {
+          requests: requests.map((request) => ({
+            cached: request.cached,
+            created_at: request.created_at.toISOString(),
+            id: request.id,
+            keywords: request.keywords,
+            objective: request.objective,
+            tokens_saved: Number(request.tokens_saved),
+            url: request.url,
+          })),
+          total: Number(countResult.total),
+        },
+        200,
+      )
+    },
+  )
+  .get('/api/requests/:id', async (c) => {
+    if (!c.var.session)
+      return c.json({ code: 'unauthorized' as const, message: 'Authentication required' }, 401)
+
+    const entityId = c.var.organization_id ?? c.var.session.account_id
+    const ownerColumn = c.var.organization_id ? 'organization_id' : 'account_id'
+    const request = await c.var.db
+      .selectFrom('request')
+      .where(ownerColumn, '=', entityId)
+      .where('id', '=', c.req.param('id'))
+      .select([
+        'id',
+        'url',
+        'created_at',
+        'cached',
+        'objective',
+        'keywords',
+        'mode',
+        'hostname',
+        'path',
+        'source_tokens',
+        'source_tokens_method',
+        'markdown_tokens',
+        'filtered_tokens',
+        'extracted_tokens',
+      ])
+      .select(requestTokensSavedSql().as('tokens_saved'))
+      .executeTakeFirst()
+
+    if (!request) return c.json({ code: 'not_found' as const, message: 'Not found' }, 404)
+
+    return c.json(
+      {
+        request: {
+          cached: request.cached,
+          created_at: request.created_at.toISOString(),
+          extracted_tokens: request.extracted_tokens,
+          filtered_tokens: request.filtered_tokens,
+          hostname: request.hostname,
+          id: request.id,
+          keywords: request.keywords,
+          markdown_tokens: request.markdown_tokens,
+          mode: request.mode,
+          objective: request.objective,
+          path: request.path,
+          source_tokens: request.source_tokens,
+          source_tokens_method: request.source_tokens_method,
+          tokens_saved: Number(request.tokens_saved),
+          url: request.url,
+        },
+      },
+      200,
+    )
   })
   .get(
     '/api/:url{.+}',

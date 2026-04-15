@@ -79,7 +79,8 @@ test('help', async () => {
     Commands:
       auth     Authenticate with curl.md (login, logout, status)
       credits  Manage prepaid credits (add, status)
-      org      Manage organizations (create, invite, list, members, switch, view)
+      org      Manage organizations (create, invite, list, member, switch, view)
+      request  Manage requests (list, view)
       token    Manage API tokens (create, list, delete)
       update   Update curl.md CLI
 
@@ -91,6 +92,7 @@ test('help', async () => {
     Global Options:
       --filter-output <keys>              Filter output by key paths (e.g. foo,bar.baz,a[0,3])
       --format <toon|json|yaml|md|jsonl>  Output format
+      --full-output                       Show full output envelope
       --help                              Show help
       --llms, --llms-full                 Print LLM-readable manifest
       --mcp                               Start as MCP stdio server
@@ -98,7 +100,6 @@ test('help', async () => {
       --token-count                       Print token count of output (instead of output)
       --token-limit <n>                   Limit output to n tokens
       --token-offset <n>                  Skip first n tokens of output
-      --verbose                           Show full output envelope
       --version                           Show version
 
     Environment Variables:
@@ -420,7 +421,7 @@ test('objective cta shown for long responses', async () => {
     }),
   )
 
-  const { output } = await serve(['example.com', '--verbose'])
+  const { output } = await serve(['example.com', '--full-output'])
   expect(output).toContain('Narrow results with objective')
 })
 
@@ -436,7 +437,7 @@ test('objective cta hidden for short responses', async () => {
     }),
   )
 
-  const { output } = await serve(['example.com', '--verbose'])
+  const { output } = await serve(['example.com', '--full-output'])
   expect(output).not.toContain('narrow results with an objective')
 })
 
@@ -986,6 +987,248 @@ describe('auth', () => {
     Session.delete()
     const third = await resolveAuthHeaders()
     expect(third).toBeNull()
+  })
+})
+
+describe('request', () => {
+  test('help', async () => {
+    const { output } = await serve(['request', '--help'])
+    expect(output).toContain('curl.md request — Manage requests (list, view)')
+    expect(output).toContain('Usage: curl.md request <command>')
+    expect(output).toContain('list')
+    expect(output).toContain('view')
+  })
+
+  test('list help', async () => {
+    const { output } = await serve(['request', 'list', '--help'])
+    expect(output).toContain('curl.md request list — List requests')
+    expect(output).toContain('Usage: curl.md request list [options]')
+    expect(output).toContain('Aliases: ls')
+    expect(output).toContain('--search, -s <string>')
+    expect(output).toContain('--limit, -l <number>')
+    expect(output).toContain('--page, -p <number>')
+  })
+
+  test('view help', async () => {
+    const { output } = await serve(['request', 'view', '--help'])
+    expect(output).toContain('curl.md request view — View request')
+    expect(output).toContain('Usage: curl.md request view [request] [options]')
+    expect(output).toContain('Arguments:')
+    expect(output).toContain('request  Request ID to view')
+    expect(output).toContain('--verbose  Show all request fields')
+    expect(output).toContain('--web, -w  Open original URL in browser')
+  })
+
+  test('list - happy path', async () => {
+    const account = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: account.id })
+    const org = await factory.organization.insert({})
+    await factory.organization_member.insert({
+      account_id: account.id,
+      organization_id: org.id,
+    })
+    await writeCliSession(session, org.id)
+
+    server.use(
+      http.get(`${env.CURLMD_BASE_URL}/api/requests`, async ({ request }) => {
+        const url = new URL(request.url)
+        expect(request.headers.get('authorization')).toMatch(/^Bearer curlmd_at_/)
+        expect(request.headers.get('x-organization-id')).toBe(org.id)
+        expect(url.searchParams.get('search')).toBe('example.com')
+        expect(url.searchParams.get('limit')).toBe('2')
+        expect(url.searchParams.get('page')).toBe('3')
+        return HttpResponse.json({
+          requests: [
+            {
+              created_at: '2026-01-02T03:04:05.000Z',
+              id: 'req_123',
+              keywords: null,
+              objective: 'tree error formatting',
+              tokens_saved: 111,
+              url: 'https://example.com/docs/zod',
+            },
+            {
+              created_at: '2026-01-02T04:05:06.000Z',
+              id: 'req_456',
+              keywords: 'ReadableStream,getReader',
+              objective: null,
+              tokens_saved: 42,
+              url: 'https://example.com/docs/fetch',
+            },
+          ],
+          total: 2,
+        })
+      }),
+    )
+
+    const { output } = await serve([
+      'request',
+      'list',
+      '--search',
+      'example.com',
+      '--limit',
+      '2',
+      '--page',
+      '3',
+    ])
+    expect(output).toContain('req_123')
+    expect(output).toContain('req_456')
+    expect(output).toContain('example.com/docs/zod')
+    expect(output).toContain('example.com/docs/fetch')
+    expect(output).toContain('111')
+    expect(output).toContain('42')
+    expect(output).toContain('$0.0003')
+    expect(output).toContain('$0.0001')
+  })
+
+  test('list - empty state', async () => {
+    const account = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: account.id })
+    const org = await factory.organization.insert({})
+    await factory.organization_member.insert({
+      account_id: account.id,
+      organization_id: org.id,
+    })
+    await writeCliSession(session, org.id)
+
+    server.use(
+      http.get(`${env.CURLMD_BASE_URL}/api/requests`, async () => {
+        return HttpResponse.json({ requests: [], total: 0 })
+      }),
+    )
+
+    const { output } = await serve(['request', 'list'])
+    expect(output).toContain('No requests found.')
+  })
+
+  test('view - happy path', async () => {
+    const account = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: account.id })
+    const org = await factory.organization.insert({})
+    await factory.organization_member.insert({
+      account_id: account.id,
+      organization_id: org.id,
+    })
+    await writeCliSession(session, org.id)
+
+    server.use(
+      http.get(`${env.CURLMD_BASE_URL}/api/requests/req_123`, async ({ request }) => {
+        expect(request.headers.get('authorization')).toMatch(/^Bearer curlmd_at_/)
+        expect(request.headers.get('x-organization-id')).toBe(org.id)
+        return HttpResponse.json({
+          request: {
+            cached: false,
+            created_at: '2026-01-02T03:04:05.000Z',
+            extracted_tokens: 120,
+            filtered_tokens: 48,
+            hostname: 'example.com',
+            id: 'req_123',
+            keywords: 'treeifyError,zod',
+            markdown_tokens: 240,
+            mode: 'smart',
+            objective: 'tree error formatting',
+            path: '/docs/zod',
+            source_tokens: 360,
+            source_tokens_method: 'html',
+            tokens_saved: 120,
+            url: 'https://example.com/docs/zod',
+          },
+        })
+      }),
+    )
+
+    const { output } = await serve(['request', 'view', 'req_123'])
+    expect(output).toContain('id:\treq_123')
+    expect(output).toContain('url:\thttps://example.com/docs/zod')
+    expect(output).toContain('objective:\ttree error formatting')
+    expect(output).toContain('keywords:\ttreeifyError,zod')
+    expect(output).toContain('saved:\t120')
+    expect(output).toContain('cost saved:\t$0.0003')
+    expect(output).not.toContain('hostname:\texample.com')
+    expect(output).not.toContain('source tokens:\t360')
+  })
+
+  test('view - verbose shows extra fields alphabetically', async () => {
+    const account = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: account.id })
+    const org = await factory.organization.insert({})
+    await factory.organization_member.insert({
+      account_id: account.id,
+      organization_id: org.id,
+    })
+    await writeCliSession(session, org.id)
+
+    server.use(
+      http.get(`${env.CURLMD_BASE_URL}/api/requests/req_123`, async () => {
+        return HttpResponse.json({
+          request: {
+            cached: false,
+            created_at: '2026-01-02T03:04:05.000Z',
+            extracted_tokens: 120,
+            filtered_tokens: 48,
+            hostname: 'example.com',
+            id: 'req_123',
+            keywords: 'treeifyError,zod',
+            markdown_tokens: 240,
+            mode: 'smart',
+            objective: 'tree error formatting',
+            path: '/docs/zod',
+            source_tokens: 360,
+            source_tokens_method: 'html',
+            tokens_saved: 120,
+            url: 'https://example.com/docs/zod',
+          },
+        })
+      }),
+    )
+
+    const { output } = await serve(['request', 'view', 'req_123', '--verbose'])
+    expect(output).toContain('extracted tokens:\t120')
+    expect(output).toContain('filtered tokens:\t48')
+    expect(output).toContain('hostname:\texample.com')
+    expect(output).toContain('markdown tokens:\t240')
+    expect(output).toContain('path:\t/docs/zod')
+    expect(output).toContain('source method:\thtml')
+    expect(output).toContain('source tokens:\t360')
+    expect(output.indexOf('extracted tokens:\t120')).toBeLessThan(
+      output.indexOf('filtered tokens:\t48'),
+    )
+    expect(output.indexOf('filtered tokens:\t48')).toBeLessThan(
+      output.indexOf('hostname:\texample.com'),
+    )
+    expect(output.indexOf('hostname:\texample.com')).toBeLessThan(
+      output.indexOf('markdown tokens:\t240'),
+    )
+    expect(output.indexOf('markdown tokens:\t240')).toBeLessThan(output.indexOf('path:\t/docs/zod'))
+    expect(output.indexOf('path:\t/docs/zod')).toBeLessThan(output.indexOf('source method:\thtml'))
+    expect(output.indexOf('source method:\thtml')).toBeLessThan(
+      output.indexOf('source tokens:\t360'),
+    )
+  })
+
+  test('view - not found', async () => {
+    const account = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: account.id })
+    const org = await factory.organization.insert({})
+    await factory.organization_member.insert({
+      account_id: account.id,
+      organization_id: org.id,
+    })
+    await writeCliSession(session, org.id)
+
+    server.use(
+      http.get(`${env.CURLMD_BASE_URL}/api/requests/req_missing`, async () => {
+        return HttpResponse.json(
+          { code: 'not_found', message: 'Request not found' },
+          { status: 404 },
+        )
+      }),
+    )
+
+    const { exitCode, output } = await serve(['request', 'view', 'req_missing'])
+    expect(exitCode).toBe(1)
+    expect(output).toContain('NOT_FOUND')
+    expect(output).toContain('Request not found')
   })
 })
 

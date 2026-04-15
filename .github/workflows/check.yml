@@ -36,8 +36,10 @@ jobs:
       - name: Setup
         uses: ./.github/actions/setup-pnpm
 
+      # TODO: Remove `--ignore-registry-errors`
+      # https://github.com/pnpm/pnpm/issues/11265
       - name: Audit dependencies
-        run: pnpm audit
+        run: pnpm audit --ignore-registry-errors
 
       - name: Lint
         run: pnpm check

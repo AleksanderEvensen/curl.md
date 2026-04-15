@@ -23,7 +23,11 @@ function Component() {
       >
         Member management lives in the CLI for now. Run the following to see available commands.
         Learn more in the{' '}
-        <Link className="underline underline-offset-2" to="/docs">
+        <Link
+          className="underline underline-offset-2"
+          params={{ _splat: 'guide/cli' }}
+          to="/docs/$"
+        >
           documentation
         </Link>
         .

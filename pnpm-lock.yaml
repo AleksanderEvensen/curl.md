@@ -276,8 +276,8 @@ importers:
         specifier: 'catalog:'
         version: 4.12.12
       incur:
-        specifier: 0.3.25
-        version: 0.3.25
+        specifier: 0.4.1
+        version: 0.4.1
       picocolors:
         specifier: 1.1.1
         version: 1.1.1
@@ -4232,8 +4232,8 @@ packages:
     resolution: {integrity: sha512-TR3KfrTZTYLPB6jUjfx6MF9WcWrHL9su5TObK4ZkYgBdWKPOFoSoQIdEuTuR82pmtxH2spWG9h6etwfr1pLBqQ==}
     engines: {node: '>=6'}
 
-  incur@0.3.25:
-    resolution: {integrity: sha512-jrSkzauM42ilbQJ6THVkAY6dTulkyVW0sZpVHdA8gfiBwrLrLnLUf8U3bAOegAKBIMSOFgk1idchgu9xm9HMng==}
+  incur@0.4.1:
+    resolution: {integrity: sha512-+0JwzFYrPsuASGBJp7ya3HRT+ET406L57wmbji52bAlxHWPIRC9Zh4ZWaatsj1nqZGHAbHse5KBs7P3L3ytc8g==}
     engines: {node: '>=22'}
     hasBin: true
 
@@ -10435,7 +10435,7 @@ snapshots:
       parent-module: 1.0.1
       resolve-from: 4.0.0
 
-  incur@0.3.25:
+  incur@0.4.1:
     dependencies:
       '@cfworker/json-schema': 4.1.1
       '@modelcontextprotocol/server': 2.0.0-alpha.2(@cfworker/json-schema@4.1.1)

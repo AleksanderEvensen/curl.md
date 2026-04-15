@@ -1,5 +1,6 @@
 import { Cli, type MiddlewareContext, middleware, z } from 'incur'
 import pc from 'picocolors'
+import { formatCost } from '../../src/lib/format.ts'
 import pkg from '../package.json' with { type: 'json' }
 import { createClient, defaultBaseUrl, type Client } from './client.ts'
 import { Auth } from './internal/auth.ts'
@@ -1284,7 +1285,7 @@ const member = Cli.create('member', {
   })
 
 const org = Cli.create('org', {
-  description: 'Manage organizations (create, invite, list, members, switch, view)',
+  description: 'Manage organizations (create, invite, list, member, switch, view)',
   vars,
 })
   .command('create', {
@@ -1755,9 +1756,187 @@ const update = Cli.create('update', {
   },
 })
 
+const request = Cli.create('request', {
+  description: 'Manage requests (list, view)',
+  vars,
+})
+  .command('list', {
+    aliases: ['ls'],
+    description: 'List requests',
+    middleware: [requireAuth],
+    options: z.object({
+      limit: z.number().int().positive().optional().describe('Number of requests to show'),
+      page: z.number().int().positive().optional().describe('Page number'),
+      search: z.string().optional().describe('Filter by URL'),
+    }),
+    alias: { limit: 'l', page: 'p', search: 's' },
+    output: z.string(),
+    format: 'md',
+    async run(c) {
+      const res = await c.var.client.api.requests.$get({
+        query: {
+          limit: c.options.limit?.toString(),
+          page: c.options.page?.toString(),
+          search: c.options.search,
+        },
+      })
+
+      if (res.status === 401) return expiredSession(c)
+
+      if (res.status !== 200) {
+        const json = await res.json()
+        return c.error({ code: json.code.toUpperCase(), message: json.message })
+      }
+
+      const json = await res.json()
+      if (!json.requests.length) return c.ok('No requests found.')
+
+      const costSavedValues = json.requests.map((req) => `$${formatCost(req.tokens_saved, 3)}`)
+      const savedValues = json.requests.map((req) => req.tokens_saved.toLocaleString())
+      const costSavedWidth = process.stdout.isTTY
+        ? Math.max(...costSavedValues.map((value) => value.length))
+        : 0
+      const savedWidth = process.stdout.isTTY
+        ? Math.max(...savedValues.map((value) => value.length))
+        : 0
+
+      const rows = json.requests.map((req, index) => [
+        pc.green(req.id),
+        pc.dim(UI.formatDateShort(new Date(req.created_at))),
+        req.url,
+        (() => {
+          const flags = [
+            req.cached ? 'cache' : undefined,
+            req.objective ? 'obj' : undefined,
+            req.keywords ? 'kw' : undefined,
+          ].filter(Boolean)
+          return flags.length ? flags.join(' ') : pc.dim('-')
+        })(),
+        pc.dim(
+          process.stdout.isTTY ? savedValues[index]!.padStart(savedWidth) : savedValues[index]!,
+        ),
+        pc.dim(
+          process.stdout.isTTY
+            ? costSavedValues[index]!.padStart(costSavedWidth)
+            : costSavedValues[index]!,
+        ),
+      ])
+
+      return c.ok(
+        UI.table(['id', 'time', 'url', 'flags', 'saved', 'cost saved'], rows, { noTruncate: [0] }),
+      )
+    },
+  })
+  .command('view', {
+    description: 'View request',
+    middleware: [requireAuth],
+    args: z.object({
+      request: z.string().optional().describe('Request ID to view'),
+    }),
+    options: z.object({
+      verbose: z.boolean().optional().describe('Show all request fields'),
+      web: z.boolean().optional().describe('Open original URL in browser'),
+    }),
+    alias: { web: 'w' },
+    output: z.string(),
+    format: 'md',
+    async run(c) {
+      if (!c.args.request) {
+        return c.error({
+          code: 'NO_INPUT',
+          message: 'Pass request ID directly.',
+          cta: {
+            commands: [
+              {
+                command: `${c.displayName} request list`,
+                description: 'list requests',
+              },
+              ...c.var.commands,
+            ],
+          },
+        })
+      }
+
+      const res = await c.var.client.api.requests[':id'].$get({
+        param: { id: c.args.request },
+      })
+
+      if (res.status === 401) return expiredSession(c)
+
+      if (res.status === 404) {
+        const json = await res.json()
+        return c.error({ code: json.code.toUpperCase(), message: json.message })
+      }
+
+      const json = await res.json()
+      const req = json.request
+
+      if (c.options.web) openUrl(req.url)
+
+      const fields: [string, string][] = [
+        ['id', pc.green(req.id)],
+        ['url', req.url],
+        ['created', pc.dim(UI.formatDate(new Date(req.created_at)))],
+        ['mode', (() => req.mode ?? pc.dim('-'))()],
+        ['cached', req.cached ? 'yes' : 'no'],
+        ['objective', (() => req.objective ?? pc.dim('-'))()],
+        ['keywords', (() => req.keywords ?? pc.dim('-'))()],
+        ['saved', req.tokens_saved.toLocaleString()],
+        ['cost saved', `$${formatCost(req.tokens_saved, 3)}`],
+      ]
+      if (c.options.verbose)
+        fields.push(
+          ...(
+            [
+              [
+                'extracted tokens',
+                (() =>
+                  req.extracted_tokens === null
+                    ? pc.dim('-')
+                    : req.extracted_tokens.toLocaleString())(),
+              ],
+              [
+                'filtered tokens',
+                (() =>
+                  req.filtered_tokens === null
+                    ? pc.dim('-')
+                    : req.filtered_tokens.toLocaleString())(),
+              ],
+              ['hostname', req.hostname],
+              ['markdown tokens', req.markdown_tokens.toLocaleString()],
+              ['path', req.path],
+              ['source method', req.source_tokens_method],
+              ['source tokens', req.source_tokens.toLocaleString()],
+            ] as [string, string][]
+          ).sort(([a], [b]) => a.localeCompare(b)),
+        )
+
+      return c.ok(
+        [
+          (() => {
+            if (!process.stdout.isTTY) return UI.summary(fields, pc.bold('Request'))
+
+            const maxLabel = Math.max(...fields.map(([label]) => label.length))
+            const indent = maxLabel + 3
+            const width = Math.max(20, (process.stdout.columns || 80) - indent)
+            const wrappedFields: [string, string][] = fields.map(([label, value]) => [
+              label,
+              UI.wrapAnsiValue(value, width, indent),
+            ])
+            return UI.summary(wrappedFields, pc.bold('Request'))
+          })(),
+          c.options.web ? `Opened ${pc.blue(req.url)}` : '',
+        ]
+          .filter(Boolean)
+          .join('\n\n'),
+      )
+    },
+  })
+
 cli.command(auth)
 cli.command(credits)
 cli.command(org.command(invite).command(member))
+cli.command(request)
 cli.command(token)
 cli.command(update)
 

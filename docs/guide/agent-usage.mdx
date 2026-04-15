@@ -1,0 +1,80 @@
+---
+title: Agent Usage
+description: Use curl.md effectively inside agent loops, toolchains, and focused research workflows.
+---
+
+# Agent Usage
+
+`curl.md` works best when an agent needs a smaller, more targeted version of web content than raw HTML or a full browser snapshot.
+
+## Start With A Concrete Objective
+
+Give the agent a narrow question instead of asking it to read an entire page.
+
+```sh
+$ md docs.github.com/en/webhooks/webhook-events-and-payloads \
+  --objective "pull request webhook event payload and actions"
+```
+
+This usually produces more useful output than fetching the whole page and letting the agent sift through everything itself.
+
+## Add Keywords When You Know The Domain
+
+Keywords help shrink the search space before the final output is generated.
+
+```sh
+$ md developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch \
+  --objective "streaming response body" \
+  --keywords ReadableStream,getReader
+```
+
+This is especially useful for large docs sites, API references, and changelogs.
+
+## Pick The Right Interface
+
+- Use the hosted URL or [API & SDK](/docs/guide/api) when your agent platform can already make HTTP requests.
+- Use the [CLI](/docs/guide/cli) when your agent can shell out locally.
+- Use [Amp](/docs/plugins/amp) or [Pi](/docs/plugins/pi) when you want `read_web_page` or `md_fetch` available as native tools.
+
+## Prefer Authenticated Usage
+
+Authenticated usage is the best default for real agent workflows.
+
+- higher limits
+- account-scoped billing and history
+- easier reuse across local tools and plugins
+
+For local agents, log in once with:
+
+```sh
+$ curl.md auth login
+```
+
+For headless environments, use `CURLMD_API_KEY`.
+
+## Use Fresh Sparingly
+
+Cached results are usually the right default for agent loops. Use `--fresh` only when the agent truly needs a live refetch, such as release notes, changelogs, or recently updated docs.
+
+```sh
+$ md changelog.example.com --objective "latest breaking changes" --fresh
+```
+
+## Good Agent Tasks
+
+`curl.md` is a strong fit when an agent needs to:
+
+- extract a specific API requirement from long docs
+- compare a few targeted sections across multiple sources
+- summarize a changelog for one feature or subsystem
+- pull implementation details from a documentation page before writing code
+
+It is less useful when the agent needs a fully interactive browser session, DOM inspection, or JavaScript-driven state from the live page.
+
+## Recommended Pattern
+
+1. fetch with a specific objective
+2. add keywords if the source is noisy
+3. use cached results by default
+4. switch to fresh only when recency matters
+5. fall back to a browser tool when the page is highly interactive

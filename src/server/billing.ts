@@ -87,7 +87,12 @@ export const getTransactions = createServerFn({ method: 'GET' })
       return {
         prior_sum: 0,
         total: 0,
-        transactions: [] as { amount_mills: number; created_at: Date; type: string }[],
+        transactions: [] as {
+          amount_mills: number
+          created_at: Date
+          reference_id: string | null
+          type: string
+        }[],
       }
 
     const col = c.data.entityType === 'organization' ? 'organization_id' : 'account_id'
@@ -104,7 +109,7 @@ export const getTransactions = createServerFn({ method: 'GET' })
         .orderBy('created_at', 'desc')
         .offset(c.data.offset)
         .limit(c.data.limit)
-        .select(['amount_mills', 'created_at', 'type'])
+        .select(['amount_mills', 'created_at', 'reference_id', 'type'])
         .execute(),
       c.data.offset > 0
         ? db

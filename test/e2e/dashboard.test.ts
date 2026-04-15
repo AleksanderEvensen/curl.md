@@ -111,30 +111,21 @@ test('shows credit balance', async ({ db, factory, page, setSession }) => {
   await expect(page.getByText('$50.00')).toBeVisible({ timeout: 10000 })
 })
 
-test('shows requests page with recent requests', async ({ factory, page, setSession }) => {
+test('shows requests page with CLI help', async ({ factory, page, setSession }) => {
   const account = await factory.account.insert({})
   await setSession(account.id)
-
-  await factory.request.insert({
-    account_id: account.id,
-    cached: true,
-    keywords: 'docs,api',
-    markdown_tokens: 1200,
-    objective: 'Summarize the page',
-    source_tokens: 5000,
-    source_tokens_method: 'html',
-    url: 'https://example.com/docs',
-  })
 
   await page.goto(`/${account.login}`)
   await page.getByRole('link', { name: 'Requests' }).click()
 
   await expect(page).toHaveURL(new RegExp(`/${account.login}/requests$`))
-  await expect(page.getByRole('heading', { name: 'Requests' })).toBeVisible()
-  await expect(page.getByRole('link', { name: 'example.com/docs' })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Objective: Summarize the page' })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Keywords: docs, api' })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Cached response' })).toBeVisible()
+  await expect(page.getByRole('heading', { exact: true, name: 'Requests' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Manage requests from the CLI' })).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: `curl.md org switch ${account.login}` }),
+  ).toBeVisible()
+  await expect(page.getByRole('button', { name: 'curl.md request --help' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'documentation' })).toBeVisible()
 })
 
 test('shows mill precision only when needed in billing balances', async ({

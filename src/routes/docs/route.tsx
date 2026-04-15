@@ -6,6 +6,7 @@ import { Dialog } from '#components/Dialog.tsx'
 import { Nav } from '#components/Nav.tsx'
 import { config, type Config } from '#docs/_config.ts'
 import { sidebar, type SidebarItem } from '#docs/_sidebar.ts'
+import { useBrowserLayoutEffect } from '#hooks/useBrowserLayoutEffect.ts'
 import { type Theme, useTheme } from '#hooks/useTheme.ts'
 import { getSessionLogin } from '#server/session.ts'
 import { findDoc, searchDocs } from './-catalog.ts'
@@ -172,6 +173,21 @@ function Component() {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [])
 
+  useBrowserLayoutEffect(() => {
+    if (!open) return
+
+    const htmlOverflow = document.documentElement.style.overflow
+    const bodyOverflow = document.body.style.overflow
+
+    document.documentElement.style.overflow = 'hidden'
+    document.body.style.overflow = 'hidden'
+
+    return () => {
+      document.documentElement.style.overflow = htmlOverflow
+      document.body.style.overflow = bodyOverflow
+    }
+  }, [open])
+
   return (
     <div className="relative flex min-h-dvh flex-col">
       <Nav.Skip />
@@ -249,7 +265,7 @@ function Component() {
             className="bg-bg1 border-gray-a3 fixed inset-x-0 top-17 bottom-0 z-40 hidden w-full border-e data-[open]:block md:static md:block md:w-64 md:shrink-0"
             data-open={open ? '' : undefined}
           >
-            <div className="h-full overflow-y-auto py-6 ps-5 pe-3 md:sticky md:top-17 md:h-[calc(100dvh-4.25rem)] md:ps-6 md:pe-6">
+            <div className="minimal-scrollbar h-full overflow-y-auto py-6 ps-5 pe-3 md:sticky md:top-17 md:h-[calc(100dvh-4.25rem)] md:ps-6 md:pe-6">
               <div className="flex min-h-full flex-col">
                 <SidebarNav items={sidebar} onNavigate={() => setOpen(false)} />
 
