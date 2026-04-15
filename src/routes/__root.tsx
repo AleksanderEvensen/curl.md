@@ -2,7 +2,7 @@ import geistMonoLatin from '@fontsource-variable/geist-mono/files/geist-mono-lat
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createRootRoute, HeadContent, Link, Outlet, Scripts } from '@tanstack/react-router'
 import * as React from 'react'
-import { themeScript, useTheme } from '#hooks/useTheme.ts'
+import { themeScript } from '#hooks/useTheme.ts'
 import '../styles.css'
 
 export const Route = createRootRoute({
@@ -65,9 +65,8 @@ function NotFound() {
 
 function RootDocument(props: React.PropsWithChildren) {
   const { children } = props
-  const { resolvedTheme } = useTheme()
   return (
-    <html lang="en" data-theme={resolvedTheme} suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <head>
         <script
           // oxlint-disable-next-line react/no-danger: theme script is static

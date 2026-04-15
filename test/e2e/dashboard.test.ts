@@ -131,10 +131,10 @@ test('shows requests page with recent requests', async ({ factory, page, setSess
 
   await expect(page).toHaveURL(new RegExp(`/${account.login}/requests$`))
   await expect(page.getByRole('heading', { name: 'Requests' })).toBeVisible()
-  await expect(page.getByText('example.com/docs')).toBeVisible()
-  await expect(page.locator('[title="Objective: Summarize the page"]')).toBeVisible()
-  await expect(page.locator('[title="Keywords: docs, api"]')).toBeVisible()
-  await expect(page.locator('[title="Cached response"]')).toBeVisible()
+  await expect(page.getByRole('link', { name: 'example.com/docs' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Objective: Summarize the page' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Keywords: docs, api' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Cached response' })).toBeVisible()
 })
 
 test('shows mill precision only when needed in billing balances', async ({

@@ -434,8 +434,12 @@ function getThemeIcon(theme: Theme, resolvedTheme: Exclude<Theme, 'system'>, mou
 function SidebarNav(props: { items: Array<SidebarItem>; onNavigate: () => void }) {
   return (
     <ul className="flex list-none flex-col gap-0.5 ps-0">
-      {props.items.map((item) => (
-        <SidebarNavItem item={item} key={item.label} onNavigate={props.onNavigate} />
+      {props.items.map((item, index) => (
+        <SidebarNavItem
+          item={item}
+          key={getSidebarItemKey(item, index)}
+          onNavigate={props.onNavigate}
+        />
       ))}
     </ul>
   )
@@ -444,6 +448,13 @@ function SidebarNav(props: { items: Array<SidebarItem>; onNavigate: () => void }
 function SidebarNavItem(props: { item: SidebarItem; onNavigate: () => void }) {
   const { item, onNavigate } = props
 
+  if (item.type === 'separator')
+    return (
+      <li className="px-2 py-2" role="presentation">
+        <div aria-hidden="true" className="border-gray-a3 border-t" />
+      </li>
+    )
+
   if (item.type === 'group')
     return (
       <li className="mt-6 first:mt-0">
@@ -451,8 +462,12 @@ function SidebarNavItem(props: { item: SidebarItem; onNavigate: () => void }) {
           {item.label}
         </span>
         <ul className="mt-1.5 flex list-none flex-col gap-0.5 ps-0">
-          {item.items.map((child) => (
-            <SidebarNavItem item={child} key={child.label} onNavigate={onNavigate} />
+          {item.items.map((child, index) => (
+            <SidebarNavItem
+              item={child}
+              key={getSidebarItemKey(child, index)}
+              onNavigate={onNavigate}
+            />
           ))}
         </ul>
       </li>
@@ -472,6 +487,11 @@ function SidebarNavItem(props: { item: SidebarItem; onNavigate: () => void }) {
       </Link>
     </li>
   )
+}
+
+function getSidebarItemKey(item: SidebarItem, index: number) {
+  if (item.type === 'separator') return `separator:${index}`
+  return `${item.type}:${item.label}`
 }
 
 function SearchTrigger(props: {
@@ -513,7 +533,6 @@ function NavbarLinkItem(props: {
       activeProps={{ 'data-active': '' }}
       className={className}
       onClick={onClick}
-      {...('hash' in link ? { hash: link.hash } : {})}
       {...('params' in link ? { params: link.params } : {})}
       to={link.to}
     >
@@ -662,14 +681,14 @@ function DocsSearchDialog(props: {
           Close search
         </button>
 
-        <div className="border-gray-a3 bg-bg2 flex items-center gap-1.5 border px-3 py-3 md:p-4">
+        <div className="border-gray-a3 bg-gray-a2 dark:bg-bg2 flex items-center gap-1.5 border px-3 py-3 md:p-4">
           <span aria-hidden="true" className="text-gray8 flex w-5 shrink-0 items-center">
             <IconOcticonSearch16 className="size-4" />
           </span>
           <Combobox.Input
             autoFocus
             autoComplete="off"
-            className="placeholder:text-gray8 min-w-0 flex-1 bg-transparent text-sm leading-none font-medium"
+            className="placeholder:text-gray8 min-w-0 flex-1 bg-transparent text-sm leading-none font-medium focus-visible:outline-none"
             id="docs-search-dialog"
             placeholder="Search documentation"
           />

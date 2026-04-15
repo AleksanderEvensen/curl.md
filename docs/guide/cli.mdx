@@ -1,0 +1,67 @@
+---
+title: CLI
+description: Use curl.md from your terminal, scripts, and local automation.
+---
+
+# CLI
+
+The CLI is the most flexible way to use `curl.md`. It works well in terminals, scripts, editor tasks, and anywhere else you can shell out.
+
+## Install
+
+Start with the [Installation](/docs/install) page if you have not installed it yet.
+
+## Commands
+
+The CLI ships with three command names:
+
+- `curl.md`
+- `curlmd`
+- `md`
+
+## Common Usage
+
+Fetch a page:
+
+```sh
+$ md example.com
+```
+
+Narrow by objective:
+
+```sh
+$ md zod.dev/error-formatting --objective "tree error formatting"
+```
+
+Add keywords:
+
+```sh
+$ md developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch \
+  --objective "streaming response body" \
+  --keywords ReadableStream,getReader
+```
+
+Bypass cache:
+
+```sh
+$ md example.com --fresh
+```
+
+## Authentication
+
+Log in from the CLI with:
+
+```sh
+$ curl.md auth login
+```
+
+For non-interactive environments, set `CURLMD_API_KEY`.
+
+## Environment Variables
+
+- `CURLMD_API_KEY` for API-key auth
+- `CURLMD_BASE_URL` if you need to point the CLI at a non-default deployment
+
+## When To Use The CLI
+
+Use the CLI when you want `curl.md` in shell scripts, editor terminals, local automation, or quick one-off research.

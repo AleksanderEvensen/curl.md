@@ -1,0 +1,46 @@
+---
+title: API & SDK
+description: Call curl.md from code with the hosted endpoint or the typed JavaScript client.
+---
+
+# API & SDK
+
+You can use `curl.md` directly over HTTP or through the published JavaScript client.
+
+## Hosted Endpoint
+
+The simplest HTTP interface is the hosted `curl.md/<url>` path:
+
+```sh
+$ curl "https://curl.md/developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch?objective=streaming+response+body&keywords=ReadableStream,getReader"
+```
+
+This is useful for quick integrations, shell scripts, and server-side fetches.
+
+## JavaScript Client
+
+Use the published `curl.md` package when you want a typed client from JavaScript or TypeScript.
+
+```ts
+import { createClient } from 'curl.md'
+
+const client = createClient()
+const res = await client.fetch('docs.github.com/en/webhooks/webhook-events-and-payloads', {
+  keywords: ['pull_request'],
+  objective: 'pull request webhook event payload and actions',
+})
+
+const markdown = await res.text()
+```
+
+## Authentication
+
+Authenticated requests can use a Bearer token through the `Authorization` header. If you work across organizations, send `x-organization-id` as well.
+
+For local scripts, the [CLI](/docs/guide/cli) is often the easiest way to manage auth and reuse it across tools.
+
+## Choose The Right Interface
+
+- Use the hosted endpoint for simple fetches.
+- Use the SDK when you want a typed client in app code.
+- Use the CLI when you want shell workflows and local auth commands.

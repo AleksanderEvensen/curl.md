@@ -1,0 +1,30 @@
+---
+title: Codex
+description: Use curl.md to bring external documentation into Codex-friendly markdown.
+---
+
+# Codex
+
+`curl.md` is useful with Codex when implementation work depends on external documentation that would otherwise be noisy or too large.
+
+## Recommended Workflow
+
+Use `curl.md` before asking Codex to implement against a spec, migration guide, or API reference.
+
+```sh
+$ md developers.cloudflare.com/workers/runtime-apis/request \
+  --objective "headers and request cloning behavior" \
+  --keywords headers,clone
+```
+
+Then feed the markdown into your Codex workflow instead of the raw webpage.
+
+## Why It Helps
+
+- less HTML and layout noise
+- more focused context windows
+- easier reuse in scripts and local tooling
+
+## Status
+
+There is no first-party Codex integration package in this repo today. Use the hosted URL, the [CLI](/docs/guide/cli), or the [API & SDK](/docs/guide/api) depending on where Codex is running.

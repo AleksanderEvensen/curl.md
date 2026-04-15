@@ -3,7 +3,7 @@ import { flushSync } from 'react-dom'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, expect, test, vi } from 'vitest'
 import { page } from 'vitest/browser'
-import kitchenSinkDocSource from '#docs/reference/kitchen-sink.mdx?raw'
+import kitchenSinkDocSource from '#docs/dev/kitchen-sink.mdx?raw'
 import { DocContent, DocSearchPreview, getDocSearchPreviewAnchor } from './-render.tsx'
 import {
   getDocHeadings,
@@ -366,7 +366,7 @@ test('code groups switch the visible panel when tabs are clicked', async () => {
 })
 
 test('code groups sync matching labels through the query param', async () => {
-  window.history.replaceState(null, '', '/docs/reference/kitchen-sink?tab=pnpm')
+  window.history.replaceState(null, '', '/docs/dev/kitchen-sink?tab=pnpm')
   const rendered = renderDocContent(createSyncedCodeGroupDoc())
   await waitForAnimationFrame()
   const groups = rendered.container.querySelectorAll('[data-docs-code-group]')
@@ -384,7 +384,7 @@ test('code groups sync matching labels through the query param', async () => {
 })
 
 test('synced code groups keep focus on the interacted tab', async () => {
-  window.history.replaceState(null, '', '/docs/reference/kitchen-sink?tab=pnpm')
+  window.history.replaceState(null, '', '/docs/dev/kitchen-sink?tab=pnpm')
   const rendered = renderDocContent(createSyncedCodeGroupDoc())
   await waitForAnimationFrame()
   const groups = rendered.container.querySelectorAll('[data-docs-code-group]')
@@ -405,7 +405,7 @@ test('synced code groups keep focus on the interacted tab', async () => {
 })
 
 test('code groups still read the legacy codegroup query param', async () => {
-  window.history.replaceState(null, '', '/docs/reference/kitchen-sink?codegroup=pnpm')
+  window.history.replaceState(null, '', '/docs/dev/kitchen-sink?codegroup=pnpm')
   const rendered = renderDocContent(createSyncedCodeGroupDoc())
   await waitForAnimationFrame()
   const groups = rendered.container.querySelectorAll('[data-docs-code-group]')
@@ -476,11 +476,16 @@ test('inline shiki code keeps the inner code element unstyled', async () => {
   expect(innerCode?.className).not.toContain('bg-gray-a2')
 })
 
-test('last updated renders UTC first, then swaps to the browser timezone without the word at', async () => {
+test('last updated renders a short timestamp first, then swaps to the browser timezone without year or timezone noise', async () => {
   const rendered = renderDocContent(createFooterDoc())
   const initialText = rendered.container.textContent ?? ''
 
-  expect(initialText).toContain('Last updated: April 12, 2026 5:38 PM UTC')
+  expect(initialText).toContain(
+    `Last updated: ${formatLastUpdatedForTest('2026-04-12T17:38:00.000Z', {
+      locale: 'en-US',
+      timeZone: 'UTC',
+    })}`,
+  )
 
   await waitForAnimationFrame()
   await waitForTimeout(10)
@@ -489,6 +494,7 @@ test('last updated renders UTC first, then swaps to the browser timezone without
   const text = rendered.container.textContent ?? ''
   expect(text).toContain(`Last updated: ${expectedLocalTimestamp}`)
   expect(text).not.toContain(' at ')
+  expect(text).not.toContain(' UTC')
 })
 
 test('search preview renders a real docs code block without copy controls', () => {
@@ -683,7 +689,7 @@ function createCodeGroupDoc(): Doc {
     headings: [],
     path: 'test',
     source: '# Test\n',
-    sourcePath: 'docs/reference/kitchen-sink.mdx',
+    sourcePath: 'docs/dev/kitchen-sink.mdx',
     title: 'Test',
   }
 }
@@ -741,7 +747,7 @@ function createSyncedCodeGroupDoc(): Doc {
     headings: [],
     path: 'test',
     source: '# Test\n',
-    sourcePath: 'docs/reference/kitchen-sink.mdx',
+    sourcePath: 'docs/dev/kitchen-sink.mdx',
     title: 'Test',
   }
 }
@@ -777,7 +783,7 @@ function createPromptShellDoc(): Doc {
     headings: [],
     path: 'test',
     source: '# Test\n',
-    sourcePath: 'docs/development/contributing.mdx',
+    sourcePath: 'docs/dev/develop.mdx',
     title: 'Test',
   }
 }
@@ -808,7 +814,7 @@ function createSingleLinePromptShellDoc(): Doc {
     headings: [],
     path: 'test',
     source: '# Test\n',
-    sourcePath: 'docs/development/contributing.mdx',
+    sourcePath: 'docs/dev/develop.mdx',
     title: 'Test',
   }
 }
@@ -830,7 +836,7 @@ function createStyledCodeBlockDoc(): Doc {
     headings: [],
     path: 'test',
     source: '# Test\n',
-    sourcePath: 'docs/reference/kitchen-sink.mdx',
+    sourcePath: 'docs/dev/kitchen-sink.mdx',
     title: 'Test',
   }
 }
@@ -852,7 +858,7 @@ function createTitledCodeBlockDoc(): Doc {
     headings: [],
     path: 'test',
     source: '# Test\n',
-    sourcePath: 'docs/reference/kitchen-sink.mdx',
+    sourcePath: 'docs/dev/kitchen-sink.mdx',
     title: 'Test',
   }
 }
@@ -909,7 +915,7 @@ function createStepsDoc(): Doc {
     headings: [],
     path: 'test',
     source: '# Test\n',
-    sourcePath: 'docs/development/contributing.mdx',
+    sourcePath: 'docs/dev/develop.mdx',
     title: 'Test',
   }
 }
@@ -942,7 +948,7 @@ function createCompactDoc(): Doc {
     headings: sections.map((section) => ({ id: section.id, level: 2, text: section.text })),
     path: 'test',
     source: '# Test',
-    sourcePath: 'docs/reference/kitchen-sink.mdx',
+    sourcePath: 'docs/dev/kitchen-sink.mdx',
     title: 'Test',
   }
 }
@@ -979,7 +985,7 @@ function createTableDoc(): Doc {
     headings: [],
     path: 'test',
     source: '# Test\n',
-    sourcePath: 'docs/reference/kitchen-sink.mdx',
+    sourcePath: 'docs/dev/kitchen-sink.mdx',
     title: 'Test',
   }
 }
@@ -1018,7 +1024,7 @@ function createInlineShikiCodeDoc(): Doc {
     headings: [],
     path: 'test',
     source: '# Test\n',
-    sourcePath: 'docs/reference/kitchen-sink.mdx',
+    sourcePath: 'docs/dev/kitchen-sink.mdx',
     title: 'Test',
   }
 }
@@ -1033,7 +1039,7 @@ function createFooterDoc(): Doc {
     lastUpdated: '2026-04-12T17:38:00.000Z',
     path: 'test',
     source: '# Test\n',
-    sourcePath: 'docs/reference/kitchen-sink.mdx',
+    sourcePath: 'docs/dev/kitchen-sink.mdx',
     title: 'Test',
   }
 }
@@ -1072,7 +1078,7 @@ function createSearchPreviewDoc(): Pick<Doc, 'Component' | 'path'> {
         </>
       )
     },
-    path: 'reference/kitchen-sink',
+    path: 'dev/kitchen-sink',
   }
 }
 
@@ -1103,7 +1109,7 @@ function createNoticeSearchPreviewDoc(): Pick<Doc, 'Component' | 'path'> {
         </>
       )
     },
-    path: 'reference/kitchen-sink',
+    path: 'dev/kitchen-sink',
   }
 }
 
@@ -1194,17 +1200,26 @@ function waitForTimeout(timeoutMs: number) {
   })
 }
 
-function formatLastUpdatedForTest(value: string) {
+function formatLastUpdatedForTest(value: string, options?: { locale?: string; timeZone?: string }) {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
 
-  return new Intl.DateTimeFormat(undefined, {
+  const yearFormatter = new Intl.DateTimeFormat(options?.locale, {
+    ...(options?.timeZone ? { timeZone: options.timeZone } : {}),
+    year: 'numeric',
+  })
+  const showYear =
+    getDateTimePart(yearFormatter, date, 'year') !==
+    getDateTimePart(yearFormatter, new Date(), 'year')
+
+  return new Intl.DateTimeFormat(options?.locale, {
     day: 'numeric',
     hour: 'numeric',
+    hour12: true,
     minute: '2-digit',
-    month: 'long',
-    timeZoneName: 'short',
-    year: 'numeric',
+    month: 'short',
+    ...(options?.timeZone ? { timeZone: options.timeZone } : {}),
+    ...(showYear ? { year: 'numeric' } : {}),
   })
     .formatToParts(date)
     .map((part) =>
@@ -1214,6 +1229,14 @@ function formatLastUpdatedForTest(value: string) {
     )
     .join('')
     .trim()
+}
+
+function getDateTimePart(
+  formatter: Intl.DateTimeFormat,
+  date: Date,
+  type: Intl.DateTimeFormatPartTypes,
+) {
+  return formatter.formatToParts(date).find((part) => part.type === type)?.value
 }
 
 function getActiveCodeGroupTabLabel(container: Element) {

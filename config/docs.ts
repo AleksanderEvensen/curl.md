@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process'
 import { statSync } from 'node:fs'
 import * as fs from 'node:fs/promises'
 import path from 'node:path'
+import { pathToFileURL } from 'node:url'
 import mdx from '@mdx-js/rollup'
 import json from '@shikijs/langs/json'
 import shellscript from '@shikijs/langs/shellscript'
@@ -19,7 +20,6 @@ import { createOnigurumaEngine } from 'shiki/engine/oniguruma'
 import type { Plugin as UnifiedPlugin } from 'unified'
 import type * as vite from 'vite'
 import * as yaml from 'yaml'
-import { sidebar, type SidebarItem } from '#docs/_sidebar.ts'
 import { createDocCopySource, type Heading } from '../src/routes/docs/-utils.ts'
 
 const highlighter = await createHighlighterCore({
@@ -199,6 +199,12 @@ const lastUpdatedCache = new Map<string, string | undefined>()
 const docsDirectoryPath = path.join(process.cwd(), 'docs')
 const docsGeneratedManifestPath = path.join(process.cwd(), 'public/docs/.generated-docs.json')
 const docsPublicDirectoryPath = path.dirname(docsGeneratedManifestPath)
+const sidebarPath = path.join(docsDirectoryPath, '_sidebar.ts')
+
+type SidebarItem =
+  | { type: 'link'; label: string; path: string }
+  | { type: 'group'; label: string; items: Array<SidebarItem> }
+  | { type: 'separator' }
 
 function rewriteDocsDirectiveSource(source: string) {
   const lines = source.split('\n')
@@ -761,6 +767,7 @@ function getLastUpdated(filePath: string | undefined, useFileModifiedFallback: b
 
 async function syncDocsStaticAssets() {
   const docs = await readDocsStaticFiles()
+  const sidebar = await getSidebar()
   const docsWithRewrittenLinks = docs.map((doc) => ({
     ...doc,
     source: rewriteGeneratedDocsLinks(doc.source),
@@ -773,7 +780,7 @@ async function syncDocsStaticAssets() {
     },
     {
       filePath: path.join(docsPublicDirectoryPath, 'llms.txt'),
-      content: generateDocsLlmsTxt({ sections: getDocsLlmsSections(docsByPath) }),
+      content: generateDocsLlmsTxt({ sections: getDocsLlmsSections(docsByPath, sidebar) }),
     },
     ...docsWithRewrittenLinks.map((doc) => ({
       filePath: path.join(docsPublicDirectoryPath, doc.path ? `${doc.path}.md` : 'index.md'),
@@ -947,7 +954,7 @@ function getFrontmatterString(frontmatter: Record<string, unknown>, key: string)
 
 export function getDocsLlmsSections(
   docsByPath: Map<string, { description: string | undefined; path: string; title: string }>,
-  sidebarItems: Array<SidebarItem> = sidebar,
+  sidebarItems: Array<SidebarItem>,
 ) {
   const overviewDocs: Array<DocsLlmsSection['docs'][number]> = []
   const sections: Array<DocsLlmsSection> = []
@@ -959,6 +966,8 @@ export function getDocsLlmsSections(
       continue
     }
 
+    if (item.type === 'separator') continue
+
     const docs = collectSidebarDocs(item.items, docsByPath)
     if (docs.length === 0) continue
     sections.push({ docs, title: item.label })
@@ -966,6 +975,12 @@ export function getDocsLlmsSections(
 
   if (overviewDocs.length > 0) sections.unshift({ docs: overviewDocs, title: 'Overview' })
   return sections
+}
+
+async function getSidebar() {
+  const href = pathToFileURL(sidebarPath).href
+  const module = await import(`${href}?t=${statSync(sidebarPath).mtimeMs}`)
+  return module.sidebar
 }
 
 function collectSidebarDocs(
@@ -980,6 +995,8 @@ function collectSidebarDocs(
       if (doc) docs.push(doc)
       continue
     }
+
+    if (item.type === 'separator') continue
 
     docs.push(...collectSidebarDocs(item.items, docsByPath))
   }

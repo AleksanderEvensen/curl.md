@@ -1,0 +1,79 @@
+---
+title: Installation
+description: Install curl.md for the browser, terminal, or supported agent integrations.
+---
+
+# Installation
+
+Install `curl.md` in the environment you use most. Start with the CLI if you want the broadest support, then add an agent integration if it matches your workflow.
+
+:::tip Pick one install path
+You only need one primary install path to get value from `curl.md`.
+:::
+
+## CLI
+
+Install the CLI if you want terminal usage, scripts, or a reusable local auth session.
+
+```sh
+$ npm i -g curl.md
+```
+
+Or with Bun:
+
+```sh
+$ bun i -g curl.md
+```
+
+If you prefer a script-based install:
+
+```sh
+$ curl -fsSL https://curl.md/install.sh | bash
+```
+
+Verify it works:
+
+```sh
+$ curl.md --version
+$ md --version
+```
+
+## Amp
+
+Install the first-party Amp plugin if you want `curl.md` to intercept `read_web_page` and expose `md_fetch` inside Amp.
+
+```sh
+$ npx @curl.md/amp install
+```
+
+Then start Amp with plugins enabled:
+
+```sh
+$ PLUGINS=all amp
+```
+
+See [Amp](/docs/plugins/amp) for the full workflow.
+
+## Pi
+
+Install the first-party Pi extension if you want `read_web_page`, `md_fetch`, and auth commands inside Pi.
+
+```sh
+$ pi install @curl.md/pi
+```
+
+See [Pi](/docs/plugins/pi) for the full workflow.
+
+## Authentication
+
+Anonymous usage works for quick tests. Authentication gives you higher limits and account-scoped features.
+
+For the CLI and Amp plugin:
+
+```sh
+$ curl.md auth login
+```
+
+For Pi, run `md_login` after installing the extension.
+
+If you prefer non-interactive auth, set `CURLMD_API_KEY` in your environment.

@@ -85,8 +85,8 @@ test('curlDocs rewrites preview hosts to generated markdown', () => {
 })
 
 test('curlDocs keeps generated markdown paths unchanged', () => {
-  expect(rewrite(rules.curlDocs, 'https://curl.md/docs/reference/kitchen-sink.md')?.href).toBe(
-    'https://curl.md/docs/reference/kitchen-sink.md',
+  expect(rewrite(rules.curlDocs, 'https://curl.md/docs/dev/kitchen-sink.md')?.href).toBe(
+    'https://curl.md/docs/dev/kitchen-sink.md',
   )
 })
 

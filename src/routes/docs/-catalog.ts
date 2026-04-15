@@ -73,7 +73,7 @@ function flattenSidebarItems(
 
   for (const item of items) {
     if (item.type === 'link') links.push(item)
-    else links.push(...flattenSidebarItems(item.items))
+    else if (item.type === 'group') links.push(...flattenSidebarItems(item.items))
   }
 
   return links

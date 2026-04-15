@@ -1,0 +1,58 @@
+---
+title: Pi
+description: Install and use the first-party curl.md Pi extension.
+---
+
+# Pi
+
+The Pi integration is a first-party extension that adds `curl.md` auth commands plus `read_web_page` and `md_fetch` tool support.
+
+## Install
+
+```sh
+$ pi install @curl.md/pi
+```
+
+Or install unreleased commmits.
+
+```sh
+$ pi -e https://github.com/wevm/pi
+```
+
+## Pi Extension
+
+After installing, Pi gets these commands:
+
+- `md_login`
+- `md_logout`
+- `md_status`
+- `md_org`
+
+It also exposes:
+
+- `read_web_page`
+- `md_fetch`
+
+## Authentication
+
+Authenticate inside Pi with:
+
+```text
+/md_login
+```
+
+If you prefer non-interactive auth, set `CURLMD_API_KEY` before starting Pi.
+
+## Status And Debugging
+
+Use:
+
+```text
+/md_status
+```
+
+to confirm auth state, tool registration, and whether the `curl.md` CLI is available on your machine.
+
+## When To Use Pi
+
+Use the extension when you want `curl.md` built directly into Pi instead of calling the CLI manually.

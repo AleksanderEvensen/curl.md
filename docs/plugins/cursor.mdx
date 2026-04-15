@@ -1,0 +1,28 @@
+---
+title: Cursor
+description: Use curl.md with Cursor by fetching cleaner markdown before passing context into the editor agent.
+---
+
+# Cursor
+
+`curl.md` pairs well with Cursor when you want to pull external docs into your editor workflow without dragging in a full webpage.
+
+## Recommended Workflow
+
+Run `curl.md` from Cursor's integrated terminal, then paste or reference the markdown in chat or composer.
+
+```sh
+$ md tanstack.com/router/latest/docs/framework/react/guide/navigation \
+  --objective "file-based routing and navigation patterns" \
+  --keywords navigation,routes
+```
+
+## Good Fits
+
+- implementation tasks against external API docs
+- refactors that depend on framework migration guides
+- debugging sessions where a long doc page needs to be narrowed first
+
+## Status
+
+There is no first-party Cursor integration package in this repo today. The current recommendation is to use the [CLI](/docs/guide/cli) or [API & SDK](/docs/guide/api) alongside Cursor.

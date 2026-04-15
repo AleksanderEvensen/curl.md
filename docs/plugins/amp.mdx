@@ -1,0 +1,50 @@
+---
+title: Amp
+description: Install and use the first-party curl.md Amp plugin.
+---
+
+# Amp
+
+The Amp integration is a first-party plugin that lets `curl.md` intercept `read_web_page` calls and adds an explicit `md_fetch` tool.
+
+## Install
+
+```sh
+$ npx @curl.md/amp install
+```
+
+Successful installs create the Amp plugin shim in `~/.config/amp/plugins/curlmd.ts`.
+
+Start Amp with plugins enabled:
+
+```sh
+$ PLUGINS=all amp
+```
+
+## What The Plugin Does
+
+- intercepts `read_web_page`
+- adds `md_fetch`
+- forwards `url`, `objective`, `keywords`, `mode`, and `fresh`
+
+That means existing Amp flows can keep using `read_web_page`, while `curl.md` handles the fetch and markdown conversion.
+
+## Authentication
+
+The plugin uses the same auth model as the CLI.
+
+```sh
+$ curl.md auth login
+```
+
+For headless or shared environments, set `CURLMD_API_KEY`.
+
+## Example
+
+Inside Amp, ask for a page with a concrete goal, for example:
+
+```text
+Read the Stripe webhook docs and extract the signing header requirements.
+```
+
+Or call `md_fetch` directly with a URL, objective, and keywords.

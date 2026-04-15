@@ -2,7 +2,7 @@ import { expect } from '@playwright/test'
 import { test } from '#test/e2e-utils.ts'
 
 test('/docs tab click keeps scroll position on first sync', async ({ page }) => {
-  await page.goto('/docs/reference/kitchen-sink')
+  await page.goto('/docs/dev/kitchen-sink')
   await page.waitForLoadState('networkidle')
   await expect(page.getByRole('heading', { level: 1, name: 'Kitchen Sink' })).toBeVisible()
 
@@ -32,7 +32,7 @@ test('/docs tab click keeps scroll position on first sync', async ({ page }) => 
 })
 
 test('/docs search query persists in q while typing and after refresh', async ({ page }) => {
-  await page.goto('/docs/reference/kitchen-sink')
+  await page.goto('/docs/dev/kitchen-sink')
   await page.waitForLoadState('networkidle')
 
   await page.getByRole('button', { name: 'Search' }).click()
@@ -42,15 +42,15 @@ test('/docs search query persists in q while typing and after refresh', async ({
 
   await searchInput.pressSequentially('k')
   await expect(searchInput).toHaveValue('k')
-  await expect(page).toHaveURL(/\/docs\/reference\/kitchen-sink\?q=k$/)
+  await expect(page).toHaveURL(/\/docs\/dev\/kitchen-sink\?q=k$/)
 
   await searchInput.pressSequentially('i')
   await expect(searchInput).toHaveValue('ki')
-  await expect(page).toHaveURL(/\/docs\/reference\/kitchen-sink\?q=ki$/)
+  await expect(page).toHaveURL(/\/docs\/dev\/kitchen-sink\?q=ki$/)
 
   await page.reload()
 
-  await expect(page).toHaveURL(/\/docs\/reference\/kitchen-sink\?q=ki$/)
+  await expect(page).toHaveURL(/\/docs\/dev\/kitchen-sink\?q=ki$/)
   await expect(searchInput).toBeVisible()
   await expect(searchInput).toHaveValue('ki')
 })
@@ -58,7 +58,7 @@ test('/docs search query persists in q while typing and after refresh', async ({
 test('/docs search preview renders real code blocks and steps from compiled docs excerpts', async ({
   page,
 }) => {
-  await page.goto('/docs/reference/kitchen-sink')
+  await page.goto('/docs/dev/kitchen-sink')
   await page.waitForLoadState('networkidle')
 
   await page.getByRole('button', { name: 'Search' }).click()
@@ -108,7 +108,7 @@ test('/docs search pressing Enter opens the highlighted result', async ({ page }
 
   await searchInput.press('Enter')
 
-  await expect(page).toHaveURL('/docs/reference/kitchen-sink')
+  await expect(page).toHaveURL('/docs/dev/kitchen-sink')
   await expect(page.getByRole('heading', { level: 1, name: 'Kitchen Sink' })).toBeVisible()
 })
 
@@ -126,7 +126,7 @@ test('/docs recent search results do not highlight previous query terms', async 
 
   await searchInput.press('Enter')
 
-  await expect(page).toHaveURL('/docs/reference/kitchen-sink')
+  await expect(page).toHaveURL('/docs/dev/kitchen-sink')
 
   await page.getByRole('button', { name: 'Search' }).click()
   await expect(page.getByText('Recents', { exact: true })).toBeVisible()

@@ -313,7 +313,7 @@ export function DocContent(props: {
           </div>
         )}
 
-        <article className="min-w-0 px-5 py-8 md:px-12 md:max-lg:-ms-12 md:max-lg:w-[calc(100%+3rem)] md:max-lg:px-8 lg:mx-auto lg:w-full lg:max-w-2xl lg:px-0 lg:pt-12">
+        <article className="min-w-0 px-5 py-8 text-[0.9375rem] md:px-12 md:max-lg:-ms-12 md:max-lg:w-[calc(100%+3rem)] md:max-lg:px-8 lg:mx-auto lg:w-full lg:max-w-2xl lg:px-0 lg:pt-12">
           <doc.Component components={mdxComponents} />
 
           {(doc.lastUpdated || hasPagination) && (
@@ -417,6 +417,10 @@ export function DocSearchPreview(props: {
   const contentRef = React.useRef<HTMLDivElement>(null)
   const viewportRef = React.useRef<HTMLDivElement>(null)
   const [offsetTop, setOffsetTop] = React.useState(0)
+  const previewMaskImage =
+    offsetTop > 0
+      ? 'linear-gradient(to bottom, transparent 0%, black 10%, black 82%, transparent 100%)'
+      : 'linear-gradient(to bottom, black 0%, black 82%, transparent 100%)'
 
   useBrowserLayoutEffect(() => {
     const content = contentRef.current
@@ -452,12 +456,13 @@ export function DocSearchPreview(props: {
   return (
     <div
       aria-hidden="true"
-      className="relative max-h-40 overflow-hidden [mask-image:linear-gradient(to_bottom,black_0%,black_82%,transparent_100%)]"
+      className="relative max-h-40 overflow-hidden"
       data-doc-search-preview=""
       ref={viewportRef}
+      style={{ WebkitMaskImage: previewMaskImage, maskImage: previewMaskImage }}
     >
       <div
-        className="pointer-events-none select-none [&_[data-docs-code-block]]:mt-2.5 [&_[data-docs-step]:first-child]:pt-0 [&_[data-docs-steps]]:mt-2.5 [&>*:first-child]:mt-0"
+        className="pointer-events-none ps-2 pe-1 select-none [&_[data-docs-code-block]]:mt-2.5 [&_[data-docs-step]:first-child]:pt-0 [&_[data-docs-steps]]:mt-2.5 [&>*:first-child]:mt-0"
         ref={contentRef}
         style={offsetTop ? { transform: `translateY(-${offsetTop}px)` } : undefined}
       >
@@ -481,23 +486,41 @@ function createMdxComponents(props: { copied: boolean; copyPage: () => void; pre
     Notice,
     Step,
     Steps: preview ? PreviewSteps : Steps,
-    table: DocsTable,
+    table: (tableProps: React.ComponentProps<'table'>) => (
+      <DocsTable preview={preview} {...tableProps} />
+    ),
     tbody: DocsTableBody,
-    td: DocsTableCell,
-    th: DocsTableHeaderCell,
+    td: (cellProps: React.ComponentProps<'td'>) => (
+      <DocsTableCell preview={preview} {...cellProps} />
+    ),
+    th: (cellProps: React.ComponentProps<'th'>) => (
+      <DocsTableHeaderCell preview={preview} {...cellProps} />
+    ),
     thead: DocsTableHead,
     tr: DocsTableRow,
     a: (anchorProps: React.ComponentProps<'a'>) => {
       const { href, children, ...rest } = anchorProps
-      if (preview) return <span className="text-blue9">{children}</span>
+      if (preview)
+        return (
+          <span className="underline [text-decoration-color:var(--color-gray-a6)] underline-offset-2">
+            {children}
+          </span>
+        )
       if (!preview && href?.startsWith('/'))
         return (
-          <Link className="text-blue9 hover:underline" to={href}>
+          <Link
+            className="underline [text-decoration-color:var(--color-gray-a6)] underline-offset-2"
+            to={href}
+          >
             {children}
           </Link>
         )
       return (
-        <a className="text-blue9 hover:underline" href={href} {...rest}>
+        <a
+          className="underline [text-decoration-color:var(--color-gray-a6)] underline-offset-2"
+          href={href}
+          {...rest}
+        >
           {children}
         </a>
       )
@@ -524,43 +547,43 @@ function createMdxComponents(props: { copied: boolean; copyPage: () => void; pre
       preview
         ? renderPreviewHeading(
             'h2',
-            'mt-6 scroll-mt-[7rem] text-base font-bold md:text-lg lg:scroll-mt-4',
+            'mt-7 scroll-mt-[7rem] text-base font-bold md:text-lg lg:scroll-mt-4',
             headingProps,
           )
         : renderHeading(
             'h2',
-            'mt-10 scroll-mt-[7rem] text-lg font-bold md:text-xl lg:scroll-mt-4',
+            'mt-12 scroll-mt-[7rem] text-lg font-bold md:text-xl lg:scroll-mt-4',
             headingProps,
           ),
     h3: (headingProps: React.ComponentProps<'h3'>) =>
       preview
         ? renderPreviewHeading(
             'h3',
-            'mt-5 scroll-mt-[7rem] text-[0.9375rem] font-bold md:text-base lg:scroll-mt-5',
+            'mt-6 scroll-mt-[7rem] text-[0.9375rem] font-bold md:text-base lg:scroll-mt-5',
             headingProps,
           )
         : renderHeading(
             'h3',
-            'mt-8 scroll-mt-[7rem] text-base font-bold md:text-lg lg:scroll-mt-5',
+            'mt-10 scroll-mt-[7rem] text-base font-bold md:text-lg lg:scroll-mt-5',
             headingProps,
           ),
     h4: (headingProps: React.ComponentProps<'h4'>) =>
       preview
         ? renderPreviewHeading(
             'h4',
-            'mt-4 scroll-mt-[7rem] text-[0.8125rem] font-bold md:text-sm lg:scroll-mt-4',
+            'mt-5 scroll-mt-[7rem] text-[0.8125rem] font-bold md:text-sm lg:scroll-mt-4',
             headingProps,
           )
         : renderHeading(
             'h4',
-            'mt-7 scroll-mt-[7rem] text-sm font-bold md:text-base lg:scroll-mt-4',
+            'mt-8 scroll-mt-[7rem] text-sm font-bold md:text-base lg:scroll-mt-4',
             headingProps,
           ),
     hr: () => <hr className="border-gray-a3 my-8" />,
     li: (listItemProps: React.ComponentProps<'li'>) => (
       <li
         className={[
-          'text-[color-mix(in_oklab,var(--color-gray10)_25%,var(--color-gray9))]',
+          'text-[color-mix(in_oklab,var(--color-gray10)_25%,var(--color-gray9))] [&>ol]:ms-6 [&>ul]:ms-6',
           preview ? 'leading-[1.45]' : 'leading-relaxed',
         ]
           .filter(Boolean)
@@ -572,7 +595,7 @@ function createMdxComponents(props: { copied: boolean; copyPage: () => void; pre
       <ol
         className={[
           'list-decimal text-[color-mix(in_oklab,var(--color-gray10)_25%,var(--color-gray9))]',
-          preview ? 'mt-3 space-y-0.5 ps-5' : 'mt-4 space-y-1 ps-6',
+          preview ? 'mt-3 space-y-0.5 ps-5' : 'mt-4 space-y-1 ps-7',
         ]
           .filter(Boolean)
           .join(' ')}
@@ -594,7 +617,7 @@ function createMdxComponents(props: { copied: boolean; copyPage: () => void; pre
       <ul
         className={[
           "[&>li]:before:text-gray9 list-none ps-0 text-[color-mix(in_oklab,var(--color-gray10)_25%,var(--color-gray9))] [&>li]:relative [&>li]:before:absolute [&>li]:before:content-['-'] [&>li]:before:start-0 [&>li]:before:top-0",
-          preview ? 'mt-3 space-y-2 [&>li]:ps-5' : 'mt-4 space-y-3 [&>li]:ps-6',
+          preview ? 'mt-3 space-y-0.5 [&>li]:ps-5' : 'mt-4 space-y-1 [&>li]:ps-6',
         ]
           .filter(Boolean)
           .join(' ')}
@@ -805,7 +828,7 @@ function Notice(props: React.PropsWithChildren<{ title?: string; type?: string }
 
   return (
     <div
-      className="data-[type=caution]:border-red9/30 data-[type=caution]:bg-red9/8 data-[type=hint]:border-blue9/30 data-[type=hint]:bg-blue9/8 data-[type=important]:border-purple9/30 data-[type=important]:bg-purple9/8 data-[type=note]:border-blue9/30 data-[type=note]:bg-blue9/8 data-[type=tip]:border-green9/30 data-[type=tip]:bg-green9/8 data-[type=warning]:border-amber9/30 data-[type=warning]:bg-amber9/8 mt-6 border p-4 text-sm"
+      className="data-[type=caution]:border-red9/30 data-[type=caution]:bg-red9/8 data-[type=hint]:border-blue9/30 data-[type=hint]:bg-blue9/8 data-[type=important]:border-purple9/30 data-[type=important]:bg-purple9/8 data-[type=note]:border-blue9/30 data-[type=note]:bg-blue9/8 data-[type=tip]:border-green9/30 data-[type=tip]:bg-green9/8 data-[type=warning]:border-amber9/30 data-[type=warning]:bg-amber9/8 mt-6 border p-4 text-[0.9375rem]"
       data-type={type}
       role="note"
     >
@@ -822,12 +845,17 @@ function Notice(props: React.PropsWithChildren<{ title?: string; type?: string }
   )
 }
 
-function DocsTable(props: React.ComponentProps<'table'>) {
+function DocsTable(props: React.ComponentProps<'table'> & { preview?: boolean }) {
+  const { preview, ...rest } = props
   return (
     <div className="minimal-scrollbar mt-6 overflow-x-auto" data-docs-table="">
       <table
-        {...props}
-        className={['min-w-full border-collapse text-sm', props.className]
+        {...rest}
+        className={[
+          'min-w-full border-collapse',
+          preview ? 'text-[0.8125rem]' : 'text-[0.9375rem]',
+          rest.className,
+        ]
           .filter(Boolean)
           .join(' ')}
       />
@@ -857,13 +885,15 @@ function DocsTableRow(props: React.ComponentProps<'tr'>) {
   )
 }
 
-function DocsTableHeaderCell(props: React.ComponentProps<'th'>) {
+function DocsTableHeaderCell(props: React.ComponentProps<'th'> & { preview?: boolean }) {
+  const { preview, ...rest } = props
   return (
     <th
-      {...props}
+      {...rest}
       className={[
-        'bg-gray-a1 text-gray10 px-4 py-3 text-left font-medium whitespace-nowrap',
-        props.className,
+        'bg-gray-a1 text-gray10 text-left font-medium whitespace-nowrap',
+        preview ? 'px-3 py-2.5' : 'px-4 py-3',
+        rest.className,
       ]
         .filter(Boolean)
         .join(' ')}
@@ -871,13 +901,15 @@ function DocsTableHeaderCell(props: React.ComponentProps<'th'>) {
   )
 }
 
-function DocsTableCell(props: React.ComponentProps<'td'>) {
+function DocsTableCell(props: React.ComponentProps<'td'> & { preview?: boolean }) {
+  const { preview, ...rest } = props
   return (
     <td
-      {...props}
+      {...rest}
       className={[
-        'text-[color-mix(in_oklab,var(--color-gray10)_25%,var(--color-gray9))] px-4 py-3 align-top whitespace-nowrap',
-        props.className,
+        'text-[color-mix(in_oklab,var(--color-gray10)_25%,var(--color-gray9))] align-top whitespace-nowrap',
+        preview ? 'px-3 py-2.5' : 'px-4 py-3',
+        rest.className,
       ]
         .filter(Boolean)
         .join(' ')}
@@ -1327,14 +1359,22 @@ function formatLastUpdated(value: string, options?: { locale?: string; timeZone?
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
 
+  const yearFormatter = new Intl.DateTimeFormat(options?.locale, {
+    ...(options?.timeZone ? { timeZone: options.timeZone } : {}),
+    year: 'numeric',
+  })
+  const showYear =
+    getDateTimePart(yearFormatter, date, 'year') !==
+    getDateTimePart(yearFormatter, new Date(), 'year')
+
   return new Intl.DateTimeFormat(options?.locale, {
     day: 'numeric',
     hour: 'numeric',
+    hour12: true,
     minute: '2-digit',
-    month: 'long',
-    timeZoneName: 'short',
+    month: 'short',
     ...(options?.timeZone ? { timeZone: options.timeZone } : {}),
-    year: 'numeric',
+    ...(showYear ? { year: 'numeric' } : {}),
   })
     .formatToParts(date)
     .map((part) =>
@@ -1344,6 +1384,14 @@ function formatLastUpdated(value: string, options?: { locale?: string; timeZone?
     )
     .join('')
     .trim()
+}
+
+function getDateTimePart(
+  formatter: Intl.DateTimeFormat,
+  date: Date,
+  type: Intl.DateTimeFormatPartTypes,
+) {
+  return formatter.formatToParts(date).find((part) => part.type === type)?.value
 }
 
 function getNodeText(node: React.ReactNode): string | undefined {

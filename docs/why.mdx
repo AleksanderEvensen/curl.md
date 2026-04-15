@@ -1,0 +1,36 @@
+---
+title: Why curl.md
+description: Why curl.md exists and when it is better than raw HTML, reader mode, or copy-pasting docs by hand.
+---
+
+# Why curl.md
+
+Agents work best when the source material is clean, structured, and focused. Most webpages are the opposite.
+
+## Raw Webpages Waste Context
+
+HTML pages usually include navigation, footers, sidebars, scripts, cookie banners, and unrelated content. That noise costs tokens and makes it harder for an agent to find the part that matters.
+
+## Reader Mode Is Not Enough
+
+Generic reader tools can improve readability, but they usually do not optimize for agent workflows. They also do not help when you want just one section, one endpoint, or one implementation detail from a long page.
+
+## curl.md Fits The Agent Workflow
+
+`curl.md` is built around the common loop of agent work:
+
+- fetch a page as markdown
+- narrow it to a specific objective
+- pre-filter with keywords when the page is large
+- pass the result into your editor, terminal, or agent tool
+
+## Good Use Cases
+
+- API docs where you only need one endpoint or auth requirement
+- changelogs where freshness matters
+- long guides where only one subsection is relevant
+- agent tools that need markdown instead of full HTML
+
+## Read Next
+
+If you already know why you want it, continue to [Features](/docs/guide/features) or go straight to [Installation](/docs/install).

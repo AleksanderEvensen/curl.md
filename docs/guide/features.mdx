@@ -1,0 +1,53 @@
+---
+title: Features
+description: The core capabilities that make curl.md useful in agent workflows.
+---
+
+# Features
+
+`curl.md` is intentionally small in surface area. The goal is simple: turn web content into markdown that is easier for agents to use.
+
+## Markdown Output For Agents
+
+Fetch a webpage and get markdown back instead of full HTML.
+
+```sh
+$ md example.com
+```
+
+## Objective-Based Narrowing
+
+Use an objective when you need the output narrowed to a specific question or task.
+
+```sh
+$ md zod.dev/error-formatting --objective "tree error formatting"
+```
+
+## Keyword Pre-Filtering
+
+Use keywords when you know the terms that matter and want to shrink the search space before the final output is generated.
+
+```sh
+$ md developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch \
+  --objective "streaming response body" \
+  --keywords ReadableStream,getReader
+```
+
+## Cache Control
+
+Use `fresh` when you need a live refetch instead of a cached result.
+
+```sh
+$ md changelog.example.com --fresh
+```
+
+## Multiple Entry Points
+
+- Hosted URL for quick fetches
+- [CLI](/docs/guide/cli) for terminal and scripts
+- [API & SDK](/docs/guide/api) for application code
+- [Amp](/docs/plugins/amp) and [Pi](/docs/plugins/pi) integrations for agent-native workflows
+
+## Authentication
+
+Anonymous access is good for quick tests. Authenticated usage unlocks higher limits and account-scoped features.

@@ -1,0 +1,47 @@
+---
+title: Getting Started
+description: Learn the fastest path from first fetch to a full curl.md workflow.
+---
+
+# Getting Started
+
+`curl.md` turns noisy webpages into markdown built for agents. Start with one fetch, then decide whether you want the browser URL, the CLI, or an agent integration.
+
+## First Fetch
+
+Use the hosted URL directly:
+
+```sh
+$ curl curl.md/example.com
+```
+
+Or use the CLI once it is installed:
+
+```sh
+$ md example.com
+```
+
+## Narrow The Result
+
+When you only need part of a long page, add an objective and a few keywords:
+
+```sh
+$ md docs.github.com/en/webhooks/webhook-events-and-payloads \
+  --objective "pull request webhook event payload and actions" \
+  --keywords pull_request
+```
+
+This keeps the output focused on the part your agent actually needs.
+
+## Pick A Workflow
+
+- [Installation](/docs/install) for the fastest setup path.
+- [CLI](/docs/guide/cli) if you want terminal and script usage.
+- [API & SDK](/docs/guide/api) if you want to call `curl.md` from code.
+- [Amp](/docs/plugins/amp) or [Pi](/docs/plugins/pi) if you want native agent integrations.
+
+## Read Next
+
+1. [Why curl.md](/docs/why)
+2. [Features](/docs/guide/features)
+3. [Installation](/docs/install)

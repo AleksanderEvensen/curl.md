@@ -2,13 +2,18 @@ import { linkOptions } from '@tanstack/react-router'
 
 export const config = {
   navbarLinks: [
-    { label: 'Guides', ...linkOptions({ to: '/docs' }) },
-    { label: 'API', ...linkOptions({ to: '/playground' }) },
+    { label: 'Home', ...linkOptions({ to: '/docs' }) },
     {
-      label: 'CLI',
+      label: 'Guide',
       ...linkOptions({
-        hash: 'cli',
-        params: { _splat: 'getting-started/installation' },
+        params: { _splat: 'guide/features' },
+        to: '/docs/$',
+      }),
+    },
+    {
+      label: 'Plugins',
+      ...linkOptions({
+        params: { _splat: 'plugins/amp' },
         to: '/docs/$',
       }),
     },
