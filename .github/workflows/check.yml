@@ -36,10 +36,7 @@ jobs:
       - name: Setup
         uses: ./.github/actions/setup-pnpm
 
-      # Temporarily disabled until pnpm fixes retired npm audit endpoint handling:
-      # https://github.com/pnpm/pnpm/issues/11265
       - name: Audit dependencies
-        if: false
         run: pnpm audit
 
       - name: Lint

@@ -569,6 +569,16 @@ test('search preview renders cards as non-interactive preview blocks', () => {
   expect(rendered.container.querySelector('[data-docs-card-icon]')).not.toBeNull()
 })
 
+test('search preview scales notice typography down', () => {
+  const rendered = renderDocSearchPreview(createNoticeSearchPreviewDoc(), 'notices')
+  const notice = rendered.container.querySelector('[role="note"]')
+
+  if (!(notice instanceof HTMLElement)) throw new Error('Expected preview notice to render')
+
+  expect(notice.className).toContain('text-[0.8125rem]')
+  expect(notice.className).not.toContain('text-[0.9375rem]')
+})
+
 test('search preview highlights matching heading and body text', () => {
   const rendered = renderDocSearchPreview(createSearchPreviewDoc(), 'install-dependencies', [
     'install',

@@ -497,7 +497,9 @@ function createMdxComponents(props: { copied: boolean; copyPage: () => void; pre
     pre: (preProps: React.ComponentProps<'pre'>) => (
       <DocsCodeBlock preview={preview} {...preProps} />
     ),
-    Notice,
+    Notice: ((noticeProps: React.PropsWithChildren<{ title?: string; type?: string }>) => (
+      <Notice preview={preview} {...noticeProps} />
+    )) as React.ComponentType<any>,
     Step,
     Steps: preview ? PreviewSteps : Steps,
     table: (tableProps: React.ComponentProps<'table'>) => (
@@ -824,25 +826,55 @@ function DocsInlineCode(props: React.ComponentProps<'code'>) {
   )
 }
 
-function Notice(props: React.PropsWithChildren<{ title?: string; type?: string }>) {
-  const { children, title, type = 'note' } = props
+function Notice(
+  props: React.PropsWithChildren<{ preview?: boolean; title?: string; type?: string }>,
+) {
+  const { children, preview = false, title, type = 'note' } = props
   const label = title ?? noticeTitles[type] ?? noticeTitles.note
 
   return (
     <div
-      className="data-[type=caution]:border-red9/30 data-[type=caution]:bg-red9/8 data-[type=hint]:border-blue9/30 data-[type=hint]:bg-blue9/8 data-[type=important]:border-purple9/30 data-[type=important]:bg-purple9/8 data-[type=note]:border-blue9/30 data-[type=note]:bg-blue9/8 data-[type=tip]:border-green9/30 data-[type=tip]:bg-green9/8 data-[type=warning]:border-amber9/30 data-[type=warning]:bg-amber9/8 mt-6 border p-4 text-[0.9375rem]"
+      className={[
+        'data-[type=caution]:border-red9/30 data-[type=caution]:bg-red9/8 data-[type=hint]:border-blue9/30 data-[type=hint]:bg-blue9/8 data-[type=important]:border-purple9/30 data-[type=important]:bg-purple9/8 data-[type=note]:border-blue9/30 data-[type=note]:bg-blue9/8 data-[type=tip]:border-green9/30 data-[type=tip]:bg-green9/8 data-[type=warning]:border-amber9/30 data-[type=warning]:bg-amber9/8 border',
+        preview ? 'mt-4 p-3 text-[0.8125rem]' : 'mt-6 p-4 text-[0.9375rem]',
+      ]
+        .filter(Boolean)
+        .join(' ')}
       data-type={type}
       role="note"
     >
       <div
-        className="data-[type=caution]:border-red9/30 data-[type=caution]:bg-red9/8 data-[type=caution]:text-red9 data-[type=hint]:border-blue9/30 data-[type=hint]:bg-blue9/8 data-[type=hint]:text-blue9 data-[type=important]:border-purple9/30 data-[type=important]:bg-purple9/8 data-[type=important]:text-purple9 data-[type=note]:border-blue9/30 data-[type=note]:bg-blue9/8 data-[type=note]:text-blue9 data-[type=tip]:border-green9/30 data-[type=tip]:bg-green9/8 data-[type=tip]:text-green9 data-[type=warning]:border-amber9/30 data-[type=warning]:bg-amber9/8 data-[type=warning]:text-amber9 inline-flex items-center gap-1.5 border px-1.5 py-0.5"
+        className={[
+          'data-[type=caution]:border-red9/30 data-[type=caution]:bg-red9/8 data-[type=caution]:text-red9 data-[type=hint]:border-blue9/30 data-[type=hint]:bg-blue9/8 data-[type=hint]:text-blue9 data-[type=important]:border-purple9/30 data-[type=important]:bg-purple9/8 data-[type=important]:text-purple9 data-[type=note]:border-blue9/30 data-[type=note]:bg-blue9/8 data-[type=note]:text-blue9 data-[type=tip]:border-green9/30 data-[type=tip]:bg-green9/8 data-[type=tip]:text-green9 data-[type=warning]:border-amber9/30 data-[type=warning]:bg-amber9/8 data-[type=warning]:text-amber9 inline-flex items-center border',
+          preview ? 'gap-1 px-1.5 py-0.5' : 'gap-1.5 px-1.5 py-0.5',
+        ]
+          .filter(Boolean)
+          .join(' ')}
         data-type={type}
       >
         <NoticeIcon type={type} />
-        <p className="mt-0 text-[0.6875rem] font-medium tracking-wide uppercase">{label}</p>
+        <p
+          className={[
+            'mt-0 font-medium tracking-wide uppercase',
+            preview ? 'text-[0.625rem]' : 'text-[0.6875rem]',
+          ]
+            .filter(Boolean)
+            .join(' ')}
+        >
+          {label}
+        </p>
       </div>
 
-      <div className="[&>*:first-child]:mt-3 [&>*:last-child]:mb-0">{children}</div>
+      <div
+        className={[
+          '[&>*:last-child]:mb-0',
+          preview ? '[&>*:first-child]:mt-2.5' : '[&>*:first-child]:mt-3',
+        ]
+          .filter(Boolean)
+          .join(' ')}
+      >
+        {children}
+      </div>
     </div>
   )
 }
