@@ -105,6 +105,7 @@ export function createDocsSearch(
       const normalizedQuery = query.trim()
       if (!normalizedQuery) return []
       const normalizedQueryPhrase = collapseWhitespace(normalizedQuery)
+      const normalizedQueryLower = normalizedQueryPhrase.toLowerCase()
 
       return docsSearch
         .search(normalizedQuery, {
@@ -113,7 +114,19 @@ export function createDocsSearch(
           maxFuzzy: 2,
           prefix: true,
         })
-        .sort((a, b) => b.score - a.score || a.order - b.order)
+        .sort(
+          (a, b) =>
+            getDocSearchPageTitlePriority(
+              b as { kind?: DocSearchDocument['kind']; title?: string },
+              normalizedQueryLower,
+            ) -
+              getDocSearchPageTitlePriority(
+                a as { kind?: DocSearchDocument['kind']; title?: string },
+                normalizedQueryLower,
+              ) ||
+            b.score - a.score ||
+            a.order - b.order,
+        )
         .slice(0, 8)
         .map((result) => {
           const searchableText = collapseWhitespace(
@@ -179,6 +192,18 @@ type DocSearchDocument = {
   sectionPathText: string
   sectionTitle: string
   title: string
+}
+
+function getDocSearchPageTitlePriority(
+  result: { kind?: DocSearchDocument['kind']; title?: string },
+  normalizedQueryLower: string,
+) {
+  if (result.kind !== 'page') return 0
+
+  const normalizedTitle = collapseWhitespace(result.title ?? '').toLowerCase()
+  if (normalizedTitle === normalizedQueryLower) return 2
+  if (normalizedTitle.includes(normalizedQueryLower)) return 1
+  return 0
 }
 
 function getHeadingPaths(headings: Array<Heading>) {

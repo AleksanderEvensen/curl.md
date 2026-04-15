@@ -2,6 +2,12 @@ import { Menu } from '@base-ui/react/menu'
 import { Tabs } from '@base-ui/react/tabs'
 import { Link } from '@tanstack/react-router'
 import * as React from 'react'
+import IconBrandAmp from '~icons/brand/amp.jsx'
+import IconBrandOpencode from '~icons/brand/opencode.jsx'
+import IconBrandPi from '~icons/brand/pi.jsx'
+import IconSimpleIconsClaude from '~icons/simple-icons/claude.jsx'
+import IconSimpleIconsCursor from '~icons/simple-icons/cursor.jsx'
+import IconSimpleIconsOpenai from '~icons/simple-icons/openai.jsx'
 import { config } from '#docs/_config.ts'
 import { useBrowserLayoutEffect } from '#hooks/useBrowserLayoutEffect.ts'
 import { useCopyToClipboard } from '#hooks/useCopyToClipboard.ts'
@@ -476,8 +482,16 @@ export function DocSearchPreview(props: {
 
 function createMdxComponents(props: { copied: boolean; copyPage: () => void; preview?: boolean }) {
   const { copied, copyPage, preview = false } = props
+  const docsInlineLinkClassName =
+    'text-[color-mix(in_oklab,var(--color-gray10)_45%,var(--color-gray9))] underline [text-decoration-color:var(--color-gray-a6)] underline-offset-2 hover:text-gray10'
 
   return {
+    Card: ((cardProps: React.PropsWithChildren<{ href: string; icon?: string; title: string }>) => (
+      <DocsCard preview={preview} {...cardProps} />
+    )) as React.ComponentType<any>,
+    Cards: ((cardsProps: React.PropsWithChildren) => (
+      <DocsCards preview={preview} {...cardsProps} />
+    )) as React.ComponentType<any>,
     CodeGroup: preview ? PreviewCodeGroup : CodeGroup,
     CodeGroupItem,
     pre: (preProps: React.ComponentProps<'pre'>) => (
@@ -500,27 +514,15 @@ function createMdxComponents(props: { copied: boolean; copyPage: () => void; pre
     tr: DocsTableRow,
     a: (anchorProps: React.ComponentProps<'a'>) => {
       const { href, children, ...rest } = anchorProps
-      if (preview)
-        return (
-          <span className="underline [text-decoration-color:var(--color-gray-a6)] underline-offset-2">
-            {children}
-          </span>
-        )
+      if (preview) return <span className={docsInlineLinkClassName}>{children}</span>
       if (!preview && href?.startsWith('/'))
         return (
-          <Link
-            className="underline [text-decoration-color:var(--color-gray-a6)] underline-offset-2"
-            to={href}
-          >
+          <Link className={docsInlineLinkClassName} to={href}>
             {children}
           </Link>
         )
       return (
-        <a
-          className="underline [text-decoration-color:var(--color-gray-a6)] underline-offset-2"
-          href={href}
-          {...rest}
-        >
+        <a className={docsInlineLinkClassName} href={href} {...rest}>
           {children}
         </a>
       )
@@ -583,7 +585,7 @@ function createMdxComponents(props: { copied: boolean; copyPage: () => void; pre
     li: (listItemProps: React.ComponentProps<'li'>) => (
       <li
         className={[
-          'text-[color-mix(in_oklab,var(--color-gray10)_25%,var(--color-gray9))] [&>ol]:ms-6 [&>ul]:ms-6',
+          'text-[color-mix(in_oklab,var(--color-gray10)_25%,var(--color-gray9))]',
           preview ? 'leading-[1.45]' : 'leading-relaxed',
         ]
           .filter(Boolean)
@@ -914,6 +916,102 @@ function DocsTableCell(props: React.ComponentProps<'td'> & { preview?: boolean }
         .filter(Boolean)
         .join(' ')}
     />
+  )
+}
+
+function DocsCards(props: React.PropsWithChildren<{ preview?: boolean }>) {
+  const { children, preview = false } = props
+
+  return (
+    <div
+      className={['grid grid-cols-1 md:grid-cols-2', preview ? 'mt-4 gap-3' : 'mt-6 gap-4']
+        .filter(Boolean)
+        .join(' ')}
+      data-docs-cards=""
+    >
+      {children}
+    </div>
+  )
+}
+
+function DocsCard(
+  props: React.PropsWithChildren<{ href: string; icon?: string; preview?: boolean; title: string }>,
+) {
+  const { children, href, icon, preview = false, title } = props
+  const iconDefinition = getDocsCardIcon(icon)
+  const className = [
+    'border-gray-a1 [background-color:var(--color-docs-surface)] text-gray10 flex h-full flex-col border no-underline',
+    preview ? 'gap-2.5 p-3' : 'gap-3 p-4 hover:bg-gray-a2',
+  ]
+    .filter(Boolean)
+    .join(' ')
+  const content = (
+    <>
+      {iconDefinition && (
+        <span
+          className={[
+            'bg-gray-a2 text-gray11 inline-flex items-center justify-center',
+            preview ? 'size-8' : 'size-9',
+          ]
+            .filter(Boolean)
+            .join(' ')}
+          data-docs-card-icon=""
+        >
+          <iconDefinition.Component
+            aria-hidden
+            className={[
+              preview ? 'h-4 w-auto max-w-full' : 'h-4.5 w-auto max-w-full',
+              'className' in iconDefinition ? iconDefinition.className : undefined,
+            ]
+              .filter(Boolean)
+              .join(' ')}
+          />
+        </span>
+      )}
+
+      <div className="min-w-0">
+        <p
+          className={['text-gray12 mt-0 font-medium', preview ? 'text-[0.9375rem]' : 'text-base']
+            .filter(Boolean)
+            .join(' ')}
+          data-docs-card-title=""
+        >
+          {title}
+        </p>
+
+        <div
+          className={[
+            'min-w-0 text-[color-mix(in_oklab,var(--color-gray10)_25%,var(--color-gray9))] [&>*:first-child]:mt-2 [&>*:last-child]:mb-0',
+            preview ? 'text-[0.75rem]' : 'text-[0.8125rem]',
+          ]
+            .filter(Boolean)
+            .join(' ')}
+          data-docs-card-body=""
+        >
+          {children}
+        </div>
+      </div>
+    </>
+  )
+
+  if (preview)
+    return (
+      <div className={className} data-docs-card="">
+        {content}
+      </div>
+    )
+
+  if (href.startsWith('/'))
+    return (
+      <Link className={className} data-docs-card="" to={href}>
+        {content}
+      </Link>
+    )
+
+  return (
+    <a className={className} data-docs-card="" href={href}>
+      {content}
+    </a>
   )
 }
 
@@ -1378,12 +1476,15 @@ function formatLastUpdated(value: string, options?: { locale?: string; timeZone?
   })
     .formatToParts(date)
     .map((part) =>
-      part.type === 'literal'
-        ? part.value.replace(' at ', ' ').replace(/\u202f/g, ' ')
-        : part.value,
+      part.type === 'literal' ? normalizeLastUpdatedLiteral(part.value, showYear) : part.value,
     )
     .join('')
     .trim()
+}
+
+function normalizeLastUpdatedLiteral(value: string, showYear: boolean) {
+  const normalized = value.replace(' at ', ' ').replace(/\u202f/g, ' ')
+  return showYear ? normalized : normalized.replace(/,\s*/g, ' ')
 }
 
 function getDateTimePart(
@@ -1725,10 +1826,11 @@ export function getDocSearchPreviewAnchor(container: HTMLElement, hash: string |
 
   if (!hash)
     return container.querySelector<HTMLElement>(
-      'h1, h2, h3, h4, p, ol, pre, table, ul, [role="note"], [data-docs-code-block], [data-docs-step]',
+      'h1, h2, h3, h4, p, ol, pre, table, ul, [role="note"], [data-docs-card], [data-docs-code-block], [data-docs-step]',
     )
 
   return (
+    container.querySelector<HTMLElement>('[data-docs-card]') ??
     container.querySelector<HTMLElement>('[data-docs-step]') ??
     container.querySelector<HTMLElement>('[data-docs-code-block]') ??
     container.querySelector<HTMLElement>('[role="note"]') ??
@@ -1771,7 +1873,7 @@ function doesDocSearchPreviewElementContainHighlight(element: HTMLElement) {
 function getDocSearchPreviewFollowingContentAnchor(container: HTMLElement, target: HTMLElement) {
   const boundary = getDocSearchPreviewSectionBoundary(container, target)
   const contentBlocks = container.querySelectorAll<HTMLElement>(
-    'p, ol, pre, table, ul, [role="note"], [data-docs-code-block], [data-docs-step]',
+    'p, ol, pre, table, ul, [role="note"], [data-docs-card], [data-docs-code-block], [data-docs-step]',
   )
 
   for (const contentBlock of contentBlocks) {
@@ -1811,7 +1913,9 @@ function getDocSearchPreviewHeadingLevel(element: HTMLElement) {
 
 function getDocSearchPreviewBlock(element: HTMLElement) {
   return (
-    element.closest<HTMLElement>('[data-docs-step], [role="note"], [data-docs-code-block]') ??
+    element.closest<HTMLElement>(
+      '[data-docs-card], [data-docs-step], [role="note"], [data-docs-code-block]',
+    ) ??
     element.closest<HTMLElement>('table, pre, ol, ul, p, h1, h2, h3, h4') ??
     element
   )
@@ -1878,6 +1982,16 @@ function getCodeGroupTabIcon(label: string) {
   return undefined
 }
 
+function getDocsCardIcon(icon: string | undefined) {
+  if (!icon) return undefined
+
+  const normalized = icon.trim().toLowerCase()
+  if (!normalized) return undefined
+  if (normalized in docsCardIcons) return docsCardIcons[normalized as keyof typeof docsCardIcons]
+
+  return undefined
+}
+
 const codeGroupTabIcons = {
   bash: { Component: IconVscodeIconsFileTypeShell },
   bun: { Component: IconVscodeIconsFileTypeBun },
@@ -1894,6 +2008,25 @@ const codeGroupTabIcons = {
   typescript: { Component: IconVscodeIconsFileTypeTypescript },
   yaml: { Component: IconVscodeIconsFileTypeYaml },
   yarn: { Component: IconVscodeIconsFileTypeYarn },
+} as const
+
+const docsCardIcons = {
+  amp: { className: 'scale-145', Component: IconBrandAmp },
+  book: { Component: IconOcticonBook16 },
+  browser: { Component: IconOcticonGlobe16 },
+  claude: { Component: IconSimpleIconsClaude },
+  codex: { Component: IconSimpleIconsOpenai },
+  cursor: { Component: IconSimpleIconsCursor },
+  key: { Component: IconOcticonKey16 },
+  lightbulb: { Component: IconOcticonLightBulb16 },
+  opencode: { Component: IconBrandOpencode },
+  pi: { className: 'scale-145', Component: IconBrandPi },
+  rocket: { Component: IconOcticonZap16 },
+  settings: { Component: IconOcticonGear16 },
+  tag: { Component: IconOcticonTag16 },
+  terminal: { Component: IconOcticonTerminal16 },
+  users: { Component: IconOcticonPeople16 },
+  wallet: { Component: IconOcticonCreditCard16 },
 } as const
 
 const codeGroupExtensionIcons = {

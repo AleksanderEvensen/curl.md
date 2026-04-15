@@ -1,3 +1,10 @@
+import {
+  createMemoryHistory,
+  createRootRoute,
+  createRoute,
+  createRouter,
+  RouterContextProvider,
+} from '@tanstack/react-router'
 import * as React from 'react'
 import { flushSync } from 'react-dom'
 import { createRoot, type Root } from 'react-dom/client'
@@ -14,6 +21,18 @@ import {
 
 let cleanup: (() => void) | undefined
 const originalClipboard = navigator.clipboard
+const testRootRoute = createRootRoute({ component: () => null })
+const testHomeRoute = createRoute({
+  component: () => null,
+  getParentRoute: () => testRootRoute,
+  path: '/',
+})
+const testDocRoute = createRoute({
+  component: () => null,
+  getParentRoute: () => testRootRoute,
+  path: '/docs/$slug',
+})
+const testRouteTree = testRootRoute.addChildren([testHomeRoute, testDocRoute])
 
 afterEach(() => {
   cleanup?.()
@@ -450,6 +469,25 @@ test('steps render numbered timeline items', async () => {
   expect(rendered.container.querySelector('#install-and-start-orbstack')).not.toBeNull()
 })
 
+test('cards render as a responsive grid of clickable items', async () => {
+  const rendered = renderDocContent(createCardsDoc())
+  const cards = rendered.container.querySelectorAll('[data-docs-card]')
+  const cardsGrid = rendered.container.querySelector('[data-docs-cards]')
+
+  expect(cardsGrid).not.toBeNull()
+  expect(cardsGrid?.className).toContain('grid-cols-1')
+  expect(cardsGrid?.className).toContain('md:grid-cols-2')
+  expect(cards).toHaveLength(2)
+  expect(cards[0]?.getAttribute('href')).toBe('/docs/install')
+  expect(cards[0]?.querySelector('[data-docs-card-icon]')).not.toBeNull()
+  expect(cards[1]?.querySelector('[data-docs-card-icon]')).not.toBeNull()
+  await expect.element(rendered.content.getByText('Install curl.md')).toBeVisible()
+  await expect
+    .element(rendered.content.getByText('Start with the CLI for terminal and script usage.'))
+    .toBeVisible()
+  await expect.element(rendered.content.getByText('Amp plugin')).toBeVisible()
+})
+
 test('tables render inside a horizontal overflow container', async () => {
   const rendered = renderDocContent(createTableDoc())
   const tableContainer = rendered.container.querySelector('[data-docs-table]')
@@ -493,6 +531,7 @@ test('last updated renders a short timestamp first, then swaps to the browser ti
   const expectedLocalTimestamp = formatLastUpdatedForTest('2026-04-12T17:38:00.000Z')
   const text = rendered.container.textContent ?? ''
   expect(text).toContain(`Last updated: ${expectedLocalTimestamp}`)
+  expect(text).not.toContain('Apr 12, ')
   expect(text).not.toContain(' at ')
   expect(text).not.toContain(' UTC')
 })
@@ -514,6 +553,20 @@ test('search preview renders the steps timeline as real docs markup', () => {
     rendered.container.querySelector('[data-doc-search-anchor="install-dependencies"]'),
   ).not.toBeNull()
   expect(rendered.container.querySelector('[href="#install-dependencies"]')).toBeNull()
+})
+
+test('search preview renders cards as non-interactive preview blocks', () => {
+  const rendered = renderDocSearchPreview(createCardsSearchPreviewDoc(), 'install-paths')
+  const content = rendered.container.querySelector('[data-doc-search-preview] > div')
+  if (!(content instanceof HTMLElement)) throw new Error('Expected preview content to render')
+  const anchor = getDocSearchPreviewAnchor(content, 'install-paths')
+  const previewCard = rendered.container.querySelector('[data-docs-card]')
+
+  expect(previewCard).not.toBeNull()
+  expect(previewCard?.tagName).toBe('DIV')
+  expect(anchor?.matches('[data-docs-card]')).toBe(true)
+  expect(rendered.container.querySelector('a[data-docs-card]')).toBeNull()
+  expect(rendered.container.querySelector('[data-docs-card-icon]')).not.toBeNull()
 })
 
 test('search preview highlights matching heading and body text', () => {
@@ -565,6 +618,7 @@ test('kitchen sink doc headings include numbered steps in outline order', () => 
     { id: 'code-groups', level: 2, text: 'Code Groups' },
     { id: 'tables', level: 2, text: 'Tables' },
     { id: 'steps', level: 2, text: 'Steps' },
+    { id: 'cards', level: 2, text: 'Cards' },
     { id: 'horizontal-rule', level: 2, text: 'Horizontal Rule' },
   ])
 
@@ -583,6 +637,7 @@ test('kitchen sink doc headings include numbered steps in outline order', () => 
     { id: 'install-dependencies', level: 3, text: '1. Install dependencies' },
     { id: 'start-the-dev-server', level: 3, text: '2. Start the dev server' },
     { id: 'open-the-app', level: 3, text: '3. Open the app' },
+    { id: 'cards', level: 2, text: 'Cards' },
     { id: 'horizontal-rule', level: 2, text: 'Horizontal Rule' },
   ])
 })
@@ -920,6 +975,35 @@ function createStepsDoc(): Doc {
   }
 }
 
+function createCardsDoc(): Doc {
+  return {
+    Component: function Component(props) {
+      const components = props.components ?? {}
+      const Card = components.Card as React.ComponentType<
+        React.PropsWithChildren<{ href: string; icon?: string; title: string }>
+      >
+      const Cards = components.Cards as React.ComponentType<React.PropsWithChildren>
+
+      return (
+        <Cards>
+          <Card href="/docs/install" icon="rocket" title="Install curl.md">
+            <p>Start with the CLI for terminal and script usage.</p>
+          </Card>
+          <Card href="/docs/amp" icon="book" title="Amp plugin">
+            <p>Enable docs fetch interception inside Amp.</p>
+          </Card>
+        </Cards>
+      )
+    },
+    description: undefined,
+    headings: [],
+    path: 'test',
+    source: '# Test\n',
+    sourcePath: 'docs/dev/kitchen-sink.mdx',
+    title: 'Test',
+  }
+}
+
 function createCompactDoc(): Doc {
   const sections = [
     { id: 'headings', text: 'Headings' },
@@ -1113,6 +1197,34 @@ function createNoticeSearchPreviewDoc(): Pick<Doc, 'Component' | 'path'> {
   }
 }
 
+function createCardsSearchPreviewDoc(): Pick<Doc, 'Component' | 'path'> {
+  return {
+    Component: function Component(props: {
+      components?: Record<string, React.ComponentType<any>>
+    }) {
+      const Card = (props.components?.Card ?? React.Fragment) as React.ElementType
+      const Cards = (props.components?.Cards ?? React.Fragment) as React.ElementType
+      const H2 = (props.components?.h2 ?? 'h2') as React.ElementType
+
+      return (
+        <>
+          <H2 id="install-paths">Install Paths</H2>
+
+          <Cards>
+            <Card href="/docs/install" icon="rocket" title="CLI">
+              <p>Start from the terminal for the broadest support.</p>
+            </Card>
+            <Card href="/docs/amp" icon="book" title="Amp">
+              <p>Use the plugin when you want `md_fetch` inside Amp.</p>
+            </Card>
+          </Cards>
+        </>
+      )
+    },
+    path: 'install',
+  }
+}
+
 function renderDocContent(
   doc: Doc,
   pagination?: DocPagination,
@@ -1126,15 +1238,21 @@ function renderDocContent(
   document.body.appendChild(container)
 
   const root = createRoot(container)
+  const router = createRouter({
+    history: createMemoryHistory({ initialEntries: [window.location.pathname || '/'] }),
+    routeTree: testRouteTree,
+  })
   flushSync(() => {
     root.render(
-      <DocContent
-        doc={doc}
-        {...(options?.onCodeGroupValueChange
-          ? { onCodeGroupValueChange: options.onCodeGroupValueChange }
-          : {})}
-        {...(pagination ? { pagination } : {})}
-      />,
+      <RouterContextProvider router={router}>
+        <DocContent
+          doc={doc}
+          {...(options?.onCodeGroupValueChange
+            ? { onCodeGroupValueChange: options.onCodeGroupValueChange }
+            : {})}
+          {...(pagination ? { pagination } : {})}
+        />
+      </RouterContextProvider>,
     )
   })
 
@@ -1224,11 +1342,16 @@ function formatLastUpdatedForTest(value: string, options?: { locale?: string; ti
     .formatToParts(date)
     .map((part) =>
       part.type === 'literal'
-        ? part.value.replace(' at ', ' ').replace(/\u202f/g, ' ')
+        ? normalizeLastUpdatedLiteralForTest(part.value, showYear)
         : part.value,
     )
     .join('')
     .trim()
+}
+
+function normalizeLastUpdatedLiteralForTest(value: string, showYear: boolean) {
+  const normalized = value.replace(' at ', ' ').replace(/\u202f/g, ' ')
+  return showYear ? normalized : normalized.replace(/,\s*/g, ' ')
 }
 
 function getDateTimePart(

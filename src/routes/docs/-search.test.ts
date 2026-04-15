@@ -205,6 +205,42 @@ Use md_login, md_logout, and md_status inside Pi.
   expect(result?.terms).toEqual(expect.arrayContaining(['md_']))
 })
 
+test('doc search ranks direct page title matches above section matches', () => {
+  const docsSearch = createDocsSearch(
+    [
+      {
+        description: undefined,
+        headings: [{ id: 'amp', level: 2, text: 'Amp' }],
+        path: 'install',
+        source: `## Amp
+
+Install the Amp plugin.
+`,
+        title: 'Installation',
+      },
+      {
+        description: undefined,
+        headings: [{ id: 'amp-plugin', level: 2, text: 'Amp Plugin' }],
+        path: 'plugins/amp',
+        source: `## Amp Plugin
+
+Use curl.md inside Amp.
+`,
+        title: 'Amp',
+      },
+    ],
+    ['install', 'plugins/amp'],
+  )
+
+  expect(docsSearch.search('amp')[0]).toEqual(
+    expect.objectContaining({
+      kind: 'page',
+      path: 'plugins/amp',
+      title: 'Amp',
+    }),
+  )
+})
+
 test('doc search strips code fence markers from snippets', () => {
   const docsSearch = createDocsSearch(
     [

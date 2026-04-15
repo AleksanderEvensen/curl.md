@@ -134,7 +134,7 @@ Danger body
   expect(code).not.toContain('type: "caution"')
 })
 
-test('docsMdx normalizes notice aliases when rewriting directives', async () => {
+test('docsMdx normalizes legacy space-delimited notice titles', async () => {
   const code = await transformDocs(
     `
 # Example
@@ -151,6 +151,23 @@ You only need one install path.
   expect(code).not.toContain(':::danger')
 })
 
+test('docsMdx supports standard remark-directive labels for notices', async () => {
+  const code = await transformDocs(
+    `
+# Example
+
+:::danger[Read carefully]
+You only need one install path.
+:::
+`.trim(),
+  )
+
+  expect(code).toContain('Notice')
+  expect(code).toContain('type: "caution"')
+  expect(code).toContain('title: "Read carefully"')
+  expect(code).not.toContain('directiveLabel')
+})
+
 test('docsMdx leaves unterminated directives unchanged', async () => {
   const code = await transformDocs(
     `
@@ -165,6 +182,7 @@ Run the installer before starting the app.
   )
 
   expect(code).toContain(':::steps')
+  expect(code).not.toContain('title: "Install dependencies"')
   expect(code).not.toContain('_missingMdxReference("Steps"')
   expect(code).not.toContain('_missingMdxReference("Step"')
 })
@@ -291,7 +309,7 @@ title: Installation
 
 # Installation
 
-:::tip Pick one install path
+:::tip[Pick one install path]
 You only need one installation path.
 :::
 `
@@ -446,6 +464,121 @@ test('generateDocsLlmsFullTxt combines the docs into one markdown document', () 
   expect(llmsFull.indexOf('## /docs/index.md')).toBeLessThan(
     llmsFull.indexOf('## /docs/getting-started/installation.md'),
   )
+})
+
+test('docsMdx rewrites card directives into grouped card components', async () => {
+  const code = await transformDocs(
+    `
+# Example
+
+:::card[Install curl.md]{href=/docs/install icon=rocket}
+Start from the terminal.
+:::
+
+:::card[Amp plugin]{href=/docs/amp icon=book}
+Enable docs fetch interception.
+:::
+`.trim(),
+  )
+
+  expect(code).toContain('{Card, Cards}')
+  expect(code).toContain('title: "Install curl.md"')
+  expect(code).toContain('href: "/docs/install"')
+  expect(code).toContain('icon: "rocket"')
+  expect(code).toContain('title: "Amp plugin"')
+  expect(code).toContain('href: "/docs/amp"')
+  expect(code).toContain('icon: "book"')
+  expect(code).not.toContain(':::card')
+})
+
+test('docsMdx groups adjacent cards separated by blank lines', async () => {
+  const code = await transformDocs(
+    `
+# Example
+
+:::card[First]{href=/a icon=terminal}
+A description.
+:::
+
+:::card[Second]{href=/b icon=key}
+B description.
+:::
+`.trim(),
+  )
+
+  const cardsMatches = code.match(/_jsxs?\(Cards/g)
+  expect(cardsMatches?.length).toBe(1)
+})
+
+test('docsMdx breaks card groups when non-card content intervenes', async () => {
+  const code = await transformDocs(
+    `
+# Example
+
+:::card[First]{href=/a icon=terminal}
+A description.
+:::
+
+A paragraph of text.
+
+:::card[Second]{href=/b icon=key}
+B description.
+:::
+`.trim(),
+  )
+
+  const cardsMatches = code.match(/_jsxs?\(Cards/g)
+  expect(cardsMatches?.length).toBe(2)
+})
+
+test('docsMdx does not group hand-authored Card JSX blocks', async () => {
+  const code = await transformDocs(
+    `
+# Example
+
+<Card href="/a" title="First">A description.</Card>
+
+<Card href="/b" title="Second">B description.</Card>
+`.trim(),
+  )
+
+  expect(code).toContain('{Card} = _components')
+  expect(code).not.toContain('{Card, Cards}')
+  expect(code).not.toContain('_jsx(Cards')
+  expect(code).not.toContain('_jsxs(Cards')
+})
+
+test('docsMdx does not rewrite card directives inside fenced code blocks', async () => {
+  const code = await transformDocs(
+    `
+# Example
+
+\`\`\`
+:::card[Keep literal]{href=/docs/foo icon=wallet}
+Body text.
+:::
+\`\`\`
+`.trim(),
+  )
+
+  expect(code).toContain(':::card[Keep literal]')
+  expect(code).not.toContain('{Card,')
+})
+
+test('docsMdx renders cards without an icon attribute', async () => {
+  const code = await transformDocs(
+    `
+# Example
+
+:::card[No icon]{href=/docs/foo}
+Just a plain card.
+:::
+`.trim(),
+  )
+
+  expect(code).toContain('{Card, Cards}')
+  expect(code).toContain('title: "No icon"')
+  expect(code).toContain('href: "/docs/foo"')
 })
 
 async function transformDocs(source: string, filePath = 'docs/reference/kitchen-sink.mdx') {

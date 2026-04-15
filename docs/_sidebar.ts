@@ -25,6 +25,7 @@ export const sidebar = [
       { type: 'link', label: 'Claude', path: '/plugins/claude' },
       { type: 'link', label: 'Codex', path: '/plugins/codex' },
       { type: 'link', label: 'Cursor', path: '/plugins/cursor' },
+      { type: 'link', label: 'OpenCode', path: '/plugins/opencode' },
       { type: 'link', label: 'Pi', path: '/plugins/pi' },
     ],
   },

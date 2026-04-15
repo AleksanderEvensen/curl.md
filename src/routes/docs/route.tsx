@@ -257,8 +257,8 @@ function Component() {
                   <MobileTopLinks onNavigate={() => setOpen(false)} />
                 </div>
 
-                <div className="mt-auto pt-4">
-                  <div className="border-gray-a3 border-t pt-4 md:hidden">
+                <div className="mt-auto">
+                  <div className="border-gray-a3 mt-6 border-t pt-4 md:hidden">
                     <div className="flex items-center gap-3">
                       <div className="min-w-28 shrink-0">
                         <ThemeToggle />
@@ -306,7 +306,7 @@ function Component() {
                     </div>
                   </div>
 
-                  <div className="hidden md:block">
+                  <div className="mt-6 hidden md:block">
                     <ThemeToggle />
                   </div>
                 </div>
@@ -388,7 +388,14 @@ function ThemeToggle() {
 
   return (
     <Menu.Root modal={false}>
-      <Menu.Trigger className="text-gray8 hover:text-gray10 hover:bg-gray-a2 data-[popup-open]:bg-gray-a2 data-[popup-open]:text-gray10 flex w-full items-center gap-2 px-3 py-2 text-sm outline-none md:text-xs">
+      <Menu.Trigger
+        className={[
+          'text-gray8 hover:text-gray10 hover:bg-gray-a2 data-[popup-open]:bg-gray-a2 data-[popup-open]:text-gray10 flex w-full items-center gap-2 px-3 py-2 outline-none',
+          'text-[0.9375rem] md:text-sm',
+        ]
+          .filter(Boolean)
+          .join(' ')}
+      >
         {getThemeIcon(activeTheme.value, resolvedTheme, mounted)}
         <span className="flex-1 text-left">{activeTheme.label}</span>
       </Menu.Trigger>
@@ -399,7 +406,12 @@ function ThemeToggle() {
             <Menu.RadioGroup onValueChange={(value) => setTheme(value as Theme)} value={theme}>
               {themeOptions.map((option) => (
                 <Menu.RadioItem
-                  className="text-gray8 data-[checked]:text-gray10 data-[highlighted]:bg-gray-a2 data-[highlighted]:text-gray10 flex items-center gap-2 px-3 py-2 text-xs outline-none"
+                  className={[
+                    'text-gray8 data-[checked]:text-gray10 data-[highlighted]:bg-gray-a2 data-[highlighted]:text-gray10 flex items-center gap-2 px-3 py-2.5 outline-none md:py-2',
+                    'text-[0.9375rem] md:text-sm',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
                   closeOnClick
                   key={option.value}
                   value={option.value}
@@ -477,7 +489,7 @@ function SidebarNavItem(props: { item: SidebarItem; onNavigate: () => void }) {
   return (
     <li>
       <Link
-        activeOptions={{ exact: true }}
+        activeOptions={{ exact: true, includeSearch: false }}
         activeProps={{ className: 'text-gray10 bg-gray-a2' }}
         className="text-gray8 hover:text-gray10 hover:bg-gray-a2 block px-2 py-1.5 text-sm"
         onClick={onNavigate}
@@ -506,7 +518,7 @@ function SearchTrigger(props: {
       ref={props.triggerRef}
       type="button"
     >
-      <IconOcticonSearch16 aria-hidden="true" className="size-4 shrink-0 sm:size-3.5" />
+      <IconLucideSearch aria-hidden="true" className="size-4 shrink-0 sm:size-3.5" />
       <span className="hidden sm:inline">Search</span>
       <span aria-hidden="true" className="hidden sm:inline-flex">
         <kbd className="border-gray-a3 text-gray8 inline-flex h-6 items-center justify-center border bg-transparent px-1.5 font-sans leading-none select-none">
@@ -529,7 +541,7 @@ function NavbarLinkItem(props: {
 
   return (
     <Link
-      activeOptions={{ exact: true }}
+      activeOptions={{ exact: true, includeSearch: false }}
       activeProps={{ 'data-active': '' }}
       className={className}
       onClick={onClick}
@@ -681,9 +693,9 @@ function DocsSearchDialog(props: {
           Close search
         </button>
 
-        <div className="border-gray-a3 bg-gray-a2 dark:bg-bg2 flex items-center gap-1.5 border px-3 py-3 md:p-4">
+        <div className="border-gray-a3 bg-gray-a2 dark:bg-bg2 flex items-center gap-1.5 border p-4">
           <span aria-hidden="true" className="text-gray8 flex w-5 shrink-0 items-center">
-            <IconOcticonSearch16 className="size-4" />
+            <IconLucideSearch className="size-4" />
           </span>
           <Combobox.Input
             autoFocus
@@ -746,7 +758,7 @@ function DocsSearchDialog(props: {
             >
               {(result, index) => (
                 <Combobox.Item
-                  className="border-gray-a3 bg-gray-a1/30 text-gray8 hover:bg-gray-a2 data-[highlighted]:border-blue6 data-[highlighted]:text-gray10 block cursor-default border p-3 outline-none md:p-4"
+                  className="border-gray-a3 bg-gray-a1/30 text-gray8 hover:bg-gray-a2 data-[highlighted]:border-blue6 data-[highlighted]:text-gray10 block cursor-default border p-4 outline-none"
                   data-details={props.showDetails ? '' : undefined}
                   index={index}
                   key={getSearchResultId(result)}
@@ -829,9 +841,9 @@ function SearchResultContent(props: {
       <p className="text-gray10 flex items-center gap-1.5 truncate text-sm font-medium">
         <span aria-hidden="true" className="text-gray8 flex w-5 shrink-0 items-center">
           {isPageResult ? (
-            <IconOcticonFile className="size-4" />
+            <IconLucideFileText className="size-4" />
           ) : (
-            <IconOcticonHash16 className="size-4" />
+            <IconLucideHash className="size-4" />
           )}
         </span>
         <span className="truncate">
@@ -940,7 +952,7 @@ function SearchResultHeading(props: { result: DocSearchResult }) {
   return segments.map((segment, index) => (
     <React.Fragment key={`${segment}-${index}`}>
       {index > 0 ? (
-        <IconOcticonChevronRight16
+        <IconLucideChevronRight
           aria-hidden="true"
           className="text-gray8 relative -top-px mx-1.5 inline size-4"
         />

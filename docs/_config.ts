@@ -2,7 +2,7 @@ import { linkOptions } from '@tanstack/react-router'
 
 export const config = {
   navbarLinks: [
-    { label: 'Home', ...linkOptions({ to: '/docs' }) },
+    { label: 'Home', ...linkOptions({ to: '/home' }) },
     {
       label: 'Guide',
       ...linkOptions({

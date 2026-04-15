@@ -1,9 +1,11 @@
 import * as child from 'node:child_process'
+import path from 'node:path'
 import { cloudflare } from '@cloudflare/vite-plugin'
 import tailwindcss from '@tailwindcss/vite'
 import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import viteReact from '@vitejs/plugin-react'
 import autoImport from 'unplugin-auto-import/vite'
+import { FileSystemIconLoader } from 'unplugin-icons/loaders'
 import iconsResolver from 'unplugin-icons/resolver'
 import icons from 'unplugin-icons/vite'
 import { defineConfig } from 'vite'
@@ -42,7 +44,13 @@ export default defineConfig(async () => ({
         : {}),
     }),
     tanstackStart(),
-    icons({ compiler: 'jsx', jsx: 'react' }),
+    icons({
+      compiler: 'jsx',
+      customCollections: {
+        brand: FileSystemIconLoader(path.resolve(import.meta.dirname, 'config/icons/brand')),
+      },
+      jsx: 'react',
+    }),
     autoImport({
       dts: 'src/auto-imports.d.ts',
       include: [/\.[jt]sx?$/, /\.[jt]sx?\?tsr-split/],

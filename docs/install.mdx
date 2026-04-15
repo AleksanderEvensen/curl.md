@@ -7,8 +7,32 @@ description: Install curl.md for the browser, terminal, or supported agent integ
 
 Install `curl.md` in the environment you use most. Start with the CLI if you want the broadest support, then add an agent integration if it matches your workflow.
 
-:::tip Pick one install path
+:::tip[Pick one install path]
 You only need one primary install path to get value from `curl.md`.
+:::
+
+:::card[Amp]{href=#amp icon=amp}
+Install the first-party Amp plugin if you want `curl.md` to intercept `read_web_page` and expose `md_fetch`.
+:::
+
+:::card[Claude]{href=/docs/plugins/claude icon=claude}
+Use curl.md alongside Claude when you want clean markdown instead of raw webpage context.
+:::
+
+:::card[Codex]{href=/docs/plugins/codex icon=codex}
+Use curl.md with Codex when implementation depends on external docs, specs, or API references.
+:::
+
+:::card[Cursor]{href=/docs/plugins/cursor icon=cursor}
+Use curl.md with Cursor when you want cleaner docs context inside the editor workflow.
+:::
+
+:::card[OpenCode]{href=/docs/plugins/opencode icon=opencode}
+Use curl.md with OpenCode when you want cleaner external docs context inside the terminal or IDE agent workflow.
+:::
+
+:::card[Pi]{href=#pi icon=pi}
+Install the first-party Pi extension if you want `read_web_page`, `md_fetch`, and auth commands inside Pi.
 :::
 
 ## CLI

@@ -12,6 +12,7 @@ import githubDarkDefault from '@shikijs/themes/github-dark-default'
 import githubLightDefault from '@shikijs/themes/github-light-default'
 import type { Root } from 'hast'
 import rehypeSlug from 'rehype-slug'
+import remarkDirective from 'remark-directive'
 import remarkFrontmatter from 'remark-frontmatter'
 import remarkGfm from 'remark-gfm'
 import remarkMdxFrontmatter from 'remark-mdx-frontmatter'
@@ -40,10 +41,9 @@ export function docs() {
     ],
     remarkPlugins: [
       remarkFrontmatter,
+      remarkDirective,
       remarkGfm,
-      () => (tree) => {
-        normalizeNoticeBlocks(tree)
-      },
+      remarkDocsDirectives,
       remarkMdxFrontmatter,
     ],
   }) as vite.Plugin
@@ -93,7 +93,7 @@ export function docs() {
           | undefined
       )?.call(
         this as ThisParameterType<vite.HookHandler<NonNullable<vite.Plugin['transform']>>>,
-        parsedId ? rewriteDocsDirectiveSource(code) : code,
+        code,
         id,
       )
     },
@@ -206,281 +206,313 @@ type SidebarItem =
   | { type: 'group'; label: string; items: Array<SidebarItem> }
   | { type: 'separator' }
 
-function rewriteDocsDirectiveSource(source: string) {
-  const lines = source.split('\n')
-  const output: Array<string> = []
-  let codeFenceMarker: string | undefined
-
-  for (let index = 0; index < lines.length; index++) {
-    const line = lines[index]!
-    const fenceMarker = getCodeFenceMarker(line)
-    if (fenceMarker) {
-      if (!codeFenceMarker) codeFenceMarker = fenceMarker
-      else if (fenceMarker[0] === codeFenceMarker[0]) codeFenceMarker = undefined
-      output.push(line)
-      continue
-    }
-
-    if (codeFenceMarker) {
-      output.push(line)
-      continue
-    }
-
-    const codeGroup = rewriteCodeGroupDirective(lines, index)
-    if (codeGroup) {
-      output.push(...codeGroup.lines)
-      index = codeGroup.endIndex
-      continue
-    }
-
-    const steps = rewriteStepsDirective(lines, index)
-    if (steps) {
-      output.push(...steps.lines)
-      index = steps.endIndex
-      continue
-    }
-
-    const notice = rewriteNoticeDirective(lines, index)
-    if (notice) {
-      output.push(...notice.lines)
-      index = notice.endIndex
-      continue
-    }
-
-    output.push(line)
-  }
-
-  return output.join('\n')
+const remarkDocsDirectives: UnifiedPlugin<[], any> = () => (tree, file: any) => {
+  if (!Array.isArray(tree.children)) return
+  tree.children = transformDocsDirectiveChildren(tree.children, file)
 }
 
-function rewriteNoticeDirective(lines: Array<string>, index: number) {
-  const directive = /^:::\s*([a-z]+)(?:\s+(.*?))?\s*$/.exec(lines[index]!)
-  const type = normalizeNoticeType(directive?.[1])
-  if (!type) return
-
-  const body = collectDirectiveBody(lines, index)
-  if (!body) return
-
-  return {
-    endIndex: body.endIndex,
-    lines: [
-      `<Notice type=${JSON.stringify(type)}${
-        directive?.[2]?.trim() ? ` title=${JSON.stringify(directive[2].trim())}` : ''
-      }>`,
-      ...(body.body.length > 0 ? ['', ...body.body, ''] : []),
-      '</Notice>',
-    ],
-  }
+function transformDocsDirectiveChildren(children: Array<any>, file: any) {
+  return groupAdjacentCardNodes(
+    children.flatMap((child) => transformDocsDirectiveNode(child, file)),
+  )
 }
 
-function rewriteCodeGroupDirective(lines: Array<string>, index: number) {
-  if (!/^:::\s*codegroup\s*$/i.test(lines[index]!)) return
+function transformDocsDirectiveNode(node: any, file: any): Array<any> {
+  if (!node || typeof node !== 'object') return [node]
 
-  const body = collectDirectiveBody(lines, index)
-  if (!body) return
+  const legacyNotice = transformLegacyNoticeParagraph(node)
+  if (legacyNotice) return [legacyNotice]
 
-  const rewrittenBody = rewriteCodeGroupItems(body.body)
-  if (!rewrittenBody) return
+  if (node.type === 'containerDirective') return transformContainerDirective(node, file)
+  if (node.type === 'leafDirective') return downgradeLeafDirective(node, file)
+  if (node.type === 'textDirective') return [downgradeTextDirective(node, file)]
 
-  return {
-    endIndex: body.endIndex,
-    lines: ['<CodeGroup>', '', ...rewrittenBody, '', '</CodeGroup>'],
-  }
+  if (Array.isArray(node.children))
+    node.children = transformDocsDirectiveChildren(node.children, file)
+
+  const githubAlert = normalizeGithubAlert(node)
+  return githubAlert ? [githubAlert] : [node]
 }
 
-function rewriteStepsDirective(lines: Array<string>, index: number) {
-  if (!/^:::\s*steps\s*$/i.test(lines[index]!)) return
+function transformContainerDirective(node: any, file: any) {
+  const directiveName = typeof node.name === 'string' ? node.name.toLowerCase() : ''
+  const { children, label } = splitDirectiveLabel(node)
+  const transformedChildren = transformDocsDirectiveChildren(children, file)
+  const isClosed = hasClosedDirectiveFence(getNodeSource(node, file))
 
-  const body = collectDirectiveBody(lines, index)
-  if (!body) return
+  if (!isClosed) return downgradeContainerDirective(node, transformedChildren, label, false)
 
-  const rewrittenBody = rewriteStepsItems(body.body)
-  if (!rewrittenBody) return
+  const noticeType = normalizeNoticeType(directiveName)
+  if (noticeType) return [createNoticeNode(noticeType, transformedChildren, label)]
+  if (directiveName === 'codegroup')
+    return createCodeGroupDirectiveNode(node, transformedChildren, label)
+  if (directiveName === 'steps') return createStepsDirectiveNode(node, transformedChildren, label)
+  if (directiveName === 'card') return createCardDirectiveNode(node, transformedChildren, label)
 
-  return {
-    endIndex: body.endIndex,
-    lines: ['<Steps>', '', ...rewrittenBody, '', '</Steps>'],
-  }
+  return downgradeContainerDirective(node, transformedChildren, label)
 }
 
-function collectDirectiveBody(lines: Array<string>, index: number) {
-  const body: Array<string> = []
-  let codeFenceMarker: string | undefined
+function createCodeGroupDirectiveNode(node: any, children: Array<any>, label?: string) {
+  const items = children.map((child) => {
+    if (child?.type !== 'code') return undefined
 
-  for (let endIndex = index + 1; endIndex < lines.length; endIndex++) {
-    const line = lines[endIndex]!
-    const fenceMarker = getCodeFenceMarker(line)
-    if (fenceMarker) {
-      if (!codeFenceMarker) codeFenceMarker = fenceMarker
-      else if (isMatchingFenceMarker(fenceMarker, codeFenceMarker)) codeFenceMarker = undefined
-      body.push(line)
+    const { label, meta } = splitCodeGroupMeta(child.meta)
+    const codeNode = { ...child }
+    if (meta) codeNode.meta = meta
+    else delete codeNode.meta
+
+    return createMdxFlowElement(
+      'CodeGroupItem',
+      [codeNode],
+      label ? [createMdxJsxAttribute('label', label)] : [],
+    )
+  })
+
+  if (items.some((item) => item === undefined) || !items[0])
+    return downgradeContainerDirective(node, children, label)
+
+  return [createMdxFlowElement('CodeGroup', items as Array<any>)]
+}
+
+function createStepsDirectiveNode(node: any, children: Array<any>, label?: string) {
+  const items: Array<{ children: Array<any>; title: string }> = []
+  let currentItem: { children: Array<any>; title: string } | undefined
+
+  for (const child of children) {
+    const title = getStepTitle(child)
+    if (title) {
+      if (currentItem) items.push(currentItem)
+      currentItem = { children: [], title }
       continue
     }
 
-    if (!codeFenceMarker && /^:::\s*$/.test(line)) return { body, endIndex }
-    body.push(line)
-  }
-}
-
-function rewriteCodeGroupItems(lines: Array<string>) {
-  const rewritten: Array<string> = []
-  let itemCount = 0
-
-  for (let index = 0; index < lines.length; ) {
-    const line = lines[index]!
-    if (!line.trim()) {
-      index++
-      continue
-    }
-
-    const item = rewriteCodeGroupItem(lines, index)
-    if (!item) return
-
-    rewritten.push(...item.lines)
-    index = item.endIndex + 1
-    itemCount++
+    if (!currentItem) return downgradeContainerDirective(node, children, label)
+    currentItem.children.push(child)
   }
 
-  return itemCount > 0 ? rewritten : undefined
-}
+  if (currentItem) items.push(currentItem)
+  if (!items[0]) return downgradeContainerDirective(node, children, label)
 
-function rewriteCodeGroupItem(lines: Array<string>, index: number) {
-  const fence = /^(?: {0,3})(`{3,}|~{3,})(.*)$/.exec(lines[index]!)
-  if (!fence) return
-
-  const marker = fence[1]!
-  const { info, label } = splitCodeGroupFenceInfo(fence[2] ?? '')
-  const rewritten = [
-    `<CodeGroupItem${label?.trim() ? ` label=${JSON.stringify(label.trim())}` : ''}>`,
+  return [
+    createMdxFlowElement(
+      'Steps',
+      items.map((item) =>
+        createMdxFlowElement('Step', item.children, [createMdxJsxAttribute('title', item.title)]),
+      ),
+    ),
   ]
-
-  rewritten.push('')
-  rewritten.push(info ? `${marker} ${info}` : marker)
-
-  for (let endIndex = index + 1; endIndex < lines.length; endIndex++) {
-    const line = lines[endIndex]!
-    rewritten.push(line)
-    if (!isClosingCodeFence(line, marker)) continue
-
-    rewritten.push('')
-    rewritten.push('</CodeGroupItem>')
-
-    return { endIndex, lines: rewritten }
-  }
 }
 
-function rewriteStepsItems(lines: Array<string>) {
-  const rewritten: Array<string> = []
-  let itemCount = 0
+function createCardDirectiveNode(node: any, children: Array<any>, label: string | undefined) {
+  const href = getDirectiveAttribute(node.attributes, 'href')
+  if (!href || !label) return downgradeContainerDirective(node, children, label)
 
-  for (let index = 0; index < lines.length; ) {
-    const line = lines[index]!
-    if (!line.trim()) {
-      index++
-      continue
-    }
+  const icon = getDirectiveAttribute(node.attributes, 'icon')
 
-    const item = rewriteStepsItem(lines, index)
-    if (!item) return
-
-    if (rewritten.length > 0) rewritten.push('')
-    rewritten.push(...item.lines)
-    index = item.endIndex + 1
-    itemCount++
-  }
-
-  return itemCount > 0 ? rewritten : undefined
+  return [
+    {
+      ...createMdxFlowElement('Card', children, [
+        createMdxJsxAttribute('href', href),
+        ...(icon ? [createMdxJsxAttribute('icon', icon)] : []),
+        createMdxJsxAttribute('title', label),
+      ]),
+      data: {
+        docsDirectiveCard: true,
+      },
+    },
+  ]
 }
 
-function rewriteStepsItem(lines: Array<string>, index: number) {
-  const line = lines[index]
-  if (!line) return
+function splitDirectiveLabel(node: any) {
+  const children = [...(node.children ?? [])]
+  const firstChild = children[0]
+  if (!isDirectiveLabelParagraph(firstChild)) return { children, label: undefined }
 
-  const heading = parseStepHeading(line)
-  if (!heading) return
-
-  const body: Array<string> = []
-  let codeFenceMarker: string | undefined
-
-  for (let endIndex = index + 1; endIndex < lines.length; endIndex++) {
-    const line = lines[endIndex]!
-    const fenceMarker = getCodeFenceMarker(line)
-    if (fenceMarker) {
-      if (!codeFenceMarker) codeFenceMarker = fenceMarker
-      else if (isMatchingFenceMarker(fenceMarker, codeFenceMarker)) codeFenceMarker = undefined
-      body.push(line)
-      continue
-    }
-
-    if (!codeFenceMarker && parseStepHeading(line))
-      return createStepItemRewrite(heading.title, trimBlankLines(body), endIndex - 1)
-
-    body.push(line)
-  }
-
-  return createStepItemRewrite(heading.title, trimBlankLines(body), lines.length - 1)
-}
-
-function splitCodeGroupFenceInfo(info: string) {
-  const trimmed = info.trim()
-  if (!trimmed) return { info: '', label: undefined }
-
-  const match = /^(.*?)(?:\s+\[([^\]]+)\])?$/.exec(trimmed)
+  children.shift()
   return {
-    info: match?.[1]?.trim() ?? trimmed,
-    label: match?.[2]?.trim() || undefined,
+    children,
+    label: nodeToText(firstChild).trim() || undefined,
   }
 }
 
-function parseStepHeading(line: string) {
-  const match = /^(?: {0,3})#{2,6}[ \t]+(.+?)\s*$/.exec(line)
-  const rawTitle = match?.[1]?.trim()
-  if (!rawTitle) return
-
-  const title = rawTitle.replace(/[ \t]+#+[ \t]*$/, '').trim()
-  return title ? { title } : undefined
+function isDirectiveLabelParagraph(node: any) {
+  return node?.type === 'paragraph' && node.data?.directiveLabel === true
 }
 
-function normalizeNoticeBlocks(node: any) {
-  if (!node.children) return
+function getStepTitle(node: any) {
+  if (node?.type !== 'heading' || typeof node.depth !== 'number') return undefined
+  if (node.depth < 2 || node.depth > 6) return undefined
 
-  node.children = normalizeNoticeChildren(node.children)
-  for (const child of node.children) normalizeNoticeBlocks(child)
+  const title = nodeToText(node)
+    .trim()
+    .replace(/[ \t]+#+[ \t]*$/, '')
+    .trim()
+  return title || undefined
 }
 
-function normalizeNoticeChildren(children: Array<any>) {
-  const normalized: Array<any> = []
+function groupAdjacentCardNodes(children: Array<any>) {
+  const grouped: Array<any> = []
+  let cards: Array<any> = []
 
-  for (let index = 0; index < children.length; index++) {
-    const directive = parseNoticeDirective(children[index])
-    if (directive) {
-      const noticeChildren: Array<any> = []
-      let endIndex = index + 1
+  const flushCards = () => {
+    if (!cards[0]) return
+    grouped.push(createMdxFlowElement('Cards', cards))
+    cards = []
+  }
 
-      while (endIndex < children.length && !isNoticeDirectiveClose(children[endIndex])) {
-        noticeChildren.push(children[endIndex])
-        endIndex++
-      }
-
-      if (endIndex < children.length) {
-        normalized.push(createNoticeNode(directive.type, noticeChildren, directive.title))
-        index = endIndex
-        continue
-      }
-    }
-
-    const githubAlert = normalizeGithubAlert(children[index])
-    if (githubAlert) {
-      normalized.push(githubAlert)
+  for (const child of children) {
+    if (isDocsCardNode(child)) {
+      cards.push(child)
       continue
     }
 
-    normalized.push(children[index])
+    flushCards()
+    grouped.push(child)
   }
 
-  return normalized
+  flushCards()
+  return grouped
 }
 
+function isDocsCardNode(node: any) {
+  return (
+    node?.type === 'mdxJsxFlowElement' &&
+    node.name === 'Card' &&
+    node.data?.docsDirectiveCard === true
+  )
+}
+
+function createMdxFlowElement(name: string, children: Array<any>, attributes: Array<any> = []) {
+  return {
+    attributes,
+    children,
+    name,
+    type: 'mdxJsxFlowElement',
+  }
+}
+
+function createMdxJsxAttribute(name: string, value: string) {
+  return {
+    name,
+    type: 'mdxJsxAttribute',
+    value,
+  }
+}
+
+function getDirectiveAttribute(
+  attributes: Record<string, string | null | undefined> | null | undefined,
+  name: string,
+) {
+  const value = attributes?.[name]
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined
+}
+
+function transformLegacyNoticeParagraph(node: any) {
+  if (node?.type !== 'paragraph') return
+
+  const match = /^:::\s*([a-z]+)\s+([^\n]+)\n([\s\S]*?)\n:::\s*$/u.exec(nodeToText(node))
+  const type = normalizeNoticeType(match?.[1])
+  const title = match?.[2]?.trim()
+  const body = match?.[3]?.trim()
+  if (!type || !title) return
+
+  return createNoticeNode(
+    type,
+    body ? body.split(/\n{2,}/u).map((value) => createParagraphNode(value)) : [],
+    title,
+  )
+}
+
+function downgradeContainerDirective(
+  node: any,
+  children: Array<any>,
+  label?: string | undefined,
+  hasClosingFence = true,
+) {
+  return [createParagraphNode(serializeDirective(node, ':::', label)), ...children].concat(
+    hasClosingFence ? [createParagraphNode(':::')] : [],
+  )
+}
+
+function downgradeLeafDirective(node: any, file: any) {
+  return [
+    createParagraphNode(
+      getNodeSource(node, file) ??
+        serializeDirective(node, '::', nodeToText({ children: node.children ?? [] })),
+    ),
+  ]
+}
+
+function downgradeTextDirective(node: any, file: any) {
+  return {
+    type: 'text',
+    value:
+      getNodeSource(node, file) ??
+      serializeDirective(node, ':', nodeToText({ children: node.children ?? [] })),
+  }
+}
+
+function getNodeSource(node: any, file: any) {
+  const startOffset = node.position?.start?.offset
+  const endOffset = node.position?.end?.offset
+  if (typeof startOffset !== 'number' || typeof endOffset !== 'number') return undefined
+  return typeof file?.value === 'string' ? file.value.slice(startOffset, endOffset) : undefined
+}
+
+function hasClosedDirectiveFence(source: string | undefined) {
+  const lines = source?.trimEnd().split('\n')
+  return lines?.length ? /^ {0,3}:{3,}\s*$/u.test(lines.at(-1) ?? '') : false
+}
+
+function createParagraphNode(value: string) {
+  return {
+    children: [{ type: 'text', value }],
+    type: 'paragraph',
+  }
+}
+
+function serializeDirective(node: any, prefix: string, label?: string) {
+  return `${prefix}${node.name ?? ''}${serializeDirectiveLabel(label)}${serializeDirectiveAttributes(node.attributes)}`
+}
+
+function serializeDirectiveLabel(label: string | undefined) {
+  const trimmedLabel = label?.trim()
+  return trimmedLabel ? `[${trimmedLabel}]` : ''
+}
+
+function serializeDirectiveAttributes(
+  attributes: Record<string, string | null | undefined> | null | undefined,
+) {
+  if (!attributes) return ''
+
+  const entries = Object.entries(attributes).filter(([, value]) => value !== undefined)
+  if (!entries[0]) return ''
+
+  return `{${entries
+    .map(([key, value]) =>
+      value === null || value === '' || typeof value !== 'string'
+        ? key
+        : `${key}=${quoteDirectiveAttribute(value)}`,
+    )
+    .join(' ')}}`
+}
+
+function quoteDirectiveAttribute(value: string) {
+  return /^[\w./#:-]+$/u.test(value) ? value : JSON.stringify(value)
+}
+
+function splitCodeGroupMeta(meta: string | undefined) {
+  const trimmedMeta = meta?.trim() ?? ''
+  if (!trimmedMeta) return { label: undefined, meta: undefined }
+  if (trimmedMeta.startsWith('[') && trimmedMeta.endsWith(']'))
+    return { label: trimmedMeta.slice(1, -1).trim() || undefined, meta: undefined }
+
+  const match = /^(.*?)(?:\s+\[([^\]]+)\])?$/.exec(trimmedMeta)
+  return {
+    label: match?.[2]?.trim() || undefined,
+    meta: match?.[1]?.trim() || undefined,
+  }
+}
 function visit(node: any, fn: (node: any) => void) {
   fn(node)
   if (node.children) for (const child of node.children) visit(child, fn)
@@ -490,33 +522,6 @@ function nodeToText(node: any): string {
   if (node.type === 'text') return node.value
   if (node.children) return node.children.map(nodeToText).join('')
   return ''
-}
-
-function paragraphToText(node: any) {
-  if (node?.type !== 'paragraph') return
-  const text = nodeToText(node).trim()
-  return text || undefined
-}
-
-function parseNoticeDirective(node: any) {
-  const text = paragraphToText(node)
-  if (!text) return
-
-  const match = /^:::\s*([a-z]+)(?:\s+(.*?))?\s*$/i.exec(text)
-  if (!match) return
-
-  const type = normalizeNoticeType(match[1])
-  if (!type) return
-
-  return {
-    ...(match[2]?.trim() ? { title: match[2].trim() } : {}),
-    type,
-  }
-}
-
-function isNoticeDirectiveClose(node: any) {
-  const text = paragraphToText(node)
-  return text ? /^:::\s*$/.test(text) : false
 }
 
 function normalizeGithubAlert(node: any) {
@@ -575,21 +580,6 @@ function createNoticeNode(type: string, children: Array<any>, title?: string) {
     name: 'Notice',
     type: 'mdxJsxFlowElement',
   }
-}
-
-function getCodeFenceMarker(line: string) {
-  return /^(?: {0,3})(`{3,}|~{3,})/.exec(line)?.[1]
-}
-
-function isClosingCodeFence(line: string, marker: string) {
-  const fenceMarker = /^(?: {0,3})(`{3,}|~{3,})\s*$/.exec(line)?.[1]
-  return fenceMarker
-    ? isMatchingFenceMarker(fenceMarker, marker) && fenceMarker.length >= marker.length
-    : false
-}
-
-function isMatchingFenceMarker(marker: string, other: string) {
-  return marker[0] === other[0]
 }
 
 const shellCodeLanguages = new Set(['bash', 'shell', 'sh', 'zsh'])
@@ -688,25 +678,6 @@ function hasClassName(properties: Record<string, unknown> | undefined, className
 function getShellPromptPrefix(line: string) {
   const shellPromptPrefixes = ['$ ', '> ', '\u276f ']
   return shellPromptPrefixes.find((prefix) => line.startsWith(prefix))
-}
-
-function createStepItemRewrite(title: string, body: Array<string>, endIndex: number) {
-  return {
-    endIndex,
-    lines: [`<Step title=${JSON.stringify(title)}>`].concat(
-      body.length > 0 ? ['', ...body, '', '</Step>'] : ['</Step>'],
-    ),
-  }
-}
-
-function trimBlankLines(lines: Array<string>) {
-  let start = 0
-  let end = lines.length
-
-  while (start < end && !lines[start]!.trim()) start++
-  while (end > start && !lines[end - 1]!.trim()) end--
-
-  return lines.slice(start, end)
 }
 
 function normalizeNoticeType(type: string | undefined) {

@@ -3,12 +3,14 @@ import { cloudflareTest } from '@cloudflare/vitest-pool-workers'
 import react from '@vitejs/plugin-react'
 import { playwright } from '@vitest/browser-playwright'
 import autoImport from 'unplugin-auto-import/vite'
+import { FileSystemIconLoader } from 'unplugin-icons/loaders'
 import iconsResolver from 'unplugin-icons/resolver'
 import icons from 'unplugin-icons/vite'
 import { defineConfig } from 'vitest/config'
 import { Env } from './env.ts'
 
 const root = path.resolve(import.meta.dirname, '..')
+const brandIconsDir = path.resolve(root, 'config/icons/brand')
 
 export default defineConfig({
   test: {
@@ -79,7 +81,11 @@ export default defineConfig({
       },
       {
         plugins: [
-          icons({ compiler: 'jsx', jsx: 'react' }),
+          icons({
+            compiler: 'jsx',
+            customCollections: { brand: FileSystemIconLoader(brandIconsDir) },
+            jsx: 'react',
+          }),
           autoImport({
             dts: false,
             include: [/\.[jt]sx?$/],
