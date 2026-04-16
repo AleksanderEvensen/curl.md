@@ -1,6 +1,17 @@
-# @curl.md/amp
+<p>
+  <a href="https://curl.md">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/wevm/curl.md/main/public/dark.svg">
+      <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/wevm/curl.md/main/public/light.svg">
+      <img src="https://raw.githubusercontent.com/wevm/curl.md/main/public/light.svg" alt="curl.md" height="40" style="width: auto;">
+    </picture>
+  </a>
+  <br>
+</p>
 
-Amp plugin for `curl.md`.
+### Amp plugin for curl.md.
+
+Turn websites into **optimized, low token output** inside **Amp**.
 
 ## Install
 
@@ -8,15 +19,15 @@ Amp plugin for `curl.md`.
 npx @curl.md/amp install
 ```
 
-Successful installs print the Amp config path and create
-`~/.config/amp/plugins/curlmd.ts`.
-
-Amp currently starts with plugins disabled unless `PLUGINS` is set.
-Launch it with:
+## Usage
 
 ```sh
 PLUGINS=all amp
 ```
+
+## Documentation
+
+For full documentation, visit [curl.md/docs](https://curl.md/docs/plugins/amp)
 
 ## License
 

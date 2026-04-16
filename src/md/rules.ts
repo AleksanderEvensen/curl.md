@@ -256,12 +256,23 @@ export const vercel = prefixedWithIndex({
   checks: [{ url: 'https://vercel.com/docs/getting-started-with-vercel', contains: ['Vercel'] }],
 })
 
-export const vitePlus = repo({
+export const vitePlus = defineRule({
   key: 'vitePlus',
-  repo: 'voidzero-dev/vite-plus',
-  prefix: 'docs',
   patterns: [new URLPattern({ hostname: 'viteplus.dev' })],
   checks: [{ url: 'https://viteplus.dev/guide/install', contains: ['install'] }],
+  rewrite(url) {
+    return vitePlusRawCandidates(url)[0]
+  },
+  async fetch(input, init, { fetch }) {
+    let lastResponse = new Response(null, { status: 404 })
+    for (const candidate of vitePlusRawCandidates(asUrl(input))) {
+      const response = await fetch(candidate, init)
+      if (response.ok) return response
+      if (response.status !== 404) return response
+      lastResponse = response
+    }
+    return lastResponse
+  },
 })
 export const oxc = defineRule({
   key: 'oxc',
@@ -286,3 +297,32 @@ export const reactDev = defineRule({
     return mdUrl
   },
 })
+
+function asUrl(input: RequestInfo | URL): URL {
+  if (input instanceof URL) return input
+  if (input instanceof Request) return new URL(input.url)
+  return new URL(input)
+}
+
+function vitePlusRawCandidates(url: URL): URL[] {
+  const pathname = getVitePlusSourcePathname(url)
+  const trimmed = pathname === '/' ? '' : pathname.replace(/\/$/, '')
+  const paths = [`${trimmed || '/index'}.md`, `${trimmed || '/index'}/index.md`]
+  return [...new Set(paths)].map(
+    (path) => new URL(`https://raw.githubusercontent.com/voidzero-dev/vite-plus/main/docs${path}`),
+  )
+}
+
+function getVitePlusSourcePathname(url: URL): string {
+  if (url.hostname === 'viteplus.dev') return url.pathname || '/'
+
+  const prefix = '/voidzero-dev/vite-plus/main/docs'
+  if (url.hostname !== 'raw.githubusercontent.com' || !url.pathname.startsWith(prefix))
+    return url.pathname || '/'
+
+  const relative = url.pathname.slice(prefix.length) || '/'
+  if (relative === '/index.md') return '/'
+  if (relative.endsWith('/index.md')) return relative.slice(0, -'/index.md'.length) || '/'
+  if (relative.endsWith('.md')) return relative.slice(0, -'.md'.length) || '/'
+  return relative
+}

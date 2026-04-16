@@ -1,36 +1,34 @@
-# curl.md
+<p>
+  <a href="https://curl.md">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/wevm/curl.md/main/public/dark.svg">
+      <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/wevm/curl.md/main/public/light.svg">
+      <img src="https://raw.githubusercontent.com/wevm/curl.md/main/public/light.svg" alt="curl.md" height="40" style="width: auto;">
+    </picture>
+  </a>
+  <br>
+</p>
 
-URL to markdown for agents.
+### URL to markdown for agents.
+
+Turn websites into **optimized, low token output** to **supercharge your context**. Works with **every agent**.
 
 ## Install
 
 ```sh
+curl -fsSL https://curl.md/install.sh | bash
 npm i -g curl.md
-curl -fsSL curl.md/install.sh | sh
 ```
 
 ## Usage
 
 ```sh
-curl.md <url> [options]
-
-# Also available as
-md <url> [options]
-curlmd <url> [options]
-```
-
-### Examples
-
-```sh
-# Fetch page
 md example.com
-
-# Fetch with objective to narrow results
-md zod.dev/error-formatting --objective "tree error formatting"
-
-# Pre-filter by keywords
-md developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch --objective "streaming response body" --keywords ReadableStream,getReader
 ```
+
+## Documentation
+
+For full documentation, visit [curl.md/docs](https://curl.md/docs/guide/cli)
 
 ## License
 

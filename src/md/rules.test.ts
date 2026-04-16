@@ -1,5 +1,5 @@
 import { expect, test, vi } from 'vitest'
-import type { defineRule } from './mod.ts'
+import { create, type defineRule } from './mod.ts'
 import * as rules from './rules.ts'
 
 /** Call rewrite with a dummy match (these rules don't use match) */
@@ -192,6 +192,33 @@ test('repo: vitePlus rewrites to raw.githubusercontent.com with prefix', () => {
   expect(rewrite(rules.vitePlus, 'https://viteplus.dev/guide/install')?.href).toBe(
     'https://raw.githubusercontent.com/voidzero-dev/vite-plus/main/docs/guide/install.md',
   )
+})
+
+test('vitePlus falls back to index.md for section roots', async () => {
+  const requests: string[] = []
+  const md = create({
+    rules: [rules.vitePlus()],
+    fetch: async (input) => {
+      const url = input instanceof URL ? input.href : input instanceof Request ? input.url : input
+      requests.push(url)
+      if (url.endsWith('/guide.md')) return new Response(null, { status: 404 })
+      if (url.endsWith('/guide/index.md'))
+        return new Response('# Guide\n', { status: 200, headers: { 'content-type': 'text/plain' } })
+      return new Response(null, { status: 404 })
+    },
+  })
+
+  const result = await md.fetch('https://viteplus.dev/guide/')
+  expect(result.ok).toBe(true)
+  if (!result.ok) return
+
+  expect(requests).toEqual([
+    'https://raw.githubusercontent.com/voidzero-dev/vite-plus/main/docs/guide.md',
+    'https://raw.githubusercontent.com/voidzero-dev/vite-plus/main/docs/guide/index.md',
+  ])
+  expect(result.content).toBe('# Guide')
+  expect(result.meta.url).toBe('https://viteplus.dev/guide/')
+  expect(result.meta.site).toBe('viteplus.dev')
 })
 
 test('oxc rewrites .html path to raw.githubusercontent.com', () => {
