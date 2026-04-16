@@ -14,15 +14,13 @@ auditConfig:
     - GHSA-6cpc-mj5c-m9rq
 
 catalog:
-  hono: ^4.12.12
+  hono: ^4.12.14
 
 minimumReleaseAge: 1440
 
 minimumReleaseAgeExclude:
-  - emulate
+  - hono
   - incur
-  - kysely
-  - vite
 
 onlyBuiltDependencies:
   - bun
