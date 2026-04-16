@@ -484,7 +484,7 @@ export function DocSearchPreview(props: {
 function createMdxComponents(props: { copied: boolean; copyPage: () => void; preview?: boolean }) {
   const { copied, copyPage, preview = false } = props
   const docsInlineLinkClassName =
-    'text-[color-mix(in_oklab,var(--color-gray10)_45%,var(--color-gray9))] underline [text-decoration-color:var(--color-gray-a6)] underline-offset-2 hover:text-gray10'
+    'text-[color-mix(in_oklab,var(--color-gray10)_45%,var(--color-gray9))] underline [text-decoration-color:var(--color-gray-a6)] underline-offset-2 hover:text-gray10 [overflow-wrap:anywhere]'
 
   return {
     Card: ((cardProps: React.PropsWithChildren<{ href: string; icon?: string; title: string }>) => (
