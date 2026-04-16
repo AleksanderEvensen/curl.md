@@ -240,7 +240,7 @@ function Component() {
 
       <nav className="bg-bg1 border-gray-a3 fixed inset-x-0 top-0 z-50 h-17 border-b">
         <div className="mx-auto flex h-full w-full max-w-[90rem] items-center ps-5 pe-3 md:ps-8 md:pe-6">
-          <Nav.Logo to="/docs" />
+          <Nav.Logo to="/docs" variant="icon" />
           <DocsTopLinks />
           <Nav.Group>
             <div className="flex items-center gap-0">

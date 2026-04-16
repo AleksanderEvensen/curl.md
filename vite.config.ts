@@ -59,6 +59,7 @@ export default defineConfig(async () => ({
           prefix: 'Icon',
           extension: 'jsx',
           alias: { octicon: 'octicon', 'simple-icons': 'simple-icons' },
+          customCollections: ['brand'],
         }),
       ],
     }),

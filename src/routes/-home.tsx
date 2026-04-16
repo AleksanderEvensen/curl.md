@@ -47,7 +47,7 @@ export function Home(props: { login?: string | null | undefined }) {
       <Nav.Skip />
 
       <Nav.Root fixed>
-        <Nav.Logo />
+        <Nav.Logo variant="icon" />
         <Nav.Group>
           <Link className="text-gray8 hover:text-gray10 px-3 py-1.5 text-sm" to="/docs">
             Docs

@@ -6,6 +6,7 @@
 // biome-ignore lint: disable
 export {}
 declare global {
+  const IconBrandCurlmd: typeof import('~icons/brand/curlmd.jsx').default
   const IconLogosAmp: typeof import('~icons/logos/amp.jsx').default
   const IconLucideArrowUpRight: typeof import('~icons/lucide/arrow-up-right.jsx').default
   const IconLucideBadgeAlert: typeof import('~icons/lucide/badge-alert.jsx').default

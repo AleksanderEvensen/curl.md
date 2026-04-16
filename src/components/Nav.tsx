@@ -6,7 +6,18 @@ function Group(props: React.PropsWithChildren) {
   return <div className="ms-auto flex items-center gap-1.5">{props.children}</div>
 }
 
-function Logo(props: { to?: '/' | '/docs' }) {
+function Logo(props: { to?: '/' | '/docs'; variant?: 'icon' | 'text' }) {
+  if (props.variant === 'icon')
+    return (
+      <Link
+        aria-label="curl.md"
+        className="text-gray10 inline-flex items-center"
+        to={props.to ?? '/'}
+      >
+        <IconBrandCurlmd aria-hidden="true" className="h-3 w-auto" />
+      </Link>
+    )
+
   return (
     <Link className="font-pixel text-base" to={props.to ?? '/'}>
       curl.md<span className="text-gray8">/&lt;url&gt;</span>
