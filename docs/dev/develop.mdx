@@ -9,9 +9,8 @@ Use this page to get a local `curl.md` development environment running and to fi
 
 ## Prerequisites
 
-- [OrbStack](https://orbstack.dev) for local Docker support on macOS.
-- Node.js and `pnpm`.
-- A local `.env` file copied from `.env.example`.
+- [OrbStack](https://orbstack.dev) for local Docker support on macOS
+- Node.js and `pnpm` for local tools
 
 ## Local Setup
 
@@ -20,6 +19,10 @@ Use this page to get a local `curl.md` development environment running and to fi
 ### Install and start OrbStack
 
 OrbStack provides the local Docker runtime used by `curl.md` on macOS.
+
+```sh
+$ orb start
+```
 
 ### Copy the environment file
 
@@ -43,7 +46,7 @@ $ curl curl.local/example.com
 
 :::
 
-## Daily Workflow
+## Dev Workflow
 
 The app runs inside Docker during local development.
 
@@ -53,6 +56,38 @@ $ docker logs curl -f
 $ docker compose exec app sh
 ```
 
+## Local Package Scripts
+
+Use these scripts to exercise the shipped CLI and plugin entrypoints against your local app at `https://curl.local`.
+
+```sh
+$ pnpm md example.com
+$ pnpm pi
+$ pnpm amp
+```
+
+- `pnpm md` runs the local CLI against `https://curl.local`
+- `pnpm pi` starts Pi with the local extension entrypoint in `plugins/pi/extensions/index.ts`
+- `pnpm amp` symlinks the local Amp plugin into `.amp/plugins/curlmd.ts` and launches Amp with `PLUGINS=all`
+
+## Testing
+
+Use scoped Vitest projects while iterating, then run the broader set that matches your change.
+
+```sh
+$ pnpm test --project cli
+$ pnpm test --project plugins:pi
+$ pnpm test --project plugins:amp
+$ pnpm test --project app --project md --project workers
+```
+
+When working on browser behavior, run browser or E2E coverage as needed:
+
+```sh
+$ pnpm test --project browser
+$ pnpm test:e2e
+```
+
 ## Checks
 
 Run these before opening a PR:
@@ -60,17 +95,40 @@ Run these before opening a PR:
 ```sh
 $ pnpm check
 $ pnpm check:types
-$ pnpm test --project app --project md --project workers
 ```
 
-When working on browser behavior, run E2E tests:
+If you changed dependencies in `cli/`, also run:
 
 ```sh
-$ pnpm test:e2e
+$ pnpm check:deps
 ```
+
+## DB Migrations
+
+When you change the schema, create a migration, apply it locally, then regenerate database types.
+
+```sh
+$ pnpm db:make your_migration_name
+$ pnpm db:migrate latest
+$ pnpm db:codegen
+```
+
+Use a descriptive snake_case migration name.
+
+## Changesets
+
+If your change affects a published package or release notes, add a changeset.
+
+```sh
+$ pnpm changeset
+```
+
+That creates a markdown file in `.changeset/` where you select the package and bump type. In this repo, that commonly means `curl.md`, `@curl.md/pi`, or `@curl.md/amp`.
+
+Docs-only or purely local dev changes usually do not need a changeset.
 
 ## Docs
 
-Docs live in `docs/` and are rendered through the docs route in [Installation](/docs/install) and the other pages in this section.
+Docs live in `docs/` and are rendered through the `src/docs/` route in app.
 
 If you add or update docs, make sure the sidebar in `docs/_sidebar.ts` stays in sync.

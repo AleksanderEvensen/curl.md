@@ -59,9 +59,34 @@ function stripFrontmatter(markdown: string) {
   return markdown.slice(end + 5).replace(/^\n+/, '')
 }
 
+function parseContainerDirective(line: string) {
+  const match = /^(?: {0,3})(:{3,})([a-z][\w-]*)(?:(?=[\s[{]|$)(.*))?$/iu.exec(line)
+  if (!match?.[1] || !match[2]) return
+
+  return {
+    marker: match[1],
+    name: match[2],
+    rest: match[3]?.trim() || undefined,
+  }
+}
+
+function getContainerDirective(line: string, name: string) {
+  const directive = parseContainerDirective(line)
+  if (!directive || directive.name.toLowerCase() !== name.toLowerCase()) return
+  return directive
+}
+
+function getDirectiveClosingFenceMarker(line: string) {
+  return /^(?: {0,3})(:{3,})\s*$/u.exec(line)?.[1]
+}
+
 function collectDirectiveBody(lines: Array<string>, index: number) {
+  const directive = parseContainerDirective(lines[index]!)
+  if (!directive) return
+
   const body: Array<string> = []
   let codeFenceMarker: string | undefined
+  const directiveMarkers = [directive.marker]
 
   for (let endIndex = index + 1; endIndex < lines.length; endIndex++) {
     const line = lines[endIndex]!
@@ -74,7 +99,28 @@ function collectDirectiveBody(lines: Array<string>, index: number) {
       continue
     }
 
-    if (!codeFenceMarker && /^:::\s*$/u.test(line)) return { body, endIndex }
+    const nestedDirective = parseContainerDirective(line)
+    if (nestedDirective) {
+      directiveMarkers.push(nestedDirective.marker)
+      body.push(line)
+      continue
+    }
+
+    const closingDirectiveMarker = getDirectiveClosingFenceMarker(line)
+    if (closingDirectiveMarker) {
+      const currentDirectiveMarker = directiveMarkers.at(-1)
+      if (
+        currentDirectiveMarker &&
+        closingDirectiveMarker.length >= currentDirectiveMarker.length
+      ) {
+        directiveMarkers.pop()
+        if (!directiveMarkers.length) return { body, endIndex }
+      }
+
+      body.push(line)
+      continue
+    }
+
     body.push(line)
   }
 }
@@ -167,15 +213,24 @@ export function createDocCopySource(rawSource: unknown) {
 
 export function getDocHeadings(rawSource: unknown, renderedHeadings: Array<Heading>) {
   const sourceOutline = getSourceOutline(rawSource)
+  const stepHeadingIds = new Set(
+    sourceOutline
+      .filter((entry): entry is { heading: Heading; type: 'step' } => entry.type === 'step')
+      .map((entry) => entry.heading.id),
+  )
+  const normalizedRenderedHeadings = renderedHeadings.filter(
+    (heading) => !stepHeadingIds.has(heading.id),
+  )
   const renderedHeadingCount = sourceOutline.filter((entry) => entry.type === 'rendered').length
-  if (renderedHeadingCount !== renderedHeadings.length) return renderedHeadings
+  if (renderedHeadingCount !== normalizedRenderedHeadings.length)
+    return dedupeHeadingsById(renderedHeadings)
 
   const headings: Array<Heading> = []
   let renderedHeadingIndex = 0
 
   for (const entry of sourceOutline) {
     if (entry.type === 'rendered') {
-      const heading = renderedHeadings[renderedHeadingIndex]
+      const heading = normalizedRenderedHeadings[renderedHeadingIndex]
       if (heading) headings.push(heading)
       renderedHeadingIndex++
       continue
@@ -184,7 +239,7 @@ export function getDocHeadings(rawSource: unknown, renderedHeadings: Array<Headi
     headings.push(entry.heading)
   }
 
-  return headings
+  return dedupeHeadingsById(headings)
 }
 
 export function getDocSearchHighlightRanges(value: string, terms: Array<string> | undefined) {
@@ -254,7 +309,7 @@ function getSourceOutline(rawSource: unknown) {
 }
 
 function getStepHeadings(lines: Array<string>, index: number) {
-  if (!/^:::\s*steps\s*$/iu.test(lines[index]!)) return
+  if (!getContainerDirective(lines[index]!, 'steps')) return
 
   const body = collectDirectiveBody(lines, index)
   if (!body) return []
@@ -322,6 +377,15 @@ function slugifyHeading(value: string) {
     .replace(/^-+|-+$/g, '')
 }
 
+function dedupeHeadingsById(headings: Array<Heading>) {
+  const seenIds = new Set<string>()
+  return headings.filter((heading) => {
+    if (seenIds.has(heading.id)) return false
+    seenIds.add(heading.id)
+    return true
+  })
+}
+
 const noticeTypeMap = new Map([
   ['caution', 'CAUTION'],
   ['danger', 'CAUTION'],
@@ -333,8 +397,10 @@ const noticeTypeMap = new Map([
 ])
 
 function rewriteNoticeDirective(lines: Array<string>, index: number) {
-  const directive = /^:::\s*([a-z]+)(?:\s+(.*?))?\s*$/u.exec(lines[index]!)
-  const type = directive?.[1] ? noticeTypeMap.get(directive[1].toLowerCase()) : undefined
+  const directive = parseContainerDirective(lines[index]!)
+  if (!directive) return
+
+  const type = noticeTypeMap.get(directive.name.toLowerCase())
   if (!type) return
 
   const body = collectDirectiveBody(lines, index)
@@ -342,7 +408,7 @@ function rewriteNoticeDirective(lines: Array<string>, index: number) {
 
   const trimmedBody = trimBlankLines(body.body)
   const output = [`> [!${type}]`]
-  const title = directive?.[2]?.trim()
+  const title = directive.rest
 
   if (title) {
     output.push(`> ${title}`)
@@ -358,7 +424,7 @@ function rewriteNoticeDirective(lines: Array<string>, index: number) {
 }
 
 function rewriteCodeGroupDirective(lines: Array<string>, index: number) {
-  if (!/^:::\s*codegroup\s*$/iu.test(lines[index]!)) return
+  if (!getContainerDirective(lines[index]!, 'codegroup')) return
 
   const body = collectDirectiveBody(lines, index)
   if (!body) return
@@ -373,7 +439,7 @@ function rewriteCodeGroupDirective(lines: Array<string>, index: number) {
 }
 
 function rewriteStepsDirective(lines: Array<string>, index: number) {
-  if (!/^:::\s*steps\s*$/iu.test(lines[index]!)) return
+  if (!getContainerDirective(lines[index]!, 'steps')) return
 
   const body = collectDirectiveBody(lines, index)
   if (!body) return

@@ -1,13 +1,25 @@
 ---
 title: Amp
-description: Install and use the first-party curl.md Amp plugin.
+description: Install and use curl.md with Amp
 ---
 
 # Amp
 
-The Amp integration is a first-party plugin that lets `curl.md` intercept `read_web_page` calls and adds an explicit `md_fetch` tool.
+First-party [Amp](https://ampcode.com) plugin that intercepts Amp's built-in `read_web_page` tool and uses curl.md instead. The plugin also adds an explicit `md_fetch` tool.
 
-## Install
+:::important
+The Amp [Plugin API](https://ampcode.com/manual/plugin-api) is still experimental. As a result, the curl.md Amp plugin may also change without warning.
+:::
+
+## Quick Start
+
+Run the plugin installer, launch Amp, and start curling.
+
+::::steps
+
+### Install plugin
+
+Run the `@curl.md/amp` package installer with `npx`.
 
 ```sh
 $ npx @curl.md/amp install
@@ -15,36 +27,81 @@ $ npx @curl.md/amp install
 
 Successful installs create the Amp plugin shim in `~/.config/amp/plugins/curlmd.ts`.
 
-Start Amp with plugins enabled:
+### Run Amp CLI
+
+Start Amp with plugins enabled via the `PLUGINS=all` env var.
 
 ```sh
 $ PLUGINS=all amp
 ```
 
-## What The Plugin Does
+:::tip
+You should add `PLUGINS=all` to your environment since plugins will not load otherwise.
+:::
 
-- intercepts `read_web_page`
-- adds `md_fetch`
-- forwards `url`, `objective`, `keywords`, `mode`, and `fresh`
+### Use Amp
 
-That means existing Amp flows can keep using `read_web_page`, while `curl.md` handles the fetch and markdown conversion.
+Now that Amp is running with the curl.md plugin, all you need to do is use Amp! Whenever Amp reads a web page, it will use curl.md.
 
-## Authentication
+To confirm everything is set up correctly, try this out:
 
-The plugin uses the same auth model as the CLI.
-
-```sh
-$ curl.md auth login
+```text
+Read the curl.md Amp plugin docs and check that we set up everything correctly
+https://curl.md/docs/plugins/amp
 ```
 
-For headless or shared environments, set `CURLMD_API_KEY`.
+::::
 
-## Example
+## Install
 
-Inside Amp, ask for a page with a concrete goal, for example:
+Run the [`@curl.md/amp`](https://www.npmjs.com/package/@curl.md/amp) npm package installer:
+
+```sh
+$ npx @curl.md/amp install
+```
+
+Or create your own plugin entry in the `~/.config/amp/plugins` directory:
+
+```ts title="~/.config/amp/plugins/curlmd.ts"
+// @i-know-the-amp-plugin-api-is-wip-and-very-experimental-right-now
+import plugin from '@curl.md/amp'
+export default plugin
+```
+
+## Usage
+
+Ask for a page, paste links, or let Amp figure out what it needs to fetch.
+
+### Prompting
+
+Inside Amp, prompt like you normally would, for example:
 
 ```text
 Read the Stripe webhook docs and extract the signing header requirements.
 ```
 
-Or call `md_fetch` directly with a URL, objective, and keywords.
+In this example, Amp will use curl.md to explore the Stripe docs while executing your prompt.
+
+You can also tell Amp to use a specific [objective](#TODO), [keywords](#TODO), and [other options](#TODO) or let it decide what to use on its own.
+
+### Authentication
+
+The plugin uses the same auth model as the [CLI](/docs/guide/cli).
+
+```sh
+$ curl.md auth login
+```
+
+For headless or shared environments, set [`CURLMD_API_KEY`](/docs/guide/cli#environment-variables).
+
+### How The Plugin Works
+
+- intercepts `read_web_page`
+- adds `md_fetch`
+- forwards url, objective, keywords, mode, and fresh
+
+That means existing Amp flows can keep using read_web_page, while curl.md handles the fetch and markdown conversion.
+
+## Contributing
+
+https://github.com/wevm/curl.md/tree/main/plugins/amp

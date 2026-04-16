@@ -1,28 +1,14 @@
 ---
 title: OpenCode
-description: Use curl.md with OpenCode to bring external docs into cleaner markdown before handing them to the agent.
+description: Install and use curl.md with OpenCode
 ---
 
 # OpenCode
 
-`curl.md` pairs well with OpenCode when you want focused markdown instead of raw webpage HTML in the terminal, desktop, or IDE workflow.
+:::important Work in progress
+There is no first-party OpenCode integration yet. For now, use the [CLI](/docs/guide/cli) or [API & SDK](/docs/guide/api) alongside OpenCode, and follow progress in the [GitHub repo](https://github.com/wevm/curl.md).
+:::
 
-## Recommended Workflow
-
-Fetch the page with `curl.md` first, then hand the markdown to OpenCode instead of the original webpage.
-
-```sh
-$ md opencode.ai/docs/agents \
-  --objective "built-in agent modes and when to use them" \
-  --keywords build,plan,agent
-```
-
-## Why It Helps
-
-- strips navigation, ads, and layout noise from long docs pages
-- narrows large references before they hit the agent context window
-- works the same way whether you use OpenCode in the terminal, desktop app, or IDE
-
-## Status
-
-There is no first-party OpenCode integration package in this repo today. The current recommendation is to use the [CLI](/docs/guide/cli) or [API & SDK](/docs/guide/api) alongside OpenCode.
+:::tip Current workaround
+Install the [CLI](/docs/guide/cli), then tell OpenCode to use `curl.md` or `md` to fetch and narrow web pages before continuing.
+:::

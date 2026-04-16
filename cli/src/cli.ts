@@ -1,6 +1,5 @@
 import { Cli, type MiddlewareContext, middleware, z } from 'incur'
 import pc from 'picocolors'
-import { formatCost } from '../../src/lib/format.ts'
 import pkg from '../package.json' with { type: 'json' }
 import { createClient, defaultBaseUrl, type Client } from './client.ts'
 import { Auth } from './internal/auth.ts'
@@ -9,6 +8,7 @@ import * as UI from './ui.ts'
 import {
   compareVersions,
   estimateRequests,
+  formatCost,
   formatValidationError,
   installGlobal,
   isStandalone,

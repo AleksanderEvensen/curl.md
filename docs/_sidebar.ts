@@ -3,19 +3,20 @@ export const sidebar = [
     type: 'group',
     label: 'Introduction',
     items: [
-      { type: 'link', label: 'Getting Started', path: '/getting-started' },
-      { type: 'link', label: 'Installation', path: '/install' },
-      { type: 'link', label: 'Why curl.md', path: '/why' },
+      { type: 'link', label: 'Getting Started', path: '/getting-started', wip: true },
+      { type: 'link', label: 'Installation', path: '/install', wip: true },
+      { type: 'link', label: 'Why curl.md', path: '/why', wip: true },
     ],
   },
   {
     type: 'group',
     label: 'Guide',
     items: [
-      { type: 'link', label: 'Features', path: '/guide/features' },
-      { type: 'link', label: 'Agent Usage', path: '/guide/agent-usage' },
-      { type: 'link', label: 'CLI', path: '/guide/cli' },
-      { type: 'link', label: 'API & SDK', path: '/guide/api' },
+      { type: 'link', label: 'Features', path: '/guide/features', wip: true },
+      { type: 'link', label: 'Agent Usage', path: '/guide/agent-usage', wip: true },
+      { type: 'link', label: 'CLI', path: '/guide/cli', wip: true },
+      { type: 'link', label: 'API & SDK', path: '/guide/api', wip: true },
+      { type: 'link', label: 'Plugins', path: '/guide/plugins', wip: true },
     ],
   },
   {
@@ -42,6 +43,6 @@ export const sidebar = [
 ] satisfies Array<SidebarItem>
 
 export type SidebarItem =
-  | { type: 'link'; label: string; path: string }
+  | { type: 'link'; label: string; path: string; wip?: true }
   | { type: 'group'; label: string; items: Array<SidebarItem> }
   | { type: 'separator' }

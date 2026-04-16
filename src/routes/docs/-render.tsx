@@ -5,6 +5,7 @@ import * as React from 'react'
 import IconBrandAmp from '~icons/brand/amp.jsx'
 import IconBrandOpencode from '~icons/brand/opencode.jsx'
 import IconBrandPi from '~icons/brand/pi.jsx'
+import IconOcticonPackage16 from '~icons/octicon/package16.jsx'
 import IconSimpleIconsClaude from '~icons/simple-icons/claude.jsx'
 import IconSimpleIconsCursor from '~icons/simple-icons/cursor.jsx'
 import IconSimpleIconsOpenai from '~icons/simple-icons/openai.jsx'
@@ -1221,7 +1222,7 @@ function CodeGroup(props: React.PropsWithChildren) {
 
         {items.map((item) => (
           <Tabs.Panel
-            className="focus-visible:ring-blue8 focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset [&_[data-docs-code-block]]:mt-0 [&_[data-docs-code-block]_pre]:px-5 [&_pre]:border-0"
+            className="focus-visible:ring-blue8 focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset [&_[data-docs-code-block]]:mt-0 [&_[data-docs-code-block]_pre]:ps-5 [&_[data-docs-code-block]_pre]:pe-14 [&_pre]:border-0"
             key={item.value}
             value={item.value}
           >
@@ -1357,6 +1358,7 @@ function DocsCodeBlock(props: React.ComponentProps<'pre'> & { preview?: boolean 
         className={[
           '[background-color:var(--docs-code-block-background)] minimal-scrollbar focus-visible:ring-blue8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset mt-0 overflow-x-auto',
           preview ? 'p-3 leading-[1.45]' : 'p-4 leading-relaxed',
+          shouldShowCopyButton && !label ? 'ps-4 pe-14' : undefined,
           label ? (preview ? 'border-t-0 pt-2.5' : 'border-t-0 pt-3') : undefined,
           '[&_code]:bg-transparent [&_code]:p-0 [&_code]:!text-[1em]',
           className,
@@ -2052,6 +2054,7 @@ const docsCardIcons = {
   key: { Component: IconOcticonKey16 },
   lightbulb: { Component: IconOcticonLightBulb16 },
   opencode: { Component: IconBrandOpencode },
+  package: { Component: IconOcticonPackage16 },
   pi: { className: 'scale-145', Component: IconBrandPi },
   rocket: { Component: IconOcticonZap16 },
   settings: { Component: IconOcticonGear16 },

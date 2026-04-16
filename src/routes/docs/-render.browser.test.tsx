@@ -364,8 +364,10 @@ test('titled code blocks render a codegroup-style title bar with an icon', async
 test('untitled code blocks keep the copy button hover-only', async () => {
   const rendered = renderDocContent(createStyledCodeBlockDoc())
   const button = rendered.container.querySelector('[aria-label="Copy code"]')
+  const pre = rendered.container.querySelector('[data-docs-code-block] pre')
 
   expect(button?.className).toContain('opacity-0')
+  expect(pre?.className).toContain('pe-14')
 })
 
 test('code groups switch the visible panel when tabs are clicked', async () => {

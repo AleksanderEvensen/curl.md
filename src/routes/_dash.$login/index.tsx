@@ -16,7 +16,7 @@ import * as Cookie from '#lib/cookie.ts'
 import { formatCost } from '#lib/format.ts'
 
 export const Route = createFileRoute('/_dash/$login/')({
-  head: () => ({ meta: [{ title: __HOST__ }] }),
+  head: () => ({ meta: [{ title: `Overview - ${__HOST__}` }] }),
   loader: ({ context }) =>
     getUsageData({ data: { entityId: context.entity.id, entityType: context.entity.type } }),
   component: Component,

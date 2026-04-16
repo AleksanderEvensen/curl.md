@@ -1,6 +1,6 @@
 import { Combobox } from '@base-ui/react/combobox'
 import { Menu } from '@base-ui/react/menu'
-import { Link, Outlet, createFileRoute, useNavigate } from '@tanstack/react-router'
+import { Link, Outlet, createFileRoute, useNavigate, useRouterState } from '@tanstack/react-router'
 import * as React from 'react'
 import { Dialog } from '#components/Dialog.tsx'
 import { Nav } from '#components/Nav.tsx'
@@ -30,16 +30,18 @@ export const Route = createFileRoute('/docs')({
   component: Component,
 })
 
-const docsSearchQueryUrlSyncDelayMs = 400 // 0.4 seconds
 const recentDocsSearchResultsLimit = 5
 const recentDocsSearchResultsStorageKey = 'docs-recent-search-results'
 const docsSearchShowDetailsStorageKey = 'docs-search-show-details'
+const desktopSidebarScrollSafeBottomPx = 48
 const emptyCachedPreviewIds = new Set<string>()
 
 function Component() {
   const navigate = useNavigate()
+  const pathname = useRouterState({ select: (state) => state.location.pathname })
   const { login, next } = Route.useLoaderData()
   const searchQueryFromUrl = Route.useSearch({ select: (search) => search.q ?? '' })
+  const desktopSidebarScrollRef = React.useRef<HTMLDivElement>(null)
   const [open, setOpen] = React.useState(false)
   const [recentSearchResults, setRecentSearchResults] =
     React.useState<Array<DocSearchResult> | null>(null)
@@ -138,11 +140,7 @@ function Component() {
   React.useEffect(() => {
     if (!searchOpen) return
 
-    const timeoutId = window.setTimeout(
-      () => updateSearchQueryInUrl(searchQuery),
-      docsSearchQueryUrlSyncDelayMs,
-    )
-    return () => window.clearTimeout(timeoutId)
+    updateSearchQueryInUrl(searchQuery)
   }, [searchOpen, searchQuery, updateSearchQueryInUrl])
 
   React.useEffect(() => {
@@ -187,6 +185,54 @@ function Component() {
       document.body.style.overflow = bodyOverflow
     }
   }, [open])
+
+  useBrowserLayoutEffect(() => {
+    const mediaQuery = window.matchMedia('(min-width: 768px)')
+    if (!mediaQuery.matches) return
+
+    const container = desktopSidebarScrollRef.current
+    const activeItem = container?.querySelector<HTMLElement>('[data-sidebar-active]')
+    if (!container || !activeItem) return
+
+    let frameId: number | undefined
+
+    const scrollActiveItemIntoView = () => {
+      frameId = undefined
+      if (!mediaQuery.matches) return
+
+      const containerRect = container.getBoundingClientRect()
+      const activeItemRect = activeItem.getBoundingClientRect()
+      const visibleTop = containerRect.top
+      const visibleBottom = containerRect.bottom - desktopSidebarScrollSafeBottomPx
+
+      if (activeItemRect.top >= visibleTop && activeItemRect.bottom <= visibleBottom) return
+
+      if (activeItemRect.top < visibleTop) {
+        container.scrollTop -= visibleTop - activeItemRect.top
+        return
+      }
+
+      container.scrollTop += activeItemRect.bottom - visibleBottom
+    }
+
+    const scheduleScroll = () => {
+      if (frameId !== undefined) return
+      frameId = window.requestAnimationFrame(scrollActiveItemIntoView)
+    }
+
+    scheduleScroll()
+
+    const resizeObserver = new ResizeObserver(scheduleScroll)
+    resizeObserver.observe(container)
+    resizeObserver.observe(activeItem)
+    window.addEventListener('resize', scheduleScroll)
+
+    return () => {
+      resizeObserver.disconnect()
+      window.removeEventListener('resize', scheduleScroll)
+      if (frameId !== undefined) window.cancelAnimationFrame(frameId)
+    }
+  }, [pathname])
 
   return (
     <div className="relative flex min-h-dvh flex-col">
@@ -265,65 +311,86 @@ function Component() {
             className="bg-bg1 border-gray-a3 fixed inset-x-0 top-17 bottom-0 z-40 hidden w-full border-e data-[open]:block md:static md:block md:w-64 md:shrink-0"
             data-open={open ? '' : undefined}
           >
-            <div className="minimal-scrollbar h-full overflow-y-auto py-6 ps-5 pe-3 md:sticky md:top-17 md:h-[calc(100dvh-4.25rem)] md:ps-6 md:pe-6">
-              <div className="flex min-h-full flex-col">
-                <SidebarNav items={sidebar} onNavigate={() => setOpen(false)} />
-
-                <div className="border-gray-a3 mt-6 border-t pt-4 md:hidden">
-                  <MobileTopLinks onNavigate={() => setOpen(false)} />
-                </div>
-
-                <div className="mt-auto">
-                  <div className="border-gray-a3 mt-6 border-t pt-4 md:hidden">
-                    <div className="flex items-center gap-3">
-                      <div className="min-w-28 shrink-0">
-                        <ThemeToggle />
-                      </div>
-
-                      <div className="ms-auto flex min-w-0 items-center gap-1.5">
-                        <a
-                          aria-label="GitHub"
-                          className="text-gray8 hover:text-gray10 p-1.5"
-                          href={config.repoBaseUrl}
-                          rel="noopener noreferrer"
-                          target="_blank"
-                        >
-                          <IconOcticonMarkGithub16 className="size-[1.125rem]" />
-                        </a>
-                        <a
-                          aria-label="X"
-                          className="text-gray8 hover:text-gray10 me-2 p-1.5"
-                          href="https://x.com/wevm_dev"
-                          rel="noopener noreferrer"
-                          target="_blank"
-                        >
-                          <IconSimpleIconsX className="size-4.5" />
-                        </a>
-                        {login ? (
-                          <Link
-                            className="bg-gray10 text-bg1 px-3 py-1.5 text-sm hover:opacity-90"
-                            onClick={() => setOpen(false)}
-                            params={{ login }}
-                            to="/$login"
-                          >
-                            Dashboard
-                          </Link>
-                        ) : (
-                          <Link
-                            className="bg-gray10 text-bg1 px-3 py-1.5 text-sm hover:opacity-90"
-                            onClick={() => setOpen(false)}
-                            search={{ next }}
-                            to="/login"
-                          >
-                            Sign in
-                          </Link>
-                        )}
+            <div className="h-full md:sticky md:top-17 md:h-[calc(100dvh-4.25rem)]">
+              <div className="minimal-scrollbar h-full overflow-y-auto py-6 ps-5 pe-3 md:flex md:flex-col md:overflow-hidden md:px-0 md:py-0">
+                <div className="flex min-h-full flex-col md:min-h-0 md:flex-1">
+                  <div className="relative md:min-h-0 md:flex-1">
+                    <div
+                      className="md:h-full md:min-h-0 md:overflow-y-auto"
+                      ref={desktopSidebarScrollRef}
+                    >
+                      <div className="md:px-6 md:py-6">
+                        <SidebarNav items={sidebar} onNavigate={() => setOpen(false)} />
                       </div>
                     </div>
+                    <div
+                      aria-hidden
+                      className="pointer-events-none absolute inset-x-0 bottom-0 hidden h-10 md:block"
+                      style={{
+                        background:
+                          'linear-gradient(to top, var(--color-bg1) 0%, color-mix(in oklab, var(--color-bg1) 80%, transparent) 45%, transparent 100%)',
+                      }}
+                    />
                   </div>
 
-                  <div className="mt-6 hidden md:block">
-                    <ThemeToggle />
+                  <div className="border-gray-a3 mt-6 border-t pt-4 md:hidden">
+                    <MobileTopLinks onNavigate={() => setOpen(false)} />
+                  </div>
+
+                  <div className="mt-auto">
+                    <div className="border-gray-a3 mt-6 border-t pt-4 md:hidden">
+                      <div className="flex items-center gap-3">
+                        <div className="min-w-28 shrink-0">
+                          <ThemeToggle />
+                        </div>
+
+                        <div className="ms-auto flex min-w-0 items-center gap-1.5">
+                          <a
+                            aria-label="GitHub"
+                            className="text-gray8 hover:text-gray10 p-1.5"
+                            href={config.repoBaseUrl}
+                            rel="noopener noreferrer"
+                            target="_blank"
+                          >
+                            <IconOcticonMarkGithub16 className="size-[1.125rem]" />
+                          </a>
+                          <a
+                            aria-label="X"
+                            className="text-gray8 hover:text-gray10 me-2 p-1.5"
+                            href="https://x.com/wevm_dev"
+                            rel="noopener noreferrer"
+                            target="_blank"
+                          >
+                            <IconSimpleIconsX className="size-4.5" />
+                          </a>
+                          {login ? (
+                            <Link
+                              className="bg-gray10 text-bg1 px-3 py-1.5 text-sm hover:opacity-90"
+                              onClick={() => setOpen(false)}
+                              params={{ login }}
+                              to="/$login"
+                            >
+                              Dashboard
+                            </Link>
+                          ) : (
+                            <Link
+                              className="bg-gray10 text-bg1 px-3 py-1.5 text-sm hover:opacity-90"
+                              onClick={() => setOpen(false)}
+                              search={{ next }}
+                              to="/login"
+                            >
+                              Sign in
+                            </Link>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="hidden px-6 pt-0 pb-6 md:block">
+                      <div className="border-gray-a3 border-t pt-4">
+                        <ThemeToggle />
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -461,7 +528,7 @@ function getThemeIcon(theme: Theme, resolvedTheme: Exclude<Theme, 'system'>, mou
 
 function SidebarNav(props: { items: Array<SidebarItem>; onNavigate: () => void }) {
   return (
-    <ul className="flex list-none flex-col gap-0.5 ps-0">
+    <ul className="flex list-none flex-col gap-0.5 ps-0 pb-4">
       {props.items.map((item, index) => (
         <SidebarNavItem
           item={item}
@@ -506,12 +573,15 @@ function SidebarNavItem(props: { item: SidebarItem; onNavigate: () => void }) {
     <li>
       <Link
         activeOptions={{ exact: true, includeSearch: false }}
-        activeProps={{ className: 'text-gray10 bg-gray-a2' }}
-        className="text-gray8 hover:text-gray10 hover:bg-gray-a2 block px-2 py-1.5 text-sm"
+        activeProps={{ 'data-sidebar-active': '', className: 'text-gray10 bg-gray-a2' }}
+        className="text-gray8 hover:text-gray10 hover:bg-gray-a2 flex items-center gap-1.5 px-2 py-1.5 text-sm md:scroll-my-3"
         onClick={onNavigate}
         to={to}
       >
-        {item.label}
+        <span>{item.label}</span>
+        {item.wip ? (
+          <IconLucideConstruction aria-hidden="true" className="text-amber9 size-3.5 shrink-0" />
+        ) : null}
       </Link>
     </li>
   )

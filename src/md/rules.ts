@@ -37,9 +37,8 @@ export const curlDocs = defineRule<{ fetch?: typeof globalThis.fetch }>({
     const pathname = path === '' || path === '/' ? '/index' : path.replace(/\/$/, '')
     return new URL(`https://${url.hostname}/docs${pathname}.md`)
   },
-  async fetch(input, init, { options }) {
-    const fetch = options.fetch ?? globalThis.fetch
-    return fetch(input, init)
+  async fetch(input, init, context) {
+    return (context.options.fetch ?? context.fetch)(input, init)
   },
 })
 
@@ -49,9 +48,8 @@ export const curlMd = defineRule<{ fetch?: typeof globalThis.fetch }>({
     new URLPattern({ hostname: 'curl.:tld(md|local)' }),
     new URLPattern({ hostname: '*.curl.:tld(md|local)' }),
   ],
-  async fetch(_, _init, { options }) {
-    const fetch = options.fetch ?? globalThis.fetch
-    return fetch('https://curl.md/llms.txt')
+  async fetch(_, _init, context) {
+    return (context.options.fetch ?? context.fetch)('https://curl.md/llms.txt')
   },
 })
 

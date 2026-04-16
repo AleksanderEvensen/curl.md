@@ -1,39 +1,72 @@
 ---
 title: Pi
-description: Install and use the first-party curl.md Pi extension.
+description: Install and use curl.md with Pi
 ---
 
 # Pi
 
-The Pi integration is a first-party extension that adds `curl.md` auth commands plus `read_web_page` and `md_fetch` tool support.
+First-party [Pi](https://pi.dev) extension that adds `curl.md` auth commands plus `read_web_page` and `md_fetch` tool support.
 
-## Install
+## Quick Start
+
+Install the plugin, launch Pi, and start curling.
+
+::::steps
+
+### Install plugin
+
+Install the [`@curl.md/amp`](https://www.npmjs.com/package/@curl.md/pi) package with Pi:
 
 ```sh
 $ pi install @curl.md/pi
 ```
 
-Or install unreleased commmits.
+### Start Pi
 
 ```sh
-$ pi -e https://github.com/wevm/pi
+$ pi
 ```
 
-## Pi Extension
+### Use Pi
 
-After installing, Pi gets these commands:
+Now that Pi is running with the curl.md plugin, all you need to do is use Pi! Whenever Pi reads a web page, it will use curl.md.
 
-- `md_login`
-- `md_logout`
-- `md_status`
-- `md_org`
+To confirm everything is set up correctly, try this out:
 
-It also exposes:
+```text
+Read the curl.md Pi extension docs and check that we set up everything correctly
+https://curl.md/docs/plugins/pi
+```
 
-- `read_web_page`
-- `md_fetch`
+::::
 
-## Authentication
+## Install
+
+Install the [`@curl.md/pi`](https://www.npmjs.com/package/@curl.md/amp) npm package with Pi:
+
+```sh
+$ pi install @curl.md/pi
+```
+
+When the `@curl.md/pi` package is updated, Pi will ask if you want to update to the latest version.
+
+## Usage
+
+Ask for a page, paste links, or let Pi figure out what it needs to fetch.
+
+### Prompting
+
+Inside Pi, prompt like you normally would, for example:
+
+```text
+Read the Stripe webhook docs and extract the signing header requirements.
+```
+
+In this example, Pi will use curl.md to explore the Stripe docs while executing your prompt.
+
+You can also tell Pi to use a specific [objective](#TODO), [keywords](#TODO), and [other options](#TODO) or let it decide what to use on its own.
+
+### Authentication
 
 Authenticate inside Pi with:
 
@@ -41,9 +74,15 @@ Authenticate inside Pi with:
 /md_login
 ```
 
+The plugin also uses the same auth model as the [CLI](/docs/guide/cli).
+
+```sh
+$ curl.md auth login
+```
+
 If you prefer non-interactive auth, set `CURLMD_API_KEY` before starting Pi.
 
-## Status And Debugging
+### Status & Debugging
 
 Use:
 
@@ -53,6 +92,24 @@ Use:
 
 to confirm auth state, tool registration, and whether the `curl.md` CLI is available on your machine.
 
-## When To Use Pi
+### Commands & Tools
 
-Use the extension when you want `curl.md` built directly into Pi instead of calling the CLI manually.
+After installing, Pi gets these commands:
+
+| Command     | Description                                                                                  |
+| ----------- | -------------------------------------------------------------------------------------------- |
+| `md_login`  | Starts the browser-based curl.md login flow and stores the resulting session for Pi.         |
+| `md_logout` | Logs out of the current curl.md session in Pi.                                               |
+| `md_org`    | Switches the active curl.md account or organization Pi should use.                           |
+| `md_status` | Shows curl.md auth status, registered tool info, and whether the `curl.md` CLI is installed. |
+
+It also exposes these tools:
+
+| Tool            | Description                                                                     |
+| --------------- | ------------------------------------------------------------------------------- |
+| `read_web_page` | Fetches a URL through curl.md and returns markdown optimized for coding agents. |
+| `md_fetch`      | Compatibility alias for `read_web_page`.                                        |
+
+## Contributing
+
+https://github.com/wevm/curl.md/tree/main/plugins/pi
