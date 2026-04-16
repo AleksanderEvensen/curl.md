@@ -40,7 +40,7 @@ export function UsageChart(props: {
   return (
     <div
       aria-label={`Usage chart: ${data.map((d) => `${d.label} ${isCost ? `$${formatDollars(d.value)}` : `${d.tokens.toLocaleString()} tokens`}`).join(', ')}`}
-      className="mt-3 h-56"
+      className="mt-3 min-h-0 flex-1"
       ref={ref}
       role="img"
     >

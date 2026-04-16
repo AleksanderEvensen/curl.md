@@ -1,0 +1,45 @@
+name: Bug Report
+description: Report issue with curl.md
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this issue. More detail = faster triage.
+
+  - type: checkboxes
+    attributes:
+      label: Check existing issues
+      description: By submitting this issue, you checked there is not already an issue for this problem.
+      options:
+        - label: I checked existing issues and did not find a duplicate.
+          required: true
+
+  - type: textarea
+    attributes:
+      label: Describe the issue
+      description: Clear, concise description. If you plan to open a PR, mention it here.
+      placeholder: I am doing… What I expect is… What is actually happening…
+    validations:
+      required: true
+
+  - type: input
+    id: reproduction
+    attributes:
+      label: Link to Minimal Reproducible Example
+      description: Please provide a reproduction link if possible. Issues without a repro are harder to debug.
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: Steps To Reproduce
+      description: Steps, code snippets, or commands to reproduce the behavior.
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: Anything else?
+      description: Extra context. URL, runtime, OS, CLI, plugin, logs, screenshots, etc.
+    validations:
+      required: false

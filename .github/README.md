@@ -1,67 +1,57 @@
-# curl.md
+<p>
+  <a href="https://curl.md">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="../public/dark.svg">
+      <source media="(prefers-color-scheme: light)" srcset="../public/light.svg">
+      <img src="../public/light.svg" alt="curl.md" height="40" style="width: auto;">
+    </picture>
+  </a>
+  <br>
+</p>
 
-Fetch any URL as Markdown.
+### URL to markdown for agents.
+
+Turn websites into **optimized, low token output** to **supercharge your context**. Works with **every agent**.
+
+---
+
+## Quick Start
 
 ```sh
+# Just use `curl`
 curl curl.md/example.com
-```
 
-## Usage
-
-```sh
-# Fetch page
-curl curl.md/example.com
-
-# Fetch with objective to narrow results
-curl curl.md/zod.dev/error-formatting?objective=tree+error+formatting
-
-# Pre-filter by keywords
-curl "curl.md/developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch?objective=streaming+response+body&keywords=ReadableStream,getReader"
-```
-
-## CLI
-
-```sh
-# Install
-curl -fsSL curl.md/install.sh | sh
-
-# Or via npm
+# Install CLI
+curl -fsSL https://curl.md/install.sh | bash
 npm i -g curl.md
+bun i -g curl.md
 
-# Fetch page
+# Use CLI via `curl.md` or short `md` alias
+curl.md example.com
 md example.com
 
-# Fetch with objective to narrow results
-md zod.dev/error-formatting --objective "tree error formatting"
+# Add to your agent
+pi install @curl.md/pi
+npx @curl.md/amp install
 
-# Pre-filter by keywords
-md developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch --objective "streaming response body" --keywords ReadableStream,getReader
+# Lastly, try it in your browser
+open https://curl.md/example.com
 ```
 
-## Development
+## Documentation
 
-```bash
-# Install and start OrbStack
-brew install orbstack
-orb start
+For full documentation, visit [curl.md/docs](https://curl.md/docs).
 
-# Set up environment
-cp .env.example .env
+## Community
 
-# Start dev container
-docker compose up -d
+For help, discussion about best practices, or feature ideas:
 
-# Request or open in browser
-curl curl.local/example.com
-open https://curl.local
-```
+[Discuss curl.md on GitHub](https://github.com/wevm/curl.md/discussions)
 
-OrbStack automatically resolves `curl.local` requests to the container.
+## Contributing
 
-## Deploy
-
-Deployment and preview environment setup lives in [`/docs/dev/deploy`](https://curl.md/docs/dev/deploy).
+If you're interested in contributing to curl.md, please read our [contributing docs](https://curl.md/docs/dev/develop) **before submitting a pull request**.
 
 ## License
 
-[MIT](LICENSE)
+[MIT](../LICENSE)

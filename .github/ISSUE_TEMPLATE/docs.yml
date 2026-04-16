@@ -1,0 +1,35 @@
+name: Documentation Issue
+description: Tell us about missing or incorrect documentation.
+labels: ['docs']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a docs issue.
+
+        For small fixes, feel free to open a pull request directly.
+
+  - type: dropdown
+    attributes:
+      label: What is the type of issue?
+      multiple: true
+      options:
+        - Documentation is missing
+        - Documentation is incorrect
+        - Documentation is confusing
+        - Example code is not working
+        - Something else
+
+  - type: textarea
+    attributes:
+      label: What is the issue?
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Where did you find it?
+      description: Please provide the URL or file path where you found this issue.
+      placeholder: curl.md/docs
+    validations:
+      required: true

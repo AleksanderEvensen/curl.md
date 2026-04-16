@@ -174,11 +174,11 @@ function UsageChart(props: { daily: Array<{ date: string; tokens: number }> }) {
         <span className="text-gray8 text-xs">Saved Last 7 Days</span>
       </div>
       {mounted ? (
-        <React.Suspense fallback={<div className="bg-gray-a1/50 mt-3 h-56" />}>
+        <React.Suspense fallback={<div className="bg-gray-a1/50 mt-3 min-h-0 flex-1" />}>
           <LazyUsageChart daily={props.daily} mode={mode} />
         </React.Suspense>
       ) : (
-        <div className="bg-gray-a1/50 mt-3 h-56" />
+        <div className="bg-gray-a1/50 mt-3 min-h-0 flex-1" />
       )}
     </div>
   )
@@ -293,7 +293,7 @@ If not, do this instead: curl -fsSL https://curl.md/install.sh | bash`,
             'Copied! Now paste into your agent'
           ) : (
             <>
-              Copy <span className="hidden md:inline">setup</span> instructions for my agent
+              Copy<span className="hidden md:inline"> setup</span> instructions for my agent
             </>
           )}
         </code>

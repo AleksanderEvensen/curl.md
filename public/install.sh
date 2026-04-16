@@ -42,9 +42,9 @@ main() {
   if [ -n "$1" ]; then
     tag="$1"
   elif has_gh_auth; then
-    tag="$(gh release view --repo "$REPO" --json tagName -q '.tagName' 2>/dev/null)"
+    tag="$(gh api "repos/${REPO}/releases?per_page=10" --jq '.[] | select(.tag_name | startswith("curl.md@")) | .tag_name' 2>/dev/null | head -n1)"
   else
-    tag="$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" | grep '"tag_name"' | cut -d'"' -f4)"
+    tag="$(curl -fsSL "https://api.github.com/repos/${REPO}/releases?per_page=10" | grep '"tag_name"' | cut -d'"' -f4 | grep '^curl\.md@' | head -n1)"
   fi
 
   if [ -z "$tag" ]; then
