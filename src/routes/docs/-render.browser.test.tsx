@@ -361,6 +361,38 @@ test('titled code blocks render a codegroup-style title bar with an icon', async
   expect(button?.className).toContain('top-[1.375rem]')
 })
 
+test('json code blocks titled opencode.json and opencode.jsonc use the opencode icon', async () => {
+  const rendered = renderDocContent(createOpencodeJsonCodeBlockDoc())
+  const titles = Array.from(rendered.container.querySelectorAll('[data-docs-code-title]'))
+  const opencodeTitle = titles.find((title) => title.textContent?.includes('opencode.json'))
+  const opencodeJsoncTitle = titles.find((title) => title.textContent?.includes('opencode.jsonc'))
+  const jsonTitle = titles.find((title) => title.textContent?.includes('config.json'))
+  const docsCardIcon = rendered.container.querySelector('[data-docs-card-icon] svg')
+  const opencodeIcon = opencodeTitle?.querySelector('svg')
+  const opencodeJsoncIcon = opencodeJsoncTitle?.querySelector('svg')
+  const jsonIcon = jsonTitle?.querySelector('svg')
+
+  expect(opencodeIcon).not.toBeNull()
+  expect(opencodeIcon?.innerHTML).toBe(docsCardIcon?.innerHTML)
+  expect(opencodeJsoncIcon).not.toBeNull()
+  expect(opencodeJsoncIcon?.innerHTML).toBe(docsCardIcon?.innerHTML)
+  expect(opencodeIcon?.innerHTML).not.toBe(jsonIcon?.innerHTML)
+})
+
+test('json code blocks titled ~/.pi/agent/settings.json use the pi icon', async () => {
+  const rendered = renderDocContent(createPiJsonCodeBlockDoc())
+  const titles = Array.from(rendered.container.querySelectorAll('[data-docs-code-title]'))
+  const piTitle = titles.find((title) => title.textContent?.includes('~/.pi/agent/settings.json'))
+  const jsonTitle = titles.find((title) => title.textContent?.includes('config.json'))
+  const docsCardIcon = rendered.container.querySelector('[data-docs-card-icon] svg')
+  const piIcon = piTitle?.querySelector('svg')
+  const jsonIcon = jsonTitle?.querySelector('svg')
+
+  expect(piIcon).not.toBeNull()
+  expect(piIcon?.innerHTML).toBe(docsCardIcon?.innerHTML)
+  expect(piIcon?.innerHTML).not.toBe(jsonIcon?.innerHTML)
+})
+
 test('untitled code blocks keep the copy button hover-only', async () => {
   const rendered = renderDocContent(createStyledCodeBlockDoc())
   const button = rendered.container.querySelector('[aria-label="Copy code"]')
@@ -488,6 +520,28 @@ test('cards render as a responsive grid of clickable items', async () => {
     .element(rendered.content.getByText('Start with the CLI for terminal and script usage.'))
     .toBeVisible()
   await expect.element(rendered.content.getByText('Amp plugin')).toBeVisible()
+})
+
+test('plugin links render below the intro paragraph as top-level docs CTAs', async () => {
+  const rendered = renderDocContent(createPluginLinksDoc())
+  const buttonLinks = rendered.container.querySelectorAll('[data-docs-button-link]')
+  const intro = rendered.content.getByText('Intro paragraph.')
+  const buttonLinksContainer = rendered.container.querySelector('[data-docs-button-links]')
+  const npmIcon = buttonLinks[0]?.querySelector('span > svg')?.parentElement
+
+  expect(buttonLinksContainer).not.toBeNull()
+  expect(buttonLinks).toHaveLength(2)
+  expect(buttonLinks[0]?.className).toContain('h-9')
+  expect(npmIcon?.className).toContain('text-[#cb3837]')
+  expect(buttonLinksContainer?.compareDocumentPosition(intro.element())).toBe(
+    Node.DOCUMENT_POSITION_PRECEDING,
+  )
+  await expect
+    .element(rendered.content.getByRole('link', { exact: true, name: '@curl.md/amp' }))
+    .toHaveAttribute('href', 'https://www.npmjs.com/package/@curl.md/amp')
+  await expect
+    .element(rendered.content.getByRole('link', { exact: true, name: 'Source code' }))
+    .toHaveAttribute('href', 'https://github.com/wevm/curl.md/tree/main/plugins/amp')
 })
 
 test('tables render inside a horizontal overflow container', async () => {
@@ -930,6 +984,71 @@ function createTitledCodeBlockDoc(): Doc {
   }
 }
 
+function createOpencodeJsonCodeBlockDoc(): Doc {
+  return {
+    Component: function Component(props) {
+      const components = props.components ?? {}
+      const Card = (components.Card ?? 'div') as React.ElementType
+      const Pre = (components.pre ?? 'pre') as React.ElementType
+      const Code = (components.code ?? 'code') as React.ElementType
+
+      return (
+        <>
+          <Card href="/docs/plugins/opencode" icon="opencode" title="OpenCode">
+            OpenCode card icon reference.
+          </Card>
+          <Pre title="opencode.json">
+            <Code className="language-json">{'{"plugin": ["@curl.md/opencode"]}'}</Code>
+          </Pre>
+          <Pre title="opencode.jsonc">
+            <Code className="language-jsonc">{'{"plugin": ["@curl.md/opencode"]}'}</Code>
+          </Pre>
+          <Pre title="config.json">
+            <Code className="language-json">{'{"plugin": []}'}</Code>
+          </Pre>
+        </>
+      )
+    },
+    description: undefined,
+    headings: [],
+    path: 'test',
+    source: '# Test\n',
+    sourcePath: 'docs/plugins/opencode.mdx',
+    title: 'Test',
+  }
+}
+
+function createPiJsonCodeBlockDoc(): Doc {
+  return {
+    Component: function Component(props) {
+      const components = props.components ?? {}
+      const Card = (components.Card ?? 'div') as React.ElementType
+      const Pre = (components.pre ?? 'pre') as React.ElementType
+      const Code = (components.code ?? 'code') as React.ElementType
+
+      return (
+        <>
+          <Card href="/docs/plugins/pi" icon="pi" title="Pi">
+            Pi card icon reference.
+          </Card>
+          <Pre title="~/.pi/agent/settings.json">
+            <Code className="language-json">{'{"packages": ["npm:@curl.md/pi"]}'}</Code>
+          </Pre>
+          <Pre title="config.json">
+            <Code className="language-json">{'{"packages": []}'}</Code>
+          </Pre>
+        </>
+      )
+    },
+    description: undefined,
+    headings: [],
+    path: 'test',
+    source: '# Test\n',
+    sourcePath: 'docs/plugins/pi.mdx',
+    title: 'Test',
+  }
+}
+
 function createCopyPageDoc(): Doc {
   return {
     Component: function Component(props) {
@@ -1012,6 +1131,35 @@ function createCardsDoc(): Doc {
     path: 'test',
     source: '# Test\n',
     sourcePath: 'docs/dev/kitchen-sink.mdx',
+    title: 'Test',
+  }
+}
+
+function createPluginLinksDoc(): Doc {
+  return {
+    Component: function Component(props) {
+      const components = props.components ?? {}
+      const PluginLinks = components.PluginLinks as React.ComponentType<{
+        npm: string
+        source: string
+      }>
+
+      return (
+        <>
+          <h1>Amp</h1>
+          <p>Intro paragraph.</p>
+          <PluginLinks
+            npm="@curl.md/amp"
+            source="https://github.com/wevm/curl.md/tree/main/plugins/amp"
+          />
+        </>
+      )
+    },
+    description: undefined,
+    headings: [],
+    path: 'test',
+    source: '# Test\n',
+    sourcePath: 'docs/plugins/amp.mdx',
     title: 'Test',
   }
 }

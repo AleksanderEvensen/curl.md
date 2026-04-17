@@ -9,19 +9,19 @@
   <br>
 </p>
 
-# @curl.md/pi
+# @curl.md/opencode
 
-Turn websites into **optimized, low token output** inside **Pi**.
+Turn websites into **optimized, low token output** inside **OpenCode**.
 
 ## Install
 
 ```sh
-pi install @curl.md/pi
+opencode plugin @curl.md/opencode
 ```
 
 ## Documentation
 
-For full documentation, visit [curl.md/docs](https://curl.md/docs/plugins/pi)
+For full documentation, visit [curl.md/docs](https://curl.md/docs/plugins/opencode)
 
 ## License
 

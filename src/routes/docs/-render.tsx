@@ -8,6 +8,7 @@ import IconBrandPi from '~icons/brand/pi.jsx'
 import IconOcticonPackage16 from '~icons/octicon/package16.jsx'
 import IconSimpleIconsClaude from '~icons/simple-icons/claude.jsx'
 import IconSimpleIconsCursor from '~icons/simple-icons/cursor.jsx'
+import IconSimpleIconsNpm from '~icons/simple-icons/npm.jsx'
 import IconSimpleIconsOpenai from '~icons/simple-icons/openai.jsx'
 import { config } from '#docs/_config.ts'
 import { useBrowserLayoutEffect } from '#hooks/useBrowserLayoutEffect.ts'
@@ -501,6 +502,9 @@ function createMdxComponents(props: { copied: boolean; copyPage: () => void; pre
     Notice: ((noticeProps: React.PropsWithChildren<{ title?: string; type?: string }>) => (
       <Notice preview={preview} {...noticeProps} />
     )) as React.ComponentType<any>,
+    PluginLinks: ((pluginLinksProps: { npm: string; source: string }) => (
+      <DocsPluginLinks preview={preview} {...pluginLinksProps} />
+    )) as React.ComponentType<any>,
     Step,
     Steps: preview ? PreviewSteps : Steps,
     table: (tableProps: React.ComponentProps<'table'>) => (
@@ -952,6 +956,83 @@ function DocsTableCell(props: React.ComponentProps<'td'> & { preview?: boolean }
   )
 }
 
+function DocsPluginLinks(props: { npm: string; preview?: boolean; source: string }) {
+  const { npm, preview = false, source } = props
+  return (
+    <div
+      className={['flex flex-wrap items-center', preview ? 'mt-3 gap-2' : 'mt-4 gap-2.5']
+        .filter(Boolean)
+        .join(' ')}
+      data-docs-button-links=""
+    >
+      <DocsButtonLink href={getNpmPackageHref(npm)} icon="npm" preview={preview}>
+        {npm}
+      </DocsButtonLink>
+      <DocsButtonLink href={source} icon="github" preview={preview}>
+        Source code
+      </DocsButtonLink>
+    </div>
+  )
+}
+
+function DocsButtonLink(
+  props: React.PropsWithChildren<{ href: string; icon?: 'github' | 'npm'; preview?: boolean }>,
+) {
+  const { children, href, icon, preview = false } = props
+  const iconDefinition = getDocsButtonLinkIcon(icon)
+  const className = [
+    'border-gray-a3 bg-gray-a1 text-gray8 inline-flex h-9 items-center gap-2 border px-2.5 text-sm no-underline select-none',
+    preview
+      ? 'pointer-events-none'
+      : 'hover:bg-gray-a2 hover:text-gray10 focus-visible:text-gray10 focus-visible:ring-blue8 outline-none focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset',
+  ]
+    .filter(Boolean)
+    .join(' ')
+  const content = (
+    <>
+      {iconDefinition && (
+        <span
+          className={[
+            'inline-flex size-4 shrink-0 items-center justify-center',
+            'className' in iconDefinition ? iconDefinition.className : undefined,
+          ]
+            .filter(Boolean)
+            .join(' ')}
+        >
+          <iconDefinition.Component aria-hidden className="size-4 shrink-0" />
+        </span>
+      )}
+      <span className="inline-flex h-full items-center leading-none">{children}</span>
+    </>
+  )
+
+  if (preview)
+    return (
+      <span className={className} data-docs-button-link="">
+        {content}
+      </span>
+    )
+
+  if (href.startsWith('/'))
+    return (
+      <Link className={className} data-docs-button-link="" to={href}>
+        {content}
+      </Link>
+    )
+
+  return (
+    <a
+      className={className}
+      data-docs-button-link=""
+      href={href}
+      rel="noopener noreferrer"
+      target="_blank"
+    >
+      {content}
+    </a>
+  )
+}
+
 function DocsCards(props: React.PropsWithChildren<{ preview?: boolean }>) {
   const { children, preview = false } = props
 
@@ -1270,19 +1351,27 @@ function CodeGroupItem(props: React.PropsWithChildren<{ label?: string }>) {
   return <>{children}</>
 }
 
-function CodeGroupTabIcon(props: { label: string }) {
-  const icon = getCodeGroupTabIcon(props.label)
+function CodeGroupTabIcon(props: { label: string; language?: string | undefined }) {
+  const icon = getCodeGroupTabIcon(props.label, props.language)
   if (!icon) return null
 
   if (icon === codeGroupTabIcons.pnpm) return <CodeGroupPnpmIcon />
 
-  return <icon.Component aria-hidden className="size-4 shrink-0" />
+  return (
+    <icon.Component
+      aria-hidden
+      className={['size-4 shrink-0', 'className' in icon ? icon.className : undefined]
+        .filter(Boolean)
+        .join(' ')}
+    />
+  )
 }
 
 function DocsCodeBlock(props: React.ComponentProps<'pre'> & { preview?: boolean }) {
   const { children, className, preview = false, style, title, ...rest } = props
   const backgroundColor =
     typeof style?.backgroundColor === 'string' ? style.backgroundColor : 'var(--color-docs-surface)'
+  const language = React.useMemo(() => getCodeElementLanguage(getCodeElement(children)), [children])
   const promptShellBlock = hasPromptShellBlock(children, props)
   const promptShellLines = React.useMemo(
     () => getPromptShellLines(children, promptShellBlock),
@@ -1337,7 +1426,7 @@ function DocsCodeBlock(props: React.ComponentProps<'pre'> & { preview?: boolean 
               .filter(Boolean)
               .join(' ')}
           >
-            <CodeGroupTabIcon label={label} />
+            <CodeGroupTabIcon label={label} language={language} />
             <span className="truncate">{label}</span>
           </span>
         </div>
@@ -2004,8 +2093,16 @@ function clearDocSearchPreviewHighlights(container: HTMLElement) {
   container.normalize()
 }
 
-function getCodeGroupTabIcon(label: string) {
+function getCodeGroupTabIcon(label: string, language?: string) {
   const normalized = label.trim().toLowerCase()
+  if (language === 'json' && normalized.endsWith('/.pi/agent/settings.json')) return piCodeIcon
+
+  if (
+    (language === 'json' || language === 'jsonc') &&
+    (normalized.endsWith('opencode.json') || normalized.endsWith('opencode.jsonc'))
+  )
+    return opencodeCodeIcon
+
   if (normalized in codeGroupTabIcons)
     return codeGroupTabIcons[normalized as keyof typeof codeGroupTabIcons]
 
@@ -2016,6 +2113,9 @@ function getCodeGroupTabIcon(label: string) {
   return undefined
 }
 
+const opencodeCodeIcon = { className: 'scale-90', Component: IconBrandOpencode } as const
+const piCodeIcon = { className: 'scale-125', Component: IconBrandPi } as const
+
 function getDocsCardIcon(icon: string | undefined) {
   if (!icon) return undefined
 
@@ -2024,6 +2124,15 @@ function getDocsCardIcon(icon: string | undefined) {
   if (normalized in docsCardIcons) return docsCardIcons[normalized as keyof typeof docsCardIcons]
 
   return undefined
+}
+
+function getDocsButtonLinkIcon(icon: 'github' | 'npm' | undefined) {
+  if (!icon) return undefined
+  return docsButtonLinkIcons[icon]
+}
+
+function getNpmPackageHref(name: string) {
+  return `https://www.npmjs.com/package/${name}`
 }
 
 const codeGroupTabIcons = {
@@ -2062,6 +2171,11 @@ const docsCardIcons = {
   terminal: { Component: IconOcticonTerminal16 },
   users: { Component: IconOcticonPeople16 },
   wallet: { Component: IconOcticonCreditCard16 },
+} as const
+
+const docsButtonLinkIcons = {
+  github: { Component: IconOcticonMarkGithub16 },
+  npm: { Component: IconSimpleIconsNpm },
 } as const
 
 const codeGroupExtensionIcons = {
