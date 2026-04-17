@@ -31,6 +31,7 @@ curl.md example.com
 md example.com
 
 # Add to your agent
+opencode plugin @curl.md/opencode
 pi install @curl.md/pi
 npx @curl.md/amp install
 
