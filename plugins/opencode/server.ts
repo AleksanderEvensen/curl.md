@@ -1,11 +1,12 @@
-import { type Plugin, tool } from '@opencode-ai/plugin'
-import { createClient, defaultBaseUrl } from 'curl.md'
-import { Auth, Session } from 'curl.md/internal'
+import * as opencodePlugin from '@opencode-ai/plugin'
+import * as curlmd from 'curl.md'
+import * as curlmdInternal from 'curl.md/internal'
+import { createHeaders, formatApiError, parseApiError } from './utils.ts'
 
-export const plugin: Plugin = async (_input, options) => {
-  const baseUrl = process.env.CURLMD_BASE_URL || defaultBaseUrl
+export const plugin: opencodePlugin.Plugin = async (_input, options) => {
+  const baseUrl = process.env.CURLMD_BASE_URL || curlmd.defaultBaseUrl
   const apiKey = process.env.CURLMD_API_KEY
-  const resolver = Auth.createResolver(baseUrl, apiKey)
+  const resolver = curlmdInternal.Auth.createResolver(baseUrl, apiKey)
   const webfetch = typeof options?.webfetch === 'boolean' ? options.webfetch : true
 
   return {
@@ -20,33 +21,35 @@ export const plugin: Plugin = async (_input, options) => {
 
 function createFetchTool(input: {
   baseUrl: string
-  resolver: (options?: Auth.ResolveOptions) => Promise<Auth.Headers | null>
+  resolver: (
+    options?: curlmdInternal.Auth.ResolveOptions,
+  ) => Promise<curlmdInternal.Auth.Headers | null>
   toolName: 'curl_md' | 'webfetch'
 }) {
   const optionArgs = {
-    format: tool.schema
+    format: opencodePlugin.tool.schema
       .enum(['html', 'markdown', 'text'])
       .optional()
       .describe(
         'Compatibility option for OpenCode built-in webfetch calls. curl.md always returns markdown.',
       ),
-    fresh: tool.schema
+    fresh: opencodePlugin.tool.schema
       .boolean()
       .optional()
       .describe('Bypass the curl.md cache and fetch the page live.'),
-    keywords: tool.schema
-      .array(tool.schema.string())
+    keywords: opencodePlugin.tool.schema
+      .array(opencodePlugin.tool.schema.string())
       .optional()
       .describe('Optional keywords to focus extraction on specific sections of the page.'),
-    mode: tool.schema
+    mode: opencodePlugin.tool.schema
       .enum(['rush', 'smart'])
       .optional()
       .describe('Extraction mode. Use smart for better section selection on long pages.'),
-    objective: tool.schema
+    objective: opencodePlugin.tool.schema
       .string()
       .optional()
       .describe('Optional objective describing what to extract from the page.'),
-    timeout: tool.schema
+    timeout: opencodePlugin.tool.schema
       .number()
       .optional()
       .describe(
@@ -62,15 +65,18 @@ function createFetchTool(input: {
     [key in keyof type]?: type[key]['_output']
   }
 
-  return tool({
+  return opencodePlugin.tool({
     description:
       input.toolName === 'webfetch'
         ? 'Override OpenCode built-in webfetch with curl.md markdown output.'
         : 'Fetch a web page through curl.md and return markdown optimized for coding agents.',
     args: {
       ...(input.toolName === 'webfetch' ? optionArgs : {}),
-      options: tool.schema.object(optionArgs).optional().describe('Optional fetch settings.'),
-      url: tool.schema
+      options: opencodePlugin.tool.schema
+        .object(optionArgs)
+        .optional()
+        .describe('Optional fetch settings.'),
+      url: opencodePlugin.tool.schema
         .string()
         .describe(
           'HTTP(S) URL or bare domain to fetch via curl.md. Prefer the canonical docs or article URL you want summarized.',
@@ -113,19 +119,14 @@ function createFetchTool(input: {
         url: result.url,
       }
 
-      ctx.metadata({
-        title: result.url,
-        metadata,
-      })
+      try {
+        ctx.metadata({
+          title: result.url,
+          metadata,
+        })
+      } catch {}
 
-      // TODO: Drop this cast once @opencode-ai/plugin types structured tool results.
-      // OpenCode accepts structured tool results, but @opencode-ai/plugin@1.4.6
-      // still types plugin execute() as Promise<string>.
-      return {
-        metadata,
-        output: result.markdown,
-        title: result.url,
-      } as unknown as string
+      return result.markdown
     },
   })
 }
@@ -136,7 +137,9 @@ async function fetchPage(input: {
   keywords?: string[]
   mode?: 'rush' | 'smart'
   objective?: string
-  resolver: (options?: Auth.ResolveOptions) => Promise<Auth.Headers | null>
+  resolver: (
+    options?: curlmdInternal.Auth.ResolveOptions,
+  ) => Promise<curlmdInternal.Auth.Headers | null>
   signal?: AbortSignal
   url: string
 }) {
@@ -157,7 +160,7 @@ async function fetchPage(input: {
   }
 
   const apiKey = process.env.CURLMD_API_KEY
-  const client = createClient(input.baseUrl, {
+  const client = curlmd.createClient(input.baseUrl, {
     headers: apiKey ? createHeaders(null) : createHeaders(authHeaders),
   })
   let res = await client.fetch(url, {
@@ -169,7 +172,7 @@ async function fetchPage(input: {
   if (res.status === 401 && authType === 'session') {
     authHeaders = await input.resolver({ forceRefresh: true })
     if (!authHeaders) authType = 'anon'
-    const retryClient = createClient(input.baseUrl, {
+    const retryClient = curlmd.createClient(input.baseUrl, {
       headers: apiKey ? createHeaders(null) : createHeaders(authHeaders),
     })
     res = await retryClient.fetch(url, {
@@ -209,7 +212,7 @@ async function fetchPage(input: {
 
   if (res.status === 403) {
     const json = await res.json()
-    Session.write({ organization_id: undefined }, input.baseUrl)
+    curlmdInternal.Session.write({ organization_id: undefined }, input.baseUrl)
     if (authType === 'api_key') throw new Error(`${json.message}. Check CURLMD_API_KEY access.`)
     throw new Error(`${json.message}. Set CURLMD_API_KEY or run \`curl.md auth login\`.`)
   }
@@ -233,7 +236,7 @@ async function fetchPage(input: {
       .json()
       .catch(() => undefined)
     const error = parseApiError(json)
-    if (error) throw new Error(`(${error.code}) ${error.message}`)
+    if (error) throw new Error(formatApiError(error))
 
     const text = await res.text()
     throw new Error(text || `curl.md request failed with status ${res.status}`)
@@ -251,27 +254,10 @@ async function fetchPage(input: {
   }
 }
 
-function createHeaders(auth: Auth.Headers | null) {
-  const headers: Record<string, string> = { accept: 'application/json' }
-  if (auth?.authorization) headers.authorization = auth.authorization
-  if (auth?.organization_id) headers['x-organization-id'] = auth.organization_id
-  return headers
-}
-
 function normalizeUrl(value: string) {
   const url = new URL(value.includes('://') ? value : `https://${value}`)
   if (!/^https?:$/.test(url.protocol)) throw new Error('URL must use http or https')
   return url.toString()
-}
-
-function parseApiError(json: unknown) {
-  if (typeof json !== 'object' || json === null) return undefined
-  if (!('message' in json) || typeof json.message !== 'string') return undefined
-  return {
-    code:
-      'code' in json && typeof json.code === 'string' ? json.code.toUpperCase() : 'REQUEST_FAILED',
-    message: json.message,
-  }
 }
 
 function parseNumberHeader(value: string | null) {

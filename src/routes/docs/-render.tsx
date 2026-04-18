@@ -17,6 +17,7 @@ import {
   docSearchHighlightClassName,
   getDocSearchHighlightRanges,
   getStepId,
+  normalizeDocSearchHighlightTerms,
   type Doc,
   type DocPagination,
   type Heading,
@@ -80,9 +81,7 @@ export function DocContent(props: {
   React.useEffect(() => {
     // Keep the shared tab store aligned with the URL for copied links and back/forward.
     codeGroupStore.syncFromUrl()
-
     const syncCodeGroupsFromUrl = () => codeGroupStore.syncFromUrl()
-
     window.addEventListener('popstate', syncCodeGroupsFromUrl)
     return () => window.removeEventListener('popstate', syncCodeGroupsFromUrl)
   }, [codeGroupStore])
@@ -93,7 +92,6 @@ export function DocContent(props: {
 
   React.useEffect(() => {
     const closeMobileOutline = () => setMobileOutlineOpen(false)
-
     window.addEventListener('hashchange', closeMobileOutline)
     return () => window.removeEventListener('hashchange', closeMobileOutline)
   }, [])
@@ -419,8 +417,14 @@ export function DocSearchPreview(props: {
   terms?: Array<string> | undefined
 }) {
   const mdxComponents = React.useMemo(
-    () => createMdxComponents({ copied: false, copyPage: () => undefined, preview: true }),
-    [],
+    () =>
+      createMdxComponents({
+        copied: false,
+        copyPage: () => undefined,
+        preview: true,
+        previewTerms: props.terms,
+      }),
+    [props.terms],
   )
   const contentRef = React.useRef<HTMLDivElement>(null)
   const viewportRef = React.useRef<HTMLDivElement>(null)
@@ -470,7 +474,7 @@ export function DocSearchPreview(props: {
       style={{ WebkitMaskImage: previewMaskImage, maskImage: previewMaskImage }}
     >
       <div
-        className="pointer-events-none ps-2 pe-1 select-none [&_[data-docs-code-block]]:mt-2.5 [&_[data-docs-step]:first-child]:pt-0 [&_[data-docs-steps]]:mt-2.5 [&>*:first-child]:mt-0"
+        className="text-gray10 pointer-events-none ps-2 pe-1 select-none [&_[data-docs-code-block]]:mt-2.5 [&_[data-docs-step]:first-child]:pt-0 [&_[data-docs-steps]]:mt-2.5 [&>*:first-child]:mt-0"
         ref={contentRef}
         style={offsetTop ? { transform: `translateY(-${offsetTop}px)` } : undefined}
       >
@@ -482,8 +486,13 @@ export function DocSearchPreview(props: {
 
 // --- Internal ---
 
-function createMdxComponents(props: { copied: boolean; copyPage: () => void; preview?: boolean }) {
-  const { copied, copyPage, preview = false } = props
+function createMdxComponents(props: {
+  copied: boolean
+  copyPage: () => void
+  preview?: boolean
+  previewTerms?: Array<string> | undefined
+}) {
+  const { copied, copyPage, preview = false, previewTerms } = props
   const docsInlineLinkClassName =
     'text-[color-mix(in_oklab,var(--color-gray10)_45%,var(--color-gray9))] underline [text-decoration-color:var(--color-gray-a6)] underline-offset-2 hover:text-gray10 [overflow-wrap:anywhere]'
 
@@ -494,7 +503,11 @@ function createMdxComponents(props: { copied: boolean; copyPage: () => void; pre
     Cards: ((cardsProps: React.PropsWithChildren) => (
       <DocsCards preview={preview} {...cardsProps} />
     )) as React.ComponentType<any>,
-    CodeGroup: preview ? PreviewCodeGroup : CodeGroup,
+    CodeGroup: preview
+      ? (codeGroupProps: React.PropsWithChildren) => (
+          <PreviewCodeGroup terms={previewTerms} {...codeGroupProps} />
+        )
+      : CodeGroup,
     CodeGroupItem,
     pre: (preProps: React.ComponentProps<'pre'>) => (
       <DocsCodeBlock preview={preview} {...preProps} />
@@ -506,7 +519,7 @@ function createMdxComponents(props: { copied: boolean; copyPage: () => void; pre
       <DocsPluginLinks preview={preview} {...pluginLinksProps} />
     )) as React.ComponentType<any>,
     Step,
-    Steps: preview ? PreviewSteps : Steps,
+    Steps: (stepsProps: React.PropsWithChildren) => <Steps preview={preview} {...stepsProps} />,
     table: (tableProps: React.ComponentProps<'table'>) => (
       <DocsTable preview={preview} {...tableProps} />
     ),
@@ -549,45 +562,22 @@ function createMdxComponents(props: { copied: boolean; copyPage: () => void; pre
     ),
     code: DocsInlineCode,
     h1: (headingProps: React.ComponentProps<'h1'>) =>
-      preview
-        ? renderPreviewPageHeading(headingProps)
-        : renderPageHeading({ copied, copyPage, ...headingProps }),
+      renderPageHeading({ copied, copyPage, preview, ...headingProps }),
     h2: (headingProps: React.ComponentProps<'h2'>) =>
-      preview
-        ? renderPreviewHeading(
-            'h2',
-            'mt-7 scroll-mt-[7rem] text-base font-bold md:text-lg lg:scroll-mt-4',
-            headingProps,
-          )
-        : renderHeading(
-            'h2',
-            'mt-12 scroll-mt-[7rem] text-lg font-bold md:text-xl lg:scroll-mt-4',
-            headingProps,
-          ),
+      renderDocHeading('h2', headingProps, {
+        className: getDocHeadingClassName('h2', { preview }),
+        preview,
+      }),
     h3: (headingProps: React.ComponentProps<'h3'>) =>
-      preview
-        ? renderPreviewHeading(
-            'h3',
-            'mt-6 scroll-mt-[7rem] text-[0.9375rem] font-bold md:text-base lg:scroll-mt-5',
-            headingProps,
-          )
-        : renderHeading(
-            'h3',
-            'mt-10 scroll-mt-[7rem] text-base font-bold md:text-lg lg:scroll-mt-5',
-            headingProps,
-          ),
+      renderDocHeading('h3', headingProps, {
+        className: getDocHeadingClassName('h3', { preview }),
+        preview,
+      }),
     h4: (headingProps: React.ComponentProps<'h4'>) =>
-      preview
-        ? renderPreviewHeading(
-            'h4',
-            'mt-5 scroll-mt-[7rem] text-[0.8125rem] font-bold md:text-sm lg:scroll-mt-4',
-            headingProps,
-          )
-        : renderHeading(
-            'h4',
-            'mt-8 scroll-mt-[7rem] text-sm font-bold md:text-base lg:scroll-mt-4',
-            headingProps,
-          ),
+      renderDocHeading('h4', headingProps, {
+        className: getDocHeadingClassName('h4', { preview }),
+        preview,
+      }),
     hr: () => <hr className="border-gray-a3 my-8" />,
     li: (listItemProps: React.ComponentProps<'li'>) => (
       <li
@@ -705,65 +695,116 @@ function OutlineHeadingText(props: { text: string; truncate?: boolean }) {
   )
 }
 
-function renderHeading<Tag extends 'h1' | 'h2' | 'h3' | 'h4'>(
+function renderDocHeading<Tag extends 'h2' | 'h3' | 'h4'>(
   tag: Tag,
-  baseClassName: string,
   props: React.ComponentProps<Tag>,
+  options: { className: string; linked?: boolean; preview?: boolean },
 ) {
+  const { className: baseClassName, linked = true, preview = false } = options
   const { children, className, id, ...rest } = props
+  const headingClassName = [
+    'group/heading relative text-gray12',
+    !preview && linked ? '-ms-4 ps-4 md:-ms-5 md:ps-5' : undefined,
+    baseClassName,
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ')
+
+  if (preview) {
+    return React.createElement(
+      tag,
+      {
+        ...rest,
+        className: headingClassName,
+        ...(id ? { 'data-doc-search-anchor': id } : {}),
+      },
+      <>{children}</>,
+    )
+  }
 
   return React.createElement(
     tag,
     {
       ...rest,
-      className: ['group/heading relative -ms-4 ps-4 md:-ms-5 md:ps-5', baseClassName, className]
-        .filter(Boolean)
-        .join(' '),
-      id,
+      className: headingClassName,
+      ...(id ? { id } : {}),
     },
     <>
-      {id && (
-        <a
-          aria-label="Link to section"
-          className="text-gray7 hover:text-gray9 focus-visible:text-gray9 absolute start-0 top-1/2 -translate-y-1/2 font-normal no-underline opacity-0 transition-opacity group-focus-within/heading:opacity-100 group-hover/heading:opacity-100 focus:opacity-100"
-          href={`#${id}`}
-        >
-          #
-        </a>
-      )}
+      {!preview && linked && id ? <HeadingAnchorLink id={id} /> : null}
       {children}
     </>,
   )
 }
 
-function renderPreviewHeading<Tag extends 'h1' | 'h2' | 'h3' | 'h4'>(
-  tag: Tag,
-  baseClassName: string,
-  props: React.ComponentProps<Tag>,
+function getDocHeadingClassName(
+  tag: 'h2' | 'h3' | 'h4',
+  props: { preview?: boolean; tight?: boolean; withMargin?: boolean },
 ) {
-  const { children, className, id, ...rest } = props
+  const { preview = false, tight = false, withMargin = true } = props
 
-  return React.createElement(
-    tag,
-    {
-      ...rest,
-      className: ['group/heading relative', baseClassName, className].filter(Boolean).join(' '),
-      ...(id ? { 'data-doc-search-anchor': id } : {}),
-    },
-    children,
-  )
+  if (tag === 'h2') {
+    return [
+      withMargin ? (preview ? 'mt-7' : 'mt-12') : undefined,
+      'scroll-mt-[7rem] font-bold lg:scroll-mt-4',
+      preview ? 'text-base md:text-lg' : 'text-lg md:text-xl',
+      tight ? 'leading-tight' : undefined,
+    ]
+      .filter(Boolean)
+      .join(' ')
+  }
+
+  if (tag === 'h3') {
+    return [
+      withMargin ? (preview ? 'mt-6' : 'mt-10') : undefined,
+      'scroll-mt-[7rem] font-bold lg:scroll-mt-5',
+      preview ? 'text-[0.9375rem] md:text-base' : 'text-base md:text-lg',
+      tight ? 'leading-tight' : undefined,
+    ]
+      .filter(Boolean)
+      .join(' ')
+  }
+
+  return [
+    withMargin ? (preview ? 'mt-5' : 'mt-8') : undefined,
+    'scroll-mt-[7rem] font-bold lg:scroll-mt-4',
+    preview ? 'text-[0.8125rem] md:text-sm' : 'text-sm md:text-base',
+    tight ? 'leading-tight' : undefined,
+  ]
+    .filter(Boolean)
+    .join(' ')
 }
 
 function renderPageHeading(
-  props: React.ComponentProps<'h1'> & { copied: boolean; copyPage: () => void },
+  props: React.ComponentProps<'h1'> & {
+    copied: boolean
+    copyPage: () => void
+    preview?: boolean
+  },
 ) {
-  const { children, className, copied, copyPage, id, ...rest } = props
+  const { children, className, copied, copyPage, id, preview = false, ...rest } = props
+
+  if (preview)
+    return (
+      <h1
+        {...rest}
+        className={[
+          'text-gray12 min-w-0 scroll-mt-[7rem] text-lg font-bold lg:scroll-mt-0 md:text-xl',
+          className,
+        ]
+          .filter(Boolean)
+          .join(' ')}
+        {...(id ? { 'data-doc-search-anchor': id } : {})}
+      >
+        {children}
+      </h1>
+    )
 
   return (
     <h1
       {...rest}
       className={[
-        'flex items-start justify-between gap-4 scroll-mt-[7rem] text-xl font-bold lg:scroll-mt-0 md:text-2xl',
+        'text-gray12 flex items-start justify-between gap-4 scroll-mt-[7rem] text-[1.375rem] font-bold lg:scroll-mt-0 md:text-[1.625rem]',
         className,
       ]
         .filter(Boolean)
@@ -771,16 +812,7 @@ function renderPageHeading(
       id={id}
     >
       <span className="group/heading relative -ms-4 min-w-0 flex-1 ps-4 md:-ms-5 md:ps-5">
-        {id && (
-          <a
-            aria-label="Link to section"
-            className="text-gray7 hover:text-gray9 focus-visible:text-gray9 absolute start-0 top-1/2 -translate-y-1/2 font-normal no-underline opacity-0 transition-opacity group-focus-within/heading:opacity-100 group-hover/heading:opacity-100 hover:opacity-100 focus:opacity-100"
-            data-heading-anchor=""
-            href={`#${id}`}
-          >
-            #
-          </a>
-        )}
+        {id ? <HeadingAnchorLink dataHeadingAnchor id={id} /> : null}
 
         <span className="block min-w-0" data-heading-title="">
           {children}
@@ -797,19 +829,18 @@ function renderPageHeading(
   )
 }
 
-function renderPreviewPageHeading(props: React.ComponentProps<'h1'>) {
-  const { children, className, id, ...rest } = props
+function HeadingAnchorLink(props: { dataHeadingAnchor?: boolean; id: string }) {
+  const { dataHeadingAnchor = false, id } = props
 
   return (
-    <h1
-      {...rest}
-      className={['min-w-0 scroll-mt-[7rem] text-lg font-bold lg:scroll-mt-0 md:text-xl', className]
-        .filter(Boolean)
-        .join(' ')}
-      {...(id ? { 'data-doc-search-anchor': id } : {})}
+    <a
+      aria-label="Link to section"
+      className="text-gray7 hover:text-gray9 focus-visible:text-gray9 absolute start-0 top-1/2 -translate-y-1/2 font-normal no-underline opacity-0 transition-opacity group-focus-within/heading:opacity-100 group-hover/heading:opacity-100 hover:opacity-100 focus:opacity-100"
+      {...(dataHeadingAnchor ? { 'data-heading-anchor': '' } : {})}
+      href={`#${id}`}
     >
-      {children}
-    </h1>
+      #
+    </a>
   )
 }
 
@@ -836,68 +867,62 @@ function Notice(
 ) {
   const { children, preview = false, title, type = 'note' } = props
   const label = title ?? noticeTitles[type] ?? noticeTitles.note
+  const noticeClassName = [
+    'data-[type=caution]:border-red9/30 data-[type=caution]:bg-red9/8 data-[type=hint]:border-blue9/30 data-[type=hint]:bg-blue9/8 data-[type=important]:border-purple9/30 data-[type=important]:bg-purple9/8 data-[type=note]:border-blue9/30 data-[type=note]:bg-blue9/8 data-[type=tip]:border-green9/30 data-[type=tip]:bg-green9/8 data-[type=warning]:border-amber9/30 data-[type=warning]:bg-amber9/8 border',
+    preview ? 'mt-4 p-3 text-[0.8125rem]' : 'mt-6 p-4 text-[0.9375rem]',
+  ]
+    .filter(Boolean)
+    .join(' ')
+  const badgeClassName = [
+    'data-[type=caution]:border-red9/30 data-[type=caution]:bg-red9/8 data-[type=caution]:text-red9 data-[type=hint]:border-blue9/30 data-[type=hint]:bg-blue9/8 data-[type=hint]:text-blue9 data-[type=important]:border-purple9/30 data-[type=important]:bg-purple9/8 data-[type=important]:text-purple9 data-[type=note]:border-blue9/30 data-[type=note]:bg-blue9/8 data-[type=note]:text-blue9 data-[type=tip]:border-green9/30 data-[type=tip]:bg-green9/8 data-[type=tip]:text-green9 data-[type=warning]:border-amber9/30 data-[type=warning]:bg-amber9/8 data-[type=warning]:text-amber9 inline-flex items-center border',
+    preview ? 'gap-1 px-1.5 py-0.5' : 'gap-1.5 px-1.5 py-0.5',
+  ]
+    .filter(Boolean)
+    .join(' ')
+  const labelClassName = [
+    'mt-0 font-medium tracking-wide uppercase',
+    preview ? 'text-[0.625rem]' : 'text-[0.6875rem]',
+  ]
+    .filter(Boolean)
+    .join(' ')
+  const bodyClassName = [
+    '[&>*:last-child]:mb-0',
+    preview ? '[&>*:first-child]:mt-2.5' : '[&>*:first-child]:mt-3',
+  ]
+    .filter(Boolean)
+    .join(' ')
 
   return (
-    <div
-      className={[
-        'data-[type=caution]:border-red9/30 data-[type=caution]:bg-red9/8 data-[type=hint]:border-blue9/30 data-[type=hint]:bg-blue9/8 data-[type=important]:border-purple9/30 data-[type=important]:bg-purple9/8 data-[type=note]:border-blue9/30 data-[type=note]:bg-blue9/8 data-[type=tip]:border-green9/30 data-[type=tip]:bg-green9/8 data-[type=warning]:border-amber9/30 data-[type=warning]:bg-amber9/8 border',
-        preview ? 'mt-4 p-3 text-[0.8125rem]' : 'mt-6 p-4 text-[0.9375rem]',
-      ]
-        .filter(Boolean)
-        .join(' ')}
-      data-type={type}
-      role="note"
-    >
-      <div
-        className={[
-          'data-[type=caution]:border-red9/30 data-[type=caution]:bg-red9/8 data-[type=caution]:text-red9 data-[type=hint]:border-blue9/30 data-[type=hint]:bg-blue9/8 data-[type=hint]:text-blue9 data-[type=important]:border-purple9/30 data-[type=important]:bg-purple9/8 data-[type=important]:text-purple9 data-[type=note]:border-blue9/30 data-[type=note]:bg-blue9/8 data-[type=note]:text-blue9 data-[type=tip]:border-green9/30 data-[type=tip]:bg-green9/8 data-[type=tip]:text-green9 data-[type=warning]:border-amber9/30 data-[type=warning]:bg-amber9/8 data-[type=warning]:text-amber9 inline-flex items-center border',
-          preview ? 'gap-1 px-1.5 py-0.5' : 'gap-1.5 px-1.5 py-0.5',
-        ]
-          .filter(Boolean)
-          .join(' ')}
-        data-type={type}
-      >
+    <div className={noticeClassName} data-type={type} role="note">
+      <div className={badgeClassName} data-type={type}>
         <NoticeIcon type={type} />
-        <p
-          className={[
-            'mt-0 font-medium tracking-wide uppercase',
-            preview ? 'text-[0.625rem]' : 'text-[0.6875rem]',
-          ]
-            .filter(Boolean)
-            .join(' ')}
-        >
-          {label}
-        </p>
+        <p className={labelClassName}>{label}</p>
       </div>
 
-      <div
-        className={[
-          '[&>*:last-child]:mb-0',
-          preview ? '[&>*:first-child]:mt-2.5' : '[&>*:first-child]:mt-3',
-        ]
-          .filter(Boolean)
-          .join(' ')}
-      >
-        {children}
-      </div>
+      <div className={bodyClassName}>{children}</div>
     </div>
   )
 }
 
 function DocsTable(props: React.ComponentProps<'table'> & { preview?: boolean }) {
   const { preview, ...rest } = props
+  const containerClassName = [
+    'minimal-scrollbar',
+    preview ? 'mt-4 overflow-x-hidden' : 'mt-6 overflow-x-auto',
+  ]
+    .filter(Boolean)
+    .join(' ')
+  const tableClassName = [
+    'min-w-full border-collapse',
+    preview ? 'text-[0.8125rem]' : 'text-[0.9375rem]',
+    rest.className,
+  ]
+    .filter(Boolean)
+    .join(' ')
+
   return (
-    <div className="minimal-scrollbar mt-6 overflow-x-auto" data-docs-table="">
-      <table
-        {...rest}
-        className={[
-          'min-w-full border-collapse',
-          preview ? 'text-[0.8125rem]' : 'text-[0.9375rem]',
-          rest.className,
-        ]
-          .filter(Boolean)
-          .join(' ')}
-      />
+    <div className={containerClassName} data-docs-table="">
+      <table {...rest} className={tableClassName} />
     </div>
   )
 }
@@ -981,7 +1006,8 @@ function DocsButtonLink(
   const { children, href, icon, preview = false } = props
   const iconDefinition = getDocsButtonLinkIcon(icon)
   const className = [
-    'border-gray-a3 bg-gray-a1 text-gray8 inline-flex h-9 items-center gap-2 border px-2.5 text-sm no-underline select-none',
+    'border-gray-a1 [background-color:var(--color-docs-surface)] text-gray8 inline-flex max-w-full min-w-0 items-center border no-underline select-none',
+    preview ? 'h-8 gap-1.5 px-2 text-[0.75rem]' : 'h-9 gap-2 px-2.5 text-sm',
     preview
       ? 'pointer-events-none'
       : 'hover:bg-gray-a2 hover:text-gray10 focus-visible:text-gray10 focus-visible:ring-blue8 outline-none focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset',
@@ -993,16 +1019,20 @@ function DocsButtonLink(
       {iconDefinition && (
         <span
           className={[
-            'inline-flex size-4 shrink-0 items-center justify-center',
+            'inline-flex shrink-0 items-center justify-center',
+            preview ? 'size-3.5' : 'size-4',
             'className' in iconDefinition ? iconDefinition.className : undefined,
           ]
             .filter(Boolean)
             .join(' ')}
         >
-          <iconDefinition.Component aria-hidden className="size-4 shrink-0" />
+          <iconDefinition.Component
+            aria-hidden
+            className={preview ? 'size-3.5 shrink-0' : 'size-4 shrink-0'}
+          />
         </span>
       )}
-      <span className="inline-flex h-full items-center leading-none">{children}</span>
+      <span className="min-w-0 truncate leading-none">{children}</span>
     </>
   )
 
@@ -1129,83 +1159,76 @@ function DocsCard(
   )
 }
 
-function Steps(props: React.PropsWithChildren) {
-  const { children } = props
+function Steps(props: React.PropsWithChildren<{ preview?: boolean }>) {
+  const { children, preview = false } = props
   const items = getStepItems(children)
+  const contentClassName = preview
+    ? '[&>*:first-child]:mt-3 [&>*:last-child]:mb-0'
+    : '[&>*:first-child]:mt-4 [&>*:last-child]:mb-0'
 
   if (!items[0]) return <>{children}</>
 
   return (
-    <ol className="-ms-1 mt-6 list-none ps-0" data-docs-steps="">
+    <ol
+      className={['-ms-1 list-none ps-0', preview ? 'mt-4' : 'mt-6'].filter(Boolean).join(' ')}
+      data-docs-steps=""
+    >
       {items.map((item, index) => (
         <li
-          className="grid grid-cols-[2rem_minmax(0,1fr)] gap-3 pb-10 last:pb-0 md:grid-cols-[2.25rem_minmax(0,1fr)] md:gap-4"
+          className={[
+            'grid last:pb-0',
+            preview
+              ? 'grid-cols-[1.75rem_minmax(0,1fr)] gap-2.5 pb-6 md:grid-cols-[2rem_minmax(0,1fr)] md:gap-3'
+              : 'grid-cols-[2rem_minmax(0,1fr)] gap-3 pb-10 md:grid-cols-[2.25rem_minmax(0,1fr)] md:gap-4',
+          ]
+            .filter(Boolean)
+            .join(' ')}
           data-docs-step=""
           key={`${index}-${item.title}`}
         >
           <div className="relative -mt-px flex justify-center md:-mt-0.5">
-            <a
-              aria-label={`Link to step: ${item.title}`}
-              className="bg-gray-a3 text-gray11 hover:bg-gray-a4 hover:text-gray12 focus-visible:ring-blue8 relative z-10 flex size-6 items-center justify-center rounded-full text-[0.875rem] font-medium no-underline outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg1)] md:size-7 md:text-sm"
-              href={`#${item.id}`}
-            >
-              {index + 1}
-            </a>
+            {preview ? (
+              <span className="bg-gray-a3 text-gray11 relative z-10 flex size-5 items-center justify-center rounded-full text-[0.75rem] font-medium md:size-6 md:text-[0.8125rem]">
+                {index + 1}
+              </span>
+            ) : (
+              <a
+                aria-label={`Link to step: ${item.title}`}
+                className="bg-gray-a3 text-gray11 hover:bg-gray-a4 hover:text-gray12 focus-visible:ring-blue8 relative z-10 flex size-6 items-center justify-center rounded-full text-[0.875rem] font-medium no-underline outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg1)] md:size-7 md:text-sm"
+                href={`#${item.id}`}
+              >
+                {index + 1}
+              </a>
+            )}
             <span
               aria-hidden
-              className="bg-gray-a3 absolute start-1/2 top-6 bottom-[-2rem] w-px -translate-x-1/2 data-[last]:bottom-[-1rem] md:top-7 md:bottom-[-2.25rem] md:data-[last]:bottom-[-1.125rem]"
+              className={[
+                'bg-gray-a3 absolute start-1/2 w-px -translate-x-1/2',
+                preview
+                  ? 'top-5 bottom-[-1rem] data-[last]:bottom-[-0.5rem] md:top-6 md:bottom-[-1rem] md:data-[last]:bottom-[-0.625rem]'
+                  : 'top-6 bottom-[-2rem] data-[last]:bottom-[-1rem] md:top-7 md:bottom-[-2.25rem] md:data-[last]:bottom-[-1.125rem]',
+              ]
+                .filter(Boolean)
+                .join(' ')}
               data-last={index === items.length - 1 ? '' : undefined}
             />
           </div>
 
           <div className="min-w-0">
-            <h3
-              className="text-gray12 scroll-mt-[7rem] text-base leading-tight font-bold md:text-lg lg:scroll-mt-5"
-              id={item.id}
-            >
-              {item.title}
-            </h3>
-            <div className="[&>*:first-child]:mt-4 [&>*:last-child]:mb-0">{item.content}</div>
-          </div>
-        </li>
-      ))}
-    </ol>
-  )
-}
-
-function PreviewSteps(props: React.PropsWithChildren) {
-  const { children } = props
-  const items = getStepItems(children)
-
-  if (!items[0]) return <>{children}</>
-
-  return (
-    <ol className="-ms-1 mt-4 list-none ps-0" data-docs-steps="">
-      {items.map((item, index) => (
-        <li
-          className="grid grid-cols-[1.75rem_minmax(0,1fr)] gap-2.5 pb-6 last:pb-0 md:grid-cols-[2rem_minmax(0,1fr)] md:gap-3"
-          data-docs-step=""
-          key={`${index}-${item.title}`}
-        >
-          <div className="relative -mt-px flex justify-center md:-mt-0.5">
-            <span className="bg-gray-a3 text-gray11 relative z-10 flex size-5 items-center justify-center rounded-full text-[0.75rem] font-medium md:size-6 md:text-[0.8125rem]">
-              {index + 1}
-            </span>
-            <span
-              aria-hidden
-              className="bg-gray-a3 absolute start-1/2 top-5 bottom-[-1rem] w-px -translate-x-1/2 data-[last]:bottom-[-0.5rem] md:top-6 md:bottom-[-1rem] md:data-[last]:bottom-[-0.625rem]"
-              data-last={index === items.length - 1 ? '' : undefined}
-            />
-          </div>
-
-          <div className="min-w-0">
-            <h3
-              className="text-gray12 scroll-mt-[7rem] text-[0.9375rem] leading-tight font-bold md:text-base lg:scroll-mt-5"
-              data-doc-search-anchor={item.id}
-            >
-              {item.title}
-            </h3>
-            <div className="[&>*:first-child]:mt-3 [&>*:last-child]:mb-0">{item.content}</div>
+            {renderDocHeading(
+              'h3',
+              { children: item.title, id: item.id },
+              {
+                className: getDocHeadingClassName('h3', {
+                  preview,
+                  tight: true,
+                  withMargin: false,
+                }),
+                linked: false,
+                preview,
+              },
+            )}
+            <div className={contentClassName}>{item.content}</div>
           </div>
         </li>
       ))}
@@ -1270,80 +1293,174 @@ function CodeGroup(props: React.PropsWithChildren) {
       }}
       value={value}
     >
-      <div
-        className="mt-6 overflow-hidden [background-color:var(--color-docs-surface)]"
-        data-docs-code-group=""
-      >
-        <Tabs.List
-          aria-label="Code group"
-          className="minimal-scrollbar relative flex gap-1 overflow-x-auto overflow-y-hidden [background-color:var(--color-docs-surface)] px-2"
-        >
-          <span
-            aria-hidden
-            className="bg-gray-a3 pointer-events-none absolute inset-x-0 bottom-0 h-px"
-          />
+      <CodeGroupFrame>
+        <CodeGroupTabStrip root={Tabs.List} rootProps={{ 'aria-label': 'Code group' }}>
           {items.map((item) => (
-            <Tabs.Tab
-              className="text-gray8 hover:text-gray10 focus-visible:ring-blue8 data-[active]:text-gray10 relative z-10 px-3 py-3 text-sm font-medium whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset"
+            <CodeGroupTab
+              active={value === item.value}
               key={item.value}
-              value={item.value}
-            >
-              <span
-                aria-hidden
-                className="bg-gray10 pointer-events-none absolute right-[8px] bottom-0 left-[8px] z-20 h-px opacity-0 data-[active]:opacity-100"
-                data-active={value === item.value ? '' : undefined}
-              />
-              <span className="flex items-center gap-2">
-                <CodeGroupTabIcon label={item.label} />
-                <span>{item.label}</span>
-              </span>
-            </Tabs.Tab>
+              label={item.label}
+              root={Tabs.Tab}
+              rootProps={{ value: item.value }}
+            />
           ))}
-        </Tabs.List>
+        </CodeGroupTabStrip>
 
         {items.map((item) => (
-          <Tabs.Panel
-            className="focus-visible:ring-blue8 focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset [&_[data-docs-code-block]]:mt-0 [&_[data-docs-code-block]_pre]:ps-5 [&_[data-docs-code-block]_pre]:pe-14 [&_pre]:border-0"
-            key={item.value}
-            value={item.value}
-          >
+          <CodeGroupPanel key={item.value} root={Tabs.Panel} rootProps={{ value: item.value }}>
             {item.content}
-          </Tabs.Panel>
+          </CodeGroupPanel>
         ))}
-      </div>
+      </CodeGroupFrame>
     </Tabs.Root>
   )
 }
 
-function PreviewCodeGroup(props: React.PropsWithChildren) {
+function PreviewCodeGroup(props: React.PropsWithChildren<{ terms?: Array<string> | undefined }>) {
   const items = React.useMemo(() => getCodeGroupItems(props.children), [props.children])
+  const activeItemIndex = React.useMemo(
+    () => getPreviewCodeGroupActiveItemIndex(items, props.terms),
+    [items, props.terms],
+  )
   if (!items[0]) return <>{props.children}</>
 
   return (
+    <CodeGroupFrame preview>
+      <CodeGroupTabStrip preview root="div">
+        {items.map((item, index) => (
+          <CodeGroupTab
+            active={index === activeItemIndex}
+            key={item.value}
+            label={item.label}
+            preview
+            root="span"
+          />
+        ))}
+      </CodeGroupTabStrip>
+
+      <CodeGroupPanel preview root="div">
+        {items[activeItemIndex]?.content ?? items[0].content}
+      </CodeGroupPanel>
+    </CodeGroupFrame>
+  )
+}
+
+function CodeGroupFrame(props: React.PropsWithChildren<{ preview?: boolean }>) {
+  const { children, preview = false } = props
+  return (
     <div
-      className="mt-4 overflow-hidden [background-color:var(--color-docs-surface)]"
+      className={[
+        preview ? 'mt-4' : 'mt-6',
+        'overflow-hidden [background-color:var(--color-docs-surface)]',
+      ]
+        .filter(Boolean)
+        .join(' ')}
       data-docs-code-group=""
     >
-      <div className="border-gray-a3 flex flex-wrap gap-1.5 border-b px-3 py-2">
-        {items.map((item, index) => (
-          <span
-            className="text-gray8 data-[active]:text-gray10 data-[active]:bg-gray-a2 px-1.5 py-0.5 text-[0.6875rem] font-medium"
-            data-active={index === 0 ? '' : undefined}
-            key={item.value}
-          >
-            <span className="flex items-center gap-2">
-              <CodeGroupTabIcon label={item.label} />
-              <span>{item.label}</span>
-            </span>
-          </span>
-        ))}
-      </div>
-
-      <div className="[&_[data-docs-code-block]]:mt-0 [&_[data-docs-code-block]_pre]:px-4 [&_pre]:border-0">
-        {items[0].content}
-      </div>
+      {children}
     </div>
   )
+}
+
+function CodeGroupPanel(props: {
+  children: React.ReactNode
+  preview?: boolean
+  root: React.ElementType
+  rootProps?: Record<string, unknown>
+}) {
+  const { children, preview = false, root: Root, rootProps } = props
+
+  return (
+    <Root {...rootProps} className={getCodeGroupPanelClassName(preview)}>
+      {children}
+    </Root>
+  )
+}
+
+function CodeGroupTab(props: {
+  active: boolean
+  label: string
+  preview?: boolean
+  root: React.ElementType
+  rootProps?: Record<string, unknown>
+}) {
+  const { active, label, preview = false, root: Root, rootProps } = props
+
+  return (
+    <Root
+      {...rootProps}
+      className={getCodeGroupTabClassName(preview)}
+      data-active={active ? '' : undefined}
+    >
+      <CodeGroupTabLabel active={active} label={label} />
+    </Root>
+  )
+}
+
+function CodeGroupTabStrip(props: {
+  children: React.ReactNode
+  preview?: boolean
+  root: React.ElementType
+  rootProps?: Record<string, unknown>
+}) {
+  const { children, preview = false, root: Root, rootProps } = props
+
+  return (
+    <Root {...rootProps} className={getCodeGroupTabStripClassName(preview)}>
+      <CodeGroupTabStripUnderline />
+      {children}
+    </Root>
+  )
+}
+
+function CodeGroupTabStripUnderline() {
+  return (
+    <span aria-hidden className="bg-gray-a3 pointer-events-none absolute inset-x-0 bottom-0 h-px" />
+  )
+}
+
+function CodeGroupTabLabel(props: { active: boolean; label: string }) {
+  const { active, label } = props
+
+  return (
+    <>
+      <span
+        aria-hidden
+        className="bg-gray10 pointer-events-none absolute right-[8px] bottom-0 left-[8px] z-20 h-px opacity-0 data-[active]:opacity-100"
+        data-active={active ? '' : undefined}
+      />
+      <span className="flex items-center gap-2">
+        <CodeGroupTabIcon label={label} />
+        <span>{label}</span>
+      </span>
+    </>
+  )
+}
+
+function getCodeGroupPanelClassName(preview = false) {
+  return preview
+    ? '[&_[data-docs-code-block]]:mt-0 [&_[data-docs-code-block]_pre]:px-4 [&_pre]:border-0'
+    : 'focus-visible:ring-blue8 focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset [&_[data-docs-code-block]]:mt-0 [&_[data-docs-code-block]_pre]:ps-5 [&_[data-docs-code-block]_pre]:pe-14 [&_pre]:border-0'
+}
+
+function getCodeGroupTabClassName(preview = false) {
+  return [
+    'text-gray8 data-[active]:text-gray10 relative z-10 font-medium whitespace-nowrap',
+    preview
+      ? 'px-2.5 py-2 text-[0.6875rem]'
+      : 'hover:text-gray10 focus-visible:ring-blue8 px-3 py-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset',
+  ]
+    .filter(Boolean)
+    .join(' ')
+}
+
+function getCodeGroupTabStripClassName(preview = false) {
+  return [
+    'minimal-scrollbar relative flex gap-1 overflow-y-hidden px-2 [background-color:var(--color-docs-surface)]',
+    preview ? 'overflow-x-hidden' : 'overflow-x-auto',
+  ]
+    .filter(Boolean)
+    .join(' ')
 }
 
 function CodeGroupItem(props: React.PropsWithChildren<{ label?: string }>) {
@@ -1405,6 +1522,8 @@ function DocsCodeBlock(props: React.ComponentProps<'pre'> & { preview?: boolean 
   )
   const label = typeof title === 'string' && title.trim() ? title.trim() : undefined
   const shouldShowCopyButton = Boolean(copyText && !preview && !shouldShowPromptCopyButtons)
+  const shouldCenterFloatingCopyButton =
+    !label && promptShellCommandLines.length === 1 && promptShellLines?.length === 1
   const { copied, copy } = useCopyToClipboard(copyText ? { content: copyText } : {})
 
   return (
@@ -1434,6 +1553,7 @@ function DocsCodeBlock(props: React.ComponentProps<'pre'> & { preview?: boolean 
 
       {shouldShowCopyButton && (
         <CodeBlockCopyButton
+          centered={shouldCenterFloatingCopyButton}
           copied={copied}
           floating
           headerAligned={Boolean(label)}
@@ -1445,7 +1565,8 @@ function DocsCodeBlock(props: React.ComponentProps<'pre'> & { preview?: boolean 
       <pre
         {...rest}
         className={[
-          '[background-color:var(--docs-code-block-background)] minimal-scrollbar focus-visible:ring-blue8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset mt-0 overflow-x-auto',
+          '[background-color:var(--docs-code-block-background)] minimal-scrollbar focus-visible:ring-blue8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset mt-0',
+          preview ? 'overflow-x-hidden' : 'overflow-x-auto',
           preview ? 'p-3 leading-[1.45]' : 'p-4 leading-relaxed',
           shouldShowCopyButton && !label ? 'ps-4 pe-14' : undefined,
           label ? (preview ? 'border-t-0 pt-2.5' : 'border-t-0 pt-3') : undefined,
@@ -1463,13 +1584,14 @@ function DocsCodeBlock(props: React.ComponentProps<'pre'> & { preview?: boolean 
 }
 
 function CodeBlockCopyButton(props: {
+  centered?: boolean
   copied: boolean
   floating?: boolean
   headerAligned?: boolean
   hoverOnly?: boolean
   onClick: () => void
 }) {
-  const { copied, floating, headerAligned, hoverOnly, onClick } = props
+  const { centered, copied, floating, headerAligned, hoverOnly, onClick } = props
 
   return (
     <button
@@ -1479,7 +1601,9 @@ function CodeBlockCopyButton(props: {
         floating
           ? headerAligned
             ? 'absolute end-3 top-[1.375rem] -translate-y-1/2'
-            : 'absolute end-3 top-3'
+            : centered
+              ? 'absolute end-3 top-1/2 -translate-y-1/2'
+              : 'absolute end-3 top-3'
           : 'me-3 shrink-0',
         hoverOnly
           ? 'opacity-0 transition-opacity group-focus-within/code:opacity-100 group-hover/code:opacity-100 focus:opacity-100'
@@ -1894,6 +2018,39 @@ function getCodeGroupItems(children: React.ReactNode) {
         value: String(index),
       }
     })
+}
+
+function getPreviewCodeGroupActiveItemIndex(
+  items: ReturnType<typeof getCodeGroupItems>,
+  terms: Array<string> | undefined,
+) {
+  const normalizedTerms = normalizeDocSearchHighlightTerms(terms).map((term) => term.toLowerCase())
+  if (!normalizedTerms.length) return 0
+
+  let bestIndex = 0
+  let bestScore = 0
+
+  items.forEach((item, index) => {
+    const label = item.label.toLowerCase()
+    const content = (
+      getCodeBlockText(item.content) ??
+      getNodeText(item.content) ??
+      ''
+    ).toLowerCase()
+    const score = normalizedTerms.reduce((total, term) => {
+      if (label === term) return total + 6
+      if (label.includes(term)) return total + 4
+      if (content.includes(term)) return total + 2
+      return total
+    }, 0)
+
+    if (score > bestScore) {
+      bestIndex = index
+      bestScore = score
+    }
+  })
+
+  return bestIndex
 }
 
 function getStepItems(children: React.ReactNode) {

@@ -48,7 +48,7 @@ https://curl.md/docs/plugins/opencode
 OpenCode will automatically use curl.md to turn URLs (you give it or it decides to fetch on its own) into markdown.
 
 :::tip
-Optionally, [authenticate](#authenticate) with the [curl.md CLI](/docs/guide/cli) to unlock higher usage limits and features, like [objective extraction](#TODO).
+Optionally, [authenticate](#authentication) with the [`curl_md_login`](#commands) command to unlock higher usage limits and features, like [objective extraction](#TODO).
 :::
 ::::
 
@@ -112,13 +112,30 @@ You can also tell OpenCode to use a specific [objective](#TODO), [keywords](#TOD
 
 ### Authentication
 
-The plugin uses the same auth model as the [CLI](/docs/guide/cli). Log in to connect the plugin to your curl.md account or organization.
+Authenticate inside OpenCode to connect the plugin to your curl.md account or organization:
+
+```text
+/curl_md_login
+```
+
+The plugin uses the same auth model as the [CLI](/docs/guide/cli) so you can also use the `auth login` command.
 
 ```sh
 $ curl.md auth login
 ```
 
 If you prefer non-interactive auth, set `CURLMD_API_KEY` before starting OpenCode.
+
+### Commands
+
+After installing, OpenCode registers the following commands:
+
+| Command          | Description                                                                  |
+| ---------------- | ---------------------------------------------------------------------------- |
+| `curl_md_login`  | Starts browser-based curl.md login flow and stores resulting session.        |
+| `curl_md_logout` | Logs out current curl.md session.                                            |
+| `curl_md_org`    | Switches the active curl.md account or organization OpenCode should use.     |
+| `curl_md_status` | Shows curl.md auth status, registered tool info, `curl.md` CLI availability. |
 
 ### Tools
 
@@ -129,6 +146,14 @@ The plugin registers the following tools:
 | `curl_md`  | Fetches URLs through curl.md and returns markdown optimized for agents. |
 | `webfetch` | Overrides built-in `webfetch` so it returns curl.md markdown output.    |
 
+### Status/Debugging
+
+Use the `/curl_md_status` command to confirm auth state, tool registration, and `curl.md` CLI availability.
+
+```text
+/curl_md_status
+```
+
 ## Contributing
 
-We welcome contributions to make the OpenCode plugin better. Feel free to create issues or pull requests [on GitHub](https://github.com/wevm/curl.md) if there are issues or something could be better.
+We welcome contributions to make the OpenCode plugin better. Feel free to create issues or pull requests [on GitHub](https://github.com/wevm/curl.md) if there are issues or something could be improved.

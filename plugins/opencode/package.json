@@ -18,15 +18,27 @@
     "markdown",
     "opencode"
   ],
+  "engines": {
+    "opencode": "^1.0.0"
+  },
   "exports": {
     ".": {
-      "types": "./plugin.ts",
-      "default": "./plugin.ts"
+      "types": "./server.ts",
+      "default": "./server.ts"
+    },
+    "./server": {
+      "types": "./server.ts",
+      "default": "./server.ts"
+    },
+    "./tui": {
+      "types": "./tui.ts",
+      "default": "./tui.ts"
     }
   },
   "files": [
     "README.md",
-    "plugin.ts"
+    "server.ts",
+    "tui.ts"
   ],
   "type": "module",
   "scripts": {
@@ -35,5 +47,8 @@
   "dependencies": {
     "@opencode-ai/plugin": "1.4.6",
     "curl.md": "workspace:*"
+  },
+  "devDependencies": {
+    "opencode-ai": "1.4.7"
   }
 }

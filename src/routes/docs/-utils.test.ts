@@ -132,6 +132,21 @@ test('createDocCopySource rewrites PluginLinks into markdown links', () => {
 - [Source code](https://github.com/wevm/curl.md/tree/main/plugins/amp)`)
 })
 
+test('createDocCopySource rewrites multiline PluginLinks into markdown links', () => {
+  const source = `# OpenCode
+
+<PluginLinks
+  npm="@curl.md/opencode"
+  source="https://github.com/wevm/curl.md/tree/main/plugins/opencode"
+/>
+`
+
+  expect(createDocCopySource(source)).toBe(`# OpenCode
+
+- [@curl.md/opencode](https://www.npmjs.com/package/@curl.md/opencode)
+- [Source code](https://github.com/wevm/curl.md/tree/main/plugins/opencode)`)
+})
+
 test('getDocHeadings includes numbered step headings from nested variable-length steps fences', () => {
   const source = `## Quick Start
 

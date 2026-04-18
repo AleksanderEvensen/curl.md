@@ -7,7 +7,7 @@ import { Session } from 'curl.md/internal'
 import { HttpResponse, http, passthrough } from 'msw'
 import { setupServer } from 'msw/node'
 import { afterEach, beforeAll, beforeEach, expect, test, vi } from 'vitest'
-import { plugin } from './plugin.ts'
+import { plugin } from './server.ts'
 
 const server = setupServer()
 
@@ -85,18 +85,7 @@ test('returns markdown and tool metadata for curl_md by default', async () => {
   expect(requests[0]?.url).toContain('keywords=plugin')
   expect(requests[0]?.url).toContain('mode=smart')
   expect(requests[0]?.url).toContain('objective=Summarize+the+docs')
-  expect(result).toEqual({
-    metadata: {
-      auth: 'anon',
-      cache: 'HIT',
-      fresh: true,
-      request_id: 'req_123',
-      tokens_saved: 128,
-      url: 'https://example.com/',
-    },
-    output: '# Example',
-    title: 'https://example.com/',
-  })
+  expect(result).toBe('# Example')
   expect(metadata).toHaveBeenCalledWith({
     metadata: {
       auth: 'anon',
@@ -145,18 +134,7 @@ test('returns markdown and tool metadata for webfetch when enabled', async () =>
     createToolContext(metadata),
   )
 
-  expect(result).toEqual({
-    metadata: {
-      auth: 'anon',
-      cache: 'HIT',
-      fresh: true,
-      request_id: 'req_456',
-      tokens_saved: 64,
-      url: 'https://example.com/',
-    },
-    output: '# Example',
-    title: 'https://example.com/',
-  })
+  expect(result).toBe('# Example')
   expect(metadata).toHaveBeenCalledWith({
     metadata: {
       auth: 'anon',
@@ -168,6 +146,26 @@ test('returns markdown and tool metadata for webfetch when enabled', async () =>
     },
     title: 'https://example.com/',
   })
+})
+
+test('returns markdown when tool metadata callback throws', async () => {
+  server.use(
+    http.get('*', async ({ request }) => {
+      const url = new URL(request.url)
+      if (url.origin !== new URL(defaultBaseUrl).origin) return passthrough()
+      return HttpResponse.json({ content: '# Example' })
+    }),
+  )
+
+  const hooks = await loadPlugin()
+  const result = await hooks.tool!.curl_md.execute(
+    { url: 'https://example.com' },
+    createToolContext(() => {
+      throw new Error('metadata_failed')
+    }),
+  )
+
+  expect(result).toBe('# Example')
 })
 
 test('accepts legacy top-level webfetch args and prefers nested options', async () => {
@@ -261,18 +259,7 @@ test('retries once on session 401 with forced auth refresh', async () => {
   expect(fetchCount).toBe(2)
   expect(requests[0]?.headers.authorization).toBe('Bearer access-token-1')
   expect(requests[1]?.headers.authorization).toBe('Bearer access-token-2')
-  expect(result).toEqual({
-    metadata: {
-      auth: 'session',
-      cache: undefined,
-      fresh: undefined,
-      request_id: undefined,
-      tokens_saved: undefined,
-      url: 'https://example.com/',
-    },
-    output: '# Retried',
-    title: 'https://example.com/',
-  })
+  expect(result).toBe('# Retried')
 })
 
 test('clears session org on 403', async () => {

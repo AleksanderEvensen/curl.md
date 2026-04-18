@@ -599,15 +599,17 @@ function SearchTrigger(props: {
   return (
     <button
       aria-label="Search"
-      className="hover:bg-gray-a2 group sm:bg-gray-a2 dark:sm:bg-bg2 sm:text-gray8 sm:hover:text-gray10 flex h-11 w-11 items-center justify-center p-0 text-sm sm:me-2 sm:h-8 sm:w-auto sm:justify-start sm:gap-2 sm:p-0 sm:ps-2.5 sm:pe-1"
+      className="hover:bg-gray-a2 group sm:bg-gray-a2 dark:sm:bg-bg2 flex h-11 w-11 items-center justify-center p-0 text-sm sm:me-2 sm:h-8 sm:w-auto sm:justify-start sm:gap-2 sm:px-0 sm:ps-2.5 sm:pe-1"
       onClick={props.onClick}
       ref={props.triggerRef}
       type="button"
     >
-      <IconLucideSearch aria-hidden="true" className="size-4 shrink-0 sm:size-3.5" />
-      <span className="hidden sm:inline">Search</span>
+      <IconLucideSearch aria-hidden="true" className="text-gray8 size-4 shrink-0 sm:hidden" />
+      <span className="text-gray8 group-focus-visible:text-gray10 group-hover:text-gray10 hidden sm:inline">
+        Search
+      </span>
       <span aria-hidden="true" className="hidden sm:inline-flex">
-        <kbd className="border-gray-a3 text-gray8 inline-flex h-6 items-center justify-center border bg-transparent px-1.5 font-sans leading-none select-none">
+        <kbd className="text-gray6 group-focus-visible:text-gray7 group-hover:text-gray7 inline-flex h-6 items-center justify-center bg-transparent px-1.5 font-sans leading-none select-none">
           <span className="flex items-center gap-1">
             <span className="text-[15px] leading-none">⌘</span>
             <span className="text-[14px] leading-none">K</span>

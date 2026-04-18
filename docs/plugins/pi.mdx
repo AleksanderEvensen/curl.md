@@ -20,7 +20,7 @@ Install the extension, launch Pi, and start curling.
 Install the [`@curl.md/pi`](https://www.npmjs.com/package/@curl.md/pi) package with Pi:
 
 ```sh
-$ pi install @curl.md/pi
+$ pi install npm:@curl.md/pi
 ```
 
 ### Start Pi
@@ -43,7 +43,7 @@ https://curl.md/docs/plugins/pi
 Pi will automatically use curl.md to turn URLs (you give it or it decides to fetch on its own) into markdown.
 
 :::tip
-Optionally, [authenticate](#authenticate) with the [`curl_md_login`](#TODO) command to unlock higher usage limits and features, like [objective extraction](#TODO).
+Optionally, [authenticate](#authentication) with the [`curl_md_login`](#commands) command to unlock higher usage limits and features, like [objective extraction](#TODO).
 :::
 
 ::::
@@ -124,8 +124,8 @@ The plugin also registers the following tools:
 
 | Tool            | Description                                                             |
 | --------------- | ----------------------------------------------------------------------- |
-| `read_web_page` | Fetches URLs through curl.md and returns markdown optimized for agents. |
 | `curl_md`       | Compatibility alias for `read_web_page`.                                |
+| `read_web_page` | Fetches URLs through curl.md and returns markdown optimized for agents. |
 
 ### Status/Debugging
 
@@ -137,4 +137,4 @@ Use the `curl_md_status` command to confirm auth state, tool registration, and `
 
 ## Contributing
 
-We welcome contributions to make the Pi extension better. Feel free to create issues or pull requests [on GitHub](https://github.com/wevm/curl.md) if there are issues or something could be better.
+We welcome contributions to make the Pi extension better. Feel free to create issues or pull requests [on GitHub](https://github.com/wevm/curl.md) if there are issues or something could be improved.

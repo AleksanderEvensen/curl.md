@@ -202,9 +202,10 @@ export function createDocCopySource(rawSource: unknown) {
       continue
     }
 
-    const pluginLinks = rewritePluginLinksComponent(line)
+    const pluginLinks = rewritePluginLinksComponent(lines, index)
     if (pluginLinks) {
-      output.push(...pluginLinks)
+      output.push(...pluginLinks.lines)
+      index = pluginLinks.endIndex
       continue
     }
 
@@ -459,8 +460,24 @@ function rewriteStepsDirective(lines: Array<string>, index: number) {
   }
 }
 
-function rewritePluginLinksComponent(line: string) {
-  const propsMatch = /^\s*<PluginLinks\s+([^>]*?)\s*\/?>\s*$/u.exec(line)
+function rewritePluginLinksComponent(lines: Array<string>, index: number) {
+  const firstLine = lines[index]!
+  if (!/^\s*<PluginLinks(?:\s|$)/u.test(firstLine)) return
+
+  const componentLines = [firstLine.trim()]
+  let endIndex = index
+
+  if (!/\/?>\s*$/u.test(firstLine)) {
+    for (endIndex = index + 1; endIndex < lines.length; endIndex++) {
+      const line = lines[endIndex]!
+      componentLines.push(line.trim())
+      if (/\/?>\s*$/u.test(line)) break
+    }
+
+    if (!/\/?>\s*$/u.test(lines[endIndex] ?? '')) return
+  }
+
+  const propsMatch = /^<PluginLinks\s+(.+?)\s*\/?>$/u.exec(componentLines.join(' '))
   const props = propsMatch?.[1]
   if (!props) return
 
@@ -468,7 +485,10 @@ function rewritePluginLinksComponent(line: string) {
   const source = /(?:^|\s)source=(['"])(.*?)\1/u.exec(props)?.[2]
   if (!npm || !source) return
 
-  return [`- [${npm}](${getNpmPackageHref(npm)})`, `- [Source code](${source})`]
+  return {
+    endIndex,
+    lines: [`- [${npm}](${getNpmPackageHref(npm)})`, `- [Source code](${source})`],
+  }
 }
 
 function rewriteCodeGroupItems(lines: Array<string>) {

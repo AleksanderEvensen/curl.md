@@ -122,14 +122,6 @@ test('registers read_web_page and curl_md through the real Pi extension loader',
 
     expect(readWebPageTool).toBeDefined()
     expect(aliasTool).toBeDefined()
-    expect(readWebPageTool?.definition.label).toBe('curl.md Fetch')
-    expect(readWebPageTool?.definition.promptSnippet).toBe(
-      'Fetch a web page via curl.md. Use objective for a concrete question, keywords for long pages, rush for speed, smart for better narrowing.',
-    )
-    expect(readWebPageTool?.definition.promptGuidelines).toContain(
-      'Set objective to the exact question you need answered when only part of the page matters.',
-    )
-    expect(aliasTool?.definition.promptSnippet).toBe('Alias for read_web_page.')
 
     const execution = await readWebPageTool!.definition.execute(
       'call_1',

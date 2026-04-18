@@ -369,19 +369,20 @@ export default function (pi: ExtensionAPI) {
     renderCall(args, theme, context) {
       const text = (context.lastComponent as Text | undefined) ?? new Text('', 0, 0)
       let content = `${theme.fg('toolTitle', theme.bold('read_web_page'))} ${theme.fg('accent', args.url)}`
-      const options = (() => {
-        const options: string[] = []
+      if (context.expanded) {
+        const options = (() => {
+          const options: string[] = []
 
-        // Mirror only the optional flags the model actually set so the call preview stays compact.
-        if (args.objective) options.push(`objective: ${args.objective}`)
-        if (args.keywords && args.keywords.length > 0)
-          options.push(`keywords: ${args.keywords.join(', ')}`)
-        if (args.mode) options.push(`mode: ${args.mode}`)
-        if (args.fresh) options.push('fresh')
+          if (args.objective) options.push(`objective: ${args.objective}`)
+          if (args.keywords && args.keywords.length > 0)
+            options.push(`keywords: ${args.keywords.join(', ')}`)
+          if (args.mode) options.push(`mode: ${args.mode}`)
+          if (args.fresh) options.push('fresh')
 
-        return options
-      })()
-      if (options.length > 0) content += `\n${theme.fg('dim', options.join('\n'))}`
+          return options
+        })()
+        if (options.length > 0) content += `\n${theme.fg('dim', options.join('\n'))}`
+      }
       text.setText(content)
       return text
     },
@@ -400,34 +401,7 @@ export default function (pi: ExtensionAPI) {
       }
 
       if (!expanded) {
-        const preview = (() => {
-          // Strip curl.md wrappers before building the collapsed preview shown in the tool row.
-          const previewContent = (
-            content.text.startsWith('---\n')
-              ? content.text.replace(/^---\n[\s\S]*?\n---\n+/, '')
-              : content.text
-          ).replace(/\n\n---\n\nPowered by \[curl\.md\]\(https:\/\/curl\.md\)$/, '')
-
-          const lines = previewContent
-            .split('\n')
-            .map((line) => line.trimEnd())
-            .filter(Boolean)
-
-          return {
-            lines: lines.slice(0, 3),
-            remainingLines: Math.max(0, lines.length - 3),
-          }
-        })()
-        const lines = [...preview.lines]
-        if (preview.remainingLines > 0) {
-          lines.push(
-            theme.fg(
-              'dim',
-              `... (${preview.remainingLines} more line${preview.remainingLines === 1 ? '' : 's'}, ctrl+o to expand)`,
-            ),
-          )
-        }
-        text.setText(lines.join('\n'))
+        text.setText('')
         return text
       }
 

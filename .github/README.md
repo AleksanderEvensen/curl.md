@@ -35,8 +35,13 @@ opencode plugin @curl.md/opencode
 pi install @curl.md/pi
 npx @curl.md/amp install
 
-# Lastly, try it in your browser
+# Try it in your browser
 open https://curl.md/example.com
+
+# Use the SDK in your apps
+import { createClient } from "curl.md"
+const client = createClient()
+const res = await client.fetch("example.com")
 ```
 
 ## Documentation

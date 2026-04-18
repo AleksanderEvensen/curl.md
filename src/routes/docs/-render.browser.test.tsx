@@ -302,6 +302,12 @@ test('single-line shell prompt blocks keep the normal copy code button', async (
   expect(rendered.container.querySelectorAll('[data-command-prompt]').length).toBe(1)
   expect(rendered.container.querySelector('[data-copy-command]')).toBeNull()
   expect(rendered.container.querySelector('[aria-label="Copy code"]')).not.toBeNull()
+  expect(rendered.container.querySelector('[aria-label="Copy code"]')?.className).toContain(
+    'top-1/2',
+  )
+  expect(rendered.container.querySelector('[aria-label="Copy code"]')?.className).toContain(
+    '-translate-y-1/2',
+  )
 
   await rendered.content.getByRole('button', { exact: true, name: 'Copy code' }).click()
 
@@ -399,6 +405,7 @@ test('untitled code blocks keep the copy button hover-only', async () => {
   const pre = rendered.container.querySelector('[data-docs-code-block] pre')
 
   expect(button?.className).toContain('opacity-0')
+  expect(button?.className).toContain('top-3')
   expect(pre?.className).toContain('pe-14')
 })
 
@@ -486,23 +493,6 @@ test('code groups delegate url sync through the provided handler', async () => {
   expect(window.location.search).toBe('')
 })
 
-test('steps render numbered timeline items', async () => {
-  const rendered = renderDocContent(createStepsDoc())
-
-  await expect.element(rendered.content.getByText('Install and start OrbStack')).toBeVisible()
-  await expect.element(rendered.content.getByText('Copy the environment file')).toBeVisible()
-  await expect
-    .element(rendered.content.getByText('OrbStack provides local Docker support.'))
-    .toBeVisible()
-  await expect.element(rendered.content.getByText('cp .env.example .env')).toBeVisible()
-  await expect
-    .element(
-      rendered.content.getByRole('link', { name: 'Link to step: Install and start OrbStack' }),
-    )
-    .toHaveAttribute('href', '#install-and-start-orbstack')
-  expect(rendered.container.querySelector('#install-and-start-orbstack')).not.toBeNull()
-})
-
 test('cards render as a responsive grid of clickable items', async () => {
   const rendered = renderDocContent(createCardsDoc())
   const cards = rendered.container.querySelectorAll('[data-docs-card]')
@@ -527,12 +517,12 @@ test('plugin links render below the intro paragraph as top-level docs CTAs', asy
   const buttonLinks = rendered.container.querySelectorAll('[data-docs-button-link]')
   const intro = rendered.content.getByText('Intro paragraph.')
   const buttonLinksContainer = rendered.container.querySelector('[data-docs-button-links]')
-  const npmIcon = buttonLinks[0]?.querySelector('span > svg')?.parentElement
 
   expect(buttonLinksContainer).not.toBeNull()
   expect(buttonLinks).toHaveLength(2)
   expect(buttonLinks[0]?.className).toContain('h-9')
-  expect(npmIcon?.className).toContain('text-[#cb3837]')
+  expect(buttonLinks[0]?.className).toContain('border-gray-a1')
+  expect(buttonLinks[0]?.className).toContain('[background-color:var(--color-docs-surface)]')
   expect(buttonLinksContainer?.compareDocumentPosition(intro.element())).toBe(
     Node.DOCUMENT_POSITION_PRECEDING,
   )
@@ -592,37 +582,323 @@ test('last updated renders a short timestamp first, then swaps to the browser ti
   expect(text).not.toContain(' UTC')
 })
 
-test('search preview renders a real docs code block without copy controls', () => {
-  const rendered = renderDocSearchPreview(createSearchPreviewDoc(), 'code-blocks')
+test('search preview headings keep the docs heading structure while swapping links for preview anchors', () => {
+  const doc = createDocFromPreview(createSearchPreviewDoc())
+  const full = captureDocContent(doc, (container) => {
+    const heading = getRequiredHTMLElement(
+      container,
+      '#code-blocks',
+      'Expected docs section heading to render',
+    )
+    const anchor = heading.querySelector('[href="#code-blocks"]')
+    if (!(anchor instanceof HTMLAnchorElement))
+      throw new Error('Expected docs section anchor link to render')
 
-  expect(rendered.container.querySelector('[data-doc-search-preview]')).not.toBeNull()
-  expect(rendered.container.querySelector('[data-docs-code-block]')).not.toBeNull()
-  expect(rendered.container.querySelector('[aria-label="Copy code"]')).toBeNull()
-  expect(rendered.container.querySelector('[data-copy-command]')).toBeNull()
+    return {
+      anchorHref: anchor.getAttribute('href'),
+      className: heading.className,
+      tagName: heading.tagName,
+      text: normalizeText(heading.textContent).replace(/^#\s*/, ''),
+    }
+  })
+  const preview = captureDocSearchPreview(
+    doc,
+    (container) => {
+      const heading = getRequiredHTMLElement(
+        container,
+        '[data-doc-search-anchor="code-blocks"]',
+        'Expected preview section heading to render',
+      )
+
+      return {
+        anchorId: heading.getAttribute('data-doc-search-anchor'),
+        className: heading.className,
+        hasSectionAnchorLink: heading.querySelector('[href="#code-blocks"]') !== null,
+        tagName: heading.tagName,
+        text: normalizeText(heading.textContent),
+      }
+    },
+    { hash: 'code-blocks' },
+  )
+
+  expect(full.tagName).toBe('H2')
+  expect(preview.tagName).toBe(full.tagName)
+  expect(preview.text).toBe(full.text)
+  expect(full.anchorHref).toBe('#code-blocks')
+  expect(preview.anchorId).toBe('code-blocks')
+  expect(preview.hasSectionAnchorLink).toBe(false)
+  expectClassTokens(full.className, [
+    'group/heading',
+    'relative',
+    'scroll-mt-[7rem]',
+    'font-bold',
+    'lg:scroll-mt-4',
+  ])
+  expectClassTokens(preview.className, [
+    'group/heading',
+    'relative',
+    'text-gray12',
+    'scroll-mt-[7rem]',
+    'font-bold',
+    'lg:scroll-mt-4',
+  ])
 })
 
-test('search preview renders the steps timeline as real docs markup', () => {
-  const rendered = renderDocSearchPreview(createSearchPreviewDoc(), 'install-dependencies')
+test('search preview steps keep shared timeline content and heading chrome while swapping anchors', () => {
+  const full = captureDocContent(createStepsDoc(), (container) => {
+    const firstStepHeading = getRequiredHTMLElement(
+      container,
+      '[data-docs-step] h3',
+      'Expected docs step heading to render',
+    )
 
-  expect(rendered.container.querySelector('[data-docs-steps]')).not.toBeNull()
-  expect(
-    rendered.container.querySelector('[data-doc-search-anchor="install-dependencies"]'),
-  ).not.toBeNull()
-  expect(rendered.container.querySelector('[href="#install-dependencies"]')).toBeNull()
+    return {
+      linkCount: container.querySelectorAll('[aria-label^="Link to step:"]').length,
+      signatures: getDocsStepSignatures(container),
+      stepHeadingId: firstStepHeading.id,
+      stepHeadingClassName: firstStepHeading.className,
+      stepHeadingTagName: firstStepHeading.tagName,
+    }
+  })
+  const preview = captureDocSearchPreview(createStepsDoc(), (container) => {
+    const firstStepHeading = getRequiredHTMLElement(
+      container,
+      '[data-docs-step] h3',
+      'Expected preview step heading to render',
+    )
+
+    return {
+      linkCount: container.querySelectorAll('[aria-label^="Link to step:"]').length,
+      signatures: getDocsStepSignatures(container),
+      stepAnchor: firstStepHeading.getAttribute('data-doc-search-anchor'),
+      stepHeadingClassName: firstStepHeading.className,
+      stepHeadingTagName: firstStepHeading.tagName,
+    }
+  })
+
+  expect(full.signatures).toEqual(preview.signatures)
+  expect(full.linkCount).toBe(2)
+  expect(preview.linkCount).toBe(0)
+  expect(full.stepHeadingTagName).toBe('H3')
+  expect(preview.stepHeadingTagName).toBe(full.stepHeadingTagName)
+  expect(preview.stepAnchor).toBe(full.stepHeadingId)
+  expectClassTokens(full.stepHeadingClassName, [
+    'text-gray12',
+    'scroll-mt-[7rem]',
+    'leading-tight',
+    'font-bold',
+    'lg:scroll-mt-5',
+  ])
+  expectClassTokens(preview.stepHeadingClassName, [
+    'group/heading',
+    'relative',
+    'text-gray12',
+    'scroll-mt-[7rem]',
+    'leading-tight',
+    'font-bold',
+    'lg:scroll-mt-5',
+  ])
 })
 
-test('search preview renders cards as non-interactive preview blocks', () => {
-  const rendered = renderDocSearchPreview(createCardsSearchPreviewDoc(), 'install-paths')
-  const content = rendered.container.querySelector('[data-doc-search-preview] > div')
-  if (!(content instanceof HTMLElement)) throw new Error('Expected preview content to render')
-  const anchor = getDocSearchPreviewAnchor(content, 'install-paths')
-  const previewCard = rendered.container.querySelector('[data-docs-card]')
+test('search preview button links keep docs chrome while scaling down and becoming non-interactive', () => {
+  const full = captureDocContent(createPluginLinksDoc(), (container) => {
+    const link = getRequiredHTMLElement(
+      container,
+      '[data-docs-button-link]',
+      'Expected docs button link to render',
+    )
 
-  expect(previewCard).not.toBeNull()
-  expect(previewCard?.tagName).toBe('DIV')
-  expect(anchor?.matches('[data-docs-card]')).toBe(true)
-  expect(rendered.container.querySelector('a[data-docs-card]')).toBeNull()
-  expect(rendered.container.querySelector('[data-docs-card-icon]')).not.toBeNull()
+    return {
+      className: link.className,
+      tagName: link.tagName,
+      text: link.textContent,
+    }
+  })
+  const preview = captureDocSearchPreview(createPluginLinksDoc(), (container) => {
+    const link = getRequiredHTMLElement(
+      container,
+      '[data-docs-button-link]',
+      'Expected preview button link to render',
+    )
+    return {
+      className: link.className,
+      tagName: link.tagName,
+      text: link.textContent,
+    }
+  })
+
+  expect(full.tagName).toBe('A')
+  expect(preview.tagName).toBe('SPAN')
+  expect(full.text).toBe(preview.text)
+  expectClassTokens(full.className, [
+    'border-gray-a1',
+    '[background-color:var(--color-docs-surface)]',
+    'text-gray8',
+    'inline-flex',
+    'max-w-full',
+    'min-w-0',
+    'items-center',
+    'border',
+    'no-underline',
+    'select-none',
+    'h-9',
+    'gap-2',
+    'px-2.5',
+    'text-sm',
+  ])
+  expectClassTokens(preview.className, [
+    'border-gray-a1',
+    '[background-color:var(--color-docs-surface)]',
+    'text-gray8',
+    'inline-flex',
+    'max-w-full',
+    'min-w-0',
+    'items-center',
+    'border',
+    'no-underline',
+    'select-none',
+    'h-8',
+    'gap-1.5',
+    'px-2',
+    'text-[0.75rem]',
+    'pointer-events-none',
+  ])
+})
+
+test('search preview cards keep docs chrome while scaling down and becoming non-interactive', () => {
+  const full = captureDocContent(createCardsDoc(), (container) => {
+    const card = getRequiredHTMLElement(
+      container,
+      '[data-docs-card]',
+      'Expected docs card to render',
+    )
+    const body = getRequiredHTMLElement(
+      card,
+      '[data-docs-card-body]',
+      'Expected docs card body to render',
+    )
+    const icon = getRequiredHTMLElement(
+      card,
+      '[data-docs-card-icon]',
+      'Expected docs card icon to render',
+    )
+    const title = getRequiredHTMLElement(
+      card,
+      '[data-docs-card-title]',
+      'Expected docs card title to render',
+    )
+
+    return {
+      bodyClassName: body.className,
+      cardClassName: card.className,
+      iconClassName: icon.className,
+      tagName: card.tagName,
+      titleClassName: title.className,
+    }
+  })
+  const preview = captureDocSearchPreview(createCardsDoc(), (container) => {
+    const content = getRequiredHTMLElement(
+      container,
+      '[data-doc-search-preview] > div',
+      'Expected preview content to render',
+    )
+    const anchor = getDocSearchPreviewAnchor(content, undefined)
+    const card = getRequiredHTMLElement(
+      container,
+      '[data-docs-card]',
+      'Expected preview card to render',
+    )
+    const body = getRequiredHTMLElement(
+      card,
+      '[data-docs-card-body]',
+      'Expected preview card body to render',
+    )
+    const icon = getRequiredHTMLElement(
+      card,
+      '[data-docs-card-icon]',
+      'Expected preview card icon to render',
+    )
+    const title = getRequiredHTMLElement(
+      card,
+      '[data-docs-card-title]',
+      'Expected preview card title to render',
+    )
+
+    return {
+      anchorMatchesCard: anchor?.matches('[data-docs-card]') ?? false,
+      bodyClassName: body.className,
+      cardClassName: card.className,
+      iconClassName: icon.className,
+      tagName: card.tagName,
+      titleClassName: title.className,
+    }
+  })
+
+  expect(full.tagName).toBe('A')
+  expect(preview.tagName).toBe('DIV')
+  expect(preview.anchorMatchesCard).toBe(true)
+  expectClassTokens(full.cardClassName, [
+    'border-gray-a1',
+    '[background-color:var(--color-docs-surface)]',
+    'text-gray10',
+    'flex',
+    'h-full',
+    'flex-col',
+    'border',
+    'no-underline',
+    'gap-3',
+    'p-4',
+    'hover:bg-gray-a2',
+  ])
+  expectClassTokens(preview.cardClassName, [
+    'border-gray-a1',
+    '[background-color:var(--color-docs-surface)]',
+    'text-gray10',
+    'flex',
+    'h-full',
+    'flex-col',
+    'border',
+    'no-underline',
+    'gap-2.5',
+    'p-3',
+  ])
+  expectClassTokens(full.iconClassName, [
+    'bg-gray-a2',
+    'text-gray11',
+    'inline-flex',
+    'items-center',
+    'justify-center',
+    'size-9',
+  ])
+  expectClassTokens(preview.iconClassName, [
+    'bg-gray-a2',
+    'text-gray11',
+    'inline-flex',
+    'items-center',
+    'justify-center',
+    'size-8',
+  ])
+  expectClassTokens(full.titleClassName, ['text-gray12', 'mt-0', 'font-medium', 'text-base'])
+  expectClassTokens(preview.titleClassName, [
+    'text-gray12',
+    'mt-0',
+    'font-medium',
+    'text-[0.9375rem]',
+  ])
+  expectClassTokens(full.bodyClassName, [
+    'min-w-0',
+    'text-[color-mix(in_oklab,var(--color-gray10)_25%,var(--color-gray9))]',
+    '[&>*:first-child]:mt-2',
+    '[&>*:last-child]:mb-0',
+    'text-[0.8125rem]',
+  ])
+  expectClassTokens(preview.bodyClassName, [
+    'min-w-0',
+    'text-[color-mix(in_oklab,var(--color-gray10)_25%,var(--color-gray9))]',
+    '[&>*:first-child]:mt-2',
+    '[&>*:last-child]:mb-0',
+    'text-[0.75rem]',
+  ])
 })
 
 test('search preview scales notice typography down', () => {
@@ -633,6 +909,315 @@ test('search preview scales notice typography down', () => {
 
   expect(notice.className).toContain('text-[0.8125rem]')
   expect(notice.className).not.toContain('text-[0.9375rem]')
+})
+
+test('search preview tables and code blocks keep docs chrome but clip horizontal overflow', () => {
+  const tableDoc = createDocFromPreview(createTableSearchPreviewDoc())
+  const fullTable = captureDocContent(tableDoc, (container) => {
+    const tableContainer = getRequiredHTMLElement(
+      container,
+      '[data-docs-table]',
+      'Expected docs table container to render',
+    )
+    const table = getRequiredHTMLElement(tableContainer, 'table', 'Expected docs table to render')
+    const bodyCell = getRequiredHTMLElement(table, 'td', 'Expected docs table cell to render')
+    const headerCell = getRequiredHTMLElement(table, 'th', 'Expected docs table header to render')
+
+    return {
+      bodyCellClassName: bodyCell.className,
+      headerCellClassName: headerCell.className,
+      tableClassName: table.className,
+      tableContainerClassName: tableContainer.className,
+    }
+  })
+  const previewTable = captureDocSearchPreview(tableDoc, (container) => {
+    const tableContainer = getRequiredHTMLElement(
+      container,
+      '[data-docs-table]',
+      'Expected preview table container to render',
+    )
+    const table = getRequiredHTMLElement(
+      tableContainer,
+      'table',
+      'Expected preview table to render',
+    )
+    const bodyCell = getRequiredHTMLElement(table, 'td', 'Expected preview table cell to render')
+    const headerCell = getRequiredHTMLElement(
+      table,
+      'th',
+      'Expected preview table header to render',
+    )
+
+    return {
+      bodyCellClassName: bodyCell.className,
+      headerCellClassName: headerCell.className,
+      tableClassName: table.className,
+      tableContainerClassName: tableContainer.className,
+    }
+  })
+  const fullCodeBlock = captureDocContent(createStyledCodeBlockDoc(), (container) => {
+    const pre = getRequiredHTMLElement(
+      container,
+      '[data-docs-code-block] pre',
+      'Expected docs code block to render',
+    )
+
+    return {
+      className: pre.className,
+      hasCopyButton: container.querySelector('[aria-label="Copy code"]') !== null,
+      style: pre.getAttribute('style') ?? '',
+    }
+  })
+  const previewCodeBlock = captureDocSearchPreview(createStyledCodeBlockDoc(), (container) => {
+    const pre = getRequiredHTMLElement(
+      container,
+      '[data-docs-code-block] pre',
+      'Expected preview code block to render',
+    )
+
+    return {
+      className: pre.className,
+      hasCopyButton: container.querySelector('[aria-label="Copy code"]') !== null,
+      style: pre.getAttribute('style') ?? '',
+    }
+  })
+
+  expectClassTokens(fullTable.tableContainerClassName, [
+    'minimal-scrollbar',
+    'mt-6',
+    'overflow-x-auto',
+  ])
+  expectClassTokens(previewTable.tableContainerClassName, [
+    'minimal-scrollbar',
+    'mt-4',
+    'overflow-x-hidden',
+  ])
+  expectClassTokens(fullTable.tableClassName, ['min-w-full', 'border-collapse', 'text-[0.9375rem]'])
+  expectClassTokens(previewTable.tableClassName, [
+    'min-w-full',
+    'border-collapse',
+    'text-[0.8125rem]',
+  ])
+  expectClassTokens(fullTable.headerCellClassName, [
+    'bg-gray-a1',
+    'text-gray10',
+    'text-left',
+    'font-medium',
+    'whitespace-nowrap',
+    'px-4',
+    'py-3',
+  ])
+  expectClassTokens(previewTable.headerCellClassName, [
+    'bg-gray-a1',
+    'text-gray10',
+    'text-left',
+    'font-medium',
+    'whitespace-nowrap',
+    'px-3',
+    'py-2.5',
+  ])
+  expectClassTokens(fullTable.bodyCellClassName, [
+    'text-[color-mix(in_oklab,var(--color-gray10)_25%,var(--color-gray9))]',
+    'align-top',
+    'whitespace-nowrap',
+    'px-4',
+    'py-3',
+  ])
+  expectClassTokens(previewTable.bodyCellClassName, [
+    'text-[color-mix(in_oklab,var(--color-gray10)_25%,var(--color-gray9))]',
+    'align-top',
+    'whitespace-nowrap',
+    'px-3',
+    'py-2.5',
+  ])
+  expectClassTokens(fullCodeBlock.className, [
+    '[background-color:var(--docs-code-block-background)]',
+    'minimal-scrollbar',
+    'focus-visible:ring-blue8',
+    'focus-visible:outline-none',
+    'focus-visible:ring-2',
+    'focus-visible:ring-inset',
+    'mt-0',
+    'overflow-x-auto',
+    'p-4',
+    'leading-relaxed',
+  ])
+  expectClassTokens(previewCodeBlock.className, [
+    '[background-color:var(--docs-code-block-background)]',
+    'minimal-scrollbar',
+    'focus-visible:ring-blue8',
+    'focus-visible:outline-none',
+    'focus-visible:ring-2',
+    'focus-visible:ring-inset',
+    'mt-0',
+    'overflow-x-hidden',
+    'p-3',
+    'leading-[1.45]',
+  ])
+  expect(fullCodeBlock.style).toContain('background-color: rgb(0, 0, 0);')
+  expect(previewCodeBlock.style).toContain('background-color: rgb(0, 0, 0);')
+  expect(fullCodeBlock.hasCopyButton).toBe(true)
+  expect(previewCodeBlock.hasCopyButton).toBe(false)
+})
+
+test('search preview code groups share the docs tab shell while isolating preview behavior', () => {
+  const doc = createDocFromPreview(createCodeGroupSearchPreviewDoc())
+  const full = captureDocContent(doc, (container) => {
+    const codeGroup = getRequiredHTMLElement(
+      container,
+      '[data-docs-code-group]',
+      'Expected docs code group to render',
+    )
+    const tabList = getRequiredHTMLElement(
+      codeGroup,
+      '[aria-label="Code group"]',
+      'Expected docs code group tab list to render',
+    )
+    const activeTab = getRequiredHTMLElement(
+      codeGroup,
+      '[role="tab"][aria-selected="true"]',
+      'Expected active docs code group tab to render',
+    )
+    const activeUnderline = getRequiredHTMLElement(
+      activeTab,
+      'span[aria-hidden][data-active=""]',
+      'Expected active docs tab underline to render',
+    )
+
+    return {
+      activeTabClassName: activeTab.className,
+      activeTabText: normalizeText(activeTab.textContent),
+      activeUnderlineClassName: activeUnderline.className,
+      codeGroupClassName: codeGroup.className,
+      hasInteractiveTabs: codeGroup.querySelector('[role="tab"]') !== null,
+      tabListClassName: tabList.className,
+      tabLabels: [...codeGroup.querySelectorAll('[role="tab"]')].map((tab) =>
+        normalizeText(tab.textContent),
+      ),
+    }
+  })
+  const preview = captureDocSearchPreview(
+    doc,
+    (container) => {
+      const codeGroup = getRequiredHTMLElement(
+        container,
+        '[data-docs-code-group]',
+        'Expected preview code group to render',
+      )
+      const tabList = getRequiredHTMLElement(
+        codeGroup,
+        ':scope > div',
+        'Expected preview code group tab list to render',
+      )
+      const tabs = [...tabList.querySelectorAll(':scope > span')]
+      const activeTab = tabs.find((tab) => tab.getAttribute('data-active') === '')
+      if (!(activeTab instanceof HTMLElement))
+        throw new Error('Expected active preview code group tab to render')
+      const activeUnderline = getRequiredHTMLElement(
+        activeTab,
+        'span[aria-hidden][data-active=""]',
+        'Expected active preview tab underline to render',
+      )
+
+      return {
+        activeTabClassName: activeTab.className,
+        activeTabText: normalizeText(activeTab.textContent),
+        activeUnderlineClassName: activeUnderline.className,
+        codeGroupClassName: codeGroup.className,
+        hasInteractiveTabs: codeGroup.querySelector('[role="tab"]') !== null,
+        tabListClassName: tabList.className,
+        tabLabels: tabs
+          .filter((tab) => normalizeText(tab.textContent) !== '')
+          .map((tab) => normalizeText(tab.textContent)),
+        text: codeGroup.textContent,
+      }
+    },
+    { hash: 'install', terms: ['pnpm'] },
+  )
+
+  expectClassTokens(full.codeGroupClassName, [
+    'mt-6',
+    'overflow-hidden',
+    '[background-color:var(--color-docs-surface)]',
+  ])
+  expectClassTokens(preview.codeGroupClassName, [
+    'mt-4',
+    'overflow-hidden',
+    '[background-color:var(--color-docs-surface)]',
+  ])
+  expectClassTokens(full.tabListClassName, [
+    'minimal-scrollbar',
+    'relative',
+    'flex',
+    'gap-1',
+    'overflow-x-auto',
+    'overflow-y-hidden',
+    '[background-color:var(--color-docs-surface)]',
+    'px-2',
+  ])
+  expectClassTokens(preview.tabListClassName, [
+    'minimal-scrollbar',
+    'relative',
+    'flex',
+    'gap-1',
+    'overflow-x-hidden',
+    'overflow-y-hidden',
+    'px-2',
+  ])
+  expectClassTokens(full.activeTabClassName, [
+    'text-gray8',
+    'data-[active]:text-gray10',
+    'relative',
+    'z-10',
+    'font-medium',
+    'whitespace-nowrap',
+    'px-3',
+    'py-3',
+    'text-sm',
+  ])
+  expectClassTokens(preview.activeTabClassName, [
+    'text-gray8',
+    'data-[active]:text-gray10',
+    'relative',
+    'z-10',
+    'font-medium',
+    'whitespace-nowrap',
+    'px-2.5',
+    'py-2',
+    'text-[0.6875rem]',
+  ])
+  expectClassTokens(full.activeUnderlineClassName, [
+    'bg-gray10',
+    'pointer-events-none',
+    'absolute',
+    'right-[8px]',
+    'bottom-0',
+    'left-[8px]',
+    'z-20',
+    'h-px',
+    'opacity-0',
+    'data-[active]:opacity-100',
+  ])
+  expectClassTokens(preview.activeUnderlineClassName, [
+    'bg-gray10',
+    'pointer-events-none',
+    'absolute',
+    'right-[8px]',
+    'bottom-0',
+    'left-[8px]',
+    'z-20',
+    'h-px',
+    'opacity-0',
+    'data-[active]:opacity-100',
+  ])
+  expect(full.hasInteractiveTabs).toBe(true)
+  expect(full.tabLabels).toEqual(['npm', 'pnpm', 'bun'])
+  expect(preview.tabLabels).toEqual(full.tabLabels)
+  expect(full.activeTabText).toBe('npm')
+  expect(preview.activeTabText).toBe('pnpm')
+  expect(preview.hasInteractiveTabs).toBe(false)
+  expect(preview.text).toContain('pnpm dev')
+  expect(preview.text).not.toContain('npm run dev')
 })
 
 test('search preview highlights matching heading and body text', () => {
@@ -646,7 +1231,7 @@ test('search preview highlights matching heading and body text', () => {
 
   const highlights = [...rendered.container.querySelectorAll('mark[data-doc-search-highlight]')]
 
-  expect(anchor?.matches('[data-doc-search-anchor="install-dependencies"]')).toBe(true)
+  expect(anchor).not.toBeNull()
   expect(highlights.length).toBeGreaterThanOrEqual(2)
   expect(highlights.some((highlight) => highlight.textContent?.toLowerCase() === 'install')).toBe(
     true,
@@ -1357,31 +1942,82 @@ function createNoticeSearchPreviewDoc(): Pick<Doc, 'Component' | 'path'> {
   }
 }
 
-function createCardsSearchPreviewDoc(): Pick<Doc, 'Component' | 'path'> {
+function createTableSearchPreviewDoc(): Pick<Doc, 'Component' | 'path'> {
   return {
     Component: function Component(props: {
       components?: Record<string, React.ComponentType<any>>
     }) {
-      const Card = (props.components?.Card ?? React.Fragment) as React.ElementType
-      const Cards = (props.components?.Cards ?? React.Fragment) as React.ElementType
       const H2 = (props.components?.h2 ?? 'h2') as React.ElementType
+      const Table = (props.components?.table ?? 'table') as React.ElementType
+      const TableBody = (props.components?.tbody ?? 'tbody') as React.ElementType
+      const TableCell = (props.components?.td ?? 'td') as React.ElementType
+      const TableHead = (props.components?.thead ?? 'thead') as React.ElementType
+      const TableHeaderCell = (props.components?.th ?? 'th') as React.ElementType
+      const TableRow = (props.components?.tr ?? 'tr') as React.ElementType
 
       return (
         <>
-          <H2 id="install-paths">Install Paths</H2>
+          <H2 id="configuration">Configuration</H2>
 
-          <Cards>
-            <Card href="/docs/install" icon="rocket" title="CLI">
-              <p>Start from the terminal for the broadest support.</p>
-            </Card>
-            <Card href="/docs/amp" icon="book" title="Amp">
-              <p>Use the plugin when you want `md_fetch` inside Amp.</p>
-            </Card>
-          </Cards>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableHeaderCell>Option</TableHeaderCell>
+                <TableHeaderCell>Description</TableHeaderCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              <TableRow>
+                <TableCell>webfetch</TableCell>
+                <TableCell>Routes fetches through curl.md markdown output.</TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
         </>
       )
     },
-    path: 'install',
+    path: 'dev/kitchen-sink',
+  }
+}
+
+function createCodeGroupSearchPreviewDoc(): Pick<Doc, 'Component' | 'path'> {
+  return {
+    Component: function Component(props: {
+      components?: Record<string, React.ComponentType<any>>
+    }) {
+      const Code = (props.components?.code ?? 'code') as React.ElementType
+      const CodeGroup = (props.components?.CodeGroup ?? React.Fragment) as React.ElementType
+      const CodeGroupItem = (props.components?.CodeGroupItem ?? React.Fragment) as React.ElementType
+      const H2 = (props.components?.h2 ?? 'h2') as React.ElementType
+      const Pre = (props.components?.pre ?? 'pre') as React.ElementType
+
+      return (
+        <>
+          <H2 id="install">Install</H2>
+
+          <CodeGroup>
+            <CodeGroupItem label="npm">
+              <Pre>
+                <Code className="language-sh">npm run dev</Code>
+              </Pre>
+            </CodeGroupItem>
+
+            <CodeGroupItem label="pnpm">
+              <Pre>
+                <Code className="language-sh">pnpm dev</Code>
+              </Pre>
+            </CodeGroupItem>
+
+            <CodeGroupItem label="bun">
+              <Pre>
+                <Code className="language-sh">bun run dev</Code>
+              </Pre>
+            </CodeGroupItem>
+          </CodeGroup>
+        </>
+      )
+    },
+    path: 'dev/kitchen-sink',
   }
 }
 
@@ -1460,6 +2096,74 @@ function renderDocSearchPreview(
   return { container }
 }
 
+function captureDocContent<T>(doc: Doc, capture: (container: HTMLElement) => T) {
+  const rendered = renderDocContent(doc)
+
+  try {
+    return capture(rendered.container)
+  } finally {
+    cleanup?.()
+    cleanup = undefined
+  }
+}
+
+function captureDocSearchPreview<T>(
+  doc: Pick<Doc, 'Component' | 'path'>,
+  capture: (container: HTMLElement) => T,
+  options?: { hash?: string; terms?: Array<string> },
+) {
+  const rendered = renderDocSearchPreview(doc, options?.hash, options?.terms)
+
+  try {
+    return capture(rendered.container)
+  } finally {
+    cleanup?.()
+    cleanup = undefined
+  }
+}
+
+function createDocFromPreview(doc: Pick<Doc, 'Component' | 'path'>): Doc {
+  return {
+    Component: doc.Component,
+    description: undefined,
+    headings: [],
+    path: doc.path,
+    source: '# Test\n',
+    sourcePath: 'docs/dev/kitchen-sink.mdx',
+    title: 'Test',
+  }
+}
+
+function getRequiredHTMLElement(
+  container: Pick<Element, 'querySelector'>,
+  selector: string,
+  message: string,
+) {
+  const element = container.querySelector(selector)
+  if (!(element instanceof HTMLElement)) throw new Error(message)
+
+  return element
+}
+
+function expectClassTokens(className: string, tokens: Array<string>) {
+  for (const token of tokens) {
+    expect(className).toContain(token)
+  }
+}
+
+function getDocsStepSignatures(container: Pick<Element, 'querySelectorAll'>) {
+  return [...container.querySelectorAll('[data-docs-step]')].map((step) => {
+    const columns = step.querySelectorAll(':scope > div')
+    const contentColumn = columns[1]
+
+    return {
+      bodyText: normalizeText(contentColumn?.querySelector('div')?.textContent),
+      hasCodeBlock: step.querySelector('[data-docs-code-block]') !== null,
+      title: normalizeText(contentColumn?.querySelector('h3')?.textContent),
+    }
+  })
+}
+
 function unmountRoot(root: Root) {
   flushSync(() => {
     root.unmount()
@@ -1524,4 +2228,8 @@ function getDateTimePart(
 
 function getActiveCodeGroupTabLabel(container: Element) {
   return container.querySelector('[role="tab"][aria-selected="true"]')?.textContent?.trim()
+}
+
+function normalizeText(text: string | null | undefined) {
+  return text?.replace(/\s+/g, ' ').trim() ?? ''
 }

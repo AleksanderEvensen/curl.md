@@ -25,6 +25,7 @@ minimumReleaseAgeExclude:
 onlyBuiltDependencies:
   - bun
   - msw
+  - opencode-ai
   - simple-git-hooks
   - workerd
 
