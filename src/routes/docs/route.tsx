@@ -553,7 +553,7 @@ function SidebarNavItem(props: { item: SidebarItem; onNavigate: () => void }) {
   if (item.type === 'group')
     return (
       <li className="mt-6 first:mt-0">
-        <span className="text-gray10 block px-2 py-1.5 text-sm font-medium lowercase first-letter:uppercase md:py-0">
+        <span className="text-gray10 block px-2 py-1.5 text-sm font-medium md:py-0">
           {item.label}
         </span>
         <ul className="mt-1.5 flex list-none flex-col gap-0.5 ps-0">
@@ -565,6 +565,19 @@ function SidebarNavItem(props: { item: SidebarItem; onNavigate: () => void }) {
             />
           ))}
         </ul>
+      </li>
+    )
+
+  if (item.type === 'href')
+    return (
+      <li>
+        <a
+          className="text-gray8 hover:text-gray10 hover:bg-gray-a2 flex items-center gap-1.5 px-2 py-1.5 text-sm md:scroll-my-3"
+          href={item.href}
+          onClick={onNavigate}
+        >
+          <span>{item.label}</span>
+        </a>
       </li>
     )
 

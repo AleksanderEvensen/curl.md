@@ -90,7 +90,7 @@ export function getDocsLlmsSections(
       continue
     }
 
-    if (item.type === 'separator') continue
+    if (item.type === 'href' || item.type === 'separator') continue
 
     const docs = collectSidebarDocs(item.items, docsByPath)
     if (docs.length === 0) continue
@@ -224,7 +224,7 @@ function collectSidebarDocs(
       continue
     }
 
-    if (item.type === 'separator') continue
+    if (item.type === 'href' || item.type === 'separator') continue
 
     docs.push(...collectSidebarDocs(item.items, docsByPath))
   }

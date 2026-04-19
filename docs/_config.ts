@@ -13,7 +13,7 @@ export const config = {
     {
       label: 'Plugins',
       ...linkOptions({
-        params: { _splat: 'plugins/amp' },
+        params: { _splat: 'guide/plugins' },
         to: '/docs/$',
       }),
     },

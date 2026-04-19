@@ -68,6 +68,7 @@ function flattenSidebarItems(
 
   for (const item of items) {
     if (item.type === 'link') links.push(item)
+    else if (item.type === 'href' || item.type === 'separator') continue
     else if (item.type === 'group') links.push(...flattenSidebarItems(item.items))
   }
 

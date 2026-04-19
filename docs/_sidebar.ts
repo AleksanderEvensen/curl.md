@@ -33,6 +33,15 @@ export const sidebar = [
   },
   {
     type: 'group',
+    label: 'LLM Resources',
+    items: [
+      { type: 'href', href: '/docs/llms.txt', label: 'llms.txt' },
+      { type: 'href', href: '/docs/llms-full.txt', label: 'llms-full.txt' },
+      { type: 'link', label: 'Skills', path: '/skills', wip: true },
+    ],
+  },
+  {
+    type: 'group',
     label: 'Contributing',
     items: [
       { type: 'link', label: 'Develop', path: '/dev/develop' },
@@ -44,5 +53,6 @@ export const sidebar = [
 
 export type SidebarItem =
   | { type: 'link'; label: string; path: string; wip?: true }
+  | { type: 'href'; href: string; label: string }
   | { type: 'group'; label: string; items: Array<SidebarItem> }
   | { type: 'separator' }
