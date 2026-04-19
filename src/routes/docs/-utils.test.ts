@@ -141,10 +141,10 @@ You only need one installation path.
 :::`)
 })
 
-test('createDocCopySource rewrites PluginLinks into markdown links', () => {
+test('createDocCopySource rewrites PackageLinks into markdown links', () => {
   const source = `# Amp
 
-<PluginLinks npm="@curl.md/amp" source="https://github.com/wevm/curl.md/tree/main/plugins/amp" />
+<PackageLinks npm="@curl.md/amp" source="https://github.com/wevm/curl.md/tree/main/plugins/amp" />
 `
 
   expect(createDocCopySource(source)).toBe(`# Amp
@@ -153,10 +153,10 @@ test('createDocCopySource rewrites PluginLinks into markdown links', () => {
 - [Source code](https://github.com/wevm/curl.md/tree/main/plugins/amp)`)
 })
 
-test('createDocCopySource rewrites multiline PluginLinks into markdown links', () => {
+test('createDocCopySource rewrites multiline PackageLinks into markdown links', () => {
   const source = `# OpenCode
 
-<PluginLinks
+<PackageLinks
   npm="@curl.md/opencode"
   source="https://github.com/wevm/curl.md/tree/main/plugins/opencode"
 />

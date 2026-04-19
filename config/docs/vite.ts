@@ -1,5 +1,6 @@
 import path from 'node:path'
 import type * as vite from 'vite'
+import { isCliGuideSyncPath, syncCliGuide } from './cliCommands.ts'
 import { docsCompile } from './compile.ts'
 import { isDocsSourcePath, syncDocsStaticAssets } from './export.ts'
 
@@ -10,6 +11,7 @@ export function docs(): vite.Plugin {
   return {
     ...plugin,
     async configResolved(this: unknown, config: vite.ResolvedConfig) {
+      await syncCliGuide()
       await syncDocsStaticAssets()
       return (
         (typeof plugin.configResolved === 'function'
@@ -28,7 +30,16 @@ export function docs(): vite.Plugin {
         return []
       }
 
-      if (isDocsSourcePath(ctx.file)) await syncDocsStaticAssets()
+      const cliGuideSyncPath = isCliGuideSyncPath(ctx.file)
+      const docsSourcePath = isDocsSourcePath(ctx.file)
+      const cliGuideChanged = cliGuideSyncPath ? await syncCliGuide() : false
+
+      if (docsSourcePath || cliGuideChanged) await syncDocsStaticAssets()
+      if (cliGuideSyncPath && !docsSourcePath) {
+        if (cliGuideChanged) ctx.server.ws.send({ type: 'full-reload' })
+        return []
+      }
+
       return (
         (typeof plugin.handleHotUpdate === 'function'
           ? plugin.handleHotUpdate

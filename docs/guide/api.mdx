@@ -1,25 +1,88 @@
 ---
 title: API & SDK
-description: Call curl.md from code with the hosted endpoint or the typed JavaScript client.
+description: Call curl.md with the API endpoint or the TypeScript SDK
 ---
 
 # API & SDK
 
-You can use `curl.md` directly over HTTP or through the published JavaScript client.
+Use `curl.md` directly over HTTP or through the published TypeScript SDK.
 
-## Hosted Endpoint
+## HTTP API
 
 The simplest HTTP interface is the hosted `curl.md/<url>` path:
 
 ```sh
-$ curl "https://curl.md/developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch?objective=streaming+response+body&keywords=ReadableStream,getReader"
+$ curl curl.md/developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch?objective=streaming+response+body&keywords=ReadableStream,getReader"
 ```
 
 This is useful for quick integrations, shell scripts, and server-side fetches.
 
-## JavaScript Client
+:::tip[Browser shortcut]
+You can also use curl.md in your browser by adding `curl.md/` in front of any URL. For example, [`curl.md/example.com`](https://curl.md/example.com)
+:::
 
-Use the published `curl.md` package when you want a typed client from JavaScript or TypeScript.
+## TypeScript SDK
+
+Use the [`curl.md`](https://www.npmjs.com/package/curl.md) npm package when you want a typed client in TypeScript.
+
+<PackageLinks npm="curl.md" source="https://github.com/wevm/curl.md/blob/main/cli/src/client.ts" />
+
+### Install
+
+Install `curl.md` with your favorite package manager:
+
+:::codegroup
+
+```sh [npm]
+$ npm i curl.md
+```
+
+```sh [pnpm]
+$ pnpm i curl.md
+```
+
+```sh [bun]
+$ bun i curl.md
+```
+
+```sh [yarn]
+$ yarn add curl.md
+```
+
+:::
+
+<details>
+<summary>Using Unreleased Commits</summary>
+
+Commits are continuously released via [pkg.pr.new](https://pkg.pr.new) and can be installed using the pull request number or short commit ID.
+
+:::codegroup
+
+```sh [npm]
+$ npm i https://pkg.pr.new/curl.md@123
+```
+
+```sh [pnpm]
+$ pnpm i https://pkg.pr.new/curl.md@123
+```
+
+```sh [bun]
+$ bun i https://pkg.pr.new/curl.md@123
+```
+
+```sh [yarn]
+$ yarn add https://pkg.pr.new/curl.md@123
+```
+
+:::
+
+When using unreleased commits, please keep in mind there can be breaking changes, especially for pull requests.
+
+</details>
+
+### Usage
+
+Create a typed curl.md client, then call `fetch` with a URL and request options.
 
 ```ts
 import { createClient } from 'curl.md'
@@ -30,17 +93,177 @@ const res = await client.fetch('docs.github.com/en/webhooks/webhook-events-and-p
   objective: 'pull request webhook event payload and actions',
 })
 
-const markdown = await res.text()
+const json = await res.json()
 ```
+
+The SDK gives you typed access to request options like [`objective`](#objective), [`keywords`](#keywords), [`mode`](#mode), [`fresh`](#fresh), and [`token`](#token).
+
+## Request Options
+
+Use these options with the HTTP API query string or the TypeScript SDK.
+
+### objective
+
+Use `objective` to narrow the response to content relevant to a specific goal.
+HTTP also accepts the aliases `o` and `q`.
+
+### keywords
+
+Use `keywords` to pre-filter the page before extraction.
+In HTTP, send them as a comma-separated string.
+HTTP also accepts the alias `k`.
+
+### mode
+
+Use `mode` to control the extraction model when `objective` is set.
+Supported values are `smart` and `rush`.
+HTTP also accepts the alias `m`.
+
+### fresh
+
+Use `fresh` to bypass cache and force a fresh fetch.
+In HTTP, you can send `fresh=true` or just include `?fresh`.
+HTTP also accepts the alias `f`.
+
+### token
+
+Use `token` in the SDK to send an API key as a Bearer token.
+For raw HTTP requests, use the `Authorization` header instead.
 
 ## Authentication
 
-Authenticated requests can use a Bearer token through the `Authorization` header. If you work across organizations, send `x-organization-id` as well.
+Authenticated requests can use a Bearer token through the `Authorization` header.
 
-For local scripts, the [CLI](/docs/guide/cli) is often the easiest way to manage auth and reuse it across tools.
+### API Keys
+
+For server-side apps, CI, and other non-interactive integrations, prefer an API key.
+
+Create one from the CLI:
+
+```sh
+$ curl.md auth login
+$ curl.md token create my-app
+```
+
+If you want an organization-scoped token, switch to that organization before creating it:
+
+```sh
+$ curl.md org switch acme
+$ curl.md token create ci
+```
+
+Then send the token as a Bearer token over HTTP:
+
+```sh
+$ curl curl.md/example.com -H 'Authorization: Bearer curlmd_xxx'
+```
+
+Or pass it to the TypeScript SDK per request:
+
+```ts
+import { createClient } from 'curl.md'
+
+const client = createClient()
+const res = await client.fetch('example.com', {
+  token: process.env.CURLMD_API_KEY,
+})
+```
+
+API keys also work through the `token` or `t` query parameter when sending headers is inconvenient, though `Authorization` is recommended.
+
+If you are using session-based auth instead of an API key and need to act within a specific organization, send `x-organization-id` as well.
+
+## Response Format
+
+The hosted HTTP endpoint returns markdown by default:
+
+```sh
+$ curl curl.md/example.com
+```
+
+That response uses `text/markdown` and returns the final markdown document directly.
+
+If you prefer JSON, send `Accept: application/json`:
+
+```sh
+$ curl curl.md/example.com -H 'Accept: application/json'
+```
+
+The JSON shape is:
+
+```json
+{
+  "content": "# Example\n..."
+}
+```
+
+## Response Headers
+
+Successful fetch responses include useful metadata headers:
+
+- `x-cache` — whether the response was a cache `HIT` or `MISS`
+- `x-request-id` — request identifier for debugging
+- `x-tokens-count` — estimated token count for the final response
+- `x-tokens-saved` — estimated tokens saved versus the source content
+- `x-cost-mills` — request cost in mills
+- `x-credits-remaining` — remaining prepaid credits, when available
+
+## Error Handling
+
+Errors are returned as JSON with a stable string `code` and a human-readable `message`.
+Some errors include extra fields, like validation `issues`.
+
+```json
+{
+  "code": "invalid_api_key",
+  "message": "Invalid API key"
+}
+```
+
+In the TypeScript SDK, narrow on `res.status` before reading `res.json()`.
+That gives you endpoint-specific error types in TypeScript.
+
+```ts
+const res = await client.fetch('example.com')
+
+switch (res.status) {
+  case 200:
+    return await res.json()
+  case 400: {
+    const json = await res.json()
+    console.error(json.code) // "validation_error"
+    return
+  }
+  case 502: {
+    const json = await res.json()
+    console.error(json.code) // "fetch_failed" | "ai_failed"
+    return
+  }
+}
+```
+
+## Rate Limiting
+
+On the main fetch endpoint, free usage is rate limited and returns `429` with code `rate_limit_exceeded` when exceeded.
+
+- Standard fetches: `100/hour` anonymous, `1,000/hour` authenticated
+- Objective queries: `3/hour` anonymous, `10/hour` authenticated
+- Paid usage skips these rate limits
+
+:::note[Higher limits]
+[Sign up for a free account](/login) for higher usage limits.
+:::
+
+Successful responses include rate-limit headers:
+
+- `x-ratelimit-limit`
+- `x-ratelimit-remaining`
+- `x-ratelimit-reset`
+
+Rate-limited responses also include `retry-after`.
 
 ## Choose The Right Interface
 
-- Use the hosted endpoint for simple fetches.
-- Use the SDK when you want a typed client in app code.
-- Use the CLI when you want shell workflows and local auth commands.
+- Use the [HTTP API](#http-api) for quick fetches from browsers, scripts, and simple integrations.
+- Use the [TypeScript SDK](#typescript-sdk) when you want typed request options and status-aware responses in app code. For example, tool plugins, like the [OpenCode plugin](https://github.com/wevm/curl.md/blob/main/plugins/opencode/server.ts) and [Pi extension](https://github.com/wevm/curl.md/blob/main/plugins/pi/extensions/index.ts).
+- Use the [CLI](/docs/guide/cli) when you want shell workflows, local auth, and token or organization management.

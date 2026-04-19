@@ -7,7 +7,7 @@ description: Install and use curl.md with Amp
 
 First-party [Amp](https://ampcode.com) plugin that routes Amp’s built-in `read_web_page` tool through curl.md and also adds a specific `curl_md` tool.
 
-<PluginLinks npm="@curl.md/amp" source="https://github.com/wevm/curl.md/tree/main/plugins/amp" />
+<PackageLinks npm="@curl.md/amp" source="https://github.com/wevm/curl.md/tree/main/plugins/amp" />
 
 :::important
 The Amp [Plugin API](https://ampcode.com/manual/plugin-api) is still experimental. As a result, the curl.md Amp plugin may also change without warning.
@@ -91,13 +91,13 @@ You can also tell Amp to use a specific [objective](#TODO), [keywords](#TODO), o
 
 ### Authentication
 
-The plugin uses the same auth model as the [CLI](/docs/guide/cli). Log in to connect the plugin to your curl.md account or organization.
+The plugin uses the same auth model as the [CLI](/docs/guide/cli#authentication). Log in to connect the plugin to your curl.md account or organization.
 
 ```sh
 $ curl.md auth login
 ```
 
-If you prefer non-interactive auth, set [`CURLMD_API_KEY`](/docs/guide/cli#environment-variables) before starting Amp.
+For non-interactive environments, set [`CURLMD_API_KEY`](/docs/guide/cli#environment-variables).
 
 ### Tools
 

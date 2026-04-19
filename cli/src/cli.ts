@@ -942,7 +942,7 @@ const member = Cli.create('member', {
   vars,
 })
   .command('add', {
-    description: 'Add a member to the active organization',
+    description: 'Add member to active organization',
     middleware: [requireAuth],
     args: z.object({
       login: z.string().describe('Account login to add'),
@@ -1029,7 +1029,7 @@ const member = Cli.create('member', {
   })
   .command('remove', {
     aliases: ['rm'],
-    description: 'Remove a member from the active organization',
+    description: 'Remove member from active organization',
     middleware: [requireAuth],
     args: z.object({
       login: z.string().optional().describe('Member login to remove'),
@@ -1791,8 +1791,11 @@ const request = Cli.create('request', {
       const json = await res.json()
       if (!json.requests.length) return c.ok('No requests found.')
 
-      const costSavedValues = json.requests.map((req) => `$${formatCost(req.tokens_saved, 3)}`)
-      const savedValues = json.requests.map((req) => req.tokens_saved.toLocaleString())
+      const tokensSavedValues = json.requests.map((req) => Math.max(0, req.tokens_saved))
+      const costSavedValues = tokensSavedValues.map(
+        (tokensSaved) => `$${formatCost(tokensSaved, 3)}`,
+      )
+      const savedValues = tokensSavedValues.map((tokensSaved) => tokensSaved.toLocaleString())
 
       const rows = json.requests.map((req, index) => [
         pc.green(req.id),
@@ -1861,12 +1864,13 @@ const request = Cli.create('request', {
 
       const json = await res.json()
       const req = json.request
+      const tokensSaved = Math.max(0, req.tokens_saved)
 
       if (c.options.web) openUrl(req.url)
 
       const secondaryFields: [string, string][] = [
-        ['cost saved', `$${formatCost(req.tokens_saved, 3)}`],
-        ['tokens saved', req.tokens_saved.toLocaleString()],
+        ['cost saved', `$${formatCost(tokensSaved, 3)}`],
+        ['tokens saved', tokensSaved.toLocaleString()],
       ]
       if (c.options.verbose)
         secondaryFields.push(

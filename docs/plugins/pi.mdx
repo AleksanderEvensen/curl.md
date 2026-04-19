@@ -7,7 +7,7 @@ description: Install and use curl.md with Pi
 
 First-party [Pi](https://pi.dev) extension that adds `curl.md` auth and management commands plus `read_web_page` and `curl_md` tools.
 
-<PluginLinks npm="@curl.md/pi" source="https://github.com/wevm/curl.md/tree/main/plugins/pi" />
+<PackageLinks npm="@curl.md/pi" source="https://github.com/wevm/curl.md/tree/main/plugins/pi" />
 
 ## Quick Start
 
@@ -99,13 +99,13 @@ Authenticate inside Pi to connect the extension to your curl.md account or organ
 /curl_md_login
 ```
 
-The extension uses the same auth model as the [CLI](/docs/guide/cli) so you can also use the `auth login` command.
+The extension uses the same auth model as the [CLI](/docs/guide/cli#authentication) so you can also use the `auth login` command.
 
 ```sh
 $ curl.md auth login
 ```
 
-If you prefer non-interactive auth, set `CURLMD_API_KEY` before starting Pi.
+For non-interactive environments, set [`CURLMD_API_KEY`](/docs/guide/cli#environment-variables).
 
 ### Commands
 

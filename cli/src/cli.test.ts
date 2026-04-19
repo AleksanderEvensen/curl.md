@@ -1081,6 +1081,43 @@ describe('request', () => {
     expect(output).toContain('$0.0001')
   })
 
+  test('list - clamps negative savings to zero', async () => {
+    const account = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: account.id })
+    const org = await factory.organization.insert({})
+    await factory.organization_member.insert({
+      account_id: account.id,
+      organization_id: org.id,
+    })
+    await writeCliSession(session, org.id)
+
+    server.use(
+      http.get(`${env.CURLMD_BASE_URL}/api/requests`, async () => {
+        return HttpResponse.json({
+          requests: [
+            {
+              cached: false,
+              created_at: '2026-01-02T04:05:06.000Z',
+              id: 'req_456',
+              keywords: null,
+              objective: null,
+              tokens_saved: -39,
+              url: 'https://example.com/docs/fetch',
+            },
+          ],
+          total: 1,
+        })
+      }),
+    )
+
+    const { output } = await serve(['request', 'list'])
+    expect(output).toContain('0')
+    expect(output).toContain('$0.0')
+    expect(output).not.toContain('$NaN')
+    expect(output).not.toContain('-39')
+    expect(output).not.toContain('$-0.0001')
+  })
+
   test('list - empty state', async () => {
     const account = await factory.account.insert({})
     const session = await factory.session.insert({ account_id: account.id })
@@ -1226,6 +1263,47 @@ describe('request', () => {
     )
     expect(output.indexOf('source tokens:\t360')).toBeLessThan(output.indexOf('tokens saved:\t120'))
     expect(output).not.toContain('tokens saved:\t120\n\nextracted tokens:\t120')
+  })
+
+  test('view - clamps negative savings to zero', async () => {
+    const account = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: account.id })
+    const org = await factory.organization.insert({})
+    await factory.organization_member.insert({
+      account_id: account.id,
+      organization_id: org.id,
+    })
+    await writeCliSession(session, org.id)
+
+    server.use(
+      http.get(`${env.CURLMD_BASE_URL}/api/requests/req_123`, async () => {
+        return HttpResponse.json({
+          request: {
+            cached: false,
+            created_at: '2026-01-02T03:04:05.000Z',
+            extracted_tokens: null,
+            filtered_tokens: null,
+            hostname: 'example.com',
+            id: 'req_123',
+            keywords: null,
+            markdown_tokens: 308,
+            mode: null,
+            objective: null,
+            path: '/docs/zod',
+            source_tokens: 269,
+            source_tokens_method: 'html',
+            tokens_saved: -39,
+            url: 'https://example.com/docs/zod',
+          },
+        })
+      }),
+    )
+
+    const { output } = await serve(['request', 'view', 'req_123'])
+    expect(output).toContain('tokens saved:\t0')
+    expect(output).toContain('cost saved:\t$0.0')
+    expect(output).not.toContain('tokens saved:\t-39')
+    expect(output).not.toContain('cost saved:\t$-0.0001')
   })
 
   test('view - not found', async () => {

@@ -1,25 +1,46 @@
 ---
 title: CLI
-description: Use curl.md from your terminal, scripts, and local automation.
+description: Turn URLs into optimized markdown with the curl.md CLI
 ---
 
 # CLI
 
-The CLI is the most flexible way to use `curl.md`. It works well in terminals, scripts, editor tasks, and anywhere else you can shell out.
+The CLI is the most flexible way to use curl.md. It works well with agents or in terminals, editors, scripts, and anywhere else you can shell out.
+
+<PackageLinks npm="curl.md" source="https://github.com/wevm/curl.md/blob/main/cli/src/cli.ts" />
 
 ## Install
 
-Start with the [Installation](/docs/install) page if you have not installed it yet.
+Install the CLI using your favorite method.
 
-## Commands
+```sh
+$ npm i -g curl.md
+```
 
-The CLI ships with three command names:
+Or with Bun:
 
-- `curl.md`
-- `curlmd`
-- `md`
+```sh
+$ bun i -g curl.md
+```
 
-## Common Usage
+If you prefer a script-based install:
+
+```sh
+$ curl -fsSL https://curl.md/install.sh | bash
+```
+
+Verify it works:
+
+```sh
+$ curl.md --version
+$ md --version
+```
+
+You can also install by downloading releases on the [GitHub Releases](https://github.com/wevm/curl.md/releases) page.
+
+## Usage
+
+The CLI can be invoked through `curl.md` or via the short `md` alias.
 
 Fetch a page:
 
@@ -27,35 +48,151 @@ Fetch a page:
 $ md example.com
 ```
 
-Narrow by objective:
+Narrow by [objective](#TODO) with `--objective`:
 
 ```sh
-$ md zod.dev/error-formatting --objective "tree error formatting"
+$ md zod.dev/error-formatting --objective tree error formatting
 ```
 
-Add keywords:
+Add [keywords](#TODO) with `--keywords`:
 
 ```sh
-$ md developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch \
-  --objective "streaming response body" \
+md developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch \
+  --objective streaming response body \
   --keywords ReadableStream,getReader
 ```
 
-Bypass cache:
+Bypass cache with `--fresh`:
 
 ```sh
 $ md example.com --fresh
 ```
 
+Finally, learn more about the CLI with `--help`:
+
+```sh
+$ md --help
+```
+
 ## Authentication
 
-Log in from the CLI with:
+Log in from the CLI to unlock higher usage limits and features, like [objective extraction](#TODO).
 
 ```sh
 $ curl.md auth login
 ```
 
-For non-interactive environments, set `CURLMD_API_KEY`.
+For non-interactive environments, set [`CURLMD_API_KEY`](#environment-variables).
+
+## Commands
+
+{/* GENERATED:cli-commands:start */}
+
+### `curl.md <url>`
+
+URL to markdown for agents
+
+| Argument | Description  |
+| -------- | ------------ |
+| `url`    | URL to fetch |
+
+| Option                     | Description                                                   |
+| -------------------------- | ------------------------------------------------------------- |
+| `--fresh, -f`              | Force fresh fetch (bypass cache)                              |
+| `--keywords, -k <array>`   | Pre-filter by keywords (comma-separated)                      |
+| `--mode, -m <rush\|smart>` | Mode when narrowing content with --objective (default: smart) |
+| `--objective, -o <string>` | Narrow content to a specific objective                        |
+| `--token, -t <string>`     | API token for authentication (env: CURLMD_API_KEY)            |
+
+```sh
+$ curl.md example.com
+$ curl.md docs.github.com/en/webhooks/webhook-events-and-payloads --objective pull request webhook event payload and actions --keywords pull_request
+$ curl.md developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch --objective streaming response body --keywords ReadableStream,getReader
+$ curl.md developers.cloudflare.com/d1/get-started --objective how to query D1 from a worker --keywords D1,bindings
+$ curl.md ai-sdk.dev/docs/ai-sdk-core/generating-text --objective how to stream text with the ai sdk --keywords streamText,generateText
+$ curl.md zod.dev/error-formatting --objective tree error formatting --keywords treeifyError
+```
+
+### `auth`
+
+Authenticate with curl.md (login, logout, status)
+
+| Command  | Description                 |
+| -------- | --------------------------- |
+| `login`  | Log in with curl.md         |
+| `logout` | Log out of the curl.md CLI  |
+| `status` | Check authentication status |
+
+### `credits`
+
+Manage prepaid credits (add, status)
+
+| Command  | Description   |
+| -------- | ------------- |
+| `add`    | Add credits   |
+| `status` | Check credits |
+
+### `org`
+
+Manage organizations (create, invite, list, member, switch, view)
+
+| Command  | Description              |
+| -------- | ------------------------ |
+| `create` | Create organization      |
+| `list`   | List organizations       |
+| `switch` | Switch organization      |
+| `view`   | View active organization |
+
+#### `invite`
+
+Manage organization invites (accept, create, list, revoke)
+
+| Command  | Description                     |
+| -------- | ------------------------------- |
+| `accept` | Accept organization invite      |
+| `create` | Create organization invite link |
+| `list`   | List organization invites       |
+| `revoke` | Revoke organization invite      |
+
+#### `member`
+
+Manage organization members (add, list, remove, role)
+
+| Command  | Description                             |
+| -------- | --------------------------------------- |
+| `add`    | Add member to active organization       |
+| `list`   | List members of the active organization |
+| `remove` | Remove member from active organization  |
+| `role`   | Change member role                      |
+
+### `request`
+
+Manage requests (list, view)
+
+| Command | Description   |
+| ------- | ------------- |
+| `list`  | List requests |
+| `view`  | View request  |
+
+### `token`
+
+Manage API tokens (create, list, delete)
+
+| Command  | Description      |
+| -------- | ---------------- |
+| `create` | Create API token |
+| `delete` | Delete API token |
+| `list`   | List API tokens  |
+
+### `update`
+
+Update curl.md CLI
+
+| Option              | Description                |
+| ------------------- | -------------------------- |
+| `--target <string>` | Update to specific version |
+
+{/* GENERATED:cli-commands:end */}
 
 ## Environment Variables
 
@@ -64,4 +201,4 @@ For non-interactive environments, set `CURLMD_API_KEY`.
 
 ## When To Use The CLI
 
-Use the CLI when you want `curl.md` in shell scripts, editor terminals, local automation, or quick one-off research.
+Use the CLI when you want your agent to be able to use `curl.md`, but there isn't a [plugin](/docs/guide/plugins), or in shell scripts, editor terminals, local automation, or quick one-off research.

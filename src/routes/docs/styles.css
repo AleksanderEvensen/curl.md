@@ -67,3 +67,90 @@ html {
 [data-doc-mobile-outline-panel] [role='menuitem']:focus-visible {
   outline: none;
 }
+
+article details {
+  border: 1px solid var(--color-gray-a3);
+  margin-top: 1.5rem;
+  overflow: hidden;
+}
+
+article details > summary {
+  align-items: center;
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--color-docs-surface) 82%, var(--color-bg2)) 0%,
+    var(--color-docs-surface) 100%
+  );
+  border-bottom: 1px solid transparent;
+  color: var(--color-gray10);
+  cursor: pointer;
+  display: flex;
+  font-size: 0.875rem;
+  font-weight: 600;
+  gap: 0.75rem;
+  list-style: none;
+  padding: 0.875rem 1rem;
+  user-select: none;
+}
+
+article details > summary::-webkit-details-marker {
+  display: none;
+}
+
+article details > summary::after {
+  color: var(--color-gray8);
+  content: '▶';
+  flex: none;
+  font-size: 0.75rem;
+  line-height: 1;
+  transform: none;
+  translate: 0 0.01rem;
+}
+
+article details > summary:hover {
+  background-color: var(--color-gray-a1);
+}
+
+article details > summary:focus-visible {
+  box-shadow: inset 0 0 0 1px var(--color-blue8);
+  outline: none;
+}
+
+article details[open] > summary {
+  border-bottom-color: var(--color-gray-a3);
+}
+
+article details[open] > summary::after {
+  transform: rotate(90deg);
+  translate: 0 0.02rem;
+}
+
+article
+  details
+  > summary
+  ~ :is(p, ul, ol, blockquote, [data-docs-code-block], [data-docs-code-group]) {
+  padding-inline: 1rem;
+}
+
+article
+  details
+  > summary
+  + :is(p, ul, ol, blockquote, [data-docs-code-block], [data-docs-code-group]) {
+  margin-top: 0;
+  padding-top: 1rem;
+}
+
+article
+  details
+  > :is(p, ul, ol, blockquote, [data-docs-code-block], [data-docs-code-group])
+  + :is(p, ul, ol, blockquote, [data-docs-code-block], [data-docs-code-group]) {
+  margin-top: 1rem;
+}
+
+article
+  details
+  > summary
+  ~ :is(p, ul, ol, blockquote, [data-docs-code-block], [data-docs-code-group]):last-child {
+  margin-bottom: 0;
+  padding-bottom: 1rem;
+}

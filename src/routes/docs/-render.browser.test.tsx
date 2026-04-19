@@ -245,6 +245,12 @@ test('shell prompt blocks render a copy button for each command line', async () 
   const rendered = renderDocContent(createPromptShellDoc())
   const firstCommandLine = rendered.container.querySelector('.line')
   const firstPrompt = rendered.container.querySelector('[data-command-prompt]')
+  const promptCopySpacers = rendered.container.querySelectorAll('[data-command-copy-spacer]')
+  const [firstCopyButton, secondCopyButton] = Array.from(
+    rendered.container.querySelectorAll('[data-copy-command]'),
+  )
+  const copyOverlay = rendered.container.querySelector('[data-prompt-copy-overlay]')
+  const pre = rendered.container.querySelector('[data-docs-code-block] pre')
 
   expect(rendered.container.querySelector('[aria-label="Copy code"]')).toBeNull()
   expect(rendered.container.querySelectorAll('[data-copy-command]').length).toBe(2)
@@ -252,6 +258,18 @@ test('shell prompt blocks render a copy button for each command line', async () 
   expect(rendered.container.querySelector('[data-command-prompt]')?.className).toContain(
     'select-none',
   )
+  expect(copyOverlay?.className).toContain('absolute')
+  expect(copyOverlay?.className).toContain('end-0')
+  expect(pre?.className).toContain('pe-16')
+  expect(firstCommandLine?.className).toContain('min-w-full')
+  expect(firstCommandLine?.className).toContain('w-max')
+  expect(promptCopySpacers).toHaveLength(2)
+  expect(firstCopyButton?.className).toContain(
+    '[background-color:var(--docs-code-block-background)]',
+  )
+  expect(firstCopyButton?.className).toContain('opacity-0')
+  expect(firstCopyButton?.getAttribute('data-active')).toBeNull()
+  expect(secondCopyButton?.getAttribute('data-active')).toBeNull()
   expect(firstPrompt?.textContent).toBe('$')
   expect(firstCommandLine?.textContent?.match(/\$/g)?.length ?? 0).toBe(1)
   expect(firstCommandLine?.querySelector('.token.command')?.textContent).toBe('pnpm')
@@ -260,10 +278,19 @@ test('shell prompt blocks render a copy button for each command line', async () 
   expect(
     rendered.container.querySelector('[aria-label="Copy command: pnpm check:types"]'),
   ).not.toBeNull()
+
+  if (!(firstCommandLine instanceof HTMLElement))
+    throw new Error('Expected first command line to render')
+
+  await page.elementLocator(firstCommandLine).hover()
+
+  expect(firstCopyButton?.getAttribute('data-active')).toBe('')
+  expect(secondCopyButton?.getAttribute('data-active')).toBeNull()
 })
 
 test('shell prompt line copy strips the leading shell prompt', async () => {
   const rendered = renderDocContent(createPromptShellDoc())
+  const firstCommandLine = rendered.container.querySelector('.line')
   let copied = ''
 
   Object.defineProperty(navigator, 'clipboard', {
@@ -275,6 +302,11 @@ test('shell prompt line copy strips the leading shell prompt', async () => {
     },
   })
 
+  if (!(firstCommandLine instanceof HTMLElement))
+    throw new Error('Expected first command line to render')
+
+  await page.elementLocator(firstCommandLine).hover()
+
   await rendered.content
     .getByRole('button', { exact: true, name: 'Copy command: pnpm check' })
     .click()
@@ -285,6 +317,9 @@ test('shell prompt line copy strips the leading shell prompt', async () => {
 test('single-line shell prompt blocks keep the normal copy code button', async () => {
   const rendered = renderDocContent(createSingleLinePromptShellDoc())
   let copied = ''
+  const line = rendered.container.querySelector('.line')
+  const spacer = rendered.container.querySelector('[data-command-copy-spacer]')
+  const pre = rendered.container.querySelector('[data-docs-code-block] pre')
 
   Object.defineProperty(navigator, 'clipboard', {
     configurable: true,
@@ -299,11 +334,15 @@ test('single-line shell prompt blocks keep the normal copy code button', async (
   expect(rendered.container.querySelector('[data-copy-command]')).toBeNull()
   expect(rendered.container.querySelector('[aria-label="Copy code"]')).not.toBeNull()
   expect(rendered.container.querySelector('[aria-label="Copy code"]')?.className).toContain(
-    'top-1/2',
+    'top-[calc(1rem+0.5lh)]',
   )
   expect(rendered.container.querySelector('[aria-label="Copy code"]')?.className).toContain(
     '-translate-y-1/2',
   )
+  expect(line?.className).toContain('min-w-full')
+  expect(line?.className).toContain('w-max')
+  expect(spacer?.className).toContain('w-14')
+  expect(pre?.className).toContain('pe-16')
 
   await rendered.content.getByRole('button', { exact: true, name: 'Copy code' }).click()
 
@@ -402,7 +441,7 @@ test('untitled code blocks keep the copy button hover-only', async () => {
 
   expect(button?.className).toContain('opacity-0')
   expect(button?.className).toContain('top-3')
-  expect(pre?.className).toContain('pe-14')
+  expect(pre?.className).toContain('pe-12')
 })
 
 test('code groups switch the visible panel when tabs are clicked', async () => {
@@ -508,8 +547,8 @@ test('cards render as a responsive grid of clickable items', async () => {
   await expect.element(rendered.content.getByText('Amp plugin')).toBeVisible()
 })
 
-test('plugin links render below the intro paragraph as top-level docs CTAs', async () => {
-  const rendered = renderDocContent(createPluginLinksDoc())
+test('package links render below the intro paragraph as top-level docs CTAs', async () => {
+  const rendered = renderDocContent(createPackageLinksDoc())
   const buttonLinks = rendered.container.querySelectorAll('[data-docs-button-link]')
   const intro = rendered.content.getByText('Intro paragraph.')
   const buttonLinksContainer = rendered.container.querySelector('[data-docs-button-links]')
@@ -697,7 +736,7 @@ test('search preview steps keep shared timeline content and heading chrome while
 })
 
 test('search preview button links keep docs chrome while scaling down and becoming non-interactive', () => {
-  const full = captureDocContent(createPluginLinksDoc(), (container) => {
+  const full = captureDocContent(createPackageLinksDoc(), (container) => {
     const link = getRequiredHTMLElement(
       container,
       '[data-docs-button-link]',
@@ -710,7 +749,7 @@ test('search preview button links keep docs chrome while scaling down and becomi
       text: link.textContent,
     }
   })
-  const preview = captureDocSearchPreview(createPluginLinksDoc(), (container) => {
+  const preview = captureDocSearchPreview(createPackageLinksDoc(), (container) => {
     const link = getRequiredHTMLElement(
       container,
       '[data-docs-button-link]',
@@ -1258,15 +1297,17 @@ test('kitchen sink doc headings include numbered steps in outline order', () => 
     { id: 'level-3-heading', level: 3, text: 'Level 3 Heading' },
     { id: 'level-4-heading', level: 4, text: 'Level 4 Heading' },
     { id: 'paragraphs-and-links', level: 2, text: 'Paragraphs And Links' },
-    { id: 'notices', level: 2, text: 'Notices' },
     { id: 'lists', level: 2, text: 'Lists' },
     { id: 'blockquotes', level: 2, text: 'Blockquotes' },
+    { id: 'horizontal-rule', level: 2, text: 'Horizontal Rule' },
     { id: 'code-blocks', level: 2, text: 'Code Blocks' },
     { id: 'code-groups', level: 2, text: 'Code Groups' },
+    { id: 'details', level: 2, text: 'Details' },
+    { id: 'notices', level: 2, text: 'Notices' },
     { id: 'tables', level: 2, text: 'Tables' },
     { id: 'steps', level: 2, text: 'Steps' },
     { id: 'cards', level: 2, text: 'Cards' },
-    { id: 'horizontal-rule', level: 2, text: 'Horizontal Rule' },
+    { id: 'package-links', level: 2, text: 'Package Links' },
   ])
 
   expect(headings).toEqual([
@@ -1274,18 +1315,20 @@ test('kitchen sink doc headings include numbered steps in outline order', () => 
     { id: 'level-3-heading', level: 3, text: 'Level 3 Heading' },
     { id: 'level-4-heading', level: 4, text: 'Level 4 Heading' },
     { id: 'paragraphs-and-links', level: 2, text: 'Paragraphs And Links' },
-    { id: 'notices', level: 2, text: 'Notices' },
     { id: 'lists', level: 2, text: 'Lists' },
     { id: 'blockquotes', level: 2, text: 'Blockquotes' },
+    { id: 'horizontal-rule', level: 2, text: 'Horizontal Rule' },
     { id: 'code-blocks', level: 2, text: 'Code Blocks' },
     { id: 'code-groups', level: 2, text: 'Code Groups' },
+    { id: 'details', level: 2, text: 'Details' },
+    { id: 'notices', level: 2, text: 'Notices' },
     { id: 'tables', level: 2, text: 'Tables' },
     { id: 'steps', level: 2, text: 'Steps' },
     { id: 'install-dependencies', level: 3, text: '1. Install dependencies' },
     { id: 'start-the-dev-server', level: 3, text: '2. Start the dev server' },
     { id: 'open-the-app', level: 3, text: '3. Open the app' },
     { id: 'cards', level: 2, text: 'Cards' },
-    { id: 'horizontal-rule', level: 2, text: 'Horizontal Rule' },
+    { id: 'package-links', level: 2, text: 'Package Links' },
   ])
 })
 
@@ -1716,11 +1759,11 @@ function createCardsDoc(): Doc {
   }
 }
 
-function createPluginLinksDoc(): Doc {
+function createPackageLinksDoc(): Doc {
   return {
     Component: function Component(props) {
       const components = props.components ?? {}
-      const PluginLinks = components.PluginLinks as React.ComponentType<{
+      const PackageLinks = components.PackageLinks as React.ComponentType<{
         npm: string
         source: string
       }>
@@ -1729,7 +1772,7 @@ function createPluginLinksDoc(): Doc {
         <>
           <h1>Amp</h1>
           <p>Intro paragraph.</p>
-          <PluginLinks
+          <PackageLinks
             npm="@curl.md/amp"
             source="https://github.com/wevm/curl.md/tree/main/plugins/amp"
           />

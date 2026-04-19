@@ -7,7 +7,7 @@ description: Install and use curl.md with OpenCode
 
 First-party [OpenCode](https://opencode.ai) plugin that adds curl.md support to the built-in `webfetch` tool as well as a specific `curl_md` tool.
 
-<PluginLinks
+<PackageLinks
   npm="@curl.md/opencode"
   source="https://github.com/wevm/curl.md/tree/main/plugins/opencode"
 />
@@ -118,13 +118,13 @@ Authenticate inside OpenCode to connect the plugin to your curl.md account or or
 /curl_md_login
 ```
 
-The plugin uses the same auth model as the [CLI](/docs/guide/cli) so you can also use the `auth login` command.
+The plugin uses the same auth model as the [CLI](/docs/guide/cli#authentication) so you can also use the `auth login` command.
 
 ```sh
 $ curl.md auth login
 ```
 
-If you prefer non-interactive auth, set `CURLMD_API_KEY` before starting OpenCode.
+For non-interactive environments, set [`CURLMD_API_KEY`](/docs/guide/cli#environment-variables).
 
 ### Commands
 

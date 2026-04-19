@@ -37,30 +37,25 @@ Install the first-party Pi extension if you want `read_web_page`, `curl_md`, and
 
 ## CLI
 
-Install the CLI if you want terminal usage, scripts, or a reusable local auth session.
+Install the CLI via curl, npm, or bun.
 
-```sh
-$ npm i -g curl.md
-```
+:::codegroup
 
-Or with Bun:
-
-```sh
-$ bun i -g curl.md
-```
-
-If you prefer a script-based install:
-
-```sh
+```sh [curl]
 $ curl -fsSL https://curl.md/install.sh | bash
 ```
 
-Verify it works:
-
-```sh
-$ curl.md --version
-$ md --version
+```sh [npm]
+$ npm i -g curl.md
 ```
+
+```sh [bun]
+$ bun i -g curl.md
+```
+
+:::
+
+Learn more about the CLI in the [CLI guide](/docs/guide/cli).
 
 ## Amp
 

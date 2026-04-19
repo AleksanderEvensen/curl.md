@@ -65,6 +65,30 @@ test('docsMdx leaves GitHub-style alerts as blockquotes', async () => {
   expect(code).not.toContain('Notice')
 })
 
+test('docsMdx parses native details blocks with JSX children', async () => {
+  const code = await transformDocs(
+    `
+# Example
+
+<details>
+  <summary>Show extra guidance</summary>
+
+  <p>Native disclosure elements work in docs pages too.</p>
+
+  <ul>
+    <li>Use them for optional context.</li>
+    <li>Keep the summary short and scannable.</li>
+  </ul>
+</details>
+`.trim(),
+  )
+
+  expect(code).toContain('_jsxs("details"')
+  expect(code).toContain('_jsx("summary"')
+  expect(code).toContain('_jsxs("ul"')
+  expect(code).toContain('_jsx("li"')
+})
+
 test('docsMdx leaves unterminated directives unchanged', async () => {
   const code = await transformDocs(
     `

@@ -513,8 +513,8 @@ function createMdxComponents(props: {
     Notice: ((noticeProps: React.PropsWithChildren<{ title?: string; type?: string }>) => (
       <Notice preview={preview} {...noticeProps} />
     )) as React.ComponentType<any>,
-    PluginLinks: ((pluginLinksProps: { npm: string; source: string }) => (
-      <DocsPluginLinks preview={preview} {...pluginLinksProps} />
+    PackageLinks: ((packageLinksProps: { npm: string; source: string }) => (
+      <DocsPackageLinks preview={preview} {...packageLinksProps} />
     )) as React.ComponentType<any>,
     Step,
     Steps: (stepsProps: React.PropsWithChildren) => <Steps preview={preview} {...stepsProps} />,
@@ -979,7 +979,7 @@ function DocsTableCell(props: React.ComponentProps<'td'> & { preview?: boolean }
   )
 }
 
-function DocsPluginLinks(props: { npm: string; preview?: boolean; source: string }) {
+function DocsPackageLinks(props: { npm: string; preview?: boolean; source: string }) {
   const { npm, preview = false, source } = props
   return (
     <div
@@ -1438,7 +1438,7 @@ function CodeGroupTabLabel(props: { active: boolean; label: string }) {
 function getCodeGroupPanelClassName(preview = false) {
   return preview
     ? '[&_[data-docs-code-block]]:mt-0 [&_[data-docs-code-block]_pre]:px-4 [&_pre]:border-0'
-    : 'focus-visible:ring-blue8 focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset [&_[data-docs-code-block]]:mt-0 [&_[data-docs-code-block]_pre]:ps-5 [&_[data-docs-code-block]_pre]:pe-14 [&_pre]:border-0'
+    : 'focus-visible:ring-blue8 focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset [&_[data-docs-code-block]]:mt-0 [&_[data-docs-code-block]_pre]:ps-5 [&_[data-docs-code-block]_pre]:pe-12 [&_pre]:border-0'
 }
 
 function getCodeGroupTabClassName(preview = false) {
@@ -1497,6 +1497,10 @@ function DocsCodeBlock(props: React.ComponentProps<'pre'> & { preview?: boolean 
     [promptShellLines],
   )
   const shouldShowPromptCopyButtons = !preview && promptShellCommandLines.length > 1
+  const [activePromptLineIndex, setActivePromptLineIndex] = React.useState<number | undefined>(
+    undefined,
+  )
+  const clearPromptLineTimeoutRef = React.useRef<number | undefined>(undefined)
   const copyText = React.useMemo(
     () =>
       promptShellCommandLines.length === 1
@@ -1504,6 +1508,24 @@ function DocsCodeBlock(props: React.ComponentProps<'pre'> & { preview?: boolean 
         : getCodeBlockText(children),
     [children, promptShellCommandLines],
   )
+  const activatePromptLine = React.useCallback((childIndex: number) => {
+    if (clearPromptLineTimeoutRef.current !== undefined)
+      window.clearTimeout(clearPromptLineTimeoutRef.current)
+    clearPromptLineTimeoutRef.current = undefined
+    setActivePromptLineIndex((current) => (current === childIndex ? current : childIndex))
+  }, [])
+  const deactivatePromptLine = React.useCallback(() => {
+    if (clearPromptLineTimeoutRef.current !== undefined)
+      window.clearTimeout(clearPromptLineTimeoutRef.current)
+    clearPromptLineTimeoutRef.current = window.setTimeout(() => {
+      clearPromptLineTimeoutRef.current = undefined
+      setActivePromptLineIndex(undefined)
+    }, 40)
+  }, [])
+  const label = typeof title === 'string' && title.trim() ? title.trim() : undefined
+  const shouldCenterFloatingCopyButton =
+    !label && promptShellCommandLines.length === 1 && promptShellLines?.length === 1
+  const shouldReservePromptCopySpace = shouldCenterFloatingCopyButton || shouldShowPromptCopyButtons
   const renderedChildren = React.useMemo(
     () =>
       promptShellLines && !preview
@@ -1512,17 +1534,37 @@ function DocsCodeBlock(props: React.ComponentProps<'pre'> & { preview?: boolean 
               codeElement,
               promptShellBlock,
               promptShellLines,
-              shouldShowPromptCopyButtons,
+              shouldReservePromptCopySpace,
+              shouldShowPromptCopyButtons
+                ? {
+                    activatePromptLine,
+                    deactivatePromptLine,
+                  }
+                : undefined,
             ),
           )
         : children,
-    [children, preview, promptShellBlock, promptShellLines, shouldShowPromptCopyButtons],
+    [
+      activatePromptLine,
+      children,
+      deactivatePromptLine,
+      preview,
+      promptShellBlock,
+      promptShellLines,
+      shouldReservePromptCopySpace,
+      shouldShowPromptCopyButtons,
+    ],
   )
-  const label = typeof title === 'string' && title.trim() ? title.trim() : undefined
   const shouldShowCopyButton = Boolean(copyText && !preview && !shouldShowPromptCopyButtons)
-  const shouldCenterFloatingCopyButton =
-    !label && promptShellCommandLines.length === 1 && promptShellLines?.length === 1
   const { copied, copy } = useCopyToClipboard(copyText ? { content: copyText } : {})
+
+  React.useEffect(
+    () => () => {
+      if (clearPromptLineTimeoutRef.current !== undefined)
+        window.clearTimeout(clearPromptLineTimeoutRef.current)
+    },
+    [],
+  )
 
   return (
     <div
@@ -1560,23 +1602,39 @@ function DocsCodeBlock(props: React.ComponentProps<'pre'> & { preview?: boolean 
         />
       )}
 
-      <pre
-        {...rest}
-        className={[
-          '[background-color:var(--docs-code-block-background)] minimal-scrollbar focus-visible:ring-blue8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset mt-0',
-          preview ? 'overflow-x-hidden' : 'overflow-x-auto',
-          preview ? 'p-3 leading-[1.45]' : 'p-4 leading-relaxed',
-          shouldShowCopyButton && !label ? 'ps-4 pe-14' : undefined,
-          label ? (preview ? 'border-t-0 pt-2.5' : 'border-t-0 pt-3') : undefined,
-          '[&_code]:bg-transparent [&_code]:p-0 [&_code]:!text-[1em]',
-          className,
-        ]
-          .filter(Boolean)
-          .join(' ')}
-        style={{ ...style, backgroundColor }}
-      >
-        {renderedChildren}
-      </pre>
+      <div className="relative">
+        {shouldShowPromptCopyButtons && promptShellLines ? (
+          <PromptCopyButtonsOverlay
+            activeLineIndex={activePromptLineIndex}
+            lines={promptShellLines}
+            onActivate={activatePromptLine}
+            onDeactivate={deactivatePromptLine}
+          />
+        ) : null}
+
+        <pre
+          {...rest}
+          className={[
+            '[background-color:var(--docs-code-block-background)] minimal-scrollbar focus-visible:ring-blue8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset mt-0',
+            preview ? 'overflow-x-hidden' : 'overflow-x-auto',
+            preview ? 'p-3 leading-[1.45]' : 'p-4 leading-relaxed',
+            shouldShowCopyButton && !label
+              ? shouldCenterFloatingCopyButton
+                ? 'ps-4 pe-16'
+                : 'ps-4 pe-12'
+              : undefined,
+            shouldShowPromptCopyButtons ? 'pe-16' : undefined,
+            label ? (preview ? 'border-t-0 pt-2.5' : 'border-t-0 pt-3') : undefined,
+            '[&_code]:bg-transparent [&_code]:p-0 [&_code]:!text-[1em]',
+            className,
+          ]
+            .filter(Boolean)
+            .join(' ')}
+          style={{ ...style, backgroundColor }}
+        >
+          {renderedChildren}
+        </pre>
+      </div>
     </div>
   )
 }
@@ -1600,7 +1658,7 @@ function CodeBlockCopyButton(props: {
           ? headerAligned
             ? 'absolute end-3 top-[1.375rem] -translate-y-1/2'
             : centered
-              ? 'absolute end-3 top-1/2 -translate-y-1/2'
+              ? 'absolute end-3 top-[calc(1rem+0.5lh)] -translate-y-1/2'
               : 'absolute end-3 top-3'
           : 'me-3 shrink-0',
         hoverOnly
@@ -1619,6 +1677,35 @@ function CodeBlockCopyButton(props: {
         <IconOcticonCopy16 className="size-4" />
       )}
     </button>
+  )
+}
+
+function PromptCopyButtonsOverlay(props: {
+  activeLineIndex: number | undefined
+  lines: Array<{ childIndex: number; promptLength: number; text: string }>
+  onActivate: (childIndex: number) => void
+  onDeactivate: () => void
+}) {
+  const { activeLineIndex, lines, onActivate, onDeactivate } = props
+
+  return (
+    <div
+      className="pointer-events-none absolute inset-y-0 end-0 z-10 flex flex-col pe-3 pt-4 pb-4 leading-relaxed"
+      data-prompt-copy-overlay=""
+    >
+      {lines.map((line) => (
+        <div className="flex h-[1lh] items-center justify-end" key={line.childIndex}>
+          {line.text.trim() ? (
+            <PromptCopyButton
+              active={activeLineIndex === line.childIndex}
+              onActivate={() => onActivate(line.childIndex)}
+              onDeactivate={onDeactivate}
+              text={line.text}
+            />
+          ) : null}
+        </div>
+      ))}
+    </div>
   )
 }
 
@@ -1864,7 +1951,13 @@ function renderPromptCopyCodeElement(
   codeElement: CodeElement,
   promptShellBlock: boolean,
   promptShellLines: Array<{ childIndex: number; promptLength: number; text: string }>,
-  showPromptCopyButtons: boolean,
+  reserveTrailingCopySpace: boolean,
+  hoverHandlers:
+    | {
+        activatePromptLine: (childIndex: number) => void
+        deactivatePromptLine: () => void
+      }
+    | undefined,
 ) {
   const codeChildren = React.Children.toArray(codeElement.props.children)
   const promptLineMap = new Map(promptShellLines.map((line) => [line.childIndex, line]))
@@ -1884,11 +1977,17 @@ function renderPromptCopyCodeElement(
         {
           className: [
             child.props.className,
-            'flex w-full items-center gap-3',
-            showPromptCopyButtons ? 'group/command' : undefined,
+            'flex items-center gap-3',
+            reserveTrailingCopySpace ? 'min-w-full w-max' : 'w-full',
           ]
             .filter(Boolean)
             .join(' '),
+          ...(hoverHandlers
+            ? {
+                onMouseEnter: () => hoverHandlers.activatePromptLine(childIndex),
+                onMouseLeave: () => hoverHandlers.deactivatePromptLine(),
+              }
+            : {}),
         },
         <>
           {/* Render a single visual prompt even when authored prefixes differ. */}
@@ -1899,12 +1998,14 @@ function renderPromptCopyCodeElement(
           >
             $
           </span>
-          <span className="min-w-0 flex-1">
+          <span className={reserveTrailingCopySpace ? 'flex-none' : 'min-w-0 flex-1'}>
             {promptShellBlock
               ? child.props.children
               : stripLeadingCharacters(child.props.children, promptLine.promptLength).node}
           </span>
-          {showPromptCopyButtons ? <PromptCopyButton text={promptLine.text} /> : null}
+          {reserveTrailingCopySpace ? (
+            <span aria-hidden className="w-14 shrink-0" data-command-copy-spacer="" />
+          ) : null}
         </>,
       )
     }),
@@ -1920,17 +2021,27 @@ function stripPromptShellLine(line: string) {
   return prefix ? line.slice(prefix.length) : line
 }
 
-function PromptCopyButton(props: { text: string }) {
-  const { text } = props
+function PromptCopyButton(props: {
+  active: boolean
+  onActivate: () => void
+  onDeactivate: () => void
+  text: string
+}) {
+  const { active, onActivate, onDeactivate, text } = props
   const { copied, copy } = useCopyToClipboard({ content: text })
 
   return (
     <button
       aria-label={`Copy command: ${text}`}
-      className="text-gray8 hover:text-gray10 focus-visible:text-gray10 focus-visible:ring-blue8 -m-1 shrink-0 p-1 opacity-0 transition-opacity group-focus-within/command:opacity-100 group-hover/command:opacity-100 focus:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset data-[copied]:opacity-100"
+      className="text-gray8 hover:text-gray10 focus-visible:text-gray10 focus-visible:ring-blue8 pointer-events-auto -me-1 shrink-0 [background-color:var(--docs-code-block-background)] p-1 opacity-0 transition-opacity focus:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset data-[active]:opacity-100 data-[copied]:opacity-100"
+      data-active={active ? '' : undefined}
       data-copied={copied ? '' : undefined}
       data-copy-command=""
+      onBlur={onDeactivate}
       onClick={() => copy()}
+      onFocus={onActivate}
+      onMouseEnter={onActivate}
+      onMouseLeave={onDeactivate}
       type="button"
     >
       {copied ? (

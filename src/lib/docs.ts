@@ -172,10 +172,10 @@ export function createDocCopySource(rawSource: unknown) {
 
     if (/^import\s.+$/u.test(line)) continue
 
-    const pluginLinks = rewritePluginLinksComponent(lines, index)
-    if (pluginLinks) {
-      output.push(...pluginLinks.lines)
-      index = pluginLinks.endIndex
+    const packageLinks = rewritePackageLinksComponent(lines, index)
+    if (packageLinks) {
+      output.push(...packageLinks.lines)
+      index = packageLinks.endIndex
       continue
     }
 
@@ -320,9 +320,9 @@ function dedupeHeadingsById(headings: Array<Heading>) {
   })
 }
 
-function rewritePluginLinksComponent(lines: Array<string>, index: number) {
+function rewritePackageLinksComponent(lines: Array<string>, index: number) {
   const firstLine = lines[index]!
-  if (!/^\s*<PluginLinks(?:\s|$)/u.test(firstLine)) return
+  if (!/^\s*<PackageLinks(?:\s|$)/u.test(firstLine)) return
 
   const componentLines = [firstLine.trim()]
   let endIndex = index
@@ -337,7 +337,7 @@ function rewritePluginLinksComponent(lines: Array<string>, index: number) {
     if (!/\/?>\s*$/u.test(lines[endIndex] ?? '')) return
   }
 
-  const propsMatch = /^<PluginLinks\s+(.+?)\s*\/?>$/u.exec(componentLines.join(' '))
+  const propsMatch = /^<PackageLinks\s+(.+?)\s*\/?>$/u.exec(componentLines.join(' '))
   const props = propsMatch?.[1]
   if (!props) return
 
