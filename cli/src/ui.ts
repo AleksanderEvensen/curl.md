@@ -159,12 +159,15 @@ export function table(
 
 export function summary(fields: [string, string][], title?: string): string {
   if (!process.stdout.isTTY)
-    return fields.map(([label, value]) => `${label}:\t${stripAnsi(value)}`).join('\n')
+    return fields
+      .map(([label, value]) => (!label && !value ? '' : `${label}:\t${stripAnsi(value)}`))
+      .join('\n')
 
-  const maxLabel = Math.max(...fields.map(([label]) => label.length))
-  const lines = fields.map(
-    ([label, value]) => `${pc.bold(`${label}:`)}${' '.repeat(maxLabel - label.length + 2)}${value}`,
-  )
+  const maxLabel = Math.max(0, ...fields.map(([label]) => label.length))
+  const lines = fields.map(([label, value]) => {
+    if (!label && !value) return ''
+    return `${pc.bold(`${label}:`)}${' '.repeat(maxLabel - label.length + 2)}${value}`
+  })
   if (!title) return lines.join('\n')
   return [title, '', ...lines].join('\n')
 }

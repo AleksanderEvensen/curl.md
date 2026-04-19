@@ -29,6 +29,16 @@ export default function (amp: PluginAPI) {
     }
   })
 
+  amp.on('tool.result', (event) => {
+    if (event.status !== 'error' || !event.error || event.tool !== 'curl_md') return
+
+    return {
+      error: normalizeDuplicatedErrorPrefix(event.error),
+      output: event.output,
+      status: 'error' as const,
+    }
+  })
+
   amp.registerTool({
     name: 'curl_md',
     description:
@@ -218,6 +228,10 @@ function parseApiError(json: unknown) {
 
 function formatApiError(error: { code: string; message: string }) {
   return `(${error.code}) ${error.message}`
+}
+
+function normalizeDuplicatedErrorPrefix(message: string) {
+  return message.replace(/^(?:Error:\s*){2,}/i, '').trim()
 }
 
 function parseNumberHeader(value: string | null) {

@@ -212,6 +212,17 @@ test('summary: non-TTY outputs tab-delimited label:value without title', () => {
   Object.defineProperty(process.stdout, 'isTTY', { value: originalIsTTY, writable: true })
 })
 
+test('summary: blank entries become blank lines in non-TTY output', () => {
+  Object.defineProperty(process.stdout, 'isTTY', { value: false, writable: true })
+  const result = summary([
+    ['Name', 'Alice'],
+    ['', ''],
+    ['Age', '30'],
+  ])
+  expect(result).toBe('Name:\tAlice\n\nAge:\t30')
+  Object.defineProperty(process.stdout, 'isTTY', { value: originalIsTTY, writable: true })
+})
+
 // callout
 
 test('callout: returns yellow prefix with message', () => {

@@ -4,8 +4,8 @@
   "type": "module",
   "imports": {
     "#*": "./src/*",
-    "#docs/*": "./docs/*",
     "#db/*": "./db/*",
+    "#docs/*": "./docs/*",
     "#test/*": "./test/*"
   },
   "scripts": {

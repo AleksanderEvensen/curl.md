@@ -1101,7 +1101,7 @@ describe('request', () => {
     expect(output).toContain('No requests found.')
   })
 
-  test('view - happy path', async () => {
+  test('view - combines primary fields, pins id and created first, and sorts the rest', async () => {
     const account = await factory.account.insert({})
     const session = await factory.session.insert({ account_id: account.id })
     const org = await factory.organization.insert({})
@@ -1138,17 +1138,35 @@ describe('request', () => {
     )
 
     const { output } = await serve(['request', 'view', 'req_123'])
+    expect(output.indexOf('id:\treq_123')).toBeLessThan(output.indexOf('created:\t'))
+    expect(output.indexOf('created:\t')).toBeLessThan(output.indexOf('cached:\tno'))
+    expect(output.indexOf('cached:\tno')).toBeLessThan(
+      output.indexOf('keywords:\ttreeifyError,zod'),
+    )
+    expect(output.indexOf('keywords:\ttreeifyError,zod')).toBeLessThan(
+      output.indexOf('mode:\tsmart'),
+    )
+    expect(output.indexOf('mode:\tsmart')).toBeLessThan(
+      output.indexOf('objective:\ttree error formatting'),
+    )
+    expect(output.indexOf('objective:\ttree error formatting')).toBeLessThan(
+      output.indexOf('url:\thttps://example.com/docs/zod'),
+    )
+    expect(output).toContain('url:\thttps://example.com/docs/zod\n\ncost saved:\t$0.0003')
+    expect(output.indexOf('cost saved:\t$0.0003')).toBeLessThan(
+      output.indexOf('tokens saved:\t120'),
+    )
     expect(output).toContain('id:\treq_123')
     expect(output).toContain('url:\thttps://example.com/docs/zod')
     expect(output).toContain('objective:\ttree error formatting')
     expect(output).toContain('keywords:\ttreeifyError,zod')
-    expect(output).toContain('saved:\t120')
+    expect(output).toContain('tokens saved:\t120')
     expect(output).toContain('cost saved:\t$0.0003')
     expect(output).not.toContain('hostname:\texample.com')
     expect(output).not.toContain('source tokens:\t360')
   })
 
-  test('view - verbose shows extra fields alphabetically', async () => {
+  test('view - verbose combines secondary fields and sorts them alphabetically', async () => {
     const account = await factory.account.insert({})
     const session = await factory.session.insert({ account_id: account.id })
     const org = await factory.organization.insert({})
@@ -1185,25 +1203,29 @@ describe('request', () => {
     const { output } = await serve(['request', 'view', 'req_123', '--verbose'])
     expect(output).toContain('extracted tokens:\t120')
     expect(output).toContain('filtered tokens:\t48')
-    expect(output).toContain('hostname:\texample.com')
     expect(output).toContain('markdown tokens:\t240')
-    expect(output).toContain('path:\t/docs/zod')
     expect(output).toContain('source method:\thtml')
     expect(output).toContain('source tokens:\t360')
+    expect(output).not.toContain('hostname:\texample.com')
+    expect(output).not.toContain('path:\t/docs/zod')
+    expect(output).toContain('url:\thttps://example.com/docs/zod\n\ncost saved:\t$0.0003')
+    expect(output.indexOf('cost saved:\t$0.0003')).toBeLessThan(
+      output.indexOf('extracted tokens:\t120'),
+    )
     expect(output.indexOf('extracted tokens:\t120')).toBeLessThan(
       output.indexOf('filtered tokens:\t48'),
     )
     expect(output.indexOf('filtered tokens:\t48')).toBeLessThan(
-      output.indexOf('hostname:\texample.com'),
-    )
-    expect(output.indexOf('hostname:\texample.com')).toBeLessThan(
       output.indexOf('markdown tokens:\t240'),
     )
-    expect(output.indexOf('markdown tokens:\t240')).toBeLessThan(output.indexOf('path:\t/docs/zod'))
-    expect(output.indexOf('path:\t/docs/zod')).toBeLessThan(output.indexOf('source method:\thtml'))
+    expect(output.indexOf('markdown tokens:\t240')).toBeLessThan(
+      output.indexOf('source method:\thtml'),
+    )
     expect(output.indexOf('source method:\thtml')).toBeLessThan(
       output.indexOf('source tokens:\t360'),
     )
+    expect(output.indexOf('source tokens:\t360')).toBeLessThan(output.indexOf('tokens saved:\t120'))
+    expect(output).not.toContain('tokens saved:\t120\n\nextracted tokens:\t120')
   })
 
   test('view - not found', async () => {

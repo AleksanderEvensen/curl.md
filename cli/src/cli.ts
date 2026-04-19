@@ -1864,43 +1864,49 @@ const request = Cli.create('request', {
 
       if (c.options.web) openUrl(req.url)
 
-      const fields: [string, string][] = [
-        ['id', pc.green(req.id)],
-        ['url', req.url],
-        ['created', pc.dim(UI.formatDate(new Date(req.created_at)))],
-        ['mode', (() => req.mode ?? pc.dim('-'))()],
-        ['cached', req.cached ? 'yes' : 'no'],
-        ['objective', (() => req.objective ?? pc.dim('-'))()],
-        ['keywords', (() => req.keywords ?? pc.dim('-'))()],
-        ['saved', req.tokens_saved.toLocaleString()],
+      const secondaryFields: [string, string][] = [
         ['cost saved', `$${formatCost(req.tokens_saved, 3)}`],
+        ['tokens saved', req.tokens_saved.toLocaleString()],
       ]
       if (c.options.verbose)
-        fields.push(
+        secondaryFields.push(
+          [
+            'extracted tokens',
+            (() =>
+              req.extracted_tokens === null
+                ? pc.dim('-')
+                : req.extracted_tokens.toLocaleString())(),
+          ],
+          [
+            'filtered tokens',
+            (() =>
+              req.filtered_tokens === null ? pc.dim('-') : req.filtered_tokens.toLocaleString())(),
+          ],
+          ['markdown tokens', req.markdown_tokens.toLocaleString()],
+          ['source method', req.source_tokens_method],
+          ['source tokens', req.source_tokens.toLocaleString()],
+        )
+
+      const fieldGroups: [string, string][][] = [
+        [
+          ['id', pc.green(req.id)],
+          ['created', pc.dim(UI.formatDate(new Date(req.created_at)))],
           ...(
             [
-              [
-                'extracted tokens',
-                (() =>
-                  req.extracted_tokens === null
-                    ? pc.dim('-')
-                    : req.extracted_tokens.toLocaleString())(),
-              ],
-              [
-                'filtered tokens',
-                (() =>
-                  req.filtered_tokens === null
-                    ? pc.dim('-')
-                    : req.filtered_tokens.toLocaleString())(),
-              ],
-              ['hostname', req.hostname],
-              ['markdown tokens', req.markdown_tokens.toLocaleString()],
-              ['path', req.path],
-              ['source method', req.source_tokens_method],
-              ['source tokens', req.source_tokens.toLocaleString()],
+              ['cached', req.cached ? 'yes' : 'no'],
+              ['keywords', (() => req.keywords ?? pc.dim('-'))()],
+              ['mode', (() => req.mode ?? pc.dim('-'))()],
+              ['objective', (() => req.objective ?? pc.dim('-'))()],
+              ['url', req.url],
             ] as [string, string][]
           ).sort(([a], [b]) => a.localeCompare(b)),
-        )
+        ],
+        secondaryFields.sort(([a], [b]) => a.localeCompare(b)),
+      ]
+
+      const fields: [string, string][] = fieldGroups.flatMap((group, index) =>
+        index === 0 ? group : ([['', ''], ...group] as [string, string][]),
+      )
 
       return c.ok(
         [
@@ -1912,7 +1918,7 @@ const request = Cli.create('request', {
             const width = Math.max(20, (process.stdout.columns || 80) - indent)
             const wrappedFields: [string, string][] = fields.map(([label, value]) => [
               label,
-              UI.wrapAnsiValue(value, width, indent),
+              !label && !value ? value : UI.wrapAnsiValue(value, width, indent),
             ])
             return UI.summary(wrappedFields, pc.bold('Request'))
           })(),

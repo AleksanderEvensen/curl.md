@@ -31,11 +31,10 @@ afterEach(() => {
 
 // --- Registration & interception ---
 
-test('registers tool.call hook and fallback tool', () => {
+test('registers tool hooks and fallback tool', () => {
   const { handlers, tools } = loadPlugin()
 
-  expect(handlers).toHaveLength(1)
-  expect(handlers[0]!.event).toBe('tool.call')
+  expect(handlers.map((handler) => handler.event)).toEqual(['tool.call', 'tool.result'])
   expect(tools.map((t) => t.name)).toEqual(['curl_md'])
 })
 
@@ -111,6 +110,52 @@ test('tool.call hook returns error on failure', async () => {
   expect(result).toMatchObject({
     action: 'reject-and-continue',
     message: 'curl.md authentication required. Set CURLMD_API_KEY or run `curl.md auth login`.',
+  })
+})
+
+test('tool.result hook strips duplicated Error prefix for curl.md tools', () => {
+  const { handlers } = loadPlugin()
+  const handler = handlers.find((h) => h.event === 'tool.result')!
+
+  const result = handler.fn(
+    {
+      error:
+        'Error: Error: Rate limit exceeded. Try again in 1940s. Set CURLMD_API_KEY or run `curl.md auth login` for higher limits.',
+      input: { url: 'https://example.com' },
+      status: 'error',
+      tool: 'curl_md',
+      toolUseID: 'call_1',
+    },
+    {} as any,
+  )
+
+  expect(result).toEqual({
+    error:
+      'Rate limit exceeded. Try again in 1940s. Set CURLMD_API_KEY or run `curl.md auth login` for higher limits.',
+    output: undefined,
+    status: 'error',
+  })
+})
+
+test('tool.result hook leaves single Error prefix unchanged', () => {
+  const { handlers } = loadPlugin()
+  const handler = handlers.find((h) => h.event === 'tool.result')!
+
+  const result = handler.fn(
+    {
+      error: 'Error: upstream exploded',
+      input: { url: 'https://example.com' },
+      status: 'error',
+      tool: 'curl_md',
+      toolUseID: 'call_1',
+    },
+    {} as any,
+  )
+
+  expect(result).toEqual({
+    error: 'Error: upstream exploded',
+    output: undefined,
+    status: 'error',
   })
 })
 
