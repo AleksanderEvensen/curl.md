@@ -3,6 +3,8 @@ import { Tabs } from '@base-ui/react/tabs'
 import { Link } from '@tanstack/react-router'
 import * as React from 'react'
 import IconBrandAmp from '~icons/brand/amp.jsx'
+import IconBrandCurlLight from '~icons/brand/curl-light.jsx'
+import IconBrandCurl from '~icons/brand/curl.jsx'
 import IconBrandOpencode from '~icons/brand/opencode.jsx'
 import IconBrandPi from '~icons/brand/pi.jsx'
 import IconOcticonPackage16 from '~icons/octicon/package16.jsx'
@@ -41,9 +43,13 @@ export function DocContent(props: {
   const mobileOutlineContentRef = React.useRef<HTMLDivElement>(null)
   const mobileOutlineTriggerRef = React.useRef<HTMLButtonElement>(null)
   const honorHashUntilRef = React.useRef(0)
-  const hasHeadings = doc.headings.length > 0
+  const outlineHeadings = React.useMemo(
+    () => doc.headings.filter((heading) => heading.level <= (doc.outlineMaxLevel ?? 4)),
+    [doc.headings, doc.outlineMaxLevel],
+  )
+  const hasHeadings = outlineHeadings.length > 0
   const hasPagination = Boolean(pagination.previous || pagination.next)
-  const activeHeading = doc.headings.find((heading) => heading.id === activeHeadingId)
+  const activeHeading = outlineHeadings.find((heading) => heading.id === activeHeadingId)
   const editHref = `${config.repoBaseUrl}/edit/main/${doc.sourcePath}`
   const lastUpdatedLabel = doc.lastUpdated
     ? formatLastUpdated(
@@ -104,7 +110,7 @@ export function DocContent(props: {
     const thresholdOffsetPx = 24
 
     const syncActiveHeading = () => {
-      const headings = doc.headings
+      const headings = outlineHeadings
         .map((heading) => ({ element: document.getElementById(heading.id), id: heading.id }))
         .filter(
           (heading): heading is { element: HTMLElement; id: string } => heading.element !== null,
@@ -174,7 +180,7 @@ export function DocContent(props: {
       window.removeEventListener('resize', syncActiveHeading)
       window.removeEventListener('scroll', onScroll)
     }
-  }, [doc.path, doc.headings, hasHeadings])
+  }, [doc.path, hasHeadings, outlineHeadings])
 
   useBrowserLayoutEffect(() => {
     const content = mobileOutlineContentRef.current
@@ -274,7 +280,7 @@ export function DocContent(props: {
 
                         <div aria-hidden="true" className="border-gray-a3 border-t" />
 
-                        {doc.headings.map((heading, index) => (
+                        {outlineHeadings.map((heading, index) => (
                           <React.Fragment key={heading.id}>
                             {index > 0 && (
                               <div aria-hidden="true" className="border-gray-a3 border-t" />
@@ -364,7 +370,7 @@ export function DocContent(props: {
                 </div>
                 <DesktopDocOutline
                   activeHeadingId={activeHeadingId}
-                  headings={doc.headings}
+                  headings={outlineHeadings}
                   onHeadingSelect={selectOutlineHeading}
                 />
               </>
@@ -576,6 +582,11 @@ function createMdxComponents(props: {
         className: getDocHeadingClassName('h4', { preview }),
         preview,
       }),
+    h5: (headingProps: React.ComponentProps<'h5'>) =>
+      renderDocHeading('h5', headingProps, {
+        className: getDocHeadingClassName('h5', { preview }),
+        preview,
+      }),
     hr: () => <hr className="border-gray-a3 my-8" />,
     li: (listItemProps: React.ComponentProps<'li'>) => (
       <li
@@ -693,7 +704,7 @@ function OutlineHeadingText(props: { text: string; truncate?: boolean }) {
   )
 }
 
-function renderDocHeading<Tag extends 'h2' | 'h3' | 'h4'>(
+function renderDocHeading<Tag extends 'h2' | 'h3' | 'h4' | 'h5'>(
   tag: Tag,
   props: React.ComponentProps<Tag>,
   options: { className: string; linked?: boolean; preview?: boolean },
@@ -736,7 +747,7 @@ function renderDocHeading<Tag extends 'h2' | 'h3' | 'h4'>(
 }
 
 function getDocHeadingClassName(
-  tag: 'h2' | 'h3' | 'h4',
+  tag: 'h2' | 'h3' | 'h4' | 'h5',
   props: { preview?: boolean; tight?: boolean; withMargin?: boolean },
 ) {
   const { preview = false, tight = false, withMargin = true } = props
@@ -763,10 +774,21 @@ function getDocHeadingClassName(
       .join(' ')
   }
 
+  if (tag === 'h4') {
+    return [
+      withMargin ? (preview ? 'mt-5' : 'mt-8') : undefined,
+      'scroll-mt-[7rem] font-bold lg:scroll-mt-4',
+      preview ? 'text-[0.8125rem] md:text-sm' : 'text-sm md:text-base',
+      tight ? 'leading-tight' : undefined,
+    ]
+      .filter(Boolean)
+      .join(' ')
+  }
+
   return [
-    withMargin ? (preview ? 'mt-5' : 'mt-8') : undefined,
+    withMargin ? (preview ? 'mt-4' : 'mt-6') : undefined,
     'scroll-mt-[7rem] font-bold lg:scroll-mt-4',
-    preview ? 'text-[0.8125rem] md:text-sm' : 'text-sm md:text-base',
+    preview ? 'text-[0.75rem] md:text-[0.8125rem]' : 'text-[0.8125rem] md:text-sm',
     tight ? 'leading-tight' : undefined,
   ]
     .filter(Boolean)
@@ -1066,7 +1088,10 @@ function DocsCards(props: React.PropsWithChildren<{ preview?: boolean }>) {
 
   return (
     <div
-      className={['grid grid-cols-1 md:grid-cols-2', preview ? 'mt-4 gap-3' : 'mt-6 gap-4']
+      className={[
+        'grid grid-cols-1 md:grid-cols-2',
+        preview ? 'mt-4 mb-4 gap-3' : 'mt-6 mb-6 gap-4',
+      ]
         .filter(Boolean)
         .join(' ')}
       data-docs-cards=""
@@ -1470,6 +1495,7 @@ function CodeGroupTabIcon(props: { label: string; language?: string | undefined 
   const icon = getCodeGroupTabIcon(props.label, props.language)
   if (!icon) return null
 
+  if (icon === codeGroupTabIcons.curl) return <CodeGroupCurlIcon />
   if (icon === codeGroupTabIcons.pnpm) return <CodeGroupPnpmIcon />
 
   return (
@@ -1714,6 +1740,15 @@ function CodeGroupPnpmIcon() {
     <>
       <IconVscodeIconsFileTypeLightPnpm aria-hidden className="size-4 shrink-0 dark:hidden" />
       <IconVscodeIconsFileTypePnpm aria-hidden className="hidden size-4 shrink-0 dark:block" />
+    </>
+  )
+}
+
+function CodeGroupCurlIcon() {
+  return (
+    <>
+      <IconBrandCurl aria-hidden className="size-4 shrink-0 dark:hidden" />
+      <IconBrandCurlLight aria-hidden className="hidden size-4 shrink-0 dark:block" />
     </>
   )
 }
@@ -2404,6 +2439,7 @@ function getNpmPackageHref(name: string) {
 const codeGroupTabIcons = {
   bash: { Component: IconVscodeIconsFileTypeShell },
   bun: { Component: IconVscodeIconsFileTypeBun },
+  curl: { Component: IconBrandCurl },
   deno: { Component: IconVscodeIconsFileTypeDeno },
   javascript: { Component: IconVscodeIconsFileTypeJs },
   json: { Component: IconVscodeIconsFileTypeJson },

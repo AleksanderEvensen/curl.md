@@ -5,7 +5,7 @@ import { type Doc, type DocPagination } from './-utils.ts'
 
 type DocModule = {
   default: React.ComponentType<{ components?: Record<string, React.ComponentType> }>
-  frontmatter?: { description?: string; title?: string }
+  frontmatter?: { description?: string; outlineMaxLevel?: number; title?: string }
   headings?: Array<Heading>
   lastUpdated?: string
 }
@@ -28,6 +28,9 @@ const allDocs: Array<Doc> = Object.entries(modules).map(([filePath, mod]) => {
     description: mod.frontmatter?.description,
     headings: mod.headings ?? [],
     ...(mod.lastUpdated ? { lastUpdated: mod.lastUpdated } : {}),
+    ...(typeof mod.frontmatter?.outlineMaxLevel === 'number'
+      ? { outlineMaxLevel: mod.frontmatter.outlineMaxLevel }
+      : {}),
     path: path === 'index' ? '' : path,
     source: createDocCopySource(rawSource),
     sourcePath: filePath.replace('../../../', ''),

@@ -4,7 +4,7 @@ export const sidebar = [
     label: 'Introduction',
     items: [
       { type: 'link', label: 'Getting Started', path: '/getting-started', wip: true },
-      { type: 'link', label: 'Installation', path: '/install', wip: true },
+      { type: 'link', label: 'Installation', path: '/install' },
       { type: 'link', label: 'Why curl.md', path: '/why', wip: true },
     ],
   },
@@ -14,8 +14,8 @@ export const sidebar = [
     items: [
       { type: 'link', label: 'Features', path: '/guide/features', wip: true },
       { type: 'link', label: 'Agent Usage', path: '/guide/agent-usage', wip: true },
-      { type: 'link', label: 'CLI', path: '/guide/cli', wip: true },
-      { type: 'link', label: 'API & SDK', path: '/guide/api', wip: true },
+      { type: 'link', label: 'CLI', path: '/guide/cli' },
+      { type: 'link', label: 'API & SDK', path: '/guide/api' },
       { type: 'link', label: 'Plugins', path: '/guide/plugins' },
     ],
   },

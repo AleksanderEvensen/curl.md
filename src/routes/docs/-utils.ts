@@ -8,6 +8,7 @@ export type Doc = {
   description: string | undefined
   headings: Array<Heading>
   lastUpdated?: string
+  outlineMaxLevel?: number
   path: string
   source: string
   sourcePath: string

@@ -78,6 +78,25 @@ test('outline does not force the last heading active near the bottom when more c
     .not.toHaveAttribute('data-active')
 })
 
+test('outline respects the configured max heading level', async () => {
+  const rendered = renderDocContent(createOutlineMaxLevelDoc())
+  const advancedFlagsHeading = document.getElementById('advanced-flags')
+  if (!advancedFlagsHeading) throw new Error('Expected advanced flags heading to exist')
+
+  expect(rendered.container.querySelector('aside a[href="#advanced-flags"]')).toBeNull()
+
+  window.scrollTo({ top: advancedFlagsHeading.offsetTop - 80 })
+  await waitForAnimationFrame()
+
+  await expect
+    .element(rendered.outline.getByRole('link', { exact: true, name: 'Usage' }))
+    .toHaveAttribute('data-active')
+
+  expect(
+    rendered.container.querySelector('[data-mobile-doc-outline-current-heading]')?.textContent,
+  ).toBe('Usage')
+})
+
 test('outline clears stale last-heading state after a quick upward scroll', async () => {
   const rendered = renderDocContent(createDoc())
   const authenticationHeading = document.getElementById('authentication')
@@ -460,6 +479,19 @@ test('code groups switch the visible panel when tabs are clicked', async () => {
   await expect.element(rendered.content.getByText("console.log('ts')")).toBeVisible()
 })
 
+test('curl code group tabs render theme-aware curl.se icons', () => {
+  const rendered = renderDocContent(createCurlCodeGroupDoc())
+  const curlTab = rendered.container.querySelector('[role="tab"][aria-selected="true"]')
+  if (!(curlTab instanceof HTMLElement)) throw new Error('Expected curl tab to render')
+
+  const icons = curlTab.querySelectorAll('svg')
+
+  expect(normalizeText(curlTab.textContent)).toBe('curl')
+  expect(icons).toHaveLength(2)
+  expect(icons[0]?.className.baseVal).toContain('dark:hidden')
+  expect(icons[1]?.className.baseVal).toContain('dark:block')
+})
+
 test('code groups sync matching labels through the query param', async () => {
   window.history.replaceState(null, '', '/docs/dev/kitchen-sink?tab=pnpm')
   const rendered = renderDocContent(createSyncedCodeGroupDoc())
@@ -536,6 +568,8 @@ test('cards render as a responsive grid of clickable items', async () => {
   expect(cardsGrid).not.toBeNull()
   expect(cardsGrid?.className).toContain('grid-cols-1')
   expect(cardsGrid?.className).toContain('md:grid-cols-2')
+  expect(cardsGrid?.className).toContain('mt-6')
+  expect(cardsGrid?.className).toContain('mb-6')
   expect(cards).toHaveLength(2)
   expect(cards[0]?.getAttribute('href')).toBe('/docs/install')
   expect(cards[0]?.querySelector('[data-docs-card-icon]')).not.toBeNull()
@@ -1435,6 +1469,80 @@ function createCodeGroupDoc(): Doc {
     path: 'test',
     source: '# Test\n',
     sourcePath: 'docs/dev/kitchen-sink.mdx',
+    title: 'Test',
+  }
+}
+
+function createCurlCodeGroupDoc(): Doc {
+  return {
+    Component: function Component(props) {
+      const components = props.components ?? {}
+      const CodeGroup = components.CodeGroup as React.ComponentType<React.PropsWithChildren>
+      const CodeGroupItem = components.CodeGroupItem as React.ComponentType<
+        React.PropsWithChildren<{ label?: string }>
+      >
+
+      return (
+        <CodeGroup>
+          <CodeGroupItem label="curl">
+            <pre>
+              <code className="language-sh">curl -fsSL https://curl.md/install.sh | bash</code>
+            </pre>
+          </CodeGroupItem>
+          <CodeGroupItem label="npm">
+            <pre>
+              <code className="language-sh">npm i -g curl.md</code>
+            </pre>
+          </CodeGroupItem>
+        </CodeGroup>
+      )
+    },
+    description: undefined,
+    headings: [],
+    path: 'test',
+    source: '# Test\n',
+    sourcePath: 'docs/install.mdx',
+    title: 'Test',
+  }
+}
+
+function createOutlineMaxLevelDoc(): Doc {
+  const sections = [
+    { id: 'cli', level: 2, spacerBlockSizePx: 320, tag: 'h2', text: 'CLI' },
+    { id: 'usage', level: 3, spacerBlockSizePx: 320, tag: 'h3', text: 'Usage' },
+    {
+      id: 'advanced-flags',
+      level: 4,
+      spacerBlockSizePx: 320,
+      tag: 'h4',
+      text: 'Advanced Flags',
+    },
+    { id: 'auth', level: 2, spacerBlockSizePx: 320, tag: 'h2', text: 'Auth' },
+  ] as const
+
+  return {
+    Component: function Component() {
+      return (
+        <>
+          {sections.map((section) => (
+            <React.Fragment key={section.id}>
+              {React.createElement(section.tag, { id: section.id }, section.text)}
+              <div style={{ blockSize: `${section.spacerBlockSizePx}px` }} />
+            </React.Fragment>
+          ))}
+        </>
+      )
+    },
+    description: undefined,
+    headings: sections.map((section) => ({
+      id: section.id,
+      level: section.level,
+      text: section.text,
+    })),
+    outlineMaxLevel: 3,
+    path: 'test',
+    source: '# Test',
+    sourcePath: 'docs/guide/cli.mdx',
     title: 'Test',
   }
 }

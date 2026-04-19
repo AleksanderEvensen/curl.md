@@ -5,35 +5,41 @@ description: Install curl.md for the browser, terminal, or supported agent integ
 
 # Installation
 
-Install `curl.md` in the environment you use most. Start with the CLI if you want the broadest support, then add an agent integration if it matches your workflow.
+Install curl.md in the environment you use most. Start with the [CLI](#cli) if you want the broadest support or install curl.md first-party agent [plugins](#plugins).
 
 :::tip[Pick one install path]
-You only need one primary install path to get value from `curl.md`.
+You only need one primary install path to get value from curl.md and can always add more integrations later.
 :::
 
-:::card[Amp]{href=#amp icon=amp}
-Install the first-party Amp plugin if you want `curl.md` to intercept `read_web_page` and expose `curl_md`.
+## Plugins
+
+Integrate curl.md into your favorite coding agent.
+
+:::card[Amp]{href=/docs/plugins/amp icon=amp}
+Install and use curl.md with Amp
 :::
 
 :::card[Claude]{href=/docs/plugins/claude icon=claude}
-Use curl.md alongside Claude when you want clean markdown instead of raw webpage context.
+Install and use curl.md with Claude
 :::
 
 :::card[Codex]{href=/docs/plugins/codex icon=codex}
-Use curl.md with Codex when implementation depends on external docs, specs, or API references.
+Install and use curl.md with Codex
 :::
 
 :::card[Cursor]{href=/docs/plugins/cursor icon=cursor}
-Use curl.md with Cursor when you want cleaner docs context inside the editor workflow.
+Install and use curl.md with Cursor
 :::
 
 :::card[OpenCode]{href=/docs/plugins/opencode icon=opencode}
-Use curl.md with OpenCode when you want cleaner external docs context inside the terminal or IDE agent workflow.
+Install and use curl.md with OpenCode
 :::
 
-:::card[Pi]{href=#pi icon=pi}
-Install the first-party Pi extension if you want `read_web_page`, `curl_md`, and auth commands inside Pi.
+:::card[Pi]{href=/docs/plugins/pi icon=pi}
+Install and use curl.md with Pi
 :::
+
+Learn more about plugins in the [Plugins guide](/docs/guide/plugins).
 
 ## CLI
 
@@ -57,42 +63,44 @@ $ bun i -g curl.md
 
 Learn more about the CLI in the [CLI guide](/docs/guide/cli).
 
-## Amp
+## SDK
 
-Install the first-party Amp plugin if you want `curl.md` to intercept `read_web_page` and expose `curl_md` inside Amp.
+Install `curl.md` with your favorite package manager:
 
-```sh
-$ npx @curl.md/amp install
+:::codegroup
+
+```sh [npm]
+$ npm i curl.md
 ```
 
-Then start Amp with plugins enabled:
-
-```sh
-$ PLUGINS=all amp
+```sh [pnpm]
+$ pnpm i curl.md
 ```
 
-See [Amp](/docs/plugins/amp) for the full workflow.
-
-## Pi
-
-Install the first-party Pi extension if you want `read_web_page`, `curl_md`, and auth commands inside Pi.
-
-```sh
-$ pi install @curl.md/pi
+```sh [bun]
+$ bun i curl.md
 ```
 
-See [Pi](/docs/plugins/pi) for the full workflow.
-
-## Authentication
-
-Anonymous usage works for quick tests. Authentication gives you higher limits and account-scoped features.
-
-For the CLI and Amp plugin:
-
-```sh
-$ curl.md auth login
+```sh [yarn]
+$ yarn add curl.md
 ```
 
-For Pi, run `md_login` after installing the extension.
+:::
 
-If you prefer non-interactive auth, set `CURLMD_API_KEY` in your environment.
+Learn more about the SDK in the [API & SDK guide](/docs/guide/api).
+
+## No Code
+
+Don't want to install anything? Respect. You can use curl.md directly with `curl` or in your browser at [curl.md](https://curl.md/).
+
+:::codegroup
+
+```sh [curl]
+$ curl curl.md/example.com
+```
+
+```sh [browser]
+$ open https://curl.md/example.com
+```
+
+:::

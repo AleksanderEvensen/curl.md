@@ -3,7 +3,7 @@ import * as fs from 'node:fs/promises'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import * as yaml from 'yaml'
-import type { SidebarItem } from '#docs/_sidebar.ts'
+import { createDocCopySource, type SidebarItem } from '#lib/docs.ts'
 
 const docsDirectoryPath = path.join(process.cwd(), 'docs')
 const docsGeneratedManifestPath = path.join(process.cwd(), 'public/docs/.generated-docs.json')
@@ -235,101 +235,4 @@ function collectSidebarDocs(
 function normalizeSidebarPath(pathname: string) {
   if (pathname === '/') return ''
   return pathname.replace(/^\//, '')
-}
-
-function createDocCopySource(rawSource: unknown) {
-  const lines = stripFrontmatter(getRawDocSource(rawSource)).split('\n')
-  const output: Array<string> = []
-  let codeFenceMarker: string | undefined
-
-  for (let index = 0; index < lines.length; index++) {
-    const line = lines[index]!
-    const fenceMarker = getCodeFenceMarker(line)
-
-    if (fenceMarker) {
-      if (!codeFenceMarker) codeFenceMarker = fenceMarker
-      else if (isMatchingFenceMarker(fenceMarker, codeFenceMarker)) codeFenceMarker = undefined
-      output.push(line)
-      continue
-    }
-
-    if (codeFenceMarker) {
-      output.push(line)
-      continue
-    }
-
-    if (/^import\s.+$/u.test(line)) continue
-
-    const pluginLinks = rewritePluginLinksComponent(lines, index)
-    if (pluginLinks) {
-      output.push(...pluginLinks.lines)
-      index = pluginLinks.endIndex
-      continue
-    }
-
-    output.push(line)
-  }
-
-  return output
-    .join('\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim()
-}
-
-function getRawDocSource(rawSource: unknown) {
-  if (typeof rawSource === 'string') return rawSource
-  if (
-    rawSource &&
-    typeof rawSource === 'object' &&
-    'default' in rawSource &&
-    typeof rawSource.default === 'string'
-  )
-    return rawSource.default
-  return ''
-}
-
-function stripFrontmatter(markdown: string) {
-  if (!markdown.startsWith('---\n')) return markdown
-  const end = markdown.indexOf('\n---\n', 4)
-  if (end === -1) return markdown
-  return markdown.slice(end + 5).replace(/^\n+/, '')
-}
-
-function getCodeFenceMarker(line: string) {
-  return /^(?: {0,3})(`{3,}|~{3,})/u.exec(line)?.[1]
-}
-
-function isMatchingFenceMarker(marker: string, other: string) {
-  return marker[0] === other[0]
-}
-
-function rewritePluginLinksComponent(lines: Array<string>, index: number) {
-  const firstLine = lines[index]!
-  if (!/^\s*<PluginLinks(?:\s|$)/u.test(firstLine)) return
-
-  const componentLines = [firstLine.trim()]
-  let endIndex = index
-
-  if (!/\/?>\s*$/u.test(firstLine)) {
-    for (endIndex = index + 1; endIndex < lines.length; endIndex++) {
-      const line = lines[endIndex]!
-      componentLines.push(line.trim())
-      if (/\/?>\s*$/u.test(line)) break
-    }
-
-    if (!/\/?>\s*$/u.test(lines[endIndex] ?? '')) return
-  }
-
-  const propsMatch = /^<PluginLinks\s+(.+?)\s*\/?>$/u.exec(componentLines.join(' '))
-  const props = propsMatch?.[1]
-  if (!props) return
-
-  const npm = /(?:^|\s)npm=(['"])(.*?)\1/u.exec(props)?.[2]
-  const source = /(?:^|\s)source=(['"])(.*?)\1/u.exec(props)?.[2]
-  if (!npm || !source) return
-
-  return {
-    endIndex,
-    lines: [`- [${npm}](https://www.npmjs.com/package/${npm})`, `- [Source code](${source})`],
-  }
 }

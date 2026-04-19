@@ -1,6 +1,7 @@
 ---
 title: CLI
 description: Turn URLs into optimized markdown with the curl.md CLI
+outlineMaxLevel: 3
 ---
 
 # CLI
@@ -36,11 +37,13 @@ $ curl.md --version
 $ md --version
 ```
 
+:::tip
+The CLI can be invoked through `curl.md` or via the short `md` alias.
+:::
+
 You can also install by downloading releases on the [GitHub Releases](https://github.com/wevm/curl.md/releases) page.
 
 ## Usage
-
-The CLI can be invoked through `curl.md` or via the short `md` alias.
 
 Fetch a page:
 
@@ -61,6 +64,19 @@ md developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch \
   --objective streaming response body \
   --keywords ReadableStream,getReader
 ```
+
+Choose a [mode](#TODO) with `--mode`:
+
+```sh
+md developers.cloudflare.com/d1/get-started \
+  --objective how to query D1 from a worker \
+  --keywords D1,bindings \
+  --mode rush
+```
+
+:::tip[Choosing a mode]
+`smart` is the default and is best for most docs lookups. Use `rush` when you want a faster pass over the page.
+:::
 
 Bypass cache with `--fresh`:
 
@@ -84,6 +100,24 @@ $ curl.md auth login
 
 For non-interactive environments, set [`CURLMD_API_KEY`](#environment-variables).
 
+## Agents
+
+If your agent can shell out locally and does not already have a [first-party integration](/docs/guide/plugins), sync the curl.md CLI skills into it:
+
+```sh
+$ curl.md skills add
+```
+
+These generated skills teach the agent how to use the curl.md CLI effectively inside your terminal workflow.
+
+If you want to install the skills into the current project instead of your global agent config, use:
+
+```sh
+$ curl.md skills add --no-global
+```
+
+It's recommended to use native agent [plugins](/docs/guide/plugins) instead of direct CLI usage when possible.
+
 ## Commands
 
 {/* GENERATED:cli-commands:start */}
@@ -92,17 +126,17 @@ For non-interactive environments, set [`CURLMD_API_KEY`](#environment-variables)
 
 URL to markdown for agents
 
-| Argument | Description  |
-| -------- | ------------ |
-| `url`    | URL to fetch |
+| Argument | Type  | Description  |
+| -------- | ----- | ------------ |
+| `url`    | `url` | URL to fetch |
 
-| Option                     | Description                                                   |
-| -------------------------- | ------------------------------------------------------------- |
-| `--fresh, -f`              | Force fresh fetch (bypass cache)                              |
-| `--keywords, -k <array>`   | Pre-filter by keywords (comma-separated)                      |
-| `--mode, -m <rush\|smart>` | Mode when narrowing content with --objective (default: smart) |
-| `--objective, -o <string>` | Narrow content to a specific objective                        |
-| `--token, -t <string>`     | API token for authentication (env: CURLMD_API_KEY)            |
+| Option            | Type          | Default | Description                                        |
+| ----------------- | ------------- | ------- | -------------------------------------------------- |
+| `--fresh, -f`     | `boolean`     |         | Force fresh fetch (bypass cache)                   |
+| `--keywords, -k`  | `array`       |         | Pre-filter by keywords (comma-separated)           |
+| `--mode, -m`      | `rush\|smart` | `smart` | Mode when narrowing content with --objective       |
+| `--objective, -o` | `string`      |         | Narrow content to a specific objective             |
+| `--token, -t`     | `string`      |         | API token for authentication (env: CURLMD_API_KEY) |
 
 ```sh
 $ curl.md example.com
@@ -113,91 +147,470 @@ $ curl.md ai-sdk.dev/docs/ai-sdk-core/generating-text --objective how to stream 
 $ curl.md zod.dev/error-formatting --objective tree error formatting --keywords treeifyError
 ```
 
+<a id="auth"></a>
 ### `auth`
 
 Authenticate with curl.md (login, logout, status)
 
-| Command  | Description                 |
-| -------- | --------------------------- |
-| `login`  | Log in with curl.md         |
-| `logout` | Log out of the curl.md CLI  |
-| `status` | Check authentication status |
+| Command                  | Description                 |
+| ------------------------ | --------------------------- |
+| [`login`](#auth-login)   | Log in with curl.md         |
+| [`logout`](#auth-logout) | Log out of the curl.md CLI  |
+| [`status`](#auth-status) | Check authentication status |
 
+<a id="auth-login"></a>
+#### `login`
+
+Log in with curl.md
+
+```sh
+$ curl.md auth login
+```
+
+<a id="auth-logout"></a>
+#### `logout`
+
+Log out of the curl.md CLI
+
+```sh
+$ curl.md auth logout
+```
+
+<a id="auth-status"></a>
+#### `status`
+
+Check authentication status
+
+```sh
+$ curl.md auth status [options]
+```
+
+| Option    | Type     | Description        |
+| --------- | -------- | ------------------ |
+| `--token` | `string` | API token to check |
+
+<a id="credits"></a>
 ### `credits`
 
 Manage prepaid credits (add, status)
 
-| Command  | Description   |
-| -------- | ------------- |
-| `add`    | Add credits   |
-| `status` | Check credits |
+| Command                     | Description   |
+| --------------------------- | ------------- |
+| [`add`](#credits-add)       | Add credits   |
+| [`status`](#credits-status) | Check credits |
 
+<a id="credits-add"></a>
+#### `add`
+
+Add credits
+
+```sh
+$ curl.md credits add <5|10|20|50>
+```
+
+| Argument | Type            | Description       |
+| -------- | --------------- | ----------------- |
+| `amount` | `5\|10\|20\|50` | Amount in dollars |
+
+<a id="credits-status"></a>
+#### `status`
+
+Check credits
+
+```sh
+$ curl.md credits status
+```
+
+<a id="org"></a>
 ### `org`
 
 Manage organizations (create, invite, list, member, switch, view)
 
-| Command  | Description              |
-| -------- | ------------------------ |
-| `create` | Create organization      |
-| `list`   | List organizations       |
-| `switch` | Switch organization      |
-| `view`   | View active organization |
+| Command                   | Description                                                |
+| ------------------------- | ---------------------------------------------------------- |
+| [`create`](#org-create)   | Create organization                                        |
+| [`invite`](#org-invite)   | Manage organization invites (accept, create, list, revoke) |
+| [`list`](#org-list), `ls` | List organizations                                         |
+| [`member`](#org-member)   | Manage organization members (add, list, remove, role)      |
+| [`switch`](#org-switch)   | Switch organization                                        |
+| [`view`](#org-view)       | View active organization                                   |
 
+<a id="org-create"></a>
+#### `create`
+
+Create organization
+
+```sh
+$ curl.md org create <login> [options]
+```
+
+| Argument | Type    | Description                      |
+| -------- | ------- | -------------------------------- |
+| `login`  | `login` | Organization login (e.g. "wevm") |
+
+| Option   | Type     | Description  |
+| -------- | -------- | ------------ |
+| `--name` | `string` | Display name |
+
+<a id="org-invite"></a>
 #### `invite`
 
 Manage organization invites (accept, create, list, revoke)
 
-| Command  | Description                     |
-| -------- | ------------------------------- |
-| `accept` | Accept organization invite      |
-| `create` | Create organization invite link |
-| `list`   | List organization invites       |
-| `revoke` | Revoke organization invite      |
+| Command                          | Description                     |
+| -------------------------------- | ------------------------------- |
+| [`accept`](#org-invite-accept)   | Accept organization invite      |
+| [`create`](#org-invite-create)   | Create organization invite link |
+| [`list`](#org-invite-list), `ls` | List organization invites       |
+| [`revoke`](#org-invite-revoke)   | Revoke organization invite      |
 
+<a id="org-invite-accept"></a>
+##### `accept`
+
+Accept organization invite
+
+```sh
+$ curl.md org invite accept <token>
+```
+
+| Argument | Type    | Description         |
+| -------- | ------- | ------------------- |
+| `token`  | `token` | Invite URL or token |
+
+<a id="org-invite-create"></a>
+##### `create`
+
+Create organization invite link
+
+```sh
+$ curl.md org invite create [options]
+```
+
+| Option             | Type            | Default  | Description              |
+| ------------------ | --------------- | -------- | ------------------------ |
+| `--expires-in, -e` | `number`        | `604800` | Expiry in seconds        |
+| `--max-uses, -m`   | `number`        |          | Maximum number of uses   |
+| `--role, -r`       | `member\|admin` | `member` | Role for invited members |
+
+<a id="org-invite-list"></a>
+##### `list`
+
+List organization invites
+
+```sh
+$ curl.md org invite list
+```
+
+<a id="org-invite-revoke"></a>
+##### `revoke`
+
+Revoke organization invite
+
+```sh
+$ curl.md org invite revoke [invite] [options]
+```
+
+| Argument | Type     | Description                  |
+| -------- | -------- | ---------------------------- |
+| `invite` | `invite` | Invite token or ID to revoke |
+
+| Option        | Type      | Description       |
+| ------------- | --------- | ----------------- |
+| `--force, -f` | `boolean` | Skip confirmation |
+
+<a id="org-list"></a>
+#### `list`
+
+List organizations
+
+```sh
+$ curl.md org list
+```
+
+<a id="org-member"></a>
 #### `member`
 
 Manage organization members (add, list, remove, role)
 
-| Command  | Description                             |
-| -------- | --------------------------------------- |
-| `add`    | Add member to active organization       |
-| `list`   | List members of the active organization |
-| `remove` | Remove member from active organization  |
-| `role`   | Change member role                      |
+| Command                              | Description                             |
+| ------------------------------------ | --------------------------------------- |
+| [`add`](#org-member-add)             | Add member to active organization       |
+| [`list`](#org-member-list), `ls`     | List members of the active organization |
+| [`remove`](#org-member-remove), `rm` | Remove member from active organization  |
+| [`role`](#org-member-role)           | Change member role                      |
 
+<a id="org-member-add"></a>
+##### `add`
+
+Add member to active organization
+
+```sh
+$ curl.md org member add <login> [options]
+```
+
+| Argument | Type    | Description          |
+| -------- | ------- | -------------------- |
+| `login`  | `login` | Account login to add |
+
+| Option       | Type            | Default  | Description             |
+| ------------ | --------------- | -------- | ----------------------- |
+| `--role, -r` | `member\|admin` | `member` | Role for the new member |
+
+<a id="org-member-list"></a>
+##### `list`
+
+List members of the active organization
+
+```sh
+$ curl.md org member list
+```
+
+<a id="org-member-remove"></a>
+##### `remove`
+
+Remove member from active organization
+
+```sh
+$ curl.md org member remove [login] [options]
+```
+
+| Argument | Type    | Description            |
+| -------- | ------- | ---------------------- |
+| `login`  | `login` | Member login to remove |
+
+| Option        | Type      | Description       |
+| ------------- | --------- | ----------------- |
+| `--force, -f` | `boolean` | Skip confirmation |
+
+<a id="org-member-role"></a>
+##### `role`
+
+Change member role
+
+```sh
+$ curl.md org member role [login] [options]
+```
+
+| Argument | Type    | Description                     |
+| -------- | ------- | ------------------------------- |
+| `login`  | `login` | Member login to change role for |
+
+| Option        | Type            | Description       |
+| ------------- | --------------- | ----------------- |
+| `--force, -f` | `boolean`       | Skip confirmation |
+| `--role, -r`  | `member\|admin` | New role          |
+
+<a id="org-switch"></a>
+#### `switch`
+
+Switch organization
+
+```sh
+$ curl.md org switch [login]
+```
+
+| Argument | Type    | Description                                    |
+| -------- | ------- | ---------------------------------------------- |
+| `login`  | `login` | Organization login to switch to (or "account") |
+
+<a id="org-view"></a>
+#### `view`
+
+View active organization
+
+```sh
+$ curl.md org view [options]
+```
+
+| Option      | Type      | Description     |
+| ----------- | --------- | --------------- |
+| `--web, -w` | `boolean` | Open in browser |
+
+<a id="request"></a>
 ### `request`
 
 Manage requests (list, view)
 
-| Command | Description   |
-| ------- | ------------- |
-| `list`  | List requests |
-| `view`  | View request  |
+| Command                       | Description   |
+| ----------------------------- | ------------- |
+| [`list`](#request-list), `ls` | List requests |
+| [`view`](#request-view)       | View request  |
 
+<a id="request-list"></a>
+#### `list`
+
+List requests
+
+```sh
+$ curl.md request list [options]
+```
+
+| Option         | Type     | Description                |
+| -------------- | -------- | -------------------------- |
+| `--limit, -l`  | `number` | Number of requests to show |
+| `--page, -p`   | `number` | Page number                |
+| `--search, -s` | `string` | Filter by URL              |
+
+<a id="request-view"></a>
+#### `view`
+
+View request
+
+```sh
+$ curl.md request view [request] [options]
+```
+
+| Argument  | Type      | Description        |
+| --------- | --------- | ------------------ |
+| `request` | `request` | Request ID to view |
+
+| Option      | Type      | Description                  |
+| ----------- | --------- | ---------------------------- |
+| `--verbose` | `boolean` | Show all request fields      |
+| `--web, -w` | `boolean` | Open original URL in browser |
+
+<a id="token"></a>
 ### `token`
 
 Manage API tokens (create, list, delete)
 
-| Command  | Description      |
-| -------- | ---------------- |
-| `create` | Create API token |
-| `delete` | Delete API token |
-| `list`   | List API tokens  |
+| Command                         | Description      |
+| ------------------------------- | ---------------- |
+| [`create`](#token-create)       | Create API token |
+| [`delete`](#token-delete), `rm` | Delete API token |
+| [`list`](#token-list), `ls`     | List API tokens  |
 
+<a id="token-create"></a>
+#### `create`
+
+Create API token
+
+```sh
+$ curl.md token create <name>
+```
+
+| Argument | Type   | Description |
+| -------- | ------ | ----------- |
+| `name`   | `name` | Token name  |
+
+<a id="token-delete"></a>
+#### `delete`
+
+Delete API token
+
+```sh
+$ curl.md token delete [name] [options]
+```
+
+| Argument | Type   | Description          |
+| -------- | ------ | -------------------- |
+| `name`   | `name` | Token name to delete |
+
+| Option        | Type      | Description       |
+| ------------- | --------- | ----------------- |
+| `--force, -f` | `boolean` | Skip confirmation |
+
+<a id="token-list"></a>
+#### `list`
+
+List API tokens
+
+```sh
+$ curl.md token list
+```
+
+<a id="update"></a>
 ### `update`
 
 Update curl.md CLI
 
-| Option              | Description                |
-| ------------------- | -------------------------- |
-| `--target <string>` | Update to specific version |
+```sh
+$ curl.md update [options]
+```
+
+| Option     | Type     | Description                |
+| ---------- | -------- | -------------------------- |
+| `--target` | `string` | Update to specific version |
 
 {/* GENERATED:cli-commands:end */}
 
+## Integrations
+
+{/* GENERATED:cli-integrations:start */}
+
+<a id="completions"></a>
+### `completions`
+
+Generate shell completion script
+
+```sh
+$ curl.md completions <bash|fish|nushell|zsh>
+```
+
+| Argument | Type                       | Description                       |
+| -------- | -------------------------- | --------------------------------- |
+| `shell`  | `bash\|fish\|nushell\|zsh` | Shell to generate completions for |
+
+<a id="mcp-add"></a>
+### `mcp add`
+
+Register as MCP server
+
+```sh
+$ curl.md mcp add [options]
+```
+
+| Option          | Type      | Description                                                     |
+| --------------- | --------- | --------------------------------------------------------------- |
+| `--agent`       | `string`  | Target a specific agent (e.g. claude-code, cursor)              |
+| `--command, -c` | `string`  | Override the command agents will run (e.g. "pnpm my-cli --mcp") |
+| `--no-global`   | `boolean` | Install to project instead of globally                          |
+
+<a id="skills"></a>
+### `skills`
+
+Sync skill files to agents (add, list)
+
+| Command                | Description                |
+| ---------------------- | -------------------------- |
+| [`add`](#skills-add)   | Sync skill files to agents |
+| [`list`](#skills-list) | List skills                |
+
+<a id="skills-add"></a>
+#### `add`
+
+Sync skill files to agents
+
+```sh
+$ curl.md skills add [options]
+```
+
+| Option        | Type      | Default | Description                            |
+| ------------- | --------- | ------- | -------------------------------------- |
+| `--depth`     | `number`  | `1`     | Grouping depth for skill files         |
+| `--no-global` | `boolean` |         | Install to project instead of globally |
+
+<a id="skills-list"></a>
+#### `list`
+
+List skills
+
+```sh
+$ curl.md skills list
+```
+
+{/* GENERATED:cli-integrations:end */}
+
 ## Environment Variables
 
-- `CURLMD_API_KEY` for API-key auth
-- `CURLMD_BASE_URL` if you need to point the CLI at a non-default deployment
+{/* GENERATED:cli-environment-variables:start */}
+
+| Variable          | Type     | Default           | Description                  |
+| ----------------- | -------- | ----------------- | ---------------------------- |
+| `CURLMD_API_KEY`  | `string` |                   | API token for authentication |
+| `CURLMD_BASE_URL` | `string` | `https://curl.md` | Base URL                     |
+
+{/* GENERATED:cli-environment-variables:end */}
 
 ## When To Use The CLI
 

@@ -16,6 +16,7 @@ $ curl curl.md/developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch?ob
 ```
 
 This is useful for quick integrations, shell scripts, and server-side fetches.
+The public `/api` surface also includes experimental routes for auth, API keys, organizations, invites, members, and more.
 
 :::tip[Browser shortcut]
 You can also use curl.md in your browser by adding `curl.md/` in front of any URL. For example, [`curl.md/example.com`](https://curl.md/example.com)
@@ -97,6 +98,8 @@ const json = await res.json()
 ```
 
 The SDK gives you typed access to request options like [`objective`](#objective), [`keywords`](#keywords), [`mode`](#mode), [`fresh`](#fresh), and [`token`](#token).
+
+The lower-level `client.api` key exposes experimental `/api` routes directly.
 
 ## Request Options
 
