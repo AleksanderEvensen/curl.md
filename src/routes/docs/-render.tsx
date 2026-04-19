@@ -13,14 +13,12 @@ import IconSimpleIconsOpenai from '~icons/simple-icons/openai.jsx'
 import { config } from '#docs/_config.ts'
 import { useBrowserLayoutEffect } from '#hooks/useBrowserLayoutEffect.ts'
 import { useCopyToClipboard } from '#hooks/useCopyToClipboard.ts'
+import { getStepId, normalizeDocSearchHighlightTerms } from '#lib/docs.ts'
 import {
   docSearchHighlightClassName,
   getDocSearchHighlightRanges,
-  getStepId,
-  normalizeDocSearchHighlightTerms,
   type Doc,
   type DocPagination,
-  type Heading,
 } from './-utils.ts'
 
 export function DocContent(props: {
@@ -656,7 +654,7 @@ function CopyPageButton(
 
 function DesktopDocOutline(props: {
   activeHeadingId: string | undefined
-  headings: Array<Heading>
+  headings: Array<{ id: string; level: number; text: string }>
   onHeadingSelect: (headingId: string) => void
 }) {
   const { activeHeadingId, headings, onHeadingSelect } = props

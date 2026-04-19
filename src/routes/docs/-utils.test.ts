@@ -1,9 +1,9 @@
 import { expect, test } from 'vitest'
-import { createDocCopySource, getDocHeadings } from './-utils.ts'
+import { createDocCopySource, getDocHeadings } from '#lib/docs.ts'
 
 const fence = '`'.repeat(3)
 
-test('createDocCopySource strips frontmatter and rewrites notices into markdown callouts', () => {
+test('createDocCopySource strips frontmatter and preserves markdown notice directives', () => {
   const source = `---
 title: Installation
 description: Install curl.md
@@ -11,20 +11,19 @@ description: Install curl.md
 
 # Installation
 
-:::tip Pick one install path
+:::tip[Pick one install path]
 You only need one installation path.
 :::
 `
 
   expect(createDocCopySource(source)).toBe(`# Installation
 
-> [!TIP]
-> Pick one install path
->
-> You only need one installation path.`)
+:::tip[Pick one install path]
+You only need one installation path.
+:::`)
 })
 
-test('createDocCopySource strips top-level imports and rewrites code groups into titled fences', () => {
+test('createDocCopySource strips top-level imports and preserves code groups', () => {
   const source = `# Kitchen Sink
 
 import { create } from 'curl.md'
@@ -52,13 +51,17 @@ ${fence}ts
 import { rules } from 'curl.md'
 ${fence}
 
-${fence}sh title="npm"
+:::codegroup
+
+${fence}sh [npm]
 npm run dev
 ${fence}
 
-${fence}sh title="pnpm"
+${fence}sh [pnpm]
 pnpm dev
-${fence}`)
+${fence}
+
+:::`)
 })
 
 test('createDocCopySource accepts raw module objects from SSR glob imports', () => {
@@ -73,7 +76,7 @@ title: Installation
   ).toBe('# Installation')
 })
 
-test('createDocCopySource rewrites steps directives into ordered markdown lists', () => {
+test('createDocCopySource preserves steps directives', () => {
   const source = `# Contributing
 
 :::steps
@@ -93,31 +96,49 @@ ${fence}
 
   expect(createDocCopySource(source)).toBe(`# Contributing
 
-1. Install and start OrbStack
+:::steps
 
-   OrbStack provides the local Docker runtime on macOS.
+### Install and start OrbStack
 
-2. Start the app
+OrbStack provides the local Docker runtime on macOS.
 
-   ${fence}sh
-   docker compose up -d
-   ${fence}`)
+### Start the app
+
+${fence}sh
+docker compose up -d
+${fence}
+
+:::`)
 })
 
-test('createDocCopySource rewrites variable-length notice fences', () => {
+test('createDocCopySource preserves variable-length notice fences', () => {
   const source = `# Installation
 
-::::tip Pick one install path
+::::tip[Pick one install path]
 You only need one installation path.
 ::::
 `
 
   expect(createDocCopySource(source)).toBe(`# Installation
 
-> [!TIP]
-> Pick one install path
->
-> You only need one installation path.`)
+::::tip[Pick one install path]
+You only need one installation path.
+::::`)
+})
+
+test('createDocCopySource leaves legacy space-delimited notice titles unchanged', () => {
+  const source = `# Installation
+
+:::tip Pick one install path
+You only need one installation path.
+:::
+`
+
+  expect(createDocCopySource(source)).toBe(`# Installation
+
+:::tip Pick one install path
+You only need one installation path.
+:::`)
 })
 
 test('createDocCopySource rewrites PluginLinks into markdown links', () => {

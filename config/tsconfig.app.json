@@ -2,6 +2,7 @@
   "compilerOptions": {
     "paths": {
       "#*": ["./../src/*"],
+      "#config/*": ["./../config/*"],
       "#docs/*": ["./../docs/*"],
       "#db/*": ["./../db/*"],
       "#test/*": ["./../test/*"]

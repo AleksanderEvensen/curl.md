@@ -3,10 +3,11 @@ import {
   getCodeFenceMarker,
   isMatchingFenceMarker,
   normalizeDocSearchHighlightTerms,
+  noticeTypeMap,
   parseMarkdownHeading,
   trimBlankLines,
   type Heading,
-} from './-utils.ts'
+} from '#lib/docs.ts'
 
 export type DocSearchResult =
   | {
@@ -347,7 +348,7 @@ function getDocSearchSourceSections(lines: Array<string>) {
       continue
     }
 
-    // Step headings are emitted as ordered-list lines in the copied markdown source.
+    // Match both synthetic numbered step headings and raw markdown list items.
     const step = /^(?: {0,3})(\d+\.\s+.+?)\s*$/u.exec(line)?.[1]?.trim()
     if (!step) continue
 
@@ -368,6 +369,9 @@ function normalizeDocSearchSectionText(value: string) {
 
 function stripDocSearchMarkdown(value: string) {
   return value
+    .split('\n')
+    .map((line) => stripDocSearchDirectiveLine(line))
+    .join('\n')
     .replace(/^#{1,6}\s+/gmu, '')
     .replace(/^```[^\n]*$/gmu, '')
     .replace(/^~~~[^\n]*$/gmu, '')
@@ -386,7 +390,9 @@ function collapseWhitespace(value: string) {
 function stripIgnoredDocSearchCodeGroupTabs(source: string) {
   const lines = source.split('\n')
   const output: Array<string> = []
+  const directiveStack: Array<{ isCodeGroup: boolean; marker: string }> = []
   let skippedFenceMarker: string | undefined
+  let codeFenceMarker: string | undefined
 
   for (const line of lines) {
     const fenceMarker = getCodeFenceMarker(line)
@@ -397,8 +403,48 @@ function stripIgnoredDocSearchCodeGroupTabs(source: string) {
       continue
     }
 
-    if (isIgnoredDocSearchCodeGroupTabFence(line)) {
-      skippedFenceMarker = fenceMarker
+    if (fenceMarker) {
+      if (!codeFenceMarker) {
+        if (
+          isIgnoredDocSearchCodeGroupTabFence(
+            line,
+            directiveStack.some((item) => item.isCodeGroup),
+          )
+        ) {
+          skippedFenceMarker = fenceMarker
+          continue
+        }
+
+        codeFenceMarker = fenceMarker
+      } else if (isMatchingFenceMarker(fenceMarker, codeFenceMarker)) {
+        codeFenceMarker = undefined
+      }
+
+      output.push(line)
+      continue
+    }
+
+    if (codeFenceMarker) {
+      output.push(line)
+      continue
+    }
+
+    const directive = parseContainerDirective(line)
+    if (directive) {
+      directiveStack.push({
+        isCodeGroup: directive.name.toLowerCase() === 'codegroup',
+        marker: directive.marker,
+      })
+      output.push(line)
+      continue
+    }
+
+    const closingDirectiveMarker = /^(?: {0,3})(:{3,})\s*$/u.exec(line)?.[1]
+    if (closingDirectiveMarker) {
+      const currentDirective = directiveStack.at(-1)
+      if (currentDirective && closingDirectiveMarker.length >= currentDirective.marker.length)
+        directiveStack.pop()
+      output.push(line)
       continue
     }
 
@@ -408,9 +454,47 @@ function stripIgnoredDocSearchCodeGroupTabs(source: string) {
   return output.join('\n')
 }
 
-function isIgnoredDocSearchCodeGroupTabFence(line: string) {
+function isIgnoredDocSearchCodeGroupTabFence(line: string, isInsideCodeGroup: boolean) {
   const title = /^(?: {0,3})(?:`{3,}|~{3,})[^\n]*\btitle=(['"])([^'"]+)\1/u.exec(line)?.[2]
-  return title ? ignoredDocSearchCodeGroupTabLabels.has(title.trim().toLowerCase()) : false
+  if (title) return ignoredDocSearchCodeGroupTabLabels.has(title.trim().toLowerCase())
+  if (!isInsideCodeGroup) return false
+
+  const label = getCodeGroupFenceLabel(line)
+  return label ? ignoredDocSearchCodeGroupTabLabels.has(label.toLowerCase()) : false
 }
 
 const ignoredDocSearchCodeGroupTabLabels = new Set(['bun', 'npm', 'pnpm'])
+
+function stripDocSearchDirectiveLine(line: string) {
+  if (/^(?: {0,3})(:{3,})\s*$/u.test(line)) return ''
+
+  const directive = parseContainerDirective(line)
+  if (!directive) return line
+
+  if (directive.name.toLowerCase() === 'codegroup' || directive.name.toLowerCase() === 'steps')
+    return ''
+
+  const label = /^\[(.+)\]$/u.exec(directive.rest ?? '')?.[1]?.trim()
+  if (label) return label
+  if (directive.rest && noticeTypeMap.has(directive.name.toLowerCase())) return directive.rest
+  return ''
+}
+
+function parseContainerDirective(line: string) {
+  const match = /^(?: {0,3})(:{3,})([a-z][\w-]*)(?:(?=[\s[{]|$)(.*))?$/iu.exec(line)
+  if (!match?.[1] || !match[2]) return
+
+  return {
+    marker: match[1],
+    name: match[2],
+    rest: match[3]?.trim() || undefined,
+  }
+}
+
+function getCodeGroupFenceLabel(line: string) {
+  const match = /^(?: {0,3})(?:`{3,}|~{3,})(.*)$/u.exec(line)
+  const info = match?.[1]?.trim()
+  if (!info) return
+
+  return /^(.*?)(?:\s+\[([^\]]+)\])?$/u.exec(info)?.[2]?.trim()
+}

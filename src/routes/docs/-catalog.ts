@@ -1,12 +1,7 @@
 import { sidebar, type SidebarItem } from '#docs/_sidebar.ts'
+import { createDocCopySource, type Heading } from '#lib/docs.ts'
 import { createDocsSearch, type DocSearchResult } from './-search.ts'
-import {
-  createDocCopySource,
-  getDocHeadings,
-  type Doc,
-  type DocPagination,
-  type Heading,
-} from './-utils.ts'
+import { type Doc, type DocPagination } from './-utils.ts'
 
 type DocModule = {
   default: React.ComponentType<{ components?: Record<string, React.ComponentType> }>
@@ -31,7 +26,7 @@ const allDocs: Array<Doc> = Object.entries(modules).map(([filePath, mod]) => {
   return {
     Component: mod.default,
     description: mod.frontmatter?.description,
-    headings: getDocHeadings(rawSource, mod.headings ?? []),
+    headings: mod.headings ?? [],
     ...(mod.lastUpdated ? { lastUpdated: mod.lastUpdated } : {}),
     path: path === 'index' ? '' : path,
     source: createDocCopySource(rawSource),

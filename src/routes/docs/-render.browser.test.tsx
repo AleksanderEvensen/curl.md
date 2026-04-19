@@ -11,13 +11,9 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, expect, test, vi } from 'vitest'
 import { page } from 'vitest/browser'
 import kitchenSinkDocSource from '#docs/dev/kitchen-sink.mdx?raw'
+import { getDocHeadings } from '#lib/docs.ts'
 import { DocContent, DocSearchPreview, getDocSearchPreviewAnchor } from './-render.tsx'
-import {
-  getDocHeadings,
-  getDocSearchHighlightRanges,
-  type Doc,
-  type DocPagination,
-} from './-utils.ts'
+import { getDocSearchHighlightRanges, type Doc, type DocPagination } from './-utils.ts'
 
 let cleanup: (() => void) | undefined
 const originalClipboard = navigator.clipboard

@@ -4,6 +4,7 @@
   "type": "module",
   "imports": {
     "#*": "./src/*",
+    "#config/*": "./config/*",
     "#db/*": "./db/*",
     "#docs/*": "./docs/*",
     "#test/*": "./test/*"

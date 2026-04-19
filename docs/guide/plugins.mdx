@@ -5,27 +5,69 @@ description: Use curl.md from native agent and editor integrations.
 
 # Plugins
 
-Use curl.md from native integrations when you want URL-to-markdown workflows directly inside your agent or editor.
+curl.md integrates into popular coding agents and tools for native URL-to-markdown workflows directly inside your agent or editor.
 
-This guide is still in progress, but the plugin pages below are available today.
+## Official plugins
 
-<Cards>
-  <Card href="/docs/plugins/amp" icon="amp" title="Amp">
-    Install and use curl.md inside Amp workflows.
-  </Card>
-  <Card href="/docs/plugins/claude" icon="claude" title="Claude">
-    Connect curl.md to Claude-focused workflows.
-  </Card>
-  <Card href="/docs/plugins/codex" icon="codex" title="Codex">
-    Use curl.md with Codex and OpenAI tooling.
-  </Card>
-  <Card href="/docs/plugins/cursor" icon="cursor" title="Cursor">
-    Add curl.md to Cursor-based coding workflows.
-  </Card>
-  <Card href="/docs/plugins/opencode" icon="opencode" title="OpenCode">
-    Integrate curl.md with OpenCode.
-  </Card>
-  <Card href="/docs/plugins/pi" icon="pi" title="Pi">
-    Use curl.md from Pi agent sessions.
-  </Card>
-</Cards>
+Official plugins for curl.md, developed by the curl.md team and community.
+
+:::card[Amp]{href=/docs/plugins/amp icon=amp}
+Install and use curl.md with Amp
+:::
+
+:::card[Claude]{href=/docs/plugins/claude icon=claude}
+Install and use curl.md with Claude
+:::
+
+:::card[Codex]{href=/docs/plugins/codex icon=codex}
+Install and use curl.md with Codex
+:::
+
+:::card[Cursor]{href=/docs/plugins/cursor icon=cursor}
+Install and use curl.md with Cursor
+:::
+
+:::card[OpenCode]{href=/docs/plugins/opencode icon=opencode}
+Install and use curl.md with OpenCode
+:::
+
+:::card[Pi]{href=/docs/plugins/pi icon=pi}
+Install and use curl.md with Pi
+:::
+
+## Build your own integration
+
+If curl.md doesn't support your favorite coding agent or tool, adding support is quite easy.
+
+Likely you can one-shot support by pointing your agent to the docs and existing plugins, and letting it rip. For example, this prompt created the first version of the OpenCode plugin.
+
+```text
+Read curl.md/docs and create an OpenCode plugin that uses curl.md to fetch URLs as markdown instead of the built-in webfetch tool.
+```
+
+If you feel the community would benefit from your custom curl.md plugin, you are welcome to open a [pull request](https://github.com/wevm/curl.md/pulls) or share in the [discussion forum](https://github.com/wevm/curl.md/discussions/new?category=ideas).
+
+### Use the API & SDK
+
+The curl.md [API and SDK](/docs/guide/api) make it simple to use curl.md in code.
+
+If you are using TypeScript to create your plugin, the SDK is highly recommended because of its end-to-end type-safety support for responses and errors.
+
+```ts
+import { createClient } from 'curl.md'
+
+const client = createClient()
+const res = await client.fetch('example.com')
+```
+
+Check out the [OpenCode plugin source](https://github.com/wevm/curl.md/blob/main/plugins/opencode/server.ts) and [Pi extension source](https://github.com/wevm/curl.md/blob/main/plugins/pi/extensions/index.ts) for comprehensive examples on how to use the TypeScript SDK.
+
+If you aren't using TypeScript, check out the [API docs](#TODO) for more info on how to work with the API.
+
+### Use the CLI
+
+The curl.md [CLI](/docs/guide/cli) can also be used to power your own integration. The CLI uses the [incur](https://github.com/wevm/incur) CLI framework for building agent-optimized CLIs that are easily navigable by agents. The CLI is a great option for integrating curl.md into your existing terminal environment and workflows.
+
+:::tip
+The curl.md [CLI source](https://github.com/wevm/curl.md/blob/main/cli/src/cli.ts) is also a great example on how to use the SDK.
+:::

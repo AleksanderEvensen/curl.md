@@ -16,7 +16,7 @@ export const sidebar = [
       { type: 'link', label: 'Agent Usage', path: '/guide/agent-usage', wip: true },
       { type: 'link', label: 'CLI', path: '/guide/cli', wip: true },
       { type: 'link', label: 'API & SDK', path: '/guide/api', wip: true },
-      { type: 'link', label: 'Plugins', path: '/guide/plugins', wip: true },
+      { type: 'link', label: 'Plugins', path: '/guide/plugins' },
     ],
   },
   {

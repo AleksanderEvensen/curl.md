@@ -380,17 +380,21 @@ test('doc search ignores package manager codegroup tabs', () => {
         path: 'dev/kitchen-sink',
         source: `## Code Groups
 
-\`\`\`sh title="npm"
+:::codegroup
+
+\`\`\`sh [npm]
 npm run dev
 \`\`\`
 
-\`\`\`sh title="pnpm"
+\`\`\`sh [pnpm]
 pnpm dev
 \`\`\`
 
-\`\`\`sh title="bun"
+\`\`\`sh [bun]
 bun run dev
 \`\`\`
+
+:::
 
 Use the install script if you do not want to use a package manager.
 `,
