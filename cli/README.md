@@ -18,12 +18,33 @@ Turn websites into **optimized, low token output** to **supercharge your context
 ```sh
 curl -fsSL https://curl.md/install.sh | bash
 npm i -g curl.md
+bun i -g curl.md
 ```
 
 ## Usage
 
+Use `curl.md` or via the short `md` alias.
+
 ```sh
+curl.md example.com
 md example.com
+```
+
+## SDK
+
+Use the SDK in your apps
+
+```sh
+npm i curl.md
+pnpm i curl.md
+bun i curl.md
+yarn add curl.md
+```
+
+```ts
+import { createClient } from 'curl.md'
+const client = createClient()
+const res = await client.fetch('example.com')
 ```
 
 ## Documentation

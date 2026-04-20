@@ -35,6 +35,9 @@ opencode plugin @curl.md/opencode
 pi install @curl.md/pi
 npx @curl.md/amp install
 
+# Add skills
+npx skills add https://curl.md --yes
+
 # Try it in your browser
 open https://curl.md/example.com
 
