@@ -171,6 +171,7 @@ export function createDocCopySource(rawSource: unknown) {
     }
 
     if (/^import\s.+$/u.test(line)) continue
+    if (/^\s*<\/?SignedOutOnly>\s*$/u.test(line)) continue
 
     const packageLinks = rewritePackageLinksComponent(lines, index)
     if (packageLinks) {

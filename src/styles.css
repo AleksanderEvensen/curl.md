@@ -201,6 +201,7 @@ html[data-theme='dark'] {
   scrollbar-color: var(--color-gray-a3) transparent;
 
   &::-webkit-scrollbar {
+    width: 6px;
     height: 6px;
   }
 

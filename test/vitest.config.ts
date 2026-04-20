@@ -8,6 +8,7 @@ import { FileSystemIconLoader } from 'unplugin-icons/loaders'
 import iconsResolver from 'unplugin-icons/resolver'
 import icons from 'unplugin-icons/vite'
 import { defineConfig } from 'vitest/config'
+import { docs } from '#config/docs/vite.ts'
 import { Env } from './env.ts'
 
 const root = path.resolve(import.meta.dirname, '..')
@@ -20,6 +21,7 @@ export default defineConfig({
     reporters,
     projects: [
       {
+        plugins: [docs()],
         test: {
           name: 'app',
           include: ['config/**/*.test.ts', 'src/**/!(*workers).test.ts'],

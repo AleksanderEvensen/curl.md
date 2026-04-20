@@ -1,6 +1,19 @@
 import { expect } from '@playwright/test'
 import { test } from '#test/e2e-utils.ts'
 
+test('/docs serves markdown when Accept requests markdown', async ({ request }) => {
+  const markdownRes = await request.get('/docs/guide/cli', {
+    headers: { Accept: 'text/markdown' },
+  })
+  const canonicalMarkdownRes = await request.get('/docs/guide/cli.md')
+
+  expect(markdownRes.status()).toBe(200)
+  expect(markdownRes.headers()['content-type']).toContain('text/markdown')
+  expect(canonicalMarkdownRes.status()).toBe(200)
+  expect(canonicalMarkdownRes.headers()['content-type']).toContain('text/markdown')
+  await expect(markdownRes.text()).resolves.toBe(await canonicalMarkdownRes.text())
+})
+
 test('/docs tab click keeps scroll position on first sync', async ({ page }) => {
   await page.goto('/docs/dev/kitchen-sink')
   await page.waitForLoadState('networkidle')

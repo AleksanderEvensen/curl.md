@@ -46,6 +46,12 @@ export default Sentry.withSentry<Env, QueueHandlerMessage>(
       } as const
       if (path in staticAssets)
         return env.ASSETS.fetch(new URL(staticAssets[path as keyof typeof staticAssets], url))
+      const docsMarkdownAssetPath = getDocsMarkdownAssetPath(url.pathname)
+      if (docsMarkdownAssetPath && wantsMarkdownResponse(request)) {
+        const docsMarkdownUrl = new URL(docsMarkdownAssetPath, url)
+        docsMarkdownUrl.search = url.search
+        return env.ASSETS.fetch(new Request(docsMarkdownUrl, request))
+      }
       // Fall through to TanStack Start SSR handler for all other routes (app pages)
       try {
         decodeURI(url.pathname)
@@ -102,6 +108,21 @@ export default Sentry.withSentry<Env, QueueHandlerMessage>(
     },
   },
 )
+
+function wantsMarkdownResponse(request: Request) {
+  const accept = request.headers.get('accept') ?? ''
+  return accept.includes('text/markdown') || accept.includes('text/x-markdown')
+}
+
+function getDocsMarkdownAssetPath(pathname: string) {
+  if (pathname === '/docs' || pathname === '/docs/') return '/docs/index.md'
+  if (!pathname.startsWith('/docs/')) return
+  if (pathname.endsWith('.txt')) return
+
+  const normalizedPathname = pathname.replace(/\/+$/, '')
+  if (normalizedPathname.endsWith('.md')) return normalizedPathname
+  return `${normalizedPathname}.md`
+}
 
 type QueueHandlerMessage = processRequestMessage.Body | processStripeWebhookMessage.Body
 

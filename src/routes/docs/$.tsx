@@ -1,8 +1,9 @@
-import { Link, createFileRoute, notFound } from '@tanstack/react-router'
+import { Link, createFileRoute, getRouteApi, notFound } from '@tanstack/react-router'
 import * as React from 'react'
 import { findDoc } from './-catalog.ts'
 import { DocsRouteContent, getDocsHead, validateSearch } from './-route.tsx'
-import { Route as DocsLayoutRoute } from './route.tsx'
+
+const docsLayoutRoute = getRouteApi('/docs')
 
 export const Route = createFileRoute('/docs/$')({
   head({ params }) {
@@ -18,6 +19,7 @@ export const Route = createFileRoute('/docs/$')({
 
 function Component() {
   const navigate = Route.useNavigate()
+  const { login } = docsLayoutRoute.useLoaderData()
   const { _splat } = Route.useParams()
   const handleCodeGroupValueChange = React.useCallback(
     (value: string, docPath: string) => {
@@ -32,12 +34,16 @@ function Component() {
     [navigate],
   )
   return (
-    <DocsRouteContent docPath={_splat ?? ''} onCodeGroupValueChange={handleCodeGroupValueChange} />
+    <DocsRouteContent
+      docPath={_splat ?? ''}
+      onCodeGroupValueChange={handleCodeGroupValueChange}
+      signedIn={Boolean(login)}
+    />
   )
 }
 
 function NotFoundComponent() {
-  const { login } = DocsLayoutRoute.useLoaderData()
+  const { login } = docsLayoutRoute.useLoaderData()
 
   return (
     <div className="mx-auto w-full max-w-[56rem] px-5 py-8 md:px-12 lg:px-0 lg:pt-12">

@@ -316,7 +316,7 @@ function Component() {
                 <div className="flex min-h-full flex-col md:min-h-0 md:flex-1">
                   <div className="relative md:min-h-0 md:flex-1">
                     <div
-                      className="md:h-full md:min-h-0 md:overflow-y-auto"
+                      className="minimal-scrollbar md:h-full md:min-h-0 md:overflow-y-auto"
                       ref={desktopSidebarScrollRef}
                     >
                       <div className="md:px-6 md:py-6">

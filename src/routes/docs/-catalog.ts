@@ -55,8 +55,12 @@ export function searchDocs(query: string): Array<DocSearchResult> {
   return docsSearch.search(query)
 }
 
-const orderedDocs = flattenSidebarItems(sidebar)
-  .map((item) => findDoc(item.path === '/' ? '' : item.path.replace(/^\//, '')))
+const orderedDocs = [findDoc('')]
+  .concat(
+    flattenSidebarItems(sidebar).map((item) =>
+      findDoc(item.path === '/' ? '' : item.path.replace(/^\//, '')),
+    ),
+  )
   .filter((doc): doc is Doc => doc !== undefined)
 
 const docsSearch = createDocsSearch(

@@ -168,6 +168,25 @@ test('createDocCopySource rewrites multiline PackageLinks into markdown links', 
 - [Source code](https://github.com/wevm/curl.md/tree/main/plugins/opencode)`)
 })
 
+test('createDocCopySource strips SignedOutOnly wrappers and preserves inner markdown', () => {
+  const source = `# Introduction
+
+<SignedOutOnly>
+
+:::note[Sign up]
+[Sign up for a free account](/login) for higher limits.
+:::
+
+</SignedOutOnly>
+`
+
+  expect(createDocCopySource(source)).toBe(`# Introduction
+
+:::note[Sign up]
+[Sign up for a free account](/login) for higher limits.
+:::`)
+})
+
 test('getDocHeadings includes numbered step headings from nested variable-length steps fences', () => {
   const source = `## Quick Start
 

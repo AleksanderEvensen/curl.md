@@ -7,6 +7,7 @@ import IconBrandCurlLight from '~icons/brand/curl-light.jsx'
 import IconBrandCurl from '~icons/brand/curl.jsx'
 import IconBrandOpencode from '~icons/brand/opencode.jsx'
 import IconBrandPi from '~icons/brand/pi.jsx'
+import IconOcticonDownload16 from '~icons/octicon/download16.jsx'
 import IconOcticonPackage16 from '~icons/octicon/package16.jsx'
 import IconSimpleIconsClaude from '~icons/simple-icons/claude.jsx'
 import IconSimpleIconsCursor from '~icons/simple-icons/cursor.jsx'
@@ -27,11 +28,13 @@ export function DocContent(props: {
   doc: Doc
   onCodeGroupValueChange?: ((value: string) => void) | undefined
   pagination?: DocPagination
+  signedIn?: boolean
 }) {
   const {
     doc,
     onCodeGroupValueChange,
     pagination = { next: undefined, previous: undefined },
+    signedIn = false,
   } = props
   const { copied, copy } = useCopyToClipboard({ content: doc.source })
   const [activeHeadingId, setActiveHeadingId] = React.useState<string | undefined>(undefined)
@@ -51,6 +54,7 @@ export function DocContent(props: {
   const hasPagination = Boolean(pagination.previous || pagination.next)
   const activeHeading = outlineHeadings.find((heading) => heading.id === activeHeadingId)
   const editHref = `${config.repoBaseUrl}/edit/main/${doc.sourcePath}`
+  const markdownHref = doc.path ? `/docs/${doc.path}.md` : '/docs/index.md'
   const lastUpdatedLabel = doc.lastUpdated
     ? formatLastUpdated(
         doc.lastUpdated,
@@ -58,8 +62,8 @@ export function DocContent(props: {
       )
     : undefined
   const mdxComponents = React.useMemo(
-    () => createMdxComponents({ copied, copyPage: copy }),
-    [copied, copy],
+    () => createMdxComponents({ copied, copyPage: copy, signedIn }),
+    [copied, copy, signedIn],
   )
   const codeGroupStore = React.useMemo(
     () => createCodeGroupStore(onCodeGroupValueChange),
@@ -361,7 +365,7 @@ export function DocContent(props: {
         </article>
 
         <aside className="border-gray-a3 hidden w-64 border-s lg:block">
-          <div className="sticky top-17 h-[calc(100dvh-4.25rem)] overflow-y-auto py-8 ps-6 pe-6">
+          <div className="minimal-scrollbar sticky top-17 h-[calc(100dvh-4.25rem)] overflow-y-auto py-8 ps-6 pe-6">
             {hasHeadings && (
               <>
                 <div className="text-gray8 flex items-center gap-2 text-xs font-medium tracking-wide uppercase">
@@ -381,14 +385,20 @@ export function DocContent(props: {
               data-has-headings={hasHeadings ? '' : undefined}
             >
               <div className="flex flex-col gap-1">
+                <CopyPageButton
+                  className="text-gray8 hover:text-gray10 -ms-2 hidden py-1 ps-2 text-sm lg:flex"
+                  copyPage={copy}
+                  copied={copied}
+                />
+
                 <a
                   className="text-gray8 hover:text-gray10 -ms-2 flex items-center gap-2.5 py-1 ps-2 text-sm select-none"
-                  href={editHref}
+                  href={markdownHref}
                   rel="noopener noreferrer"
                   target="_blank"
                 >
-                  <IconOcticonPencil16 className="size-4 shrink-0" />
-                  <span className="select-none">Edit page</span>
+                  <IconOcticonMarkdown16 className="size-4 shrink-0" />
+                  <span>View markdown</span>
                 </a>
 
                 <a
@@ -401,11 +411,15 @@ export function DocContent(props: {
                   <span>Report issue</span>
                 </a>
 
-                <CopyPageButton
-                  className="text-gray8 hover:text-gray10 -ms-2 hidden py-1 ps-2 text-sm lg:flex"
-                  copyPage={copy}
-                  copied={copied}
-                />
+                <a
+                  className="text-gray8 hover:text-gray10 -ms-2 flex items-center gap-2.5 py-1 ps-2 text-sm select-none"
+                  href={editHref}
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  <IconOcticonPencil16 className="size-4 shrink-0" />
+                  <span className="select-none">Edit page</span>
+                </a>
               </div>
             </div>
           </div>
@@ -495,8 +509,9 @@ function createMdxComponents(props: {
   copyPage: () => void
   preview?: boolean
   previewTerms?: Array<string> | undefined
+  signedIn?: boolean
 }) {
-  const { copied, copyPage, preview = false, previewTerms } = props
+  const { copied, copyPage, preview = false, previewTerms, signedIn = false } = props
   const docsInlineLinkClassName =
     'text-[color-mix(in_oklab,var(--color-gray10)_45%,var(--color-gray9))] underline [text-decoration-color:var(--color-gray-a6)] underline-offset-2 hover:text-gray10 [overflow-wrap:anywhere]'
 
@@ -522,6 +537,8 @@ function createMdxComponents(props: {
     PackageLinks: ((packageLinksProps: { npm: string; source: string }) => (
       <DocsPackageLinks preview={preview} {...packageLinksProps} />
     )) as React.ComponentType<any>,
+    SignedOutOnly: ((signedOutOnlyProps: React.PropsWithChildren) =>
+      signedIn ? null : <>{signedOutOnlyProps.children}</>) as React.ComponentType<any>,
     Step,
     Steps: (stepsProps: React.PropsWithChildren) => <Steps preview={preview} {...stepsProps} />,
     table: (tableProps: React.ComponentProps<'table'>) => (
@@ -2462,6 +2479,7 @@ const docsCardIcons = {
   claude: { Component: IconSimpleIconsClaude },
   codex: { Component: IconSimpleIconsOpenai },
   cursor: { Component: IconSimpleIconsCursor },
+  download: { Component: IconOcticonDownload16 },
   key: { Component: IconOcticonKey16 },
   lightbulb: { Component: IconOcticonLightBulb16 },
   opencode: { Component: IconBrandOpencode },

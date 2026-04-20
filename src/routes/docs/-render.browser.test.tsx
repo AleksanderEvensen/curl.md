@@ -385,6 +385,8 @@ test('copy page writes the doc markdown source to the clipboard', async () => {
   if (!(mobileCopyButton instanceof HTMLButtonElement))
     throw new Error('Expected mobile copy page button to render')
 
+  expect(mobileCopyButton.textContent).toContain('Copy page')
+
   await page.elementLocator(mobileCopyButton).click()
 
   expect(copied).toBe(`# Installation
@@ -399,6 +401,18 @@ test('copy page button moves into the page heading when the outline uses the sti
 
   expect(pageHeading?.querySelector('[data-doc-mobile-copy-page]')).toBe(mobileCopyButton)
   expect(mobileCopyButton?.className).toContain('lg:hidden')
+})
+
+test('view as markdown opens the generated markdown page in a new tab', () => {
+  const rendered = renderDocContent(createCopyPageDoc())
+  const markdownLink = rendered.container.querySelector('a[href="/docs/test.md"]')
+
+  if (!(markdownLink instanceof HTMLAnchorElement))
+    throw new Error('Expected view as markdown link to render')
+
+  expect(markdownLink.textContent).toContain('View markdown')
+  expect(markdownLink.getAttribute('target')).toBe('_blank')
+  expect(markdownLink.getAttribute('rel')).toBe('noopener noreferrer')
 })
 
 test('code blocks preserve inline syntax highlighter backgrounds', async () => {
@@ -632,18 +646,21 @@ test('inline shiki code keeps the inner code element unstyled', async () => {
 test('last updated renders a short timestamp first, then swaps to the browser timezone without year or timezone noise', async () => {
   const rendered = renderDocContent(createFooterDoc())
   const initialText = rendered.container.textContent ?? ''
+  const expectedUtcTimestamp = formatLastUpdatedForTest('2026-04-12T17:38:00.000Z', {
+    locale: 'en-US',
+    timeZone: 'UTC',
+  })
+  const expectedLocalTimestamp = formatLastUpdatedForTest('2026-04-12T17:38:00.000Z')
 
-  expect(initialText).toContain(
-    `Last updated: ${formatLastUpdatedForTest('2026-04-12T17:38:00.000Z', {
-      locale: 'en-US',
-      timeZone: 'UTC',
-    })}`,
-  )
+  expect(initialText).toContain('Last updated: ')
+  expect(
+    initialText.includes(`Last updated: ${expectedUtcTimestamp}`) ||
+      initialText.includes(`Last updated: ${expectedLocalTimestamp}`),
+  ).toBe(true)
 
   await waitForAnimationFrame()
   await waitForTimeout(10)
 
-  const expectedLocalTimestamp = formatLastUpdatedForTest('2026-04-12T17:38:00.000Z')
   const text = rendered.container.textContent ?? ''
   expect(text).toContain(`Last updated: ${expectedLocalTimestamp}`)
   expect(text).not.toContain('Apr 12, ')

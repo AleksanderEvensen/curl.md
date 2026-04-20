@@ -1,85 +1,116 @@
 ---
 title: Agent Usage
-description: Use curl.md effectively inside agent loops, toolchains, and focused research workflows.
+description: Tools and best practices when using curl.md with agents.
 ---
-
-TODO:
-
-- .md urls, content negotiation, llms.txt, skills, copy page
-  https://vercel.com/docs/agent-resources/markdown-access
 
 # Agent Usage
 
-`curl.md` works best when an agent needs a smaller, more targeted version of web content than raw HTML or a full browser snapshot.
+Tools and best practices when using curl.md (and these docs) with agents.
 
-## Start With A Concrete Objective
+## Tell Your Agent To Use curl.md
 
-Give the agent a narrow question instead of asking it to read an entire page.
+One of the simplest ways to get better URL context is to tell your agent to use curl.md whenever it fetches URLs. You can add a project rule like:
 
-```sh
-$ md docs.github.com/en/webhooks/webhook-events-and-payloads \
-  --objective "pull request webhook event payload and actions"
+```text
+When you need to fetch a URL, prefer curl.md so you get markdown instead of raw HTML.
+Use curl.md for docs pages, articles, changelogs, and reference material.
+If curl.md docs are relevant, prefer .md docs pages or llms.txt over raw page fetches.
 ```
 
-This usually produces more useful output than fetching the whole page and letting the agent sift through everything itself.
+This usually gives the agent cleaner, lower-noise context than a raw page fetch or browser snapshot.
 
-## Add Keywords When You Know The Domain
+:::tip[Go deeper]
+Install [plugins](/docs/guide/plugins) for Claude, Codex, OpenCode, and more to make curl.md a native part of your agent workflow.
+:::
 
-Keywords help shrink the search space before the final output is generated.
+## Single-Page Markdown Access
 
-```sh
-$ md developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch \
-  --objective "streaming response body" \
-  --keywords ReadableStream,getReader
-```
+### .md Endpoints
 
-This is especially useful for large docs sites, API references, and changelogs.
+Append `.md` to any documentation URL to get the markdown version of that page.
 
-## Pick The Right Interface
+Example:
 
-- Use the hosted URL or [API & SDK](/docs/guide/api) when your agent platform can already make HTTP requests.
-- Use the [CLI](/docs/guide/cli) when your agent can shell out locally.
-- Use [Amp](/docs/plugins/amp) or [Pi](/docs/plugins/pi) when you want `read_web_page` or `curl_md` available as native tools.
+- HTML: [`https://curl.md/docs/guide/cli`](https://curl.md/docs/guide/cli)
+- Markdown: [`https://curl.md/docs/guide/cli.md`](https://curl.md/docs/guide/cli.md)
 
-## Prefer Authenticated Usage
+The markdown version includes features such as: full page content in plain markdown format, metadata for agents, code blocks with syntax markers, links preserved as markdown links, and tables formatted as markdown tables.
 
-Authenticated usage is the best default for real agent workflows.
+### Using .md Endpoints
 
-- higher limits
-- account-scoped billing and history
-- easier reuse across local tools and plugins
-
-For local agents, log in once with:
+You can use these endpoints in various ways:
 
 ```sh
-$ curl.md auth login
+# Fetch documentation content with curl
+curl https://curl.md/docs/guide/cli.md
+
+# Pipe directly to an AI tool
+curl https://curl.md/docs/guide/cli.md | pbcopy
 ```
 
-For headless environments, use `CURLMD_API_KEY`.
+You can also use `curl.md` itself to render docs pages as markdown in the browser or terminal, for example with `https://curl.md/curl.md/docs/guide/cli` (a little inception never hurt).
 
-## Use Fresh Sparingly
+### Content Negotiation
 
-Cached results are usually the right default for agent loops. Use `--fresh` only when the agent truly needs a live refetch, such as release notes, changelogs, or recently updated docs.
+To obtain the markdown version of a single documentation page, you can:
+
+- Use a `.md` endpoint - Append `.md` to the end of any docs page URL to get the markdown version.
+- Use `Accept: text/markdown` - Send the header to a normal `/docs/...` URL when you want markdown without rewriting the path.
+
+For example:
 
 ```sh
-$ md changelog.example.com --objective "latest breaking changes" --fresh
+$ curl https://curl.md/docs/guide/cli -H 'Accept: text/markdown'
 ```
 
-## Good Agent Tasks
+That returns the same generated markdown as [`https://curl.md/docs/guide/cli.md`](https://curl.md/docs/guide/cli.md).
 
-`curl.md` is a strong fit when an agent needs to:
+If you omit the header, `/docs/...` keeps serving the normal HTML docs page.
 
-- extract a specific API requirement from long docs
-- compare a few targeted sections across multiple sources
-- summarize a changelog for one feature or subsystem
-- pull implementation details from a documentation page before writing code
+```sh
+$ curl https://curl.md/docs/guide/cli
+```
 
-It is less useful when the agent needs a fully interactive browser session, DOM inspection, or JavaScript-driven state from the live page.
+Prefer `.md` URLs when you want a canonical markdown link you can paste into prompts, rules, or agent context. Use content negotiation when you already have a `/docs/...` URL and want markdown without rewriting the path.
 
-## Recommended Pattern
+## Copy Page
 
-1. fetch with a specific objective
-2. add keywords if the source is noisy
-3. use cached results by default
-4. switch to fresh only when recency matters
-5. fall back to a browser tool when the page is highly interactive
+Every docs page includes agent-friendly page actions:
+
+- `Copy page` copies the page's canonical markdown to your clipboard
+- `View markdown` opens the generated `.md` page in a new tab
+
+This is the fastest manual workflow:
+
+1. Open the docs page.
+2. Click `Copy page`.
+3. Paste the markdown into your agent.
+
+Use `View markdown` when your agent can fetch URLs directly and you want to give it a stable markdown endpoint instead of pasted content.
+
+## llms.txt
+
+We implement [`llms.txt`](https://curl.md/llms.txt) and [`llms-full.txt`](https://curl.md/llms-full.txt) as follows:
+
+- [`llms.txt`](https://curl.md/llms.txt) - A compact directory of curl.md's docs and agent entry points. It includes a short product summary, example CLI and HTTP usage, links to important docs pages, and links to things like [skills](/docs/skills).
+- [`llms-full.txt`](https://curl.md/llms-full.txt) - The full contents of the canonical curl.md documentation in a single file, intended for broad indexing, bulk ingestion, or large-context workflows. It is much larger than `llms.txt`, so it is usually not the right default for routine prompts.
+
+Prefer page-level `.md` URLs first, then `llms.txt`, then `llms-full.txt` only when broader context is necessary.
+
+## Skills
+
+If your agent supports [skills](https://agentskills.io/home), install the official curl.md skills with:
+
+```sh
+$ npx skills add https://curl.md --yes
+```
+
+Hosted skills are available at [`https://curl.md/.well-known/skills/index.json`](https://curl.md/.well-known/skills/index.json).
+
+Skills are useful when you want the agent to:
+
+- fetch pages through the [CLI](/docs/guide/cli)
+- use curl.md inside local terminal workflows
+- follow recommended curl.md usage patterns without manual prompt setup
+
+For broader integration options, see [Plugins](/docs/guide/plugins), [CLI](/docs/guide/cli), and [API & SDK](/docs/guide/api).

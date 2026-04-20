@@ -12,8 +12,9 @@ export const validateSearch = z.object({
 export function DocsRouteContent(props: {
   docPath: string
   onCodeGroupValueChange: (value: string, docPath: string) => void
+  signedIn?: boolean
 }) {
-  const { docPath, onCodeGroupValueChange } = props
+  const { docPath, onCodeGroupValueChange, signedIn = false } = props
   const doc = findDoc(docPath)
   if (!doc) return null
 
@@ -29,6 +30,7 @@ export function DocsRouteContent(props: {
       doc={doc}
       onCodeGroupValueChange={handleCodeGroupValueChange}
       pagination={findDocPagination(doc.path)}
+      signedIn={signedIn}
     />
   )
 }
