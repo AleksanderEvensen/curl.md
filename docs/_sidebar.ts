@@ -12,7 +12,7 @@ export const sidebar = [
     type: 'group',
     label: 'Guide',
     items: [
-      { type: 'link', label: 'Features', path: '/guide/features', wip: true },
+      { type: 'link', label: 'Features', path: '/guide/features' },
       { type: 'link', label: 'Agent Usage', path: '/guide/agent-usage' },
       { type: 'link', label: 'CLI', path: '/guide/cli' },
       { type: 'link', label: 'API & SDK', path: '/guide/api' },

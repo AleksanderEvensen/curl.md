@@ -2542,6 +2542,64 @@ test('GET /api/:url returns a readable ai_failed message for numeric AI errors',
   })
 })
 
+test('GET /api/:url retries transient AI timeouts and normalizes HTML error pages', async () => {
+  server.use(
+    http.get(
+      'https://ai-timeout.example.com/',
+      () =>
+        new HttpResponse('<html><body><p>ok</p></body></html>', {
+          headers: { 'content-type': 'text/html' },
+        }),
+    ),
+  )
+
+  const aiRun = vi
+    .fn()
+    .mockRejectedValueOnce(
+      new Error(`
+<html>
+<head><title>504 Gateway Time-out</title></head>
+<body>
+<center><h1>504 Gateway Time-out</h1></center>
+<hr><center>cloudflare</center>
+</body>
+</html>`),
+    )
+    .mockRejectedValueOnce(
+      new Error(`
+<html>
+<head><title>504 Gateway Time-out</title></head>
+<body>
+<center><h1>504 Gateway Time-out</h1></center>
+<hr><center>cloudflare</center>
+</body>
+</html>`),
+    )
+
+  const localClient = testClient(
+    api,
+    {
+      ...env,
+      AI: {
+        run: aiRun,
+      } as unknown as typeof env.AI,
+    } as unknown as typeof env,
+    executionCtx,
+  )
+
+  const res = await localClient.api[':url{.+}'].$get({
+    param: { url: 'ai-timeout.example.com' },
+    query: { mode: 'rush', objective: 'find the important part' },
+  })
+
+  expect(aiRun).toHaveBeenCalledTimes(2)
+  expect(res.status).toBe(502)
+  await expect(res.json()).resolves.toEqual({
+    code: 'ai_failed',
+    message: 'Inference upstream timed out (504)',
+  })
+})
+
 test('GET /api/:url reports upstream 5xx fetch failures to sentry', async () => {
   const captureException = vi.spyOn(Sentry, 'captureException').mockImplementation(() => '')
   server.use(

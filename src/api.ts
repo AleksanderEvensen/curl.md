@@ -2054,28 +2054,55 @@ export const api = new Hono<{
             }
 
             const extractChunk = async (chunk: string) => {
-              const output = z.parse(
-                z.object({
-                  response: z.string().default(''),
-                  usage: z
-                    .object({
-                      completion_tokens: z.number().default(0),
-                      prompt_tokens: z.number().default(0),
-                    })
-                    .default({ completion_tokens: 0, prompt_tokens: 0 }),
-                }),
-                await c.env.AI.run(mode.model, {
-                  max_tokens: 4096,
-                  messages: [
-                    { role: 'system', content: Constants.systemPrompt },
-                    {
-                      role: 'user',
-                      content: `<page_content>\n${chunk}\n</page_content>\n\nObjective: ${query.objective}`,
-                    },
-                  ],
-                }),
-              )
-              return output
+              let lastError: unknown
+              for (let attempt = 0; attempt < 2; attempt++) {
+                try {
+                  const output = z.parse(
+                    z.object({
+                      response: z.string().default(''),
+                      usage: z
+                        .object({
+                          completion_tokens: z.number().default(0),
+                          prompt_tokens: z.number().default(0),
+                        })
+                        .default({ completion_tokens: 0, prompt_tokens: 0 }),
+                    }),
+                    await c.env.AI.run(mode.model, {
+                      max_tokens: 4096,
+                      messages: [
+                        { role: 'system', content: Constants.systemPrompt },
+                        {
+                          role: 'user',
+                          content: `<page_content>\n${chunk}\n</page_content>\n\nObjective: ${query.objective}`,
+                        },
+                      ],
+                    }),
+                  )
+                  return output
+                } catch (error) {
+                  lastError = error
+                  if (
+                    attempt === 1 ||
+                    !(() => {
+                      if (!(error instanceof Error)) return false
+                      if (
+                        error.name === 'InferenceUpstreamError' ||
+                        error.name === 'AiInternalError'
+                      )
+                        return true
+
+                      const normalized = error.message
+                        .replace(/<[^>]+>/g, ' ')
+                        .replace(/\s+/g, ' ')
+                        .trim()
+                      return /\b504\b/.test(normalized) || /gateway time-?out/i.test(normalized)
+                    })()
+                  )
+                    throw error
+                }
+              }
+
+              throw lastError
             }
 
             const chunks = Md.chunk(filteredContent)
@@ -2096,6 +2123,7 @@ export const api = new Hono<{
         } catch (error) {
           const message = (() => {
             if (!(error instanceof Error)) return 'Unknown AI error'
+
             const message = error.message.replace(/^Error:\s*/i, '').trim()
             const code = message.match(/^error code:\s*(\d+)$/i)?.[1]
             if (code) {
@@ -2104,7 +2132,18 @@ export const api = new Hono<{
               if (error.name === 'AiInternalError') return `Workers AI internal error (${code})`
               return `AI error (${code})`
             }
-            return message || 'Unknown AI error'
+
+            const title = message.match(/<title>([^<]+)<\/title>/i)?.[1]?.trim()
+            const text = message
+              .replace(/<[^>]+>/g, ' ')
+              .replace(/\s+/g, ' ')
+              .trim()
+            const normalized = title || text
+            const status = normalized.match(/\b(502|503|504)\b/)?.[1]
+            if (status === '504' || /gateway time-?out/i.test(normalized))
+              return `Inference upstream timed out (${status ?? '504'})`
+            if (status) return `Inference upstream error (${status})`
+            return normalized || 'Unknown AI error'
           })()
           return c.json({ code: 'ai_failed' as const, message }, 502)
         }

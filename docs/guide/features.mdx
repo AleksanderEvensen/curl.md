@@ -5,49 +5,60 @@ description: The core capabilities that make curl.md useful in agent workflows.
 
 # Features
 
-`curl.md` is intentionally small in surface area. The goal is simple: turn web content into markdown that is easier for agents to use.
+curl.md is intentionally small in surface area. The goal is simple: turn URLs into markdown that is easier for agents to use.
 
-## Markdown Output For Agents
+:::tip
+The following walks through curl.md's features using the curl.md [CLI](/docs/guide/cli). [Install](/docs/install#cli) the CLI to follow along.
+:::
 
-Fetch a webpage and get markdown back instead of full HTML.
+## Markdown Optimized For Agents
+
+Fetch a webpage and get optimized markdown back instead of full HTML.
 
 ```sh
 $ md example.com
 ```
+
+curl.md uses a combination of site-specific rules and generalized extraction methods to make sure your agent only gets the best markdown.
 
 ## Objective-Based Narrowing
 
 Use an objective when you need the output narrowed to a specific question or task.
 
 ```sh
-$ md zod.dev/error-formatting --objective "tree error formatting"
+$ md zod.dev/error-formatting --objective tree error formatting
 ```
+
+Most of the time, your coding agent will set objectives for you based on your prompts. Agents tend to be very good at this.
 
 ## Keyword Pre-Filtering
 
 Use keywords when you know the terms that matter and want to shrink the search space before the final output is generated.
 
 ```sh
-$ md developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch \
+md developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch \
   --objective "streaming response body" \
   --keywords ReadableStream,getReader
 ```
 
-## Cache Control
-
-Use `fresh` when you need a live refetch instead of a cached result.
-
-```sh
-$ md changelog.example.com --fresh
-```
+Keywords are a quick way to filter markdown before the objective-based narrowing takes a pass.
 
 ## Multiple Entry Points
 
-- Hosted URL for quick fetches
-- [CLI](/docs/guide/cli) for terminal and scripts
-- [API & SDK](/docs/guide/api) for application code
-- [Amp](/docs/plugins/amp) and [Pi](/docs/plugins/pi) integrations for agent-native workflows
+There are multiple ways to use curl.md, making it simple to integrate into different agent workflows.
 
-## Authentication
+:::card[curl.md/ prefix]{href=/docs/guide/api#http-api icon=browser}
+Add `curl.md/` in front of any URL in your browser or use with `curl` -> `curl curl.md/example.com`.
+:::
 
-Anonymous access is good for quick tests. Authenticated usage unlocks higher limits and account-scoped features.
+:::card[CLI]{href=/docs/guide/cli icon=terminal}
+Use the agent-optimized `curl.md` CLI from the terminal to give your coding agent markdown vision.
+:::
+
+:::card[API & SDK]{href=/docs/guide/api icon=rocket}
+Call curl.md from application code when you need markdown fetching inside your own tools or services.
+:::
+
+:::card[Agent Plugins]{href=/docs/guide/plugins icon=package}
+Use native integrations for popular coding agents when you want curl.md directly inside your agent workflow.
+:::
