@@ -264,7 +264,7 @@ function Component() {
             <div className="hidden items-center gap-1.5 md:flex">
               <a
                 aria-label="GitHub"
-                className="text-gray8 hover:text-gray10 p-1.5"
+                className="text-gray9 hover:text-gray10 p-1.5"
                 href={config.repoBaseUrl}
                 rel="noopener noreferrer"
                 target="_blank"
@@ -273,7 +273,7 @@ function Component() {
               </a>
               <a
                 aria-label="X"
-                className="text-gray8 hover:text-gray10 me-2 p-1.5"
+                className="text-gray9 hover:text-gray10 me-2 p-1.5"
                 href="https://x.com/wevm_dev"
                 rel="noopener noreferrer"
                 target="_blank"
@@ -344,7 +344,7 @@ function Component() {
                         <div className="ms-auto flex min-w-0 items-center gap-1.5">
                           <a
                             aria-label="GitHub"
-                            className="text-gray8 hover:text-gray10 p-1.5"
+                            className="text-gray9 hover:text-gray10 p-1.5"
                             href={config.repoBaseUrl}
                             rel="noopener noreferrer"
                             target="_blank"
@@ -353,7 +353,7 @@ function Component() {
                           </a>
                           <a
                             aria-label="X"
-                            className="text-gray8 hover:text-gray10 me-2 p-1.5"
+                            className="text-gray9 hover:text-gray10 me-2 p-1.5"
                             href="https://x.com/wevm_dev"
                             rel="noopener noreferrer"
                             target="_blank"
@@ -438,7 +438,7 @@ function MobileTopLinks(props: { onNavigate: () => void }) {
     <div className="flex flex-col gap-1">
       {config.navbarLinks.map((link) => (
         <NavbarLinkItem
-          className="text-gray8 hover:text-gray10 hover:bg-gray-a2 block px-2 py-1.5 text-sm"
+          className="text-gray9 hover:text-gray10 hover:bg-gray-a2 block px-2 py-1.5 text-sm"
           key={link.label}
           link={link}
           onClick={props.onNavigate}
@@ -453,7 +453,7 @@ function DocsTopLinks() {
     <div className="ms-10 mt-0.5 hidden items-center gap-0.5 md:flex">
       {config.navbarLinks.map((link) => (
         <NavbarLinkItem
-          className="text-gray8 hover:text-gray10 px-2 py-1.5 text-sm"
+          className="text-gray9 hover:text-gray10 px-2 py-1.5 text-sm"
           key={link.label}
           link={link}
         />
@@ -470,7 +470,7 @@ function ThemeToggle() {
     <Menu.Root modal={false}>
       <Menu.Trigger
         className={[
-          'text-gray8 hover:text-gray10 hover:bg-gray-a2 data-[popup-open]:bg-gray-a2 data-[popup-open]:text-gray10 flex w-full items-center gap-2 px-3 py-2 outline-none',
+          'text-gray9 hover:text-gray10 hover:bg-gray-a2 data-[popup-open]:bg-gray-a2 data-[popup-open]:text-gray10 flex w-full items-center gap-2 px-3 py-2 outline-none',
           'text-[0.9375rem] md:text-sm',
         ]
           .filter(Boolean)
@@ -487,7 +487,7 @@ function ThemeToggle() {
               {themeOptions.map((option) => (
                 <Menu.RadioItem
                   className={[
-                    'text-gray8 data-[checked]:text-gray10 data-[highlighted]:bg-gray-a2 data-[highlighted]:text-gray10 flex items-center gap-2 px-3 py-2.5 outline-none md:py-2',
+                    'text-gray9 data-[checked]:text-gray10 data-[highlighted]:bg-gray-a2 data-[highlighted]:text-gray10 flex items-center gap-2 px-3 py-2.5 outline-none md:py-2',
                     'text-[0.9375rem] md:text-sm',
                   ]
                     .filter(Boolean)
@@ -569,7 +569,7 @@ function SidebarNavItem(props: { item: SidebarItem; onNavigate: () => void }) {
     return (
       <li>
         <a
-          className="text-gray8 hover:text-gray10 hover:bg-gray-a2 flex items-center gap-1.5 px-2 py-1.5 text-sm md:scroll-my-3"
+          className="text-gray9 hover:text-gray10 hover:bg-gray-a2 flex items-center gap-1.5 px-2 py-1.5 text-sm md:scroll-my-3"
           href={item.href}
           onClick={onNavigate}
         >
@@ -583,8 +583,12 @@ function SidebarNavItem(props: { item: SidebarItem; onNavigate: () => void }) {
     <li>
       <Link
         activeOptions={{ exact: true, includeSearch: false }}
-        activeProps={{ 'data-sidebar-active': '', className: 'text-gray10 bg-gray-a2' }}
-        className="text-gray8 hover:text-gray10 hover:bg-gray-a2 flex items-center gap-1.5 px-2 py-1.5 text-sm md:scroll-my-3"
+        activeProps={{
+          'data-sidebar-active': '',
+          className:
+            'text-gray10 [background-color:var(--color-docs-code-surface)] dark:[background-color:var(--color-gray1)]',
+        }}
+        className="text-gray9 hover:text-gray10 hover:bg-gray-a2 flex items-center gap-1.5 px-2 py-1.5 text-sm md:scroll-my-3"
         onClick={onNavigate}
         to={to}
       >
@@ -609,17 +613,17 @@ function SearchTrigger(props: {
   return (
     <button
       aria-label="Search"
-      className="hover:bg-gray-a2 group flex h-11 w-11 items-center justify-center p-0 text-sm sm:me-2 sm:h-8 sm:w-auto sm:justify-start sm:gap-2 sm:[background-color:var(--color-docs-surface)] sm:px-0 sm:ps-2.5 sm:pe-1"
+      className="hover:bg-gray-a2 group dark:sm:bg-gray1 flex h-11 w-11 items-center justify-center p-0 text-sm sm:me-2 sm:h-8 sm:w-auto sm:justify-start sm:gap-2 sm:[background-color:var(--color-docs-surface)] sm:px-0 sm:ps-2.5 sm:pe-1"
       onClick={props.onClick}
       ref={props.triggerRef}
       type="button"
     >
-      <IconLucideSearch aria-hidden="true" className="text-gray8 size-4 shrink-0 sm:hidden" />
-      <span className="text-gray8 group-focus-visible:text-gray10 group-hover:text-gray10 hidden sm:inline">
+      <IconLucideSearch aria-hidden="true" className="text-gray9 size-4 shrink-0 sm:hidden" />
+      <span className="text-gray9 group-focus-visible:text-gray10 group-hover:text-gray10 hidden sm:inline">
         Search
       </span>
       <span aria-hidden="true" className="hidden sm:inline-flex">
-        <kbd className="text-gray6 group-focus-visible:text-gray7 group-hover:text-gray7 inline-flex h-6 items-center justify-center bg-transparent px-1.5 font-sans leading-none select-none">
+        <kbd className="text-gray7 group-focus-visible:text-gray8 group-hover:text-gray8 inline-flex h-6 items-center justify-center bg-transparent px-1.5 font-sans leading-none select-none">
           <span className="flex items-center gap-1">
             <span className="text-[15px] leading-none">⌘</span>
             <span className="text-[14px] leading-none">K</span>
@@ -791,14 +795,14 @@ function DocsSearchDialog(props: {
           Close search
         </button>
 
-        <div className="border-gray-a3 bg-gray-a2 dark:bg-bg2 flex items-center gap-1.5 border p-4">
+        <div className="border-gray-a3 flex items-center gap-1.5 border p-4">
           <span aria-hidden="true" className="text-gray8 flex w-5 shrink-0 items-center">
             <IconLucideSearch className="size-4" />
           </span>
           <Combobox.Input
             autoFocus
             autoComplete="off"
-            className="placeholder:text-gray8 min-w-0 flex-1 bg-transparent text-sm leading-none font-medium focus-visible:outline-none"
+            className="placeholder:text-gray8 min-w-0 flex-1 bg-transparent text-base leading-none font-medium focus-visible:outline-none"
             id="docs-search-dialog"
             placeholder="Search documentation"
           />

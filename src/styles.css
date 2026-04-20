@@ -13,6 +13,7 @@
   /* Geist Backgrounds */
   --color-bg1: light-dark(hsl(0 0% 98%), hsl(0 0% 0%));
   --color-bg2: light-dark(hsl(0 0% 100%), hsl(0 0% 4%));
+  --color-docs-code-surface: light-dark(hsl(0 0% 95%), hsl(0 0% 8%));
   --color-docs-surface: light-dark(hsl(0 0% 95%), hsl(0 0% 6%));
 
   /* Geist Gray Scale */

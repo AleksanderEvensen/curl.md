@@ -262,7 +262,7 @@ export function DocContent(props: {
                         id="docs-mobile-outline"
                       >
                         <Menu.Item
-                          className="text-gray8 data-[active]:text-gray10 data-[highlighted]:bg-gray-a2 data-[highlighted]:text-gray10 focus-visible:ring-blue8 flex items-center gap-3 px-6 py-2.5 text-sm outline-none focus-visible:ring-1 focus-visible:outline-none focus-visible:ring-inset"
+                          className="text-gray9 data-[active]:text-gray10 data-[highlighted]:bg-gray-a2 data-[highlighted]:text-gray10 focus-visible:ring-blue8 flex items-center gap-3 px-6 py-2.5 text-sm outline-none focus-visible:ring-1 focus-visible:outline-none focus-visible:ring-inset data-[active]:[background-color:var(--color-docs-code-surface)] dark:data-[active]:[background-color:var(--color-gray1)]"
                           closeOnClick
                           data-active={activeHeadingId === undefined ? '' : undefined}
                           onClick={(event) => {
@@ -290,7 +290,7 @@ export function DocContent(props: {
                               <div aria-hidden="true" className="border-gray-a3 border-t" />
                             )}
                             <Menu.Item
-                              className="text-gray8 data-[active]:text-gray10 data-[highlighted]:bg-gray-a2 data-[highlighted]:text-gray10 focus-visible:ring-blue8 flex items-center gap-3 px-6 py-2.5 text-sm outline-none focus-visible:ring-1 focus-visible:outline-none focus-visible:ring-inset"
+                              className="text-gray9 data-[active]:text-gray10 data-[highlighted]:bg-gray-a2 data-[highlighted]:text-gray10 focus-visible:ring-blue8 flex items-center gap-3 px-6 py-2.5 text-sm outline-none focus-visible:ring-1 focus-visible:outline-none focus-visible:ring-inset data-[active]:[background-color:var(--color-docs-code-surface)] dark:data-[active]:[background-color:var(--color-gray1)]"
                               closeOnClick
                               data-active={activeHeadingId === heading.id ? '' : undefined}
                               onClick={() => {
@@ -334,7 +334,7 @@ export function DocContent(props: {
             <div className="mt-14">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <a
-                  className="text-gray8 hover:text-gray10 flex items-center gap-2 text-sm font-medium select-none"
+                  className="text-gray9 hover:text-gray10 flex items-center gap-2 text-sm font-medium select-none"
                   href={editHref}
                   rel="noopener noreferrer"
                   target="_blank"
@@ -344,7 +344,7 @@ export function DocContent(props: {
                 </a>
 
                 {doc.lastUpdated && (
-                  <p className="text-gray8 text-sm">
+                  <p className="text-gray9 text-sm">
                     {lastUpdatedLabel ? `Last updated: ${lastUpdatedLabel}` : ''}
                   </p>
                 )}
@@ -368,7 +368,7 @@ export function DocContent(props: {
           <div className="minimal-scrollbar sticky top-17 h-[calc(100dvh-4.25rem)] overflow-y-auto py-8 ps-6 pe-6">
             {hasHeadings && (
               <>
-                <div className="text-gray8 flex items-center gap-2 text-xs font-medium tracking-wide uppercase">
+                <div className="text-gray9 flex items-center gap-2 text-xs font-medium tracking-wide uppercase">
                   <IconOcticonListUnordered24 aria-hidden className="size-4 shrink-0" />
                   <p>On this page</p>
                 </div>
@@ -386,13 +386,13 @@ export function DocContent(props: {
             >
               <div className="flex flex-col gap-1">
                 <CopyPageButton
-                  className="text-gray8 hover:text-gray10 -ms-2 hidden py-1 ps-2 text-sm lg:flex"
+                  className="text-gray9 hover:text-gray10 -ms-2 hidden py-1 ps-2 text-sm lg:flex"
                   copyPage={copy}
                   copied={copied}
                 />
 
                 <a
-                  className="text-gray8 hover:text-gray10 -ms-2 flex items-center gap-2.5 py-1 ps-2 text-sm select-none"
+                  className="text-gray9 hover:text-gray10 -ms-2 flex items-center gap-2.5 py-1 ps-2 text-sm select-none"
                   href={markdownHref}
                   rel="noopener noreferrer"
                   target="_blank"
@@ -402,7 +402,7 @@ export function DocContent(props: {
                 </a>
 
                 <a
-                  className="text-gray8 hover:text-gray10 -ms-2 flex items-center gap-2.5 py-1 ps-2 text-sm select-none"
+                  className="text-gray9 hover:text-gray10 -ms-2 flex items-center gap-2.5 py-1 ps-2 text-sm select-none"
                   href={`${config.repoBaseUrl}/issues/new/choose`}
                   rel="noopener noreferrer"
                   target="_blank"
@@ -412,7 +412,7 @@ export function DocContent(props: {
                 </a>
 
                 <a
-                  className="text-gray8 hover:text-gray10 -ms-2 flex items-center gap-2.5 py-1 ps-2 text-sm select-none"
+                  className="text-gray9 hover:text-gray10 -ms-2 flex items-center gap-2.5 py-1 ps-2 text-sm select-none"
                   href={editHref}
                   rel="noopener noreferrer"
                   target="_blank"
@@ -571,7 +571,7 @@ function createMdxComponents(props: {
     blockquote: (blockquoteProps: React.ComponentProps<'blockquote'>) => (
       <blockquote
         className={[
-          'border-gray-a4 border-s-4 [background-color:var(--color-docs-surface)] text-[color-mix(in_oklab,var(--color-gray10)_25%,var(--color-gray9))] [&>p]:mt-0',
+          'border-gray-a4 border-s-4 [background-color:var(--color-docs-code-surface)] text-[color-mix(in_oklab,var(--color-gray10)_25%,var(--color-gray9))] [&>p]:mt-0',
           preview
             ? 'mt-3 px-4 py-3 [&>p]:leading-[1.45] [&>p+p]:mt-2.5'
             : 'mt-4 px-5 py-4 [&>p]:leading-relaxed [&>p+p]:mt-3',
@@ -693,7 +693,7 @@ function DesktopDocOutline(props: {
         <li key={heading.id} style={{ paddingInlineStart: `${(heading.level - 2) * 0.75}rem` }}>
           <a
             aria-current={activeHeadingId === heading.id ? 'location' : undefined}
-            className="text-gray8 hover:text-gray10 hover:bg-gray-a2 data-[active]:text-gray10 data-[active]:bg-gray-a2 -ms-2 block py-1 ps-2 pe-2 text-sm"
+            className="text-gray9 hover:text-gray10 hover:bg-gray-a2 data-[active]:text-gray10 -ms-2 block py-1 ps-2 pe-2 text-sm data-[active]:[background-color:var(--color-docs-code-surface)] dark:data-[active]:[background-color:var(--color-gray1)]"
             data-active={activeHeadingId === heading.id ? '' : undefined}
             href={`#${heading.id}`}
             onMouseDown={() => onHeadingSelect(heading.id)}
@@ -882,17 +882,10 @@ function HeadingAnchorLink(props: { dataHeadingAnchor?: boolean; id: string }) {
 }
 
 function DocsInlineCode(props: React.ComponentProps<'code'>) {
-  const isShikiInlineCode = 'data-shiki-inline-code' in props
-
   return (
     <code
       {...props}
-      className={[
-        isShikiInlineCode
-          ? 'bg-transparent p-0 text-[1em]'
-          : 'bg-gray-a2 px-1 py-0.5 text-[0.9375em]',
-        props.className,
-      ]
+      className={['bg-gray-a2 px-1 py-0.5 text-[0.9375em]', props.className]
         .filter(Boolean)
         .join(' ')}
     />
@@ -992,7 +985,7 @@ function DocsTableHeaderCell(props: React.ComponentProps<'th'> & { preview?: boo
     <th
       {...rest}
       className={[
-        'bg-gray-a1 text-gray10 text-left font-medium whitespace-nowrap',
+        '[background-color:var(--color-docs-code-surface)] text-gray10 text-left font-medium whitespace-nowrap',
         preview ? 'px-3 py-2.5' : 'px-4 py-3',
         rest.className,
       ]
@@ -1043,7 +1036,7 @@ function DocsButtonLink(
   const { children, href, icon, preview = false } = props
   const iconDefinition = getDocsButtonLinkIcon(icon)
   const className = [
-    'border-gray-a1 [background-color:var(--color-docs-surface)] text-gray8 inline-flex max-w-full min-w-0 items-center border no-underline select-none',
+    'border-gray-a1 [background-color:var(--color-docs-surface)] text-gray9 inline-flex max-w-full min-w-0 items-center border no-underline select-none',
     preview ? 'h-8 gap-1.5 px-2 text-[0.75rem]' : 'h-9 gap-2 px-2.5 text-sm',
     preview
       ? 'pointer-events-none'
@@ -1228,13 +1221,13 @@ function Steps(props: React.PropsWithChildren<{ preview?: boolean }>) {
         >
           <div className="relative -mt-px flex justify-center md:-mt-0.5">
             {preview ? (
-              <span className="bg-gray-a3 text-gray11 relative z-10 flex size-5 items-center justify-center rounded-full text-[0.75rem] font-medium md:size-6 md:text-[0.8125rem]">
+              <span className="text-gray11 relative z-10 flex size-5 items-center justify-center rounded-full [background-color:var(--color-docs-code-surface)] text-[0.75rem] font-medium md:size-6 md:text-[0.8125rem]">
                 {index + 1}
               </span>
             ) : (
               <a
                 aria-label={`Link to step: ${item.title}`}
-                className="bg-gray-a3 text-gray11 hover:bg-gray-a4 hover:text-gray12 focus-visible:ring-blue8 relative z-10 flex size-6 items-center justify-center rounded-full text-[0.875rem] font-medium no-underline outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg1)] md:size-7 md:text-sm"
+                className="text-gray11 hover:bg-gray-a4 hover:text-gray12 focus-visible:ring-blue8 relative z-10 flex size-6 items-center justify-center rounded-full [background-color:var(--color-docs-code-surface)] text-[0.875rem] font-medium no-underline outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg1)] md:size-7 md:text-sm"
                 href={`#${item.id}`}
               >
                 {index + 1}
@@ -1243,7 +1236,7 @@ function Steps(props: React.PropsWithChildren<{ preview?: boolean }>) {
             <span
               aria-hidden
               className={[
-                'bg-gray-a3 absolute start-1/2 w-px -translate-x-1/2',
+                '[background-color:var(--color-docs-code-surface)] absolute start-1/2 w-px -translate-x-1/2',
                 preview
                   ? 'top-5 bottom-[-1rem] data-[last]:bottom-[-0.5rem] md:top-6 md:bottom-[-1rem] md:data-[last]:bottom-[-0.625rem]'
                   : 'top-6 bottom-[-2rem] data-[last]:bottom-[-1rem] md:top-7 md:bottom-[-2.25rem] md:data-[last]:bottom-[-1.125rem]',
@@ -1391,7 +1384,7 @@ function CodeGroupFrame(props: React.PropsWithChildren<{ preview?: boolean }>) {
     <div
       className={[
         preview ? 'mt-4' : 'mt-6',
-        'overflow-hidden [background-color:var(--color-docs-surface)]',
+        'overflow-hidden [background-color:var(--color-docs-code-surface)]',
       ]
         .filter(Boolean)
         .join(' ')}
@@ -1485,7 +1478,7 @@ function getCodeGroupPanelClassName(preview = false) {
 
 function getCodeGroupTabClassName(preview = false) {
   return [
-    'text-gray8 data-[active]:text-gray10 relative z-10 font-medium whitespace-nowrap',
+    'text-gray9 data-[active]:text-gray10 relative z-10 font-medium whitespace-nowrap',
     preview
       ? 'px-2.5 py-2 text-[0.6875rem]'
       : 'hover:text-gray10 focus-visible:ring-blue8 px-3 py-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset',
@@ -1496,7 +1489,7 @@ function getCodeGroupTabClassName(preview = false) {
 
 function getCodeGroupTabStripClassName(preview = false) {
   return [
-    'minimal-scrollbar relative flex gap-1 overflow-y-hidden px-2 [background-color:var(--color-docs-surface)]',
+    'minimal-scrollbar relative flex gap-1 overflow-y-hidden px-2 [background-color:var(--color-docs-code-surface)]',
     preview ? 'overflow-x-hidden' : 'overflow-x-auto',
   ]
     .filter(Boolean)
@@ -1528,7 +1521,9 @@ function CodeGroupTabIcon(props: { label: string; language?: string | undefined 
 function DocsCodeBlock(props: React.ComponentProps<'pre'> & { preview?: boolean }) {
   const { children, className, preview = false, style, title, ...rest } = props
   const backgroundColor =
-    typeof style?.backgroundColor === 'string' ? style.backgroundColor : 'var(--color-docs-surface)'
+    typeof style?.backgroundColor === 'string'
+      ? style.backgroundColor
+      : 'var(--color-docs-code-surface)'
   const language = React.useMemo(() => getCodeElementLanguage(getCodeElement(children)), [children])
   const promptShellBlock = hasPromptShellBlock(children, props)
   const promptShellLines = React.useMemo(

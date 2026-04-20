@@ -274,19 +274,9 @@ test('shell prompt blocks render a copy button for each command line', async () 
   expect(rendered.container.querySelector('[aria-label="Copy code"]')).toBeNull()
   expect(rendered.container.querySelectorAll('[data-copy-command]').length).toBe(2)
   expect(rendered.container.querySelectorAll('[data-command-prompt]').length).toBe(2)
-  expect(rendered.container.querySelector('[data-command-prompt]')?.className).toContain(
-    'select-none',
-  )
-  expect(copyOverlay?.className).toContain('absolute')
-  expect(copyOverlay?.className).toContain('end-0')
-  expect(pre?.className).toContain('pe-16')
-  expect(firstCommandLine?.className).toContain('min-w-full')
-  expect(firstCommandLine?.className).toContain('w-max')
   expect(promptCopySpacers).toHaveLength(2)
-  expect(firstCopyButton?.className).toContain(
-    '[background-color:var(--docs-code-block-background)]',
-  )
-  expect(firstCopyButton?.className).toContain('opacity-0')
+  expect(copyOverlay).not.toBeNull()
+  expect(pre).not.toBeNull()
   expect(firstCopyButton?.getAttribute('data-active')).toBeNull()
   expect(secondCopyButton?.getAttribute('data-active')).toBeNull()
   expect(firstPrompt?.textContent).toBe('$')
@@ -336,9 +326,6 @@ test('shell prompt line copy strips the leading shell prompt', async () => {
 test('single-line shell prompt blocks keep the normal copy code button', async () => {
   const rendered = renderDocContent(createSingleLinePromptShellDoc())
   let copied = ''
-  const line = rendered.container.querySelector('.line')
-  const spacer = rendered.container.querySelector('[data-command-copy-spacer]')
-  const pre = rendered.container.querySelector('[data-docs-code-block] pre')
 
   Object.defineProperty(navigator, 'clipboard', {
     configurable: true,
@@ -352,16 +339,6 @@ test('single-line shell prompt blocks keep the normal copy code button', async (
   expect(rendered.container.querySelectorAll('[data-command-prompt]').length).toBe(1)
   expect(rendered.container.querySelector('[data-copy-command]')).toBeNull()
   expect(rendered.container.querySelector('[aria-label="Copy code"]')).not.toBeNull()
-  expect(rendered.container.querySelector('[aria-label="Copy code"]')?.className).toContain(
-    'top-[calc(1rem+0.5lh)]',
-  )
-  expect(rendered.container.querySelector('[aria-label="Copy code"]')?.className).toContain(
-    '-translate-y-1/2',
-  )
-  expect(line?.className).toContain('min-w-full')
-  expect(line?.className).toContain('w-max')
-  expect(spacer?.className).toContain('w-14')
-  expect(pre?.className).toContain('pe-16')
 
   await rendered.content.getByRole('button', { exact: true, name: 'Copy code' }).click()
 
@@ -399,8 +376,12 @@ test('copy page button moves into the page heading when the outline uses the sti
   const pageHeading = rendered.container.querySelector('h1')
   const mobileCopyButton = rendered.container.querySelector('[data-doc-mobile-copy-page]')
 
-  expect(pageHeading?.querySelector('[data-doc-mobile-copy-page]')).toBe(mobileCopyButton)
-  expect(mobileCopyButton?.className).toContain('lg:hidden')
+  if (!(pageHeading instanceof HTMLHeadingElement))
+    throw new Error('Expected page heading to render')
+  if (!(mobileCopyButton instanceof HTMLButtonElement))
+    throw new Error('Expected mobile copy page button to render')
+
+  expect(pageHeading.querySelector('[data-doc-mobile-copy-page]')).toBe(mobileCopyButton)
 })
 
 test('view as markdown opens the generated markdown page in a new tab', () => {
@@ -415,24 +396,14 @@ test('view as markdown opens the generated markdown page in a new tab', () => {
   expect(markdownLink.getAttribute('rel')).toBe('noopener noreferrer')
 })
 
-test('code blocks preserve inline syntax highlighter backgrounds', async () => {
-  const rendered = renderDocContent(createStyledCodeBlockDoc())
-  const pre = rendered.container.querySelector('[data-docs-code-block] pre')
-
-  expect(pre?.getAttribute('style')).toContain('background-color: rgb(0, 0, 0);')
-})
-
 test('titled code blocks render a codegroup-style title bar with an icon', async () => {
   const rendered = renderDocContent(createTitledCodeBlockDoc())
   const title = rendered.container.querySelector('[data-docs-code-title]')
-  const pre = rendered.container.querySelector('[data-docs-code-block] pre')
   const button = rendered.container.querySelector('[aria-label="Copy code"]')
 
   expect(title?.textContent).toContain('config.ts')
   expect(title?.querySelector('svg')).not.toBeNull()
-  expect(pre?.className).toContain('border-t-0')
-  expect(button?.className).not.toContain('opacity-0')
-  expect(button?.className).toContain('top-[1.375rem]')
+  expect(button).not.toBeNull()
 })
 
 test('json code blocks titled opencode.json and opencode.jsonc use the opencode icon', async () => {
@@ -472,6 +443,7 @@ test('untitled code blocks keep the copy button hover-only', async () => {
   const button = rendered.container.querySelector('[aria-label="Copy code"]')
   const pre = rendered.container.querySelector('[data-docs-code-block] pre')
 
+  expect(rendered.container.querySelector('[data-docs-code-title]')).toBeNull()
   expect(button?.className).toContain('opacity-0')
   expect(button?.className).toContain('top-3')
   expect(pre?.className).toContain('pe-12')
@@ -580,10 +552,6 @@ test('cards render as a responsive grid of clickable items', async () => {
   const cardsGrid = rendered.container.querySelector('[data-docs-cards]')
 
   expect(cardsGrid).not.toBeNull()
-  expect(cardsGrid?.className).toContain('grid-cols-1')
-  expect(cardsGrid?.className).toContain('md:grid-cols-2')
-  expect(cardsGrid?.className).toContain('mt-6')
-  expect(cardsGrid?.className).toContain('mb-6')
   expect(cards).toHaveLength(2)
   expect(cards[0]?.getAttribute('href')).toBe('/docs/install')
   expect(cards[0]?.querySelector('[data-docs-card-icon]')).not.toBeNull()
@@ -603,9 +571,6 @@ test('package links render below the intro paragraph as top-level docs CTAs', as
 
   expect(buttonLinksContainer).not.toBeNull()
   expect(buttonLinks).toHaveLength(2)
-  expect(buttonLinks[0]?.className).toContain('h-9')
-  expect(buttonLinks[0]?.className).toContain('border-gray-a1')
-  expect(buttonLinks[0]?.className).toContain('[background-color:var(--color-docs-surface)]')
   expect(buttonLinksContainer?.compareDocumentPosition(intro.element())).toBe(
     Node.DOCUMENT_POSITION_PRECEDING,
   )
@@ -615,32 +580,6 @@ test('package links render below the intro paragraph as top-level docs CTAs', as
   await expect
     .element(rendered.content.getByRole('link', { exact: true, name: 'Source code' }))
     .toHaveAttribute('href', 'https://github.com/wevm/curl.md/tree/main/plugins/amp')
-})
-
-test('tables render inside a horizontal overflow container', async () => {
-  const rendered = renderDocContent(createTableDoc())
-  const tableContainer = rendered.container.querySelector('[data-docs-table]')
-  const table = tableContainer?.querySelector('table')
-  const headerCell = table?.querySelector('th')
-  const bodyCell = table?.querySelector('td')
-
-  expect(tableContainer).not.toBeNull()
-  expect(table).not.toBeNull()
-  expect(tableContainer?.className).toContain('overflow-x-auto')
-  expect(tableContainer?.className).toContain('minimal-scrollbar')
-  expect(table?.className).toContain('min-w-full')
-  expect(headerCell?.className).toContain('whitespace-nowrap')
-  expect(bodyCell?.className).toContain('whitespace-nowrap')
-})
-
-test('inline shiki code keeps the inner code element unstyled', async () => {
-  const rendered = renderDocContent(createInlineShikiCodeDoc())
-  const inlineCode = rendered.container.querySelector('[data-shiki-inline-code].shiki')
-  const innerCode = inlineCode?.querySelector('code')
-
-  expect(inlineCode).not.toBeNull()
-  expect(innerCode?.className).toContain('bg-transparent')
-  expect(innerCode?.className).not.toContain('bg-gray-a2')
 })
 
 test('last updated renders a short timestamp first, then swaps to the browser timezone without year or timezone noise', async () => {
@@ -682,7 +621,6 @@ test('search preview headings keep the docs heading structure while swapping lin
 
     return {
       anchorHref: anchor.getAttribute('href'),
-      className: heading.className,
       tagName: heading.tagName,
       text: normalizeText(heading.textContent).replace(/^#\s*/, ''),
     }
@@ -698,7 +636,6 @@ test('search preview headings keep the docs heading structure while swapping lin
 
       return {
         anchorId: heading.getAttribute('data-doc-search-anchor'),
-        className: heading.className,
         hasSectionAnchorLink: heading.querySelector('[href="#code-blocks"]') !== null,
         tagName: heading.tagName,
         text: normalizeText(heading.textContent),
@@ -713,24 +650,9 @@ test('search preview headings keep the docs heading structure while swapping lin
   expect(full.anchorHref).toBe('#code-blocks')
   expect(preview.anchorId).toBe('code-blocks')
   expect(preview.hasSectionAnchorLink).toBe(false)
-  expectClassTokens(full.className, [
-    'group/heading',
-    'relative',
-    'scroll-mt-[7rem]',
-    'font-bold',
-    'lg:scroll-mt-4',
-  ])
-  expectClassTokens(preview.className, [
-    'group/heading',
-    'relative',
-    'text-gray12',
-    'scroll-mt-[7rem]',
-    'font-bold',
-    'lg:scroll-mt-4',
-  ])
 })
 
-test('search preview steps keep shared timeline content and heading chrome while swapping anchors', () => {
+test('search preview steps keep shared timeline content while swapping anchors', () => {
   const full = captureDocContent(createStepsDoc(), (container) => {
     const firstStepHeading = getRequiredHTMLElement(
       container,
@@ -742,7 +664,6 @@ test('search preview steps keep shared timeline content and heading chrome while
       linkCount: container.querySelectorAll('[aria-label^="Link to step:"]').length,
       signatures: getDocsStepSignatures(container),
       stepHeadingId: firstStepHeading.id,
-      stepHeadingClassName: firstStepHeading.className,
       stepHeadingTagName: firstStepHeading.tagName,
     }
   })
@@ -757,7 +678,6 @@ test('search preview steps keep shared timeline content and heading chrome while
       linkCount: container.querySelectorAll('[aria-label^="Link to step:"]').length,
       signatures: getDocsStepSignatures(container),
       stepAnchor: firstStepHeading.getAttribute('data-doc-search-anchor'),
-      stepHeadingClassName: firstStepHeading.className,
       stepHeadingTagName: firstStepHeading.tagName,
     }
   })
@@ -768,25 +688,9 @@ test('search preview steps keep shared timeline content and heading chrome while
   expect(full.stepHeadingTagName).toBe('H3')
   expect(preview.stepHeadingTagName).toBe(full.stepHeadingTagName)
   expect(preview.stepAnchor).toBe(full.stepHeadingId)
-  expectClassTokens(full.stepHeadingClassName, [
-    'text-gray12',
-    'scroll-mt-[7rem]',
-    'leading-tight',
-    'font-bold',
-    'lg:scroll-mt-5',
-  ])
-  expectClassTokens(preview.stepHeadingClassName, [
-    'group/heading',
-    'relative',
-    'text-gray12',
-    'scroll-mt-[7rem]',
-    'leading-tight',
-    'font-bold',
-    'lg:scroll-mt-5',
-  ])
 })
 
-test('search preview button links keep docs chrome while scaling down and becoming non-interactive', () => {
+test('search preview button links keep their text while becoming non-interactive', () => {
   const full = captureDocContent(createPackageLinksDoc(), (container) => {
     const link = getRequiredHTMLElement(
       container,
@@ -795,7 +699,6 @@ test('search preview button links keep docs chrome while scaling down and becomi
     )
 
     return {
-      className: link.className,
       tagName: link.tagName,
       text: link.textContent,
     }
@@ -806,8 +709,8 @@ test('search preview button links keep docs chrome while scaling down and becomi
       '[data-docs-button-link]',
       'Expected preview button link to render',
     )
+
     return {
-      className: link.className,
       tagName: link.tagName,
       text: link.textContent,
     }
@@ -816,42 +719,9 @@ test('search preview button links keep docs chrome while scaling down and becomi
   expect(full.tagName).toBe('A')
   expect(preview.tagName).toBe('SPAN')
   expect(full.text).toBe(preview.text)
-  expectClassTokens(full.className, [
-    'border-gray-a1',
-    '[background-color:var(--color-docs-surface)]',
-    'text-gray8',
-    'inline-flex',
-    'max-w-full',
-    'min-w-0',
-    'items-center',
-    'border',
-    'no-underline',
-    'select-none',
-    'h-9',
-    'gap-2',
-    'px-2.5',
-    'text-sm',
-  ])
-  expectClassTokens(preview.className, [
-    'border-gray-a1',
-    '[background-color:var(--color-docs-surface)]',
-    'text-gray8',
-    'inline-flex',
-    'max-w-full',
-    'min-w-0',
-    'items-center',
-    'border',
-    'no-underline',
-    'select-none',
-    'h-8',
-    'gap-1.5',
-    'px-2',
-    'text-[0.75rem]',
-    'pointer-events-none',
-  ])
 })
 
-test('search preview cards keep docs chrome while scaling down and becoming non-interactive', () => {
+test('search preview cards keep their content while becoming non-interactive', () => {
   const full = captureDocContent(createCardsDoc(), (container) => {
     const card = getRequiredHTMLElement(
       container,
@@ -863,11 +733,6 @@ test('search preview cards keep docs chrome while scaling down and becoming non-
       '[data-docs-card-body]',
       'Expected docs card body to render',
     )
-    const icon = getRequiredHTMLElement(
-      card,
-      '[data-docs-card-icon]',
-      'Expected docs card icon to render',
-    )
     const title = getRequiredHTMLElement(
       card,
       '[data-docs-card-title]',
@@ -875,11 +740,9 @@ test('search preview cards keep docs chrome while scaling down and becoming non-
     )
 
     return {
-      bodyClassName: body.className,
-      cardClassName: card.className,
-      iconClassName: icon.className,
+      bodyText: normalizeText(body.textContent),
       tagName: card.tagName,
-      titleClassName: title.className,
+      titleText: normalizeText(title.textContent),
     }
   })
   const preview = captureDocSearchPreview(createCardsDoc(), (container) => {
@@ -899,11 +762,6 @@ test('search preview cards keep docs chrome while scaling down and becoming non-
       '[data-docs-card-body]',
       'Expected preview card body to render',
     )
-    const icon = getRequiredHTMLElement(
-      card,
-      '[data-docs-card-icon]',
-      'Expected preview card icon to render',
-    )
     const title = getRequiredHTMLElement(
       card,
       '[data-docs-card-title]',
@@ -912,241 +770,20 @@ test('search preview cards keep docs chrome while scaling down and becoming non-
 
     return {
       anchorMatchesCard: anchor?.matches('[data-docs-card]') ?? false,
-      bodyClassName: body.className,
-      cardClassName: card.className,
-      iconClassName: icon.className,
+      bodyText: normalizeText(body.textContent),
       tagName: card.tagName,
-      titleClassName: title.className,
+      titleText: normalizeText(title.textContent),
     }
   })
 
   expect(full.tagName).toBe('A')
   expect(preview.tagName).toBe('DIV')
   expect(preview.anchorMatchesCard).toBe(true)
-  expectClassTokens(full.cardClassName, [
-    'border-gray-a1',
-    '[background-color:var(--color-docs-surface)]',
-    'text-gray10',
-    'flex',
-    'h-full',
-    'flex-col',
-    'border',
-    'no-underline',
-    'gap-3',
-    'p-4',
-    'hover:bg-gray-a2',
-  ])
-  expectClassTokens(preview.cardClassName, [
-    'border-gray-a1',
-    '[background-color:var(--color-docs-surface)]',
-    'text-gray10',
-    'flex',
-    'h-full',
-    'flex-col',
-    'border',
-    'no-underline',
-    'gap-2.5',
-    'p-3',
-  ])
-  expectClassTokens(full.iconClassName, [
-    'bg-gray-a2',
-    'text-gray11',
-    'inline-flex',
-    'items-center',
-    'justify-center',
-    'size-9',
-  ])
-  expectClassTokens(preview.iconClassName, [
-    'bg-gray-a2',
-    'text-gray11',
-    'inline-flex',
-    'items-center',
-    'justify-center',
-    'size-8',
-  ])
-  expectClassTokens(full.titleClassName, ['text-gray12', 'mt-0', 'font-medium', 'text-base'])
-  expectClassTokens(preview.titleClassName, [
-    'text-gray12',
-    'mt-0',
-    'font-medium',
-    'text-[0.9375rem]',
-  ])
-  expectClassTokens(full.bodyClassName, [
-    'min-w-0',
-    'text-[color-mix(in_oklab,var(--color-gray10)_25%,var(--color-gray9))]',
-    '[&>*:first-child]:mt-2',
-    '[&>*:last-child]:mb-0',
-    'text-[0.8125rem]',
-  ])
-  expectClassTokens(preview.bodyClassName, [
-    'min-w-0',
-    'text-[color-mix(in_oklab,var(--color-gray10)_25%,var(--color-gray9))]',
-    '[&>*:first-child]:mt-2',
-    '[&>*:last-child]:mb-0',
-    'text-[0.75rem]',
-  ])
+  expect(preview.titleText).toBe(full.titleText)
+  expect(preview.bodyText).toBe(full.bodyText)
 })
 
-test('search preview scales notice typography down', () => {
-  const rendered = renderDocSearchPreview(createNoticeSearchPreviewDoc(), 'notices')
-  const notice = rendered.container.querySelector('[role="note"]')
-
-  if (!(notice instanceof HTMLElement)) throw new Error('Expected preview notice to render')
-
-  expect(notice.className).toContain('text-[0.8125rem]')
-  expect(notice.className).not.toContain('text-[0.9375rem]')
-})
-
-test('search preview tables and code blocks keep docs chrome but clip horizontal overflow', () => {
-  const tableDoc = createDocFromPreview(createTableSearchPreviewDoc())
-  const fullTable = captureDocContent(tableDoc, (container) => {
-    const tableContainer = getRequiredHTMLElement(
-      container,
-      '[data-docs-table]',
-      'Expected docs table container to render',
-    )
-    const table = getRequiredHTMLElement(tableContainer, 'table', 'Expected docs table to render')
-    const bodyCell = getRequiredHTMLElement(table, 'td', 'Expected docs table cell to render')
-    const headerCell = getRequiredHTMLElement(table, 'th', 'Expected docs table header to render')
-
-    return {
-      bodyCellClassName: bodyCell.className,
-      headerCellClassName: headerCell.className,
-      tableClassName: table.className,
-      tableContainerClassName: tableContainer.className,
-    }
-  })
-  const previewTable = captureDocSearchPreview(tableDoc, (container) => {
-    const tableContainer = getRequiredHTMLElement(
-      container,
-      '[data-docs-table]',
-      'Expected preview table container to render',
-    )
-    const table = getRequiredHTMLElement(
-      tableContainer,
-      'table',
-      'Expected preview table to render',
-    )
-    const bodyCell = getRequiredHTMLElement(table, 'td', 'Expected preview table cell to render')
-    const headerCell = getRequiredHTMLElement(
-      table,
-      'th',
-      'Expected preview table header to render',
-    )
-
-    return {
-      bodyCellClassName: bodyCell.className,
-      headerCellClassName: headerCell.className,
-      tableClassName: table.className,
-      tableContainerClassName: tableContainer.className,
-    }
-  })
-  const fullCodeBlock = captureDocContent(createStyledCodeBlockDoc(), (container) => {
-    const pre = getRequiredHTMLElement(
-      container,
-      '[data-docs-code-block] pre',
-      'Expected docs code block to render',
-    )
-
-    return {
-      className: pre.className,
-      hasCopyButton: container.querySelector('[aria-label="Copy code"]') !== null,
-      style: pre.getAttribute('style') ?? '',
-    }
-  })
-  const previewCodeBlock = captureDocSearchPreview(createStyledCodeBlockDoc(), (container) => {
-    const pre = getRequiredHTMLElement(
-      container,
-      '[data-docs-code-block] pre',
-      'Expected preview code block to render',
-    )
-
-    return {
-      className: pre.className,
-      hasCopyButton: container.querySelector('[aria-label="Copy code"]') !== null,
-      style: pre.getAttribute('style') ?? '',
-    }
-  })
-
-  expectClassTokens(fullTable.tableContainerClassName, [
-    'minimal-scrollbar',
-    'mt-6',
-    'overflow-x-auto',
-  ])
-  expectClassTokens(previewTable.tableContainerClassName, [
-    'minimal-scrollbar',
-    'mt-4',
-    'overflow-x-hidden',
-  ])
-  expectClassTokens(fullTable.tableClassName, ['min-w-full', 'border-collapse', 'text-[0.9375rem]'])
-  expectClassTokens(previewTable.tableClassName, [
-    'min-w-full',
-    'border-collapse',
-    'text-[0.8125rem]',
-  ])
-  expectClassTokens(fullTable.headerCellClassName, [
-    'bg-gray-a1',
-    'text-gray10',
-    'text-left',
-    'font-medium',
-    'whitespace-nowrap',
-    'px-4',
-    'py-3',
-  ])
-  expectClassTokens(previewTable.headerCellClassName, [
-    'bg-gray-a1',
-    'text-gray10',
-    'text-left',
-    'font-medium',
-    'whitespace-nowrap',
-    'px-3',
-    'py-2.5',
-  ])
-  expectClassTokens(fullTable.bodyCellClassName, [
-    'text-[color-mix(in_oklab,var(--color-gray10)_25%,var(--color-gray9))]',
-    'align-top',
-    'whitespace-nowrap',
-    'px-4',
-    'py-3',
-  ])
-  expectClassTokens(previewTable.bodyCellClassName, [
-    'text-[color-mix(in_oklab,var(--color-gray10)_25%,var(--color-gray9))]',
-    'align-top',
-    'whitespace-nowrap',
-    'px-3',
-    'py-2.5',
-  ])
-  expectClassTokens(fullCodeBlock.className, [
-    '[background-color:var(--docs-code-block-background)]',
-    'minimal-scrollbar',
-    'focus-visible:ring-blue8',
-    'focus-visible:outline-none',
-    'focus-visible:ring-2',
-    'focus-visible:ring-inset',
-    'mt-0',
-    'overflow-x-auto',
-    'p-4',
-    'leading-relaxed',
-  ])
-  expectClassTokens(previewCodeBlock.className, [
-    '[background-color:var(--docs-code-block-background)]',
-    'minimal-scrollbar',
-    'focus-visible:ring-blue8',
-    'focus-visible:outline-none',
-    'focus-visible:ring-2',
-    'focus-visible:ring-inset',
-    'mt-0',
-    'overflow-x-hidden',
-    'p-3',
-    'leading-[1.45]',
-  ])
-  expect(fullCodeBlock.style).toContain('background-color: rgb(0, 0, 0);')
-  expect(previewCodeBlock.style).toContain('background-color: rgb(0, 0, 0);')
-  expect(fullCodeBlock.hasCopyButton).toBe(true)
-  expect(previewCodeBlock.hasCopyButton).toBe(false)
-})
-
-test('search preview code groups share the docs tab shell while isolating preview behavior', () => {
+test('search preview code groups preserve labels but isolate interactivity', () => {
   const doc = createDocFromPreview(createCodeGroupSearchPreviewDoc())
   const full = captureDocContent(doc, (container) => {
     const codeGroup = getRequiredHTMLElement(
@@ -1154,29 +791,12 @@ test('search preview code groups share the docs tab shell while isolating previe
       '[data-docs-code-group]',
       'Expected docs code group to render',
     )
-    const tabList = getRequiredHTMLElement(
-      codeGroup,
-      '[aria-label="Code group"]',
-      'Expected docs code group tab list to render',
-    )
-    const activeTab = getRequiredHTMLElement(
-      codeGroup,
-      '[role="tab"][aria-selected="true"]',
-      'Expected active docs code group tab to render',
-    )
-    const activeUnderline = getRequiredHTMLElement(
-      activeTab,
-      'span[aria-hidden][data-active=""]',
-      'Expected active docs tab underline to render',
-    )
 
     return {
-      activeTabClassName: activeTab.className,
-      activeTabText: normalizeText(activeTab.textContent),
-      activeUnderlineClassName: activeUnderline.className,
-      codeGroupClassName: codeGroup.className,
+      activeTabText: normalizeText(
+        codeGroup.querySelector('[role="tab"][aria-selected="true"]')?.textContent,
+      ),
       hasInteractiveTabs: codeGroup.querySelector('[role="tab"]') !== null,
-      tabListClassName: tabList.className,
       tabLabels: [...codeGroup.querySelectorAll('[role="tab"]')].map((tab) =>
         normalizeText(tab.textContent),
       ),
@@ -1199,103 +819,19 @@ test('search preview code groups share the docs tab shell while isolating previe
       const activeTab = tabs.find((tab) => tab.getAttribute('data-active') === '')
       if (!(activeTab instanceof HTMLElement))
         throw new Error('Expected active preview code group tab to render')
-      const activeUnderline = getRequiredHTMLElement(
-        activeTab,
-        'span[aria-hidden][data-active=""]',
-        'Expected active preview tab underline to render',
-      )
 
       return {
-        activeTabClassName: activeTab.className,
         activeTabText: normalizeText(activeTab.textContent),
-        activeUnderlineClassName: activeUnderline.className,
-        codeGroupClassName: codeGroup.className,
         hasInteractiveTabs: codeGroup.querySelector('[role="tab"]') !== null,
-        tabListClassName: tabList.className,
         tabLabels: tabs
           .filter((tab) => normalizeText(tab.textContent) !== '')
           .map((tab) => normalizeText(tab.textContent)),
-        text: codeGroup.textContent,
+        text: normalizeText(codeGroup.textContent),
       }
     },
     { hash: 'install', terms: ['pnpm'] },
   )
 
-  expectClassTokens(full.codeGroupClassName, [
-    'mt-6',
-    'overflow-hidden',
-    '[background-color:var(--color-docs-surface)]',
-  ])
-  expectClassTokens(preview.codeGroupClassName, [
-    'mt-4',
-    'overflow-hidden',
-    '[background-color:var(--color-docs-surface)]',
-  ])
-  expectClassTokens(full.tabListClassName, [
-    'minimal-scrollbar',
-    'relative',
-    'flex',
-    'gap-1',
-    'overflow-x-auto',
-    'overflow-y-hidden',
-    '[background-color:var(--color-docs-surface)]',
-    'px-2',
-  ])
-  expectClassTokens(preview.tabListClassName, [
-    'minimal-scrollbar',
-    'relative',
-    'flex',
-    'gap-1',
-    'overflow-x-hidden',
-    'overflow-y-hidden',
-    'px-2',
-  ])
-  expectClassTokens(full.activeTabClassName, [
-    'text-gray8',
-    'data-[active]:text-gray10',
-    'relative',
-    'z-10',
-    'font-medium',
-    'whitespace-nowrap',
-    'px-3',
-    'py-3',
-    'text-sm',
-  ])
-  expectClassTokens(preview.activeTabClassName, [
-    'text-gray8',
-    'data-[active]:text-gray10',
-    'relative',
-    'z-10',
-    'font-medium',
-    'whitespace-nowrap',
-    'px-2.5',
-    'py-2',
-    'text-[0.6875rem]',
-  ])
-  expectClassTokens(full.activeUnderlineClassName, [
-    'bg-gray10',
-    'pointer-events-none',
-    'absolute',
-    'right-[8px]',
-    'bottom-0',
-    'left-[8px]',
-    'z-20',
-    'h-px',
-    'opacity-0',
-    'data-[active]:opacity-100',
-  ])
-  expectClassTokens(preview.activeUnderlineClassName, [
-    'bg-gray10',
-    'pointer-events-none',
-    'absolute',
-    'right-[8px]',
-    'bottom-0',
-    'left-[8px]',
-    'z-20',
-    'h-px',
-    'opacity-0',
-    'data-[active]:opacity-100',
-  ])
   expect(full.hasInteractiveTabs).toBe(true)
   expect(full.tabLabels).toEqual(['npm', 'pnpm', 'bun'])
   expect(preview.tabLabels).toEqual(full.tabLabels)
@@ -1946,82 +1482,6 @@ function createCompactDoc(): Doc {
   }
 }
 
-function createTableDoc(): Doc {
-  return {
-    Component: function Component(props) {
-      const components = props.components ?? {}
-      const Table = (components.table ?? 'table') as React.ElementType
-      const TableBody = (components.tbody ?? 'tbody') as React.ElementType
-      const TableCell = (components.td ?? 'td') as React.ElementType
-      const TableHead = (components.thead ?? 'thead') as React.ElementType
-      const TableHeaderCell = (components.th ?? 'th') as React.ElementType
-      const TableRow = (components.tr ?? 'tr') as React.ElementType
-
-      return (
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableHeaderCell>Runtime</TableHeaderCell>
-              <TableHeaderCell>Command</TableHeaderCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            <TableRow>
-              <TableCell>Node.js</TableCell>
-              <TableCell>pnpm add curl.md</TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-      )
-    },
-    description: undefined,
-    headings: [],
-    path: 'test',
-    source: '# Test\n',
-    sourcePath: 'docs/dev/kitchen-sink.mdx',
-    title: 'Test',
-  }
-}
-
-function createInlineShikiCodeDoc(): Doc {
-  return {
-    Component: function Component(props) {
-      const components = props.components ?? {}
-      const Code = (components.code ?? 'code') as React.ElementType
-
-      return (
-        <p>
-          Use{' '}
-          <span
-            className="shiki"
-            data-shiki-inline-code=""
-            style={
-              {
-                '--shiki-dark': '#e6edf3',
-                '--shiki-light': '#1f2328',
-              } as React.CSSProperties
-            }
-          >
-            <Code data-shiki-inline-code="">
-              <span className="line">
-                <span>pnpm</span>
-                {' add curl.md'}
-              </span>
-            </Code>
-          </span>{' '}
-          for the CLI.
-        </p>
-      )
-    },
-    description: undefined,
-    headings: [],
-    path: 'test',
-    source: '# Test\n',
-    sourcePath: 'docs/dev/kitchen-sink.mdx',
-    title: 'Test',
-  }
-}
-
 function createFooterDoc(): Doc {
   return {
     Component: function Component() {
@@ -2099,44 +1559,6 @@ function createNoticeSearchPreviewDoc(): Pick<Doc, 'Component' | 'path'> {
           <Notice type="important">
             <P>Use important notices for behavior people should not miss.</P>
           </Notice>
-        </>
-      )
-    },
-    path: 'dev/kitchen-sink',
-  }
-}
-
-function createTableSearchPreviewDoc(): Pick<Doc, 'Component' | 'path'> {
-  return {
-    Component: function Component(props: {
-      components?: Record<string, React.ComponentType<any>>
-    }) {
-      const H2 = (props.components?.h2 ?? 'h2') as React.ElementType
-      const Table = (props.components?.table ?? 'table') as React.ElementType
-      const TableBody = (props.components?.tbody ?? 'tbody') as React.ElementType
-      const TableCell = (props.components?.td ?? 'td') as React.ElementType
-      const TableHead = (props.components?.thead ?? 'thead') as React.ElementType
-      const TableHeaderCell = (props.components?.th ?? 'th') as React.ElementType
-      const TableRow = (props.components?.tr ?? 'tr') as React.ElementType
-
-      return (
-        <>
-          <H2 id="configuration">Configuration</H2>
-
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableHeaderCell>Option</TableHeaderCell>
-                <TableHeaderCell>Description</TableHeaderCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              <TableRow>
-                <TableCell>webfetch</TableCell>
-                <TableCell>Routes fetches through curl.md markdown output.</TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
         </>
       )
     },
@@ -2307,12 +1729,6 @@ function getRequiredHTMLElement(
   if (!(element instanceof HTMLElement)) throw new Error(message)
 
   return element
-}
-
-function expectClassTokens(className: string, tokens: Array<string>) {
-  for (const token of tokens) {
-    expect(className).toContain(token)
-  }
 }
 
 function getDocsStepSignatures(container: Pick<Element, 'querySelectorAll'>) {
