@@ -14,12 +14,9 @@ import { DocSearchPreview } from './-render.tsx'
 import { validateSearch } from './-route.tsx'
 import type { DocSearchResult } from './-search.ts'
 import { docSearchHighlightClassName, getDocSearchHighlightRanges, type Doc } from './-utils.ts'
-import stylesCssHref from './styles.css?url'
+import './styles.css'
 
 export const Route = createFileRoute('/docs')({
-  head: () => ({
-    links: [{ href: stylesCssHref, rel: 'stylesheet' }],
-  }),
   async loader({ location }) {
     return {
       login: await getSessionLogin(),

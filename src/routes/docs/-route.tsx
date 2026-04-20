@@ -1,6 +1,5 @@
 import * as React from 'react'
 import { z } from 'zod/v4'
-import { rpc } from '#lib/rpc.ts'
 import { findDoc, findDocPagination } from './-catalog.ts'
 import { DocContent } from './-render.tsx'
 
@@ -35,10 +34,8 @@ export function DocsRouteContent(props: {
   )
 }
 
-export function getDocsHead(path: string) {
+export function getDocsHead(path: string, ogImage: string) {
   const doc = findDoc(path)
-  const ogImage = rpc.api['og.png'].$url({ query: { page: 'index' } }).toString()
-  const socialTitle = path ? `${doc?.title ?? 'Docs'} - ${__HOST__}` : `${__HOST__}/docs`
   const title = `${doc?.title ?? 'Docs'} - ${__HOST__}`
   const url = `https://${__HOST__}/docs${path ? `/${path}` : ''}`
 
@@ -46,7 +43,7 @@ export function getDocsHead(path: string) {
     meta: [
       { title },
       { name: 'description', content: doc?.description ?? 'URL to markdown for agents' },
-      { property: 'og:title', content: socialTitle },
+      { property: 'og:title', content: title },
       { property: 'og:description', content: doc?.description ?? 'URL to markdown for agents' },
       { property: 'og:image', content: ogImage },
       { property: 'og:image:width', content: '1200' },
@@ -55,7 +52,7 @@ export function getDocsHead(path: string) {
       { property: 'og:type', content: 'website' },
       { property: 'og:url', content: url },
       { name: 'twitter:card', content: 'summary_large_image' },
-      { name: 'twitter:title', content: socialTitle },
+      { name: 'twitter:title', content: title },
       { name: 'twitter:description', content: doc?.description ?? 'URL to markdown for agents' },
       { name: 'twitter:image', content: ogImage },
     ],

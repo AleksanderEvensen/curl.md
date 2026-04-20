@@ -1,5 +1,6 @@
 import { Link, createFileRoute, getRouteApi, notFound } from '@tanstack/react-router'
 import * as React from 'react'
+import { rpc } from '#lib/rpc.ts'
 import { findDoc } from './-catalog.ts'
 import { DocsRouteContent, getDocsHead, validateSearch } from './-route.tsx'
 
@@ -7,7 +8,18 @@ const docsLayoutRoute = getRouteApi('/docs')
 
 export const Route = createFileRoute('/docs/$')({
   head({ params }) {
-    return getDocsHead(params._splat ?? '')
+    const path = params._splat ?? ''
+    const doc = findDoc(path)
+    const ogImage = rpc.api['og.png']
+      .$url({
+        query: {
+          description: doc?.description,
+          page: 'docs',
+          title: doc?.title ?? 'Docs',
+        },
+      })
+      .toString()
+    return getDocsHead(path, ogImage)
   },
   loader({ params }) {
     if (!findDoc(params._splat ?? '')) throw notFound({ routeId: '/docs/$' })
