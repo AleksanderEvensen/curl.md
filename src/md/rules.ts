@@ -1,6 +1,6 @@
 import { defineRule } from './mod.ts'
 import { cloudflare } from './rules/cloudflare.ts'
-import { githubBlob, githubIssue, githubPr, githubRepo } from './rules/github.ts'
+import { githubBlob, githubIssue, githubPr, githubPrChanges, githubRepo } from './rules/github.ts'
 import {
   acceptMarkdown,
   appendMd,
@@ -10,7 +10,7 @@ import {
   repo,
 } from './rules/utils.ts'
 
-export { githubBlob, githubIssue, githubPr, githubRepo }
+export { githubBlob, githubIssue, githubPr, githubPrChanges, githubRepo }
 export { cloudflare }
 export { githubDocs } from './rules/github-docs.ts'
 export { mdn } from './rules/mdn.ts'

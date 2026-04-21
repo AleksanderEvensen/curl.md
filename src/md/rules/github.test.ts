@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { expect, test } from 'vitest'
 import { create } from '../mod.ts'
-import { githubBlob, githubIssue, githubPr, githubRepo } from './github.ts'
+import { githubBlob, githubIssue, githubPr, githubPrChanges, githubRepo } from './github.ts'
 
 const prFixture = readFileSync(
   path.resolve(import.meta.dirname, '__fixtures__/github-pr-66.html'),
@@ -237,6 +237,36 @@ test('githubPr rewrites to API URL', () => {
   expect(result?.href).toBe('https://api.github.com/repos/wevm/viem/pulls/456')
 })
 
+test('githubPrChanges rewrites to patch-diff URL', () => {
+  const rule = githubPrChanges()
+  const url = new URL('https://github.com/wevm/viem/pull/456/changes')
+  const pattern = rule.patterns[0]
+  assert(pattern instanceof URLPattern)
+  const match = pattern.exec(url)
+  const result = rule.rewrite?.(url, match!)
+  expect(result?.href).toBe('https://patch-diff.githubusercontent.com/raw/wevm/viem/pull/456.diff')
+})
+
+test('githubPrChanges returns diff content as markdown text', async () => {
+  const diff = `diff --git a/README.md b/README.md
+index 1111111..2222222 100644
+--- a/README.md
++++ b/README.md
+@@ -1 +1 @@
+-old
++new`
+  const md = create({
+    rules: [githubPrChanges()],
+    fetch: async () =>
+      new Response(diff, { status: 200, headers: { 'content-type': 'text/plain' } }),
+  })
+  const result = await md.fetch('https://github.com/wevm/viem/pull/456/changes')
+  expect(result.ok).toBe(true)
+  if (!result.ok) return
+  expect(result.content).toBe(diff)
+  expect(result.meta.url).toBe('https://github.com/wevm/viem/pull/456/changes')
+})
+
 test('githubPr extracts from REST API response', async () => {
   const md = create({
     rules: [githubPr()],
@@ -453,4 +483,12 @@ test('githubPr pattern matches PR URLs', () => {
   assert(pattern instanceof URLPattern)
   expect(pattern.test('https://github.com/owner/repo/pull/456')).toBe(true)
   expect(pattern.test('https://github.com/owner/repo/pull/456/files')).toBe(false)
+})
+
+test('githubPrChanges pattern matches PR changes URLs', () => {
+  const rule = githubPrChanges()
+  const pattern = rule.patterns[0]
+  assert(pattern instanceof URLPattern)
+  expect(pattern.test('https://github.com/owner/repo/pull/456/changes')).toBe(true)
+  expect(pattern.test('https://github.com/owner/repo/pull/456')).toBe(false)
 })

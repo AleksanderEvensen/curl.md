@@ -126,6 +126,21 @@ export const githubIssue = defineRule<{ token?: string | Promise<string | undefi
   },
 )
 
+export const githubPrChanges = defineRule({
+  key: 'githubPrChanges',
+  checks: [{ url: 'https://github.com/wevm/viem/pull/66/changes' }],
+  patterns: [
+    new URLPattern({ hostname: 'github.com', pathname: '/:owner/:repo/pull/:id/changes' }),
+  ],
+  rewrite(_url, match) {
+    const { owner, repo, id } = match.pathname.groups
+    return new URL(`https://patch-diff.githubusercontent.com/raw/${owner}/${repo}/pull/${id}.diff`)
+  },
+  async extract(response) {
+    return { content: await response.text() }
+  },
+})
+
 export const githubPr = defineRule<{ token?: string | Promise<string | undefined> | undefined }>({
   key: 'githubPr',
   checks: [{ url: 'https://github.com/wevm/viem/pull/66' }],
