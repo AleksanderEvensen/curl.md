@@ -35,7 +35,7 @@ afterEach(() => {
 
 test('package exposes an OpenCode tui entrypoint', () => {
   const packageJson = JSON.parse(
-    fs.readFileSync(new URL('./package.json', import.meta.url), 'utf8'),
+    fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
   ) as {
     engines?: Record<string, unknown>
     exports?: Record<string, unknown>

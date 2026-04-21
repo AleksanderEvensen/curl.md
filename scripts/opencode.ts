@@ -17,12 +17,12 @@ const opencodeBinPath = path.join(
 )
 const pluginsDir = path.join(root, '.opencode', 'plugins')
 const shimPath = path.join(pluginsDir, 'curlmd.ts')
-const pluginSourcePath = path.join(root, 'plugins', 'opencode', 'server.ts')
+const pluginSourcePath = path.join(root, 'plugins', 'opencode', 'src', 'server.ts')
 const importPath = path.relative(pluginsDir, pluginSourcePath).split(path.sep).join('/')
 const projectTuiConfigPath = path.join(root, 'tui.json')
 const tempTuiConfigDir = mkdtempSync(path.join(os.tmpdir(), 'curlmd-opencode-'))
 const tempTuiConfigPath = path.join(tempTuiConfigDir, 'tui.json')
-const tuiPluginPath = pathToFileURL(path.join(root, 'plugins', 'opencode', 'tui.ts')).href
+const tuiPluginPath = pathToFileURL(path.join(root, 'plugins', 'opencode', 'src', 'tui.ts')).href
 
 mkdirSync(pluginsDir, { recursive: true })
 writeFileSync(shimPath, `export { plugin } from ${JSON.stringify(importPath)}\n`)

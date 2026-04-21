@@ -6,9 +6,9 @@ import { defaultBaseUrl } from 'curl.md'
 import { Auth, Session } from 'curl.md/internal'
 import { HttpResponse, http, passthrough } from 'msw'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
-import extension from '../extensions/index.ts'
 import packageJson from '../package.json' with { type: 'json' }
-import { server } from './server.ts'
+import { server } from '../test/server.ts'
+import extension from './index.ts'
 
 const extensionHeader = `${packageJson.name} v${packageJson.version}`
 const mockCliPath = '/opt/homebrew/bin/curl.md'

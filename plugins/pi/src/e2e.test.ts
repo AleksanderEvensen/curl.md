@@ -6,7 +6,7 @@ import { discoverAndLoadExtensions } from '@mariozechner/pi-coding-agent'
 import { defaultBaseUrl } from 'curl.md'
 import { HttpResponse, http, passthrough } from 'msw'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
-import { server } from './server.ts'
+import { server } from '../test/server.ts'
 
 let defaultHomeDir: string
 

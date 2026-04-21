@@ -23,22 +23,21 @@
   },
   "exports": {
     ".": {
-      "types": "./server.ts",
-      "default": "./server.ts"
+      "types": "./src/server.ts",
+      "default": "./src/server.ts"
     },
     "./server": {
-      "types": "./server.ts",
-      "default": "./server.ts"
+      "types": "./src/server.ts",
+      "default": "./src/server.ts"
     },
     "./tui": {
-      "types": "./tui.ts",
-      "default": "./tui.ts"
+      "types": "./src/tui.ts",
+      "default": "./src/tui.ts"
     }
   },
   "files": [
-    "README.md",
-    "server.ts",
-    "tui.ts"
+    "src/**/*.ts",
+    "!src/**/*.test.ts"
   ],
   "type": "module",
   "scripts": {

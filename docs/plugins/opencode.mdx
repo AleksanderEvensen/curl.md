@@ -23,7 +23,7 @@ Install the plugin, launch OpenCode, and start curling.
 Install the [`@curl.md/opencode`](https://www.npmjs.com/package/@curl.md/opencode) package with OpenCode:
 
 ```sh
-$ opencode plugin @curl.md/opencode
+$ opencode plugin -g @curl.md/opencode
 ```
 
 This adds `@curl.md/opencode` to your OpenCode config so OpenCode installs it automatically at startup.
@@ -57,13 +57,13 @@ Optionally, [authenticate](#authentication) with the [`curl_md_login`](#commands
 Install the [`@curl.md/opencode`](https://www.npmjs.com/package/@curl.md/opencode) npm package with OpenCode:
 
 ```sh
-$ opencode plugin @curl.md/opencode
+$ opencode plugin @curl.md/opencode --global
 ```
 
-If you want to install it in your global OpenCode config instead of the current project, use:
+If you want to install it only for the current project instead of your global OpenCode config, use:
 
 ```sh
-$ opencode plugin @curl.md/opencode --global
+$ opencode plugin @curl.md/opencode
 ```
 
 If you prefer to edit config manually, add the package to your `opencode.json`:

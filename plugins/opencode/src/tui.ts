@@ -3,7 +3,7 @@ import * as os from 'node:os'
 import type * as opencodePluginTui from '@opencode-ai/plugin/tui'
 import * as curlmd from 'curl.md'
 import * as curlmdInternal from 'curl.md/internal'
-import packageJson from './package.json' with { type: 'json' }
+import packageJson from '../package.json' with { type: 'json' }
 import { createHeaders, formatApiError, parseApiError } from './utils.ts'
 
 const authStatusToastDurationMs = 6 * 1000 // 6 seconds

@@ -20,7 +20,8 @@
     "pi-package"
   ],
   "files": [
-    "extensions"
+    "src/**/*.ts",
+    "!src/**/*.test.ts"
   ],
   "type": "module",
   "scripts": {
@@ -28,7 +29,7 @@
   },
   "pi": {
     "extensions": [
-      "./extensions"
+      "./src"
     ]
   },
   "dependencies": {
