@@ -27,8 +27,8 @@ export const curlDocs = defineRule<{ fetch?: typeof globalThis.fetch }>({
   ],
   checks: [
     {
-      url: 'https://curl.md/docs/getting-started/installation',
-      contains: ['# Installation', 'curl.md auth login', 'Amp Plugin'],
+      url: 'https://curl.md/docs/install',
+      contains: ['# Installation', '## Plugins', 'curl -fsSL https://curl.md/install.sh | bash'],
     },
   ],
   rewrite(url) {
@@ -39,7 +39,7 @@ export const curlDocs = defineRule<{ fetch?: typeof globalThis.fetch }>({
     return new URL(`https://${url.hostname}/docs${pathname}.md`)
   },
   async fetch(input, init, context) {
-    return (context.options.fetch ?? context.fetch)(input, init)
+    return (context.options?.fetch ?? context.fetch)(input, init)
   },
 })
 
@@ -50,7 +50,7 @@ export const curlMd = defineRule<{ fetch?: typeof globalThis.fetch }>({
     new URLPattern({ hostname: '*.curl.:tld(md|local)' }),
   ],
   async fetch(_, _init, context) {
-    return (context.options.fetch ?? context.fetch)('https://curl.md/llms.txt')
+    return (context.options?.fetch ?? context.fetch)('https://curl.md/llms.txt')
   },
 })
 
