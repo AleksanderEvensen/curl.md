@@ -59,9 +59,7 @@ export function create(options: create.Options = {}): create.ReturnType {
 
       const contentType = (response.headers.get('content-type') ?? '').toLowerCase()
       const isMarkdown =
-        contentType.includes('text/markdown') ||
-        contentType.includes('text/x-markdown') ||
-        /\.mdx?$/i.test(rewrittenUrl.pathname)
+        contentType.includes('text/markdown') || /\.mdx?$/i.test(rewrittenUrl.pathname)
       const usesShortcut =
         rewrittenUrl.href !== inputURL.href ||
         Boolean(matched?.rule?.extract) ||

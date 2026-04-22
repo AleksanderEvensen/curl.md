@@ -875,9 +875,11 @@ describe('POST /api/credits/add', () => {
     let customerSessionBody = ''
     const stripeVersions = new Set<string>()
 
+    const customerId = `cus_test_${Nanoid.generate()}`
+
     server.use(
       http.post('https://api.stripe.com/v1/customers', () =>
-        HttpResponse.json({ id: 'cus_test_123', object: 'customer' }),
+        HttpResponse.json({ id: customerId, object: 'customer' }),
       ),
       http.get('https://api.stripe.com/v1/payment_methods', ({ request }) => {
         stripeVersions.add(request.headers.get('stripe-version') ?? '')
@@ -923,7 +925,7 @@ describe('POST /api/credits/add', () => {
       .where('id', '=', account.id)
       .select('stripe_customer_id')
       .executeTakeFirstOrThrow()
-    expect(updated.stripe_customer_id).toBe('cus_test_123')
+    expect(updated.stripe_customer_id).toBe(customerId)
     expect(customerSessionBody).toContain('payment_method_allow_redisplay_filters')
     expect(customerSessionBody).toContain('always')
     expect(customerSessionBody).toContain('limited')
@@ -2373,9 +2375,91 @@ test('GET /api/:url fetches URL and returns markdown', async () => {
   )
   expect(res.status).toBe(200)
   expect(res.headers.get('content-type')).toContain('text/markdown')
+  expect(res.headers.get('vary')).toContain('Accept')
   const text = await res.text()
   expect(text).toContain('Hello')
   expect(text).toContain('World')
+})
+
+test('GET /api/:url honors q-values when choosing json vs markdown', async () => {
+  server.use(
+    http.get(
+      'https://api-json.example.com/',
+      () =>
+        new HttpResponse('<html><body><h1>Hello</h1><p>World</p></body></html>', {
+          headers: { 'content-type': 'text/html' },
+        }),
+    ),
+  )
+
+  const res = await client.api[':url{.+}'].$get(
+    { param: { url: 'api-json.example.com' }, query: {} },
+    {
+      headers: {
+        Accept: 'text/markdown;q=0.5, application/json;q=1',
+        'cf-connecting-ip': '10.0.0.11',
+      },
+    },
+  )
+
+  expect(res.status).toBe(200)
+  expect(res.headers.get('content-type')).toContain('application/json')
+  expect(res.headers.get('vary')).toContain('Accept')
+  await expect(res.json()).resolves.toEqual({ content: expect.stringContaining('Hello') })
+})
+
+test('GET /api/:url returns 406 when Accept excludes supported response types', async () => {
+  const res = await client.api[':url{.+}'].$get(
+    { param: { url: 'api-unsupported.example.com' }, query: {} },
+    {
+      headers: {
+        Accept: 'image/png',
+        'cf-connecting-ip': '10.0.0.12',
+      },
+    },
+  )
+
+  expect(res.status).toBe(406)
+  expect(res.headers.get('vary')).toContain('Accept')
+  await expect(res.json()).resolves.toEqual({
+    code: 'not_acceptable',
+    message: 'Not Acceptable',
+  })
+})
+
+test('GET /api/:url defaults missing or wildcard Accept to markdown', async () => {
+  server.use(
+    http.get(
+      'https://api-missing-accept.example.com/',
+      () =>
+        new HttpResponse('<html><body><h1>Hello</h1><p>World</p></body></html>', {
+          headers: { 'content-type': 'text/html' },
+        }),
+    ),
+    http.get(
+      'https://api-wildcard-accept.example.com/',
+      () =>
+        new HttpResponse('<html><body><h1>Hello</h1><p>Wildcard</p></body></html>', {
+          headers: { 'content-type': 'text/html' },
+        }),
+    ),
+  )
+
+  const missingAccept = await client.api[':url{.+}'].$get(
+    { param: { url: 'api-missing-accept.example.com' }, query: {} },
+    { headers: { 'cf-connecting-ip': '10.0.0.13' } },
+  )
+  expect(missingAccept.status).toBe(200)
+  expect(missingAccept.headers.get('vary')).toContain('Accept')
+  expect(missingAccept.headers.get('content-type')).toContain('text/markdown')
+
+  const wildcardAccept = await client.api[':url{.+}'].$get(
+    { param: { url: 'api-wildcard-accept.example.com' }, query: {} },
+    { headers: { Accept: '*/*', 'cf-connecting-ip': '10.0.0.14' } },
+  )
+  expect(wildcardAccept.status).toBe(200)
+  expect(wildcardAccept.headers.get('vary')).toContain('Accept')
+  expect(wildcardAccept.headers.get('content-type')).toContain('text/markdown')
 })
 
 test('GET /api/:url fetches curl.md docs via assets', async () => {

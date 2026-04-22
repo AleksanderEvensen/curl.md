@@ -1,6 +1,7 @@
 import { Octokit } from '@octokit/core'
 import * as Sentry from '@sentry/cloudflare'
 import { Hono } from 'hono'
+import { accepts } from 'hono/accepts'
 import { html, raw } from 'hono/html'
 import { sql } from 'kysely'
 import { jsonArrayFrom } from 'kysely/helpers/postgres'
@@ -1894,12 +1895,31 @@ export const api = new Hono<{
         ) as never // casting to never so hono/client can infer c.json responses
       }
 
-      const orgHeader = c.req.header('x-organization-id')
-      if (orgHeader && !c.var.organization_id)
+      if (c.req.header('x-organization-id') && !c.var.organization_id)
         return c.json(
           { code: 'organization_access_denied' as const, message: 'Organization access denied' },
           403,
         )
+
+      const accept = accepts(c, {
+        default: 'text/markdown',
+        header: 'Accept',
+        match(accepts) {
+          const accept = accepts.find((accept) => {
+            if (accept.q <= 0) return false
+            const type = accept.type.toLowerCase()
+            return type === '*/*' || type === 'application/json' || type === 'text/markdown'
+          })
+          if (!accept) return 'not_acceptable'
+          if (accept.type === '*/*') return 'text/markdown'
+          return accept.type.toLowerCase()
+        },
+        supports: ['application/json', 'text/markdown'],
+      })
+      if (accept === 'not_acceptable')
+        return c.json({ code: 'not_acceptable' as const, message: 'Not Acceptable' }, 406, {
+          vary: 'Accept',
+        })
 
       // Rate limit: three tiers (anon, authed/free, paid)
       const identity = c.var.session
@@ -2219,6 +2239,7 @@ export const api = new Hono<{
         ...rateLimitHeaders,
         'access-control-expose-headers':
           'retry-after, x-cache, x-cost-mills, x-credits-remaining, x-ratelimit-limit, x-ratelimit-remaining, x-ratelimit-reset, x-request-id, x-tokens-count, x-tokens-saved',
+        vary: 'Accept',
         'x-cache': cached ? 'HIT' : 'MISS',
         'x-cost-mills': String(costMills),
         'x-request-id': requestId,
@@ -2236,8 +2257,7 @@ export const api = new Hono<{
         ? finalDocument.trimEnd()
         : `${finalDocument.trimEnd()}${Constants.attribution.suffix}`
 
-      // TODO: toon response
-      if (c.req.header('accept')?.includes('application/json'))
+      if (accept === 'application/json')
         // casting to string so hono/client can infer c.json response
         return c.json({ content: content as string }, 200, commonHeaders)
 

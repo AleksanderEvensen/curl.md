@@ -4,8 +4,16 @@ import { z } from 'zod'
 import { api } from '#api.ts'
 import { cleanupExpired } from '#crons/cleanup.ts'
 import { createClient } from '#db/client.ts'
+import { appendVaryAccept, negotiateAccept } from '#lib/accept.ts'
 import { processRequestMessage } from '#queues/request.ts'
 import { processStripeWebhookMessage } from '#queues/stripe-webhook.ts'
+
+const staticAssets = {
+  '/llms.txt': '/llms.txt',
+  '/skills': '/.well-known/skills/index.json',
+  '/.well-known/skills': '/.well-known/skills/index.json',
+  '/.well-known/skills/curl-md': '/.well-known/skills/curl-md/SKILL.md',
+} as const
 
 export default Sentry.withSentry<Env, QueueHandlerMessage>(
   (env) => ({
@@ -14,11 +22,17 @@ export default Sentry.withSentry<Env, QueueHandlerMessage>(
     sendDefaultPii: true,
   }),
   {
-    fetch(request, env, ctx) {
+    async fetch(request, env, ctx) {
       const url = new URL(request.url)
 
       // Route API requests to the Hono API handler
       if (url.pathname.startsWith('/api/')) return api.fetch(new Request(url, request), env, ctx)
+
+      // Serve known static assets directly from Workers Assets binding
+      const path = url.pathname.replace(/\/+$/, '')
+      if (path in staticAssets)
+        return env.ASSETS.fetch(new URL(staticAssets[path as keyof typeof staticAssets], url))
+
       // Route dot-segment paths (e.g. curl.md/example.com) to the API handler under /api prefix
       const firstSegment = url.pathname.split('/')[1] ?? ''
       if (firstSegment.includes('.') || /^https?:$/.test(firstSegment)) {
@@ -36,31 +50,67 @@ export default Sentry.withSentry<Env, QueueHandlerMessage>(
         url.pathname = `/api${url.pathname}`
         return api.fetch(new Request(url, request), env, ctx)
       }
-      // Serve known static assets directly from Workers Assets binding
-      const path = url.pathname.replace(/\/+$/, '')
-      const staticAssets = {
-        '/llms.txt': '/llms.txt',
-        '/skills': '/.well-known/skills/index.json',
-        '/.well-known/skills': '/.well-known/skills/index.json',
-        '/.well-known/skills/curl-md': '/.well-known/skills/curl-md/SKILL.md',
-      } as const
-      if (path in staticAssets)
-        return env.ASSETS.fetch(new URL(staticAssets[path as keyof typeof staticAssets], url))
-      const docsMarkdownAssetPath = getDocsMarkdownAssetPath(url.pathname)
-      if (docsMarkdownAssetPath && wantsMarkdownResponse(request)) {
-        const docsMarkdownUrl = new URL(docsMarkdownAssetPath, url)
-        docsMarkdownUrl.search = url.search
-        return env.ASSETS.fetch(new Request(docsMarkdownUrl, request))
-      }
-      // Fall through to TanStack Start SSR handler for all other routes (app pages)
+
+      // Redirect docs requests to lowercase canonical paths, but preserve case for other routes.
+      const lowercasePathname = url.pathname.toLowerCase()
+      if (
+        url.pathname !== lowercasePathname &&
+        (lowercasePathname === '/docs' || lowercasePathname.startsWith('/docs/'))
+      )
+        return new Response(null, {
+          status: 301,
+          headers: { location: `${lowercasePathname}${url.search}` },
+        })
+
+      // Handle docs .md endpoints
+      const docsPathname = (() => {
+        if (url.pathname === '/docs' || url.pathname === '/docs/') return '/docs/index.md'
+        if (!url.pathname.startsWith('/docs/')) return
+        if (url.pathname.endsWith('.txt')) return
+        const normalizedPathname = url.pathname.replace(/\/+$/, '')
+        if (normalizedPathname.endsWith('.md')) return normalizedPathname
+        return `${normalizedPathname}.md`
+      })()
+      const docsAcceptType = (() => {
+        if (url.pathname.endsWith('.md')) return 'markdown'
+        return negotiateAccept(request.headers.get('accept'), (acceptedValue) => {
+          if (acceptedValue.q <= 0) return null
+          if (acceptedValue.type === '*' && acceptedValue.subtype === '*') return 'html' as const
+          if (acceptedValue.type === 'text' && acceptedValue.subtype === '*') return 'html' as const
+          if (acceptedValue.type === 'text' && acceptedValue.subtype === 'html')
+            return 'html' as const
+          if (acceptedValue.type === 'text' && acceptedValue.subtype === 'markdown')
+            return 'markdown' as const
+          return null
+        })
+      })()
+      if (docsPathname)
+        switch (docsAcceptType) {
+          case 'markdown': {
+            const docsMarkdownUrl = new URL(docsPathname, url)
+            docsMarkdownUrl.search = url.search
+            const response = env.ASSETS.fetch(new Request(docsMarkdownUrl, request))
+            if (!url.pathname.endsWith('.md')) return appendVaryAccept(await response)
+            return response
+          }
+          case null:
+            return new Response('Not Acceptable', {
+              status: 406,
+              headers: { vary: 'Accept' },
+            })
+        }
+
+      // Validate pathname
       try {
         decodeURI(url.pathname)
       } catch {
         return new Response('Bad Request', { status: 400 })
       }
-      return serverEntry.fetch(request, {
-        context: { ctx, env, request },
-      } as Parameters<typeof serverEntry.fetch>[1])
+
+      // Fall through to TanStack Start SSR handler for all other routes (app pages)
+      const response = serverEntry.fetch(request, { context: { ctx, env, request } })
+      if (docsAcceptType === 'html') return appendVaryAccept(await response)
+      return response
     },
     async queue(batch, env) {
       if (batch.queue.endsWith('-dlq')) {
@@ -108,21 +158,6 @@ export default Sentry.withSentry<Env, QueueHandlerMessage>(
     },
   },
 )
-
-function wantsMarkdownResponse(request: Request) {
-  const accept = request.headers.get('accept') ?? ''
-  return accept.includes('text/markdown') || accept.includes('text/x-markdown')
-}
-
-function getDocsMarkdownAssetPath(pathname: string) {
-  if (pathname === '/docs' || pathname === '/docs/') return '/docs/index.md'
-  if (!pathname.startsWith('/docs/')) return
-  if (pathname.endsWith('.txt')) return
-
-  const normalizedPathname = pathname.replace(/\/+$/, '')
-  if (normalizedPathname.endsWith('.md')) return normalizedPathname
-  return `${normalizedPathname}.md`
-}
 
 type QueueHandlerMessage = processRequestMessage.Body | processStripeWebhookMessage.Body
 
