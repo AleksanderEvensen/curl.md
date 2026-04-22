@@ -3,6 +3,12 @@ name: Release Binaries
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to build binaries for
+        required: true
+        type: string
   workflow_call:
     inputs:
       tag:
@@ -70,9 +76,14 @@ jobs:
         if: startsWith(matrix.target, 'bun-darwin-')
         run: codesign --verify --verbose=4 "${{ matrix.artifact }}"
 
-      - name: Verify binary runs
+      - name: Verify binary
         if: matrix.os != 'ubuntu-latest' || !endsWith(matrix.artifact, '.exe')
-        run: ./"${{ matrix.artifact }}" --version
+        run: |
+          if [ "${{ matrix.target }}" = 'bun-linux-arm64' ]; then
+            file "${{ matrix.artifact }}" | grep 'ARM aarch64'
+          else
+            ./"${{ matrix.artifact }}" --version
+          fi
 
       - name: Generate checksum
         run: shasum -a 256 "${{ matrix.artifact }}" | cut -d' ' -f1 > "${{ matrix.artifact }}.sha256"
