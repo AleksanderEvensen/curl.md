@@ -122,14 +122,14 @@ export default defineConfig({
         test: {
           name: 'md',
           include: ['src/md/**/*.test.ts'],
-          exclude: ['**/smoke.test.ts'],
+          exclude: ['**/*.smoke.test.ts'],
           root,
         },
       },
       {
         test: {
           name: 'md:smoke',
-          include: ['src/md/rules/smoke.test.ts'],
+          include: ['src/md/**/*.smoke.test.ts'],
           root,
           testTimeout: 30_000,
         },
