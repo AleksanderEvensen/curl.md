@@ -68,7 +68,7 @@ test('runs when invoked through a symlinked bin path', async () => {
   await fs.mkdir(binDir, { recursive: true })
   await fs.writeFile(npmPath, '#!/bin/sh\nexit 0\n', 'utf8')
   await fs.chmod(npmPath, 0o755)
-  await fs.symlink(path.join(process.cwd(), 'plugins/amp/install.ts'), entryPath)
+  await fs.symlink(path.join(process.cwd(), 'plugins/amp/src/install.ts'), entryPath)
 
   const result = spawnSync(process.execPath, ['--experimental-strip-types', entryPath, 'install'], {
     cwd: process.cwd(),

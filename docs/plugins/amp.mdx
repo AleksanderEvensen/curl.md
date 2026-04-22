@@ -24,7 +24,7 @@ Install the plugin, launch Amp, and start curling.
 Run the [`@curl.md/amp`](https://www.npmjs.com/package/@curl.md/amp) package installer:
 
 ```sh
-$ npx @curl.md/amp install
+$ npx @curl.md/amp install --yes
 ```
 
 Successful installs create the Amp plugin shim in `~/.config/amp/plugins/curlmd.ts`.
@@ -59,10 +59,16 @@ Amp will automatically use curl.md to turn URLs you paste, or URLs it decides to
 Run the [`@curl.md/amp`](https://www.npmjs.com/package/@curl.md/amp) npm package installer:
 
 ```sh
-$ npx @curl.md/amp install
+$ npx @curl.md/amp install --yes
 ```
 
 This installs the package into Amp’s config directory and writes the plugin shim Amp loads from `~/.config/amp/plugins/curlmd.ts`.
+
+To update an existing install, rerun the installer at the latest version:
+
+```sh
+$ npx @curl.md/amp@latest install --yes
+```
 
 If you prefer to add the shim manually, create your own plugin entry in `~/.config/amp/plugins`:
 

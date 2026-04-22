@@ -6,8 +6,8 @@
     "curlmd-amp": "./dist/install.js"
   },
   "contributors": [
-    "awkweb.eth <t@wevm.dev>",
-    "jxom.eth <j@wevm.dev>"
+    "tmm <t@curl.md>",
+    "jxom <j@curl.md>"
   ],
   "license": "MIT",
   "repository": {
@@ -23,14 +23,14 @@
   ],
   "exports": {
     ".": {
-      "types": "./plugin.ts",
-      "default": "./plugin.ts"
+      "types": "./src/plugin.ts",
+      "default": "./src/plugin.ts"
     }
   },
   "files": [
-    "README.md",
-    "dist",
-    "plugin.ts"
+    "dist/**",
+    "src/**/*.ts",
+    "!src/**/*.test.ts"
   ],
   "type": "module",
   "scripts": {

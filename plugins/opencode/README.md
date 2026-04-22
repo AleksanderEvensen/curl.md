@@ -16,7 +16,13 @@ Turn websites into **optimized, low token output** inside **OpenCode**.
 ## Install
 
 ```sh
-opencode plugin @curl.md/opencode
+opencode plugin -g @curl.md/opencode
+```
+
+To update:
+
+```sh
+opencode plugin -g @curl.md/opencode --force
 ```
 
 ## Documentation

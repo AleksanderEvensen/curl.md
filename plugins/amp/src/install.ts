@@ -78,7 +78,9 @@ export async function installAmpPlugin(
       await fs.readFile(
         path.join(
           path.dirname(fileURLToPath(import.meta.url)),
-          path.basename(path.dirname(fileURLToPath(import.meta.url))) === 'dist' ? '..' : '.',
+          ['dist', 'src'].includes(path.basename(path.dirname(fileURLToPath(import.meta.url))))
+            ? '..'
+            : '.',
           'package.json',
         ),
         'utf8',

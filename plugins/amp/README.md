@@ -16,7 +16,13 @@ Turn websites into **optimized, low token output** inside **Amp**.
 ## Install
 
 ```sh
-npx @curl.md/amp install
+npx @curl.md/amp install --yes
+```
+
+To update:
+
+```sh
+npx @curl.md/amp@latest install --yes
 ```
 
 ## Documentation

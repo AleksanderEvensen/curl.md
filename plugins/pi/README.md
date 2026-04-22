@@ -16,7 +16,13 @@ Turn websites into **optimized, low token output** inside **Pi**.
 ## Install
 
 ```sh
-pi install @curl.md/pi
+pi install npm:@curl.md/pi
+```
+
+To update:
+
+```sh
+pi update npm:@curl.md/pi
 ```
 
 ## Documentation

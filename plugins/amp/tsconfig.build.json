@@ -5,8 +5,8 @@
     "noEmit": false,
     "outDir": "dist",
     "rewriteRelativeImportExtensions": true,
-    "rootDir": "."
+    "rootDir": "src"
   },
-  "include": ["install.ts"],
-  "exclude": ["*.test.ts", "test"]
+  "include": ["src/install.ts"],
+  "exclude": ["*.test.ts"]
 }

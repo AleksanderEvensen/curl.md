@@ -57,7 +57,7 @@ Optionally, [authenticate](#authentication) with the [`curl_md_login`](#commands
 Install the [`@curl.md/opencode`](https://www.npmjs.com/package/@curl.md/opencode) npm package with OpenCode:
 
 ```sh
-$ opencode plugin @curl.md/opencode --global
+$ opencode plugin -g @curl.md/opencode
 ```
 
 If you want to install it only for the current project instead of your global OpenCode config, use:
@@ -73,6 +73,12 @@ If you prefer to edit config manually, add the package to your `opencode.json`:
   "$schema": "https://opencode.ai/config.json",
   "plugin": ["@curl.md/opencode"]
 }
+```
+
+To update an existing install, rerun the plugin install command with `--force`.
+
+```sh
+$ opencode plugin -g @curl.md/opencode --force
 ```
 
 ## Configuration

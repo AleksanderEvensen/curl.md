@@ -3,8 +3,8 @@
   "version": "0.0.4",
   "description": "curl.md plugin for OpenCode",
   "contributors": [
-    "awkweb.eth <t@wevm.dev>",
-    "jxom.eth <j@wevm.dev>"
+    "tmm <t@curl.md>",
+    "jxom <j@curl.md>"
   ],
   "funding": "https://github.com/sponsors/wevm",
   "license": "MIT",

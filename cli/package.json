@@ -3,8 +3,8 @@
   "version": "0.0.19",
   "description": "URL to markdown for agents",
   "contributors": [
-    "awkweb.eth <t@wevm.dev>",
-    "jxom.eth <j@wevm.dev>"
+    "tmm <t@curl.md>",
+    "jxom <j@curl.md>"
   ],
   "funding": "https://github.com/sponsors/wevm",
   "keywords": [
