@@ -95,7 +95,7 @@ jobs:
         uses: ./.github/actions/setup-pnpm
 
       - name: Check dependencies
-        run: pnpm --filter curl.md check:deps
+        run: pnpm check:deps
 
       - name: Shellcheck
         run: shellcheck public/install.sh

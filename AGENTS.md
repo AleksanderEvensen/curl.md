@@ -115,3 +115,4 @@ Follow [PlanetScale Postgres skill](https://github.com/planetscale/database-skil
 - Use `pnpm-workspace.yaml>overrides` instead of `package.json#pnpm.overrides`
 - `.env` is used instead of `.dev.vars`
 - Use `.github/TODO.md` for general TODOs not attached to specific files/lines
+- Make sure comments don't get dropped from `pnpm-workspace.yaml` when making edits or fixing `pnpm audit`

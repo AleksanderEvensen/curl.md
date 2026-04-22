@@ -1,0 +1,22 @@
+{
+  "$schema": "../node_modules/knip/schema.json",
+  "exclude": ["binaries", "catalog", "duplicates", "exports", "unlisted"],
+  "ignoreWorkspaces": ["."],
+  "workspaces": {
+    "cli": {
+      "entry": ["src/bin.ts", "src/exports/index.ts", "src/exports/internal.ts"],
+      "ignore": ["**/*.test.ts", "**/*.test-d.ts", "**/test/**"],
+      "ignoreDependencies": ["bun"]
+    },
+    "plugins/*": {
+      "ignore": ["**/*.test.ts"]
+    },
+    "plugins/amp": {
+      "entry": ["src/install.ts"],
+      "ignore": ["**/*.test.ts"]
+    },
+    "plugins/pi": {
+      "ignore": ["**/*.test.ts", "test/**"]
+    }
+  }
+}

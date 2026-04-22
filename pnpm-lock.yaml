@@ -207,6 +207,9 @@ importers:
       emulate:
         specifier: 0.4.1
         version: 0.4.1(hono@4.12.14)
+      knip:
+        specifier: ^6.0.6
+        version: 6.0.6(@emnapi/core@1.8.1)(@emnapi/runtime@1.9.2)
       kysely-ctl:
         specifier: ~0.20.0
         version: 0.20.0(kysely-postgres-js@3.0.0(kysely@0.28.14)(postgres@3.4.8))(kysely@0.28.14)(typescript@5.9.3)
@@ -289,9 +292,6 @@ importers:
       bun:
         specifier: ^1.3.10
         version: 1.3.10
-      knip:
-        specifier: ^6.0.6
-        version: 6.0.6
 
   plugins/amp:
     dependencies:
@@ -311,10 +311,6 @@ importers:
       curl.md:
         specifier: workspace:*
         version: link:../../cli
-    devDependencies:
-      opencode-ai:
-        specifier: 1.4.7
-        version: 1.4.7
 
   plugins/pi:
     dependencies:
@@ -743,9 +739,6 @@ packages:
 
   '@emnapi/core@1.8.1':
     resolution: {integrity: sha512-AvT9QFpxK0Zd8J0jopedNm+w/2fIzvtPKPjqyw9jwvBaReTTqPBk9Hixaz7KbjimP+QNz605/XnjFcDAL2pqBg==}
-
-  '@emnapi/runtime@1.8.1':
-    resolution: {integrity: sha512-mehfKSMWjjNol8659Z8KxEMrdSJDDot5SXMq00dM8BN4o+CLNXQ0xH2V7EchNHV4RmbZLmmPdEaXZc5H2FXmDg==}
 
   '@emnapi/runtime@1.9.2':
     resolution: {integrity: sha512-3U4+MIWHImeyu1wnmVygh5WlgfYDtyf0k8AbLhMFxOipihf6nrWC4syIm/SwEeec0mNSafiiNnMJwbza/Is6Lw==}
@@ -1505,9 +1498,6 @@ packages:
   '@mswjs/interceptors@0.41.3':
     resolution: {integrity: sha512-cXu86tF4VQVfwz8W1SPbhoRyHJkti6mjH/XJIxp40jhO4j2k1m4KYrEykxqWPkFF3vrK4rgQppBh//AwyGSXPA==}
     engines: {node: '>=18'}
-
-  '@napi-rs/wasm-runtime@1.1.1':
-    resolution: {integrity: sha512-p64ah1M1ld8xjWv3qbvFwHiFVWrq1yFvV4f7w+mzaqiR4IlSgkqhcRdHwsGgomwzBH51sRY4NEowLxnaBjcW/A==}
 
   '@napi-rs/wasm-runtime@1.1.2':
     resolution: {integrity: sha512-sNXv5oLJ7ob93xkZ1XnxisYhGYXfaG9f65/ZgYuAu3qt7b3NadcOEhLvx28hv31PgX8SZJRYrAIPQilQmFpLVw==}
@@ -5107,70 +5097,6 @@ packages:
       zod:
         optional: true
 
-  opencode-ai@1.4.7:
-    resolution: {integrity: sha512-SKQlB6urjeol7J94A9UL0PsUZvy/rc9YOncDDTOIlYhqdpZ+TY8BXXk8FZNA9DtCXom4QFxu0QdWGQb4KhRzyw==}
-    hasBin: true
-
-  opencode-darwin-arm64@1.4.7:
-    resolution: {integrity: sha512-/y7j2QMoZRbNVuukhnKg5HcGtVfqU7eX+rdz1OqbcEi0dUHCCwMAp2HXl5KEXyxaR37cZPl38KTE6i9GhrpuiA==}
-    cpu: [arm64]
-    os: [darwin]
-
-  opencode-darwin-x64-baseline@1.4.7:
-    resolution: {integrity: sha512-y4AoVTcL2O7R32r8RTAsdE48QxodhEDhm3pnoue/aSFnTBYpUPGSAGwKtDQAGa0RIpIpx0+C9TxGF5F/8rHtZA==}
-    cpu: [x64]
-    os: [darwin]
-
-  opencode-darwin-x64@1.4.7:
-    resolution: {integrity: sha512-tpJwPFbmaEQGZ2eQBQogNT42ERVRWieRrvn4iHbgSnkqEJBob0FVzm0gSmQyTGtoierGOBbkVqAsjQZQIbSyCQ==}
-    cpu: [x64]
-    os: [darwin]
-
-  opencode-linux-arm64-musl@1.4.7:
-    resolution: {integrity: sha512-7Acj2mHHzbFQ7dvy2GOKHg+BzPEPWTXggReyHlCJxNukqn90MvFqEpaikB7XpVZfxjZB+cwQX5XyC2RdBLLDdA==}
-    cpu: [arm64]
-    os: [linux]
-
-  opencode-linux-arm64@1.4.7:
-    resolution: {integrity: sha512-VhvB/8WDNpBo062wN5z4ADp8TJIc6fasXocZIVNbLKx27COZKx3rUDxAZjlq0J3X81oOZpDWnbHYkPaRVY5cvA==}
-    cpu: [arm64]
-    os: [linux]
-
-  opencode-linux-x64-baseline-musl@1.4.7:
-    resolution: {integrity: sha512-AxMe8U3Z+LTqNUrPvot2W7V7haXN1GWfODE3lSqj5JwGIvOzYXtA3cmHWz7tuYQ/ifG1LglvRec3wiXnScF3rA==}
-    cpu: [x64]
-    os: [linux]
-
-  opencode-linux-x64-baseline@1.4.7:
-    resolution: {integrity: sha512-Hr68LfPkw/1DV1WVG0TnBLSxPCN8bs8lm6SYkQRCl5IfP6Fd6XT+yDphz8P/mDPrZyRzty9trysKEoc9m7EjYg==}
-    cpu: [x64]
-    os: [linux]
-
-  opencode-linux-x64-musl@1.4.7:
-    resolution: {integrity: sha512-t5woMPmiXpG8F5LWVX/YgMIiWDJbQYu0uH77Hgvhfjk5XsfIkmLRiVWj7odF+b/3KafLMJiLS+LV2QnsR4QEpQ==}
-    cpu: [x64]
-    os: [linux]
-
-  opencode-linux-x64@1.4.7:
-    resolution: {integrity: sha512-NfVPW7Ao4VxEqqkhl4GCDwRRybcUKWVfk+ByQzGHE9APGQW79ZuKiATU3Y2LdivdIhfF41O07EVp3IcTC10kaw==}
-    cpu: [x64]
-    os: [linux]
-
-  opencode-windows-arm64@1.4.7:
-    resolution: {integrity: sha512-HBdvYVw5eSaCSme5IS9feqkWsUmZz1Os++tpuj23gPDOLID/kh28t5UQvl7iFYk6sdvOCIdcsVsBh4o0CnMg4Q==}
-    cpu: [arm64]
-    os: [win32]
-
-  opencode-windows-x64-baseline@1.4.7:
-    resolution: {integrity: sha512-1Z0h5zCP5pHT2XlVb3tYixHDQixpEqdVU5wSRSgr+nL6YePtq9M4yTi/puR+sd/RwLvi5zX3AgtWGkvddtH1FQ==}
-    cpu: [x64]
-    os: [win32]
-
-  opencode-windows-x64@1.4.7:
-    resolution: {integrity: sha512-MO/75FNgijPoR0/8AwUAuvWnlHAjEzUCyYbCo5dnEy8M+Ur32xG3Rn30D43bWVEQZ8P8jEjQwnHXjOKXGbRJOA==}
-    cpu: [x64]
-    os: [win32]
-
   outdent@0.5.0:
     resolution: {integrity: sha512-/jHxFIzoMXdqPzTaCpFzAAWhpkSjZPF4Vsn6jAfNpmbH/ymsmd7Qc6VE9BGn0L6YMj6uwpQLxCECpus4ukKS9Q==}
 
@@ -7183,11 +7109,6 @@ snapshots:
       tslib: 2.8.1
     optional: true
 
-  '@emnapi/runtime@1.8.1':
-    dependencies:
-      tslib: 2.8.1
-    optional: true
-
   '@emnapi/runtime@1.9.2':
     dependencies:
       tslib: 2.8.1
@@ -7825,13 +7746,6 @@ snapshots:
       outvariant: 1.4.3
       strict-event-emitter: 0.5.1
 
-  '@napi-rs/wasm-runtime@1.1.1':
-    dependencies:
-      '@emnapi/core': 1.8.1
-      '@emnapi/runtime': 1.8.1
-      '@tybys/wasm-util': 0.10.1
-    optional: true
-
   '@napi-rs/wasm-runtime@1.1.2(@emnapi/core@1.8.1)(@emnapi/runtime@1.9.2)':
     dependencies:
       '@emnapi/core': 1.8.1
@@ -8015,9 +7929,12 @@ snapshots:
   '@oxc-parser/binding-openharmony-arm64@0.120.0':
     optional: true
 
-  '@oxc-parser/binding-wasm32-wasi@0.120.0':
+  '@oxc-parser/binding-wasm32-wasi@0.120.0(@emnapi/core@1.8.1)(@emnapi/runtime@1.9.2)':
     dependencies:
-      '@napi-rs/wasm-runtime': 1.1.1
+      '@napi-rs/wasm-runtime': 1.1.2(@emnapi/core@1.8.1)(@emnapi/runtime@1.9.2)
+    transitivePeerDependencies:
+      - '@emnapi/core'
+      - '@emnapi/runtime'
     optional: true
 
   '@oxc-parser/binding-win32-arm64-msvc@0.120.0':
@@ -8081,9 +7998,12 @@ snapshots:
   '@oxc-resolver/binding-openharmony-arm64@11.19.1':
     optional: true
 
-  '@oxc-resolver/binding-wasm32-wasi@11.19.1':
+  '@oxc-resolver/binding-wasm32-wasi@11.19.1(@emnapi/core@1.8.1)(@emnapi/runtime@1.9.2)':
     dependencies:
-      '@napi-rs/wasm-runtime': 1.1.1
+      '@napi-rs/wasm-runtime': 1.1.2(@emnapi/core@1.8.1)(@emnapi/runtime@1.9.2)
+    transitivePeerDependencies:
+      - '@emnapi/core'
+      - '@emnapi/runtime'
     optional: true
 
   '@oxc-resolver/binding-win32-arm64-msvc@11.19.1':
@@ -10802,7 +10722,7 @@ snapshots:
 
   kleur@4.1.5: {}
 
-  knip@6.0.6:
+  knip@6.0.6(@emnapi/core@1.8.1)(@emnapi/runtime@1.9.2):
     dependencies:
       '@nodelib/fs.walk': 1.2.8
       fast-glob: 3.3.3
@@ -10810,8 +10730,8 @@ snapshots:
       get-tsconfig: 4.13.7
       jiti: 2.6.1
       minimist: 1.2.8
-      oxc-parser: 0.120.0
-      oxc-resolver: 11.19.1
+      oxc-parser: 0.120.0(@emnapi/core@1.8.1)(@emnapi/runtime@1.9.2)
+      oxc-resolver: 11.19.1(@emnapi/core@1.8.1)(@emnapi/runtime@1.9.2)
       picocolors: 1.1.1
       picomatch: 4.0.4
       smol-toml: 1.6.1
@@ -10819,6 +10739,9 @@ snapshots:
       unbash: 2.2.0
       yaml: 2.8.3
       zod: 4.3.6
+    transitivePeerDependencies:
+      - '@emnapi/core'
+      - '@emnapi/runtime'
 
   koffi@2.15.6:
     optional: true
@@ -11646,62 +11569,11 @@ snapshots:
       ws: 8.20.0
       zod: 4.3.6
 
-  opencode-ai@1.4.7:
-    optionalDependencies:
-      opencode-darwin-arm64: 1.4.7
-      opencode-darwin-x64: 1.4.7
-      opencode-darwin-x64-baseline: 1.4.7
-      opencode-linux-arm64: 1.4.7
-      opencode-linux-arm64-musl: 1.4.7
-      opencode-linux-x64: 1.4.7
-      opencode-linux-x64-baseline: 1.4.7
-      opencode-linux-x64-baseline-musl: 1.4.7
-      opencode-linux-x64-musl: 1.4.7
-      opencode-windows-arm64: 1.4.7
-      opencode-windows-x64: 1.4.7
-      opencode-windows-x64-baseline: 1.4.7
-
-  opencode-darwin-arm64@1.4.7:
-    optional: true
-
-  opencode-darwin-x64-baseline@1.4.7:
-    optional: true
-
-  opencode-darwin-x64@1.4.7:
-    optional: true
-
-  opencode-linux-arm64-musl@1.4.7:
-    optional: true
-
-  opencode-linux-arm64@1.4.7:
-    optional: true
-
-  opencode-linux-x64-baseline-musl@1.4.7:
-    optional: true
-
-  opencode-linux-x64-baseline@1.4.7:
-    optional: true
-
-  opencode-linux-x64-musl@1.4.7:
-    optional: true
-
-  opencode-linux-x64@1.4.7:
-    optional: true
-
-  opencode-windows-arm64@1.4.7:
-    optional: true
-
-  opencode-windows-x64-baseline@1.4.7:
-    optional: true
-
-  opencode-windows-x64@1.4.7:
-    optional: true
-
   outdent@0.5.0: {}
 
   outvariant@1.4.3: {}
 
-  oxc-parser@0.120.0:
+  oxc-parser@0.120.0(@emnapi/core@1.8.1)(@emnapi/runtime@1.9.2):
     dependencies:
       '@oxc-project/types': 0.120.0
     optionalDependencies:
@@ -11721,12 +11593,15 @@ snapshots:
       '@oxc-parser/binding-linux-x64-gnu': 0.120.0
       '@oxc-parser/binding-linux-x64-musl': 0.120.0
       '@oxc-parser/binding-openharmony-arm64': 0.120.0
-      '@oxc-parser/binding-wasm32-wasi': 0.120.0
+      '@oxc-parser/binding-wasm32-wasi': 0.120.0(@emnapi/core@1.8.1)(@emnapi/runtime@1.9.2)
       '@oxc-parser/binding-win32-arm64-msvc': 0.120.0
       '@oxc-parser/binding-win32-ia32-msvc': 0.120.0
       '@oxc-parser/binding-win32-x64-msvc': 0.120.0
+    transitivePeerDependencies:
+      - '@emnapi/core'
+      - '@emnapi/runtime'
 
-  oxc-resolver@11.19.1:
+  oxc-resolver@11.19.1(@emnapi/core@1.8.1)(@emnapi/runtime@1.9.2):
     optionalDependencies:
       '@oxc-resolver/binding-android-arm-eabi': 11.19.1
       '@oxc-resolver/binding-android-arm64': 11.19.1
@@ -11744,10 +11619,13 @@ snapshots:
       '@oxc-resolver/binding-linux-x64-gnu': 11.19.1
       '@oxc-resolver/binding-linux-x64-musl': 11.19.1
       '@oxc-resolver/binding-openharmony-arm64': 11.19.1
-      '@oxc-resolver/binding-wasm32-wasi': 11.19.1
+      '@oxc-resolver/binding-wasm32-wasi': 11.19.1(@emnapi/core@1.8.1)(@emnapi/runtime@1.9.2)
       '@oxc-resolver/binding-win32-arm64-msvc': 11.19.1
       '@oxc-resolver/binding-win32-ia32-msvc': 11.19.1
       '@oxc-resolver/binding-win32-x64-msvc': 11.19.1
+    transitivePeerDependencies:
+      - '@emnapi/core'
+      - '@emnapi/runtime'
 
   oxfmt@0.40.0:
     dependencies:

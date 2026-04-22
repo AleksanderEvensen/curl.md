@@ -11,6 +11,7 @@ auditConfig:
     - CVE-2026-2229
     - CVE-2026-2581
   ignoreGhsas:
+    # false positive — matches npm "cli" package, not our "curl.md" workspace
     - GHSA-6cpc-mj5c-m9rq
 
 catalog:
@@ -38,12 +39,15 @@ overrides:
   h3: 2.0.1-rc.18
   h3-v2: npm:h3@2.0.1-rc.18
   lodash@>=4.0.0 <4.18.0: 4.18.0
+  # Override undici to avoid miniflare bug where POST + 401 → 500.
+  # TODO: Remove once miniflare ships with a fixed undici version.
+  # https://github.com/cloudflare/workers-sdk/issues/12912
   miniflare>undici: 7.18.2
   path-to-regexp@>=8.0.0 <8.4.0: 8.4.0
   picomatch@>=4.0.0 <4.0.4: 4.0.4
   protobufjs@<7.5.5: 7.5.5
 
-# Temporary until TanStack/router issue #7115 lands
+# TODO: Remove once fix is in
 # https://github.com/TanStack/router/pull/7115
 patchedDependencies:
   '@tanstack/react-router@1.168.7': config/patches/@tanstack__react-router@1.168.7.patch
