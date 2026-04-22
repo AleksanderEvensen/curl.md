@@ -11,6 +11,7 @@ import * as Constants from '#lib/constants.ts'
 import * as Cookie from '#lib/cookie.ts'
 import * as Crypto from '#lib/crypto.ts'
 import * as Nanoid from '#lib/nanoid.ts'
+import * as SessionToken from '#lib/sessionToken.ts'
 import { createFactory } from '#test/factory.ts'
 import { server } from '#test/workers.server.ts'
 
@@ -269,6 +270,101 @@ describe('POST /api/auth/logout', () => {
     const res = await client.api.auth.logout.$post()
     expect(res.status).toBe(200)
     await expect(res.json()).resolves.toEqual({ ok: true })
+  })
+})
+
+describe('POST /api/auth/headers', () => {
+  test('mints cli auth headers from browser session', async () => {
+    const account = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: account.id })
+
+    const res = await client.api.auth.headers.$post(
+      {},
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
+        },
+      },
+    )
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    assert('authorization' in json, 'authorization not defined')
+    assert('expires_at' in json, 'expires_at not defined')
+    assert('refresh_token' in json, 'refresh_token not defined')
+    assert('refresh_token_expires_at' in json, 'refresh_token_expires_at not defined')
+    expect(json.authorization).toMatch(/^Bearer curlmd_at_/)
+    expect(json.refresh_token).toMatch(/^curlmd_rt_/)
+
+    await expect(
+      db
+        .selectFrom('session')
+        .where('account_id', '=', account.id)
+        .where('session_type', '=', 'cli')
+        .select('id')
+        .execute(),
+    ).resolves.toHaveLength(1)
+  })
+
+  test('rejects api key auth', async () => {
+    const account = await factory.account.insert({})
+    const token = ApiKey.generate()
+    await factory.api_key.insert({
+      account_id: account.id,
+      key_hash: await ApiKey.hash(token),
+      key_prefix: token.slice(0, 14),
+      name: 'headers key',
+    })
+
+    const res = await client.api.auth.headers.$post(
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    )
+    expect(res.status).toBe(403)
+    await expect(res.json()).resolves.toEqual({
+      code: 'api_key_not_supported',
+      message: 'API keys do not mint interactive auth headers',
+    })
+  })
+
+  test('does not mint new cli session from access token', async () => {
+    const account = await factory.account.insert({})
+    const cliSession = await SessionToken.createCliSession(db, account.id)
+
+    const res = await client.api.auth.headers.$post(
+      {},
+      {
+        headers: {
+          Authorization: cliSession.authorization,
+        },
+      },
+    )
+    expect(res.status).toBe(401)
+    await expect(res.json()).resolves.toEqual({
+      code: 'unauthorized',
+      message: 'Authentication required',
+    })
+
+    await expect(
+      db
+        .selectFrom('session')
+        .where('account_id', '=', account.id)
+        .where('session_type', '=', 'cli')
+        .select('id')
+        .execute(),
+    ).resolves.toHaveLength(1)
+  })
+
+  test('returns 401 when unauthenticated', async () => {
+    const res = await client.api.auth.headers.$post()
+    expect(res.status).toBe(401)
+    await expect(res.json()).resolves.toEqual({
+      code: 'unauthorized',
+      message: 'Authentication required',
+    })
   })
 })
 

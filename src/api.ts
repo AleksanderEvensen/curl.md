@@ -592,6 +592,7 @@ export const api = new Hono<{
     if (c.var.bearer_token) {
       const auth = await SessionToken.mintAuthHeaders(c.var.db, c.var.bearer_token)
       if (auth) return c.json(auth, 200)
+      return c.json({ code: 'unauthorized' as const, message: 'Authentication required' }, 401)
     }
 
     if (!c.var.session)
