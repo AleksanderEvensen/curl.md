@@ -4,11 +4,61 @@ description: Turn URLs into optimized markdown with the curl.md CLI
 outlineMaxLevel: 3
 ---
 
+import packageJson from '../../cli/package.json'
+
 # CLI
 
 The CLI is the most flexible way to use curl.md. It works well with agents or in terminals, editors, scripts, and anywhere else you can shell out.
 
-<PackageLinks npm="curl.md" source="https://github.com/wevm/curl.md/blob/main/cli/src/cli.ts" />
+<PackageLinks
+  npm="curl.md"
+  source="https://github.com/wevm/curl.md/blob/main/cli/src/cli.ts"
+  version={packageJson.version}
+/>
+
+## Quick Start
+
+Install the CLI, optionally authenticate, and fetch your first page.
+
+::::steps
+
+### Install CLI
+
+Install the CLI via curl, npm, or bun.
+
+:::codegroup
+
+```sh [curl]
+$ curl -fsSL https://curl.md/install.sh | bash
+```
+
+```sh [npm]
+$ npm i -g curl.md
+```
+
+```sh [bun]
+$ bun i -g curl.md
+```
+
+:::
+
+### Authenticate
+
+Optionally log in to unlock higher usage limits and features, like [objective extraction](#TODO).
+
+```sh
+$ curl.md auth login
+```
+
+### Use CLI
+
+Fetch a page from your terminal:
+
+```sh
+$ curl.md curl.md/docs/guide/cli
+```
+
+::::
 
 ## Install
 
@@ -34,16 +84,15 @@ Verify it works:
 
 ```sh
 $ curl.md --version
-$ md --version
 ```
-
-:::tip
-The CLI can be invoked through `curl.md` or via the short `md` alias.
-:::
 
 You can also install by downloading releases on the [GitHub Releases](https://github.com/wevm/curl.md/releases) page.
 
 ## Usage
+
+:::tip
+The CLI can be invoked through `curl.md` or via the short `md` alias.
+:::
 
 Fetch a page:
 
@@ -90,7 +139,7 @@ Finally, learn more about the CLI with `--help`:
 $ md --help
 ```
 
-## Authentication
+### Authentication
 
 Log in from the CLI to unlock higher usage limits and features, like [objective extraction](#TODO).
 
@@ -100,7 +149,7 @@ $ curl.md auth login
 
 For non-interactive environments, set [`CURLMD_API_KEY`](#environment-variables).
 
-## Agents
+### Agents
 
 If your agent can shell out locally and does not already have a [first-party integration](/docs/guide/plugins), sync the curl.md CLI skills into it:
 

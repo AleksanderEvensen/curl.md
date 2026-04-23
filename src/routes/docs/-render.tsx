@@ -534,7 +534,11 @@ function createMdxComponents(props: {
     Notice: ((noticeProps: React.PropsWithChildren<{ title?: string; type?: string }>) => (
       <Notice preview={preview} {...noticeProps} />
     )) as React.ComponentType<any>,
-    PackageLinks: ((packageLinksProps: { npm: string; source: string }) => (
+    PackageLinks: ((packageLinksProps: {
+      npm: string
+      source: string
+      version?: string | undefined
+    }) => (
       <DocsPackageLinks preview={preview} {...packageLinksProps} />
     )) as React.ComponentType<any>,
     SignedOutOnly: ((signedOutOnlyProps: React.PropsWithChildren) =>
@@ -1011,8 +1015,13 @@ function DocsTableCell(props: React.ComponentProps<'td'> & { preview?: boolean }
   )
 }
 
-function DocsPackageLinks(props: { npm: string; preview?: boolean; source: string }) {
-  const { npm, preview = false, source } = props
+function DocsPackageLinks(props: {
+  npm: string
+  preview?: boolean
+  source: string
+  version?: string | undefined
+}) {
+  const { npm, preview = false, source, version } = props
   return (
     <div
       className={['flex flex-wrap items-center', preview ? 'mt-3 gap-2' : 'mt-4 gap-2.5']
@@ -1021,8 +1030,12 @@ function DocsPackageLinks(props: { npm: string; preview?: boolean; source: strin
       data-docs-button-links=""
     >
       <DocsButtonLink href={getNpmPackageHref(npm)} icon="npm" preview={preview}>
-        {npm}
+        <span className="truncate leading-none">
+          {npm}
+          {version ? `@${version}` : ''}
+        </span>
       </DocsButtonLink>
+
       <DocsButtonLink href={source} icon="github" preview={preview}>
         Source code
       </DocsButtonLink>
@@ -1383,7 +1396,7 @@ function CodeGroupFrame(props: React.PropsWithChildren<{ preview?: boolean }>) {
   return (
     <div
       className={[
-        preview ? 'mt-4' : 'mt-6',
+        preview ? 'mt-3' : 'mt-4',
         'overflow-hidden [background-color:var(--color-docs-code-surface)]',
       ]
         .filter(Boolean)

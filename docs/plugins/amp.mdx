@@ -3,11 +3,17 @@ title: Amp
 description: Install and use curl.md with Amp
 ---
 
+import packageJson from '../../plugins/amp/package.json'
+
 # Amp
 
 First-party [Amp](https://ampcode.com) plugin that routes Amp’s built-in `read_web_page` tool through curl.md and also adds a specific `curl_md` tool.
 
-<PackageLinks npm="@curl.md/amp" source="https://github.com/wevm/curl.md/tree/main/plugins/amp" />
+<PackageLinks
+  npm="@curl.md/amp"
+  source="https://github.com/wevm/curl.md/tree/main/plugins/amp"
+  version={packageJson.version}
+/>
 
 :::important
 The Amp [Plugin API](https://ampcode.com/manual/plugin-api) is still experimental. As a result, the curl.md Amp plugin may also change without warning.

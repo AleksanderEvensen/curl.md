@@ -163,6 +163,7 @@ test('tanstack does not match blog paths', () => {
 
 test.each([
   [rules.hexdocs, 'https://hexdocs.pm/ex_doc'],
+  [rules.sentry, 'https://docs.sentry.io/platforms/javascript/guides/react/'],
   [rules.tanstack, 'https://tanstack.com/start/latest/docs/framework/react/overview'],
 ] as const)('%s requests markdown', async (factory, url) => {
   const fetch = vi.fn(() => Promise.resolve(new Response('ok')))

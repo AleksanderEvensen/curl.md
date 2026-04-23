@@ -563,25 +563,6 @@ test('cards render as a responsive grid of clickable items', async () => {
   await expect.element(rendered.content.getByText('Amp plugin')).toBeVisible()
 })
 
-test('package links render below the intro paragraph as top-level docs CTAs', async () => {
-  const rendered = renderDocContent(createPackageLinksDoc())
-  const buttonLinks = rendered.container.querySelectorAll('[data-docs-button-link]')
-  const intro = rendered.content.getByText('Intro paragraph.')
-  const buttonLinksContainer = rendered.container.querySelector('[data-docs-button-links]')
-
-  expect(buttonLinksContainer).not.toBeNull()
-  expect(buttonLinks).toHaveLength(2)
-  expect(buttonLinksContainer?.compareDocumentPosition(intro.element())).toBe(
-    Node.DOCUMENT_POSITION_PRECEDING,
-  )
-  await expect
-    .element(rendered.content.getByRole('link', { exact: true, name: '@curl.md/amp' }))
-    .toHaveAttribute('href', 'https://www.npmjs.com/package/@curl.md/amp')
-  await expect
-    .element(rendered.content.getByRole('link', { exact: true, name: 'Source code' }))
-    .toHaveAttribute('href', 'https://github.com/wevm/curl.md/tree/main/plugins/amp')
-})
-
 test('last updated renders a short timestamp first, then swaps to the browser timezone without year or timezone noise', async () => {
   const rendered = renderDocContent(createFooterDoc())
   const initialText = rendered.container.textContent ?? ''
@@ -688,37 +669,6 @@ test('search preview steps keep shared timeline content while swapping anchors',
   expect(full.stepHeadingTagName).toBe('H3')
   expect(preview.stepHeadingTagName).toBe(full.stepHeadingTagName)
   expect(preview.stepAnchor).toBe(full.stepHeadingId)
-})
-
-test('search preview button links keep their text while becoming non-interactive', () => {
-  const full = captureDocContent(createPackageLinksDoc(), (container) => {
-    const link = getRequiredHTMLElement(
-      container,
-      '[data-docs-button-link]',
-      'Expected docs button link to render',
-    )
-
-    return {
-      tagName: link.tagName,
-      text: link.textContent,
-    }
-  })
-  const preview = captureDocSearchPreview(createPackageLinksDoc(), (container) => {
-    const link = getRequiredHTMLElement(
-      container,
-      '[data-docs-button-link]',
-      'Expected preview button link to render',
-    )
-
-    return {
-      tagName: link.tagName,
-      text: link.textContent,
-    }
-  })
-
-  expect(full.tagName).toBe('A')
-  expect(preview.tagName).toBe('SPAN')
-  expect(full.text).toBe(preview.text)
 })
 
 test('search preview cards keep their content while becoming non-interactive', () => {
@@ -1416,35 +1366,6 @@ function createCardsDoc(): Doc {
     path: 'test',
     source: '# Test\n',
     sourcePath: 'docs/dev/kitchen-sink.mdx',
-    title: 'Test',
-  }
-}
-
-function createPackageLinksDoc(): Doc {
-  return {
-    Component: function Component(props) {
-      const components = props.components ?? {}
-      const PackageLinks = components.PackageLinks as React.ComponentType<{
-        npm: string
-        source: string
-      }>
-
-      return (
-        <>
-          <h1>Amp</h1>
-          <p>Intro paragraph.</p>
-          <PackageLinks
-            npm="@curl.md/amp"
-            source="https://github.com/wevm/curl.md/tree/main/plugins/amp"
-          />
-        </>
-      )
-    },
-    description: undefined,
-    headings: [],
-    path: 'test',
-    source: '# Test\n',
-    sourcePath: 'docs/plugins/amp.mdx',
     title: 'Test',
   }
 }

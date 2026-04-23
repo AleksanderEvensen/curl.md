@@ -189,6 +189,18 @@ export const resend = acceptMarkdown({
   patterns: [new URLPattern({ hostname: 'resend.com' })],
   checks: [{ url: 'https://resend.com/docs/introduction', contains: ['Resend'] }],
 })
+export const sentry = acceptMarkdown({
+  key: 'sentry',
+  patterns: [new URLPattern({ hostname: 'docs.sentry.io' })],
+  checks: [
+    {
+      url: 'https://docs.sentry.io/platforms/javascript/guides/react/',
+      contains: ['# React | Sentry for React', 'npm install @sentry/react --save'],
+      minLength: 500,
+      title: 'React',
+    },
+  ],
+})
 
 export const bun = prefixedWithIndex({
   key: 'bun',

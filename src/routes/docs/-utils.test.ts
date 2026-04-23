@@ -168,6 +168,24 @@ test('createDocCopySource rewrites multiline PackageLinks into markdown links', 
 - [Source code](https://github.com/wevm/curl.md/tree/main/plugins/opencode)`)
 })
 
+test('createDocCopySource ignores imported PackageLinks version props', () => {
+  const source = `import packageJson from '../../plugins/pi/package.json'
+
+# Pi
+
+<PackageLinks
+  npm="@curl.md/pi"
+  source="https://github.com/wevm/curl.md/tree/main/plugins/pi"
+  version={packageJson.version}
+/>
+`
+
+  expect(createDocCopySource(source)).toBe(`# Pi
+
+- [@curl.md/pi](https://www.npmjs.com/package/@curl.md/pi)
+- [Source code](https://github.com/wevm/curl.md/tree/main/plugins/pi)`)
+})
+
 test('createDocCopySource strips SignedOutOnly wrappers and preserves inner markdown', () => {
   const source = `# Introduction
 

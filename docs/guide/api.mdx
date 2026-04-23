@@ -3,6 +3,8 @@ title: API & SDK
 description: Call curl.md with the API endpoint or the TypeScript SDK
 ---
 
+import packageJson from '../../cli/package.json'
+
 # API & SDK
 
 Use `curl.md` directly over HTTP or through the published TypeScript SDK.
@@ -26,7 +28,11 @@ You can also use curl.md in your browser by adding `curl.md/` in front of any UR
 
 Use the [`curl.md`](https://www.npmjs.com/package/curl.md) npm package when you want a typed client in TypeScript.
 
-<PackageLinks npm="curl.md" source="https://github.com/wevm/curl.md/blob/main/cli/src/client.ts" />
+<PackageLinks
+  npm="curl.md"
+  source="https://github.com/wevm/curl.md/blob/main/cli/src/client.ts"
+  version={packageJson.version}
+/>
 
 ### Install
 

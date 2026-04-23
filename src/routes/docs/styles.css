@@ -69,36 +69,19 @@ article details {
 }
 
 article details > summary {
-  align-items: center;
   background-color: var(--color-docs-code-surface);
   border-bottom: 1px solid transparent;
   color: color-mix(in oklab, var(--color-gray10) 25%, var(--color-gray9));
   cursor: pointer;
-  display: flex;
   font-size: 0.875rem;
   font-weight: 600;
-  gap: 0.75rem;
-  list-style: none;
   padding: 0.875rem 1rem;
+  padding-inline-start: 1.25rem;
   user-select: none;
 }
 
-article details > summary::-webkit-details-marker {
-  display: none;
-}
-
-article details > summary::before {
-  align-items: center;
+article details > summary::marker {
   color: var(--color-gray8);
-  content: '▶';
-  display: inline-flex;
-  flex: none;
-  font-size: 0.75rem;
-  inline-size: 0.75rem;
-  justify-content: center;
-  line-height: 1;
-  transform: none;
-  translate: 0 0;
 }
 
 article details > summary:hover {
@@ -112,11 +95,6 @@ article details > summary:focus-visible {
 
 article details[open] > summary {
   border-bottom-color: var(--color-gray-a3);
-}
-
-article details[open] > summary::before {
-  transform: rotate(90deg);
-  translate: 0 0;
 }
 
 article
