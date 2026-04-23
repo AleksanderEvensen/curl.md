@@ -2,7 +2,6 @@ import { waitUntil } from 'cloudflare:workers'
 import { z } from 'zod'
 import type { Database } from '#db/client.ts'
 import { requestTokensSavedSumSql } from '#db/utils.ts'
-import { formatCost } from '#lib/format.ts'
 
 export const schema = z
   .discriminatedUnion('page', [
@@ -19,115 +18,91 @@ export const schema = z
 
 export type query = z.infer<typeof schema>
 
-async function getElement(host: string, env: Cloudflare.Env, db: Database, query: query) {
+async function getElement(env: Cloudflare.Env, db: Database, query: query) {
   switch (query.page) {
     case 'docs': {
-      return docsVariant(query.title, query.description)
+      return docsVariant(query.title)
     }
     case 'url': {
       const tokensSaved = await getTokensSaved(env, db, query.url)
-      return urlVariant(host, query.url, tokensSaved)
+      return urlVariant(query.url, tokensSaved)
     }
     case 'playground': {
       const tokensSaved = await getTokensSaved(env, db)
-      return playgroundVariant(host, tokensSaved)
+      return playgroundVariant(tokensSaved)
     }
     case 'index': {
       const tokensSaved = await getTokensSaved(env, db)
-      return indexVariant(host, tokensSaved)
+      return indexVariant(tokensSaved)
     }
   }
 }
 
-function docsVariant(title: string, description?: string) {
+function docsVariant(title: string) {
   return (
-    <div tw="flex flex-col w-full h-full bg-black text-[#ededed] font-[Geist_Mono] px-[72px] py-[64px]">
+    <div tw="relative flex flex-col w-full h-full bg-black text-[#ededed] font-[Geist_Mono] px-[72px] py-[64px]">
       <div tw="flex items-start justify-start">
         <BrandLogo />
       </div>
-      <div tw="flex flex-1 flex-col justify-end">
-        <div tw="text-[#a1a1a1] text-[24px] tracking-[0.2em] uppercase">Docs</div>
-        <div tw="text-[#ededed] text-[72px] leading-[1.04] font-black mt-[24px] max-w-[1000px]">
+      <div tw="flex flex-1 pe-[96px] mt-[42px]">
+        <div tw="text-[#ededed] text-[72px] leading-[1.15] font-bold tracking-[0.02em] text-left max-w-[1000px]">
           {title}
         </div>
-        <div tw="text-[#a1a1a1] text-[34px] leading-[1.3] mt-[24px] max-w-[1020px]">
-          {description ?? 'URL to markdown for agents'}
+      </div>
+      <div tw="absolute right-0 bottom-[100px] left-0 h-0.5 bg-[#2c2c2c]" />
+    </div>
+  )
+}
+
+function indexVariant(tokensSaved: number) {
+  return (
+    <div tw="relative flex w-full h-full bg-black text-[#ededed] font-[Geist_Mono] px-[80px] py-[40px]">
+      <div tw="flex flex-1 flex-col items-center justify-center">
+        <BrandLogo height={56} width={772} />
+        <div tw="text-[#a1a1a1] text-[54px] mt-[44px] text-center">URL to markdown for agents</div>
+      </div>
+      <div tw="absolute right-[80px] bottom-[40px] left-[80px] flex items-end justify-between">
+        <div tw="text-[#a1a1a1] text-[36px] tracking-[0.08em] uppercase leading-none">
+          tokens saved
         </div>
+        <div tw="text-[#ededed] text-[36px] leading-none">{tokensSaved.toLocaleString()}</div>
       </div>
     </div>
   )
 }
 
-function indexVariant(host: string, tokensSaved: number) {
+function playgroundVariant(tokensSaved: number) {
   return (
-    <div tw="flex flex-col items-start justify-center w-full h-full bg-black text-[#ededed] font-[Geist_Mono] pt-[80px] px-[80px] pb-[140px]">
-      <div tw="flex text-[48px] font-black">
-        <span tw="text-[#ededed]">{host}/</span>
-        <span tw="text-[#0cc0aa]">{'<url>'}</span>
+    <div tw="relative flex w-full h-full bg-black text-[#ededed] font-[Geist_Mono] px-[80px] py-[40px]">
+      <div tw="flex flex-1 flex-col items-center justify-center">
+        <BrandLogo height={56} width={772} />
+        <div tw="text-[#a1a1a1] text-[54px] mt-[44px] text-center">playground</div>
       </div>
-      <div tw="text-[#a1a1a1] text-[48px] mt-[12px]">URL to markdown for agents</div>
-      {tokensSaved > 0 && (
-        <>
-          <div tw="flex text-[48px] mt-[8px]">
-            <span tw="text-[#0cc0aa]">{tokensSaved.toLocaleString()}</span>
-            <span tw="text-[#a1a1a1]"> tokens saved</span>
-          </div>
-          <div tw="flex text-[48px] mt-[8px]">
-            <span tw="text-[#0cc0aa]">${formatCost(tokensSaved, 3)}</span>
-            <span tw="text-[#a1a1a1]"> saved @ $3/M input tokens</span>
-          </div>
-        </>
-      )}
+      <div tw="absolute right-[80px] bottom-[40px] left-[80px] flex items-end justify-between">
+        <div tw="text-[#a1a1a1] text-[36px] tracking-[0.08em] uppercase leading-none">
+          tokens saved
+        </div>
+        <div tw="text-[#ededed] text-[36px] leading-none">{tokensSaved.toLocaleString()}</div>
+      </div>
     </div>
   )
 }
 
-function playgroundVariant(host: string, tokensSaved: number) {
-  return (
-    <div tw="flex flex-col items-start justify-center w-full h-full bg-black text-[#ededed] font-[Geist_Mono] pt-[80px] px-[80px] pb-[140px]">
-      <div tw="flex text-[48px] font-black">
-        <span tw="text-[#ededed]">{host}/</span>
-        <span tw="text-[#ededed]">playground</span>
-      </div>
-      <div tw="text-[#a1a1a1] text-[48px] mt-[12px]">URL to markdown for agents</div>
-      {tokensSaved > 0 && (
-        <>
-          <div tw="flex text-[48px] mt-[8px]">
-            <span tw="text-[#0cc0aa]">{tokensSaved.toLocaleString()}</span>
-            <span tw="text-[#a1a1a1]"> tokens saved</span>
-          </div>
-          <div tw="flex text-[48px] mt-[8px]">
-            <span tw="text-[#0cc0aa]">${formatCost(tokensSaved, 3)}</span>
-            <span tw="text-[#a1a1a1]"> saved @ $3/M input tokens</span>
-          </div>
-        </>
-      )}
-    </div>
-  )
-}
-
-function urlVariant(host: string, urlParam: string, tokensSaved: number) {
+function urlVariant(urlParam: string, tokensSaved: number) {
   const hostname = new URL(/^https?:\/\//.test(urlParam) ? urlParam : `https://${urlParam}`)
     .hostname
   return (
-    <div tw="flex flex-col items-start justify-center w-full h-full bg-black text-[#ededed] font-[Geist_Mono] pt-[80px] px-[80px] pb-[140px]">
-      <div tw="flex text-[48px] font-black">
-        <span tw="text-[#ededed]">{host}/</span>
-        <span tw="text-[#0cc0aa]">{hostname}</span>
+    <div tw="relative flex w-full h-full bg-black text-[#ededed] font-[Geist_Mono] px-[80px] py-[40px]">
+      <div tw="flex flex-1 flex-col items-center justify-center">
+        <BrandLogo height={56} width={772} />
+        <div tw="text-[#a1a1a1] text-[54px] mt-[44px] text-center">{hostname}</div>
       </div>
-      <div tw="text-[#a1a1a1] text-[48px] mt-[12px]">URL to markdown for agents</div>
-      {tokensSaved > 0 && (
-        <>
-          <div tw="flex text-[48px] mt-[8px]">
-            <span tw="text-[#0cc0aa]">{tokensSaved.toLocaleString()}</span>
-            <span tw="text-[#a1a1a1]"> tokens saved</span>
-          </div>
-          <div tw="flex text-[48px] mt-[8px]">
-            <span tw="text-[#0cc0aa]">${formatCost(tokensSaved, 3)}</span>
-            <span tw="text-[#a1a1a1]"> saved @ $3/M input tokens</span>
-          </div>
-        </>
-      )}
+      <div tw="absolute right-[80px] bottom-[40px] left-[80px] flex items-end justify-between">
+        <div tw="text-[#a1a1a1] text-[36px] tracking-[0.08em] uppercase leading-none">
+          tokens saved
+        </div>
+        <div tw="text-[#ededed] text-[36px] leading-none">{tokensSaved.toLocaleString()}</div>
+      </div>
     </div>
   )
 }
@@ -157,7 +132,7 @@ export async function render(request: Request, env: Cloudflare.Env, db: Database
   const [{ ImageResponse }, module, element, font, fontBold] = await Promise.all([
     import('@takumi-rs/image-response/wasm'),
     import('@takumi-rs/wasm/takumi_wasm_bg.wasm'),
-    getElement(env.HOST, env, db, query),
+    getElement(env, db, query),
     loadFont(request, env, '/fonts/GeistMono-Regular.ttf'),
     loadFont(request, env, '/fonts/GeistMono-Black.ttf'),
   ])
@@ -184,13 +159,15 @@ async function loadFont(request: Request, env: Cloudflare.Env, path: string) {
   return env.ASSETS.fetch(url).then((r) => r.arrayBuffer())
 }
 
-function BrandLogo() {
+function BrandLogo(props: { height?: number; width?: number }) {
+  const { height = 28, width = 386 } = props
+
   return (
     <svg
       fill="none"
-      height="28"
+      height={height}
       viewBox="0 0 1104 80"
-      width="386"
+      width={width}
       xmlns="http://www.w3.org/2000/svg"
     >
       <path
