@@ -4,14 +4,15 @@ import { env } from 'cloudflare:workers'
 import { createClient } from '#db/client.ts'
 import * as Cookie from '#lib/cookie.ts'
 
+export const getHasSessionCookie = createServerFn({ method: 'GET' }).handler(async () => {
+  return Boolean(await getSessionId())
+})
+
 export const getSessionLogin = createServerFn({ method: 'GET' }).handler(async () => {
-  const request = getRequest()
+  const sessionId = await getSessionId()
+  if (!sessionId) return null
+
   const db = createClient(env.DB.connectionString)
-  const sessionId = await Cookie.parseSigned(
-    request.headers.get('cookie') ?? '',
-    env.COOKIE_SECRET,
-    'curl.session',
-  )
   const accountId = sessionId
     ? ((
         await db
@@ -32,3 +33,9 @@ export const getSessionLogin = createServerFn({ method: 'GET' }).handler(async (
 
   return account?.login ?? null
 })
+
+async function getSessionId() {
+  const request = getRequest()
+
+  return Cookie.parseSigned(request.headers.get('cookie') ?? '', env.COOKIE_SECRET, 'curl.session')
+}

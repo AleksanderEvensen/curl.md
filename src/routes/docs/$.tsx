@@ -1,10 +1,9 @@
-import { Link, createFileRoute, getRouteApi, notFound } from '@tanstack/react-router'
+import { Link, createFileRoute, notFound } from '@tanstack/react-router'
 import * as React from 'react'
 import { rpc } from '#lib/rpc.ts'
 import { findDoc } from './-catalog.ts'
 import { DocsRouteContent, getDocsHead, validateSearch } from './-route.tsx'
-
-const docsLayoutRoute = getRouteApi('/docs')
+import { useDocsSignedIn } from './route.tsx'
 
 export const Route = createFileRoute('/docs/$')({
   head({ params }) {
@@ -31,7 +30,7 @@ export const Route = createFileRoute('/docs/$')({
 
 function Component() {
   const navigate = Route.useNavigate()
-  const { login } = docsLayoutRoute.useLoaderData()
+  const signedIn = useDocsSignedIn()
   const { _splat } = Route.useParams()
   const handleCodeGroupValueChange = React.useCallback(
     (value: string, docPath: string) => {
@@ -49,13 +48,13 @@ function Component() {
     <DocsRouteContent
       docPath={_splat ?? ''}
       onCodeGroupValueChange={handleCodeGroupValueChange}
-      signedIn={Boolean(login)}
+      signedIn={signedIn}
     />
   )
 }
 
 function NotFoundComponent() {
-  const { login } = docsLayoutRoute.useLoaderData()
+  const signedIn = useDocsSignedIn()
 
   return (
     <div className="mx-auto w-full max-w-[56rem] px-5 py-8 md:px-12 lg:px-0 lg:pt-12">
@@ -71,7 +70,7 @@ function NotFoundComponent() {
           </Link>
           <Link
             className="text-gray8 hover:text-gray10 px-3 py-1.5 text-sm"
-            to={login ? '/home' : '/'}
+            to={signedIn ? '/home' : '/'}
           >
             Go home
           </Link>

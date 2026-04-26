@@ -1,4 +1,5 @@
 import { expect } from '@playwright/test'
+import * as Cookie from '#lib/cookie.ts'
 import { test } from '#test/e2e-utils.ts'
 
 test('/docs tab click keeps scroll position on first sync', async ({ page }) => {
@@ -112,6 +113,26 @@ test('/docs search pressing Enter opens the highlighted result', async ({ page }
   await expect(page.getByRole('heading', { level: 1, name: 'Kitchen Sink' })).toBeVisible()
 })
 
+test('/docs search pressing Enter on the current page result closes the dialog', async ({
+  page,
+}) => {
+  await page.goto('/docs/dev/kitchen-sink')
+  await page.waitForLoadState('networkidle')
+
+  await page.getByRole('button', { name: 'Search' }).click()
+
+  const searchInput = page.getByPlaceholder('Search documentation')
+  await expect(searchInput).toBeVisible()
+
+  await searchInput.pressSequentially('Kitchen Sink')
+  await expect(page).toHaveURL(/\/docs\/dev\/kitchen-sink\?q=Kitchen(?:\+|%20)Sink$/)
+
+  await searchInput.press('Enter')
+
+  await expect(page).toHaveURL('/docs/dev/kitchen-sink')
+  await expect(searchInput).toBeHidden()
+})
+
 test('/docs recent search results do not highlight previous query terms', async ({ page }) => {
   await page.goto('/docs')
   await page.waitForLoadState('networkidle')
@@ -155,4 +176,54 @@ test('/docs missing pages link signed-in viewers to /home', async ({
   await page.waitForLoadState('networkidle')
 
   await expect(page.getByRole('link', { name: 'Go home' })).toHaveAttribute('href', '/home')
+})
+
+test('/docs uses /:login for signed-in CTA once login resolves and hides signed-out content', async ({
+  factory,
+  page,
+  setSession,
+}) => {
+  const account = await factory.account.insert({})
+  await setSession(account.id)
+
+  await page.goto('/docs')
+  await page.waitForLoadState('networkidle')
+
+  await expect(page.getByRole('link', { name: 'Dashboard' })).toHaveAttribute(
+    'href',
+    `/${account.login}`,
+  )
+  await expect(page.getByRole('link', { name: 'Sign up for a free account' })).toHaveCount(0)
+})
+
+test('/docs falls back to sign in when the session cookie is stale', async ({ context, page }) => {
+  const headerValue = await Cookie.generateSigned(
+    'curl.session',
+    crypto.randomUUID(),
+    process.env.PLAYWRIGHT_COOKIE_SECRET!,
+  )
+  const cookieValue = decodeURIComponent(headerValue.split(';')[0]!.split('=').slice(1).join('='))
+
+  await context.addCookies([
+    {
+      httpOnly: true,
+      name: 'curl.session',
+      sameSite: 'Lax',
+      url: process.env.PLAYWRIGHT_BASE_URL!,
+      value: cookieValue,
+    },
+  ])
+
+  await page.goto('/docs')
+  await page.waitForLoadState('networkidle')
+
+  await expect(page.getByRole('link', { name: 'Sign in' }).first()).toHaveAttribute(
+    'href',
+    /\/login/,
+  )
+  await expect(page.getByRole('link', { name: 'Dashboard' })).toHaveCount(0)
+  await expect(page.getByRole('link', { name: 'Sign up for a free account' })).toHaveAttribute(
+    'href',
+    '/login',
+  )
 })

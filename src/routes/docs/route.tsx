@@ -1,6 +1,8 @@
 import { Combobox } from '@base-ui/react/combobox'
 import { Menu } from '@base-ui/react/menu'
+import * as Query from '@tanstack/react-query'
 import { Link, Outlet, createFileRoute, useNavigate, useRouterState } from '@tanstack/react-router'
+import { useServerFn } from '@tanstack/react-start'
 import * as React from 'react'
 import { Dialog } from '#components/Dialog.tsx'
 import { Nav } from '#components/Nav.tsx'
@@ -8,7 +10,7 @@ import { config, type Config } from '#docs/_config.ts'
 import { sidebar, type SidebarItem } from '#docs/_sidebar.ts'
 import { useBrowserLayoutEffect } from '#hooks/useBrowserLayoutEffect.ts'
 import { type Theme, useTheme } from '#hooks/useTheme.ts'
-import { getSessionLogin } from '#server/session.ts'
+import { getHasSessionCookie, getSessionLogin } from '#server/session.ts'
 import { findDoc, searchDocs } from './-catalog.ts'
 import { DocSearchPreview } from './-render.tsx'
 import { validateSearch } from './-route.tsx'
@@ -19,7 +21,7 @@ import './styles.css'
 export const Route = createFileRoute('/docs')({
   async loader({ location }) {
     return {
-      login: await getSessionLogin(),
+      hasSessionCookie: await getHasSessionCookie(),
       next: location.publicHref ?? location.pathname,
     }
   },
@@ -36,7 +38,8 @@ const emptyCachedPreviewIds = new Set<string>()
 function Component() {
   const navigate = useNavigate()
   const pathname = useRouterState({ select: (state) => state.location.pathname })
-  const { login, next } = Route.useLoaderData()
+  const docsSession = useDocsSession()
+  const { next } = Route.useLoaderData()
   const searchQueryFromUrl = Route.useSearch({ select: (search) => search.q ?? '' })
   const desktopSidebarScrollRef = React.useRef<HTMLDivElement>(null)
   const [open, setOpen] = React.useState(false)
@@ -280,14 +283,8 @@ function Component() {
               >
                 <IconSimpleIconsX className="size-4.5" />
               </a>
-              {login ? (
-                <Link
-                  className="bg-gray10 text-bg1 px-3 py-1.5 text-sm hover:opacity-90"
-                  params={{ login }}
-                  to="/$login"
-                >
-                  Dashboard
-                </Link>
+              {docsSession.signedIn ? (
+                <DocsDashboardLink login={docsSession.login} />
               ) : (
                 <Link
                   className="bg-gray10 text-bg1 px-3 py-1.5 text-sm hover:opacity-90"
@@ -360,15 +357,11 @@ function Component() {
                           >
                             <IconSimpleIconsX className="size-4.5" />
                           </a>
-                          {login ? (
-                            <Link
-                              className="bg-gray10 text-bg1 px-3 py-1.5 text-sm hover:opacity-90"
+                          {docsSession.signedIn ? (
+                            <DocsDashboardLink
+                              login={docsSession.login}
                               onClick={() => setOpen(false)}
-                              params={{ login }}
-                              to="/$login"
-                            >
-                              Dashboard
-                            </Link>
+                            />
                           ) : (
                             <Link
                               className="bg-gray10 text-bg1 px-3 py-1.5 text-sm hover:opacity-90"
@@ -606,6 +599,23 @@ function getSidebarItemKey(item: SidebarItem, index: number) {
   return `${item.type}:${item.label}`
 }
 
+export function useDocsSession() {
+  const { hasSessionCookie } = Route.useLoaderData()
+  const fetchLogin = useServerFn(getSessionLogin)
+  const { data } = Query.useQuery({
+    enabled: typeof window !== 'undefined' && hasSessionCookie,
+    queryFn: () => fetchLogin(),
+    queryKey: ['session-login'],
+  })
+
+  if (!hasSessionCookie) return { login: null, signedIn: false }
+  return { login: data, signedIn: data !== null }
+}
+
+export function useDocsSignedIn() {
+  return useDocsSession().signedIn
+}
+
 function SearchTrigger(props: {
   onClick: () => void
   triggerRef: React.RefObject<HTMLButtonElement | null>
@@ -613,7 +623,7 @@ function SearchTrigger(props: {
   return (
     <button
       aria-label="Search"
-      className="hover:bg-gray-a2 group dark:sm:bg-gray1 flex h-11 w-11 items-center justify-center p-0 text-sm sm:me-2 sm:h-8 sm:w-auto sm:justify-start sm:gap-2 sm:[background-color:var(--color-docs-surface)] sm:px-0 sm:ps-2.5 sm:pe-1"
+      className="hover:bg-gray-a2 group sm:bg-gray1 dark:sm:bg-gray-a2 flex h-11 w-11 items-center justify-center p-0 text-sm sm:me-2 sm:h-8 sm:w-auto sm:justify-start sm:gap-2 sm:px-0 sm:ps-2.5 sm:pe-1"
       onClick={props.onClick}
       ref={props.triggerRef}
       type="button"
@@ -655,6 +665,32 @@ function NavbarLinkItem(props: {
   )
 }
 
+function DocsDashboardLink(props: { login: string | null | undefined; onClick?: () => void }) {
+  const { login, onClick } = props
+
+  if (login)
+    return (
+      <Link
+        className="bg-gray10 text-bg1 px-3 py-1.5 text-sm hover:opacity-90"
+        onClick={onClick}
+        params={{ login }}
+        to="/$login"
+      >
+        Dashboard
+      </Link>
+    )
+
+  return (
+    <Link
+      className="bg-gray10 text-bg1 px-3 py-1.5 text-sm hover:opacity-90"
+      onClick={onClick}
+      to="/"
+    >
+      Dashboard
+    </Link>
+  )
+}
+
 function DocsSearchDialog(props: {
   onClear: () => void
   onClearRecents: () => void
@@ -681,6 +717,7 @@ function DocsSearchDialog(props: {
   const [highlightedResultId, setHighlightedResultId] = React.useState<string | undefined>(
     undefined,
   )
+  const highlightedResultRef = React.useRef<DocSearchResult | undefined>(undefined)
   const resultsListRef = React.useRef<HTMLDivElement>(null)
   const resultItemElementsRef = React.useRef(new Map<string, HTMLDivElement>())
   const navigateToResult = React.useCallback(
@@ -751,12 +788,19 @@ function DocsSearchDialog(props: {
 
   const scrollHighlightedResultIntoView = React.useCallback(
     (result: DocSearchResult | undefined) => {
+      highlightedResultRef.current = result
       const resultId = result ? getSearchResultId(result) : undefined
       setHighlightedResultId(resultId)
       scrollResultIntoView(resultId)
     },
     [scrollResultIntoView],
   )
+
+  React.useEffect(() => {
+    if (displayedResults.length) return
+    highlightedResultRef.current = undefined
+    setHighlightedResultId(undefined)
+  }, [displayedResults])
 
   React.useEffect(() => {
     if (!highlightedResultId) return
@@ -804,6 +848,16 @@ function DocsSearchDialog(props: {
             autoComplete="off"
             className="placeholder:text-gray8 min-w-0 flex-1 bg-transparent text-base leading-none font-medium focus-visible:outline-none"
             id="docs-search-dialog"
+            onKeyDownCapture={(event) => {
+              if (event.key !== 'Enter' || event.nativeEvent.isComposing) return
+
+              const highlightedResult = highlightedResultRef.current ?? displayedResults[0]
+              if (!highlightedResult) return
+
+              event.preventDefault()
+              event.stopPropagation()
+              void navigateToResult(highlightedResult)
+            }}
             placeholder="Search documentation"
           />
 
