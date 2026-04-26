@@ -239,6 +239,7 @@ function isHighLinkDensity(node: Element): boolean {
   if (!linkDensityBlockTags.has(node.tagName)) return false
   const totalLen = hastToText(node).length
   if (totalLen < 50) return false
+  if (hasDescendantContentContainer(node)) return false
   return getLinkTextLength(node) / totalLen > 0.5
 }
 
@@ -250,6 +251,15 @@ function getLinkTextLength(node: Element): number {
     else length += getLinkTextLength(child)
   }
   return length
+}
+
+function hasDescendantContentContainer(node: Element): boolean {
+  for (const child of node.children) {
+    if (child.type !== 'element') continue
+    if (child.tagName === 'article' || child.tagName === 'main') return true
+    if (hasDescendantContentContainer(child)) return true
+  }
+  return false
 }
 
 const skipPrefixes = ['http://', 'https://', '//', '#', 'mailto:', 'tel:']

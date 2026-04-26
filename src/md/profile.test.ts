@@ -2,6 +2,21 @@ import { expect, test } from 'vitest'
 import { detectPageProfile } from './mod.ts'
 import * as profiles from './profiles.ts'
 
+test('detects fumadocs profile from dom markers', () => {
+  const result = detectPageProfile(
+    '<!doctype html><html><head><title>Docs</title></head><body><div id="nd-docs-layout"><article id="nd-page"><h1>Docs</h1></article></div></body></html>',
+    new URL('https://example.com/docs'),
+    profiles,
+  )
+
+  expect(result).toEqual({
+    contentRootSelectors: ['#nd-docs-layout', '#nd-flux-layout', '#nd-notebook-layout', '#nd-page'],
+    generator: undefined,
+    key: 'fumadocs',
+    markers: ['dom:nd-page'],
+  })
+})
+
 test('detects gitbook profile from generator and markdown alternate link', () => {
   const result = detectPageProfile(
     '<!doctype html><html><head><meta name="generator" content="GitBook (0.0.0)"><link rel="alternate" type="text/markdown" href="https://gitbook.com/docs/getting-started/quickstart.md"></head><body><main class="page-has-toc"><h1>Docs</h1></main></body></html>',

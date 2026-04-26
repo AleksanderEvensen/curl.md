@@ -555,6 +555,21 @@ describe('strips form elements', () => {
     expect(result).not.toContain('Page 0')
   })
 
+  test('preserves content wrappers that contain an article', async () => {
+    const links = Array.from(
+      { length: 10 },
+      (_, i) => `<a href="/page${i}">Page ${i} link text</a>`,
+    ).join(' ')
+    const { content: result } = await fromHtml(
+      html({
+        body: `<div><div>${links}</div><article><h1>Title</h1><p>Main content here</p></article></div>`,
+      }),
+    )
+    expect(result).toContain('Title')
+    expect(result).toContain('Main content')
+    expect(result).not.toContain('Page 0')
+  })
+
   test('preserves mark elements', async () => {
     const { content: result } = await fromHtml('<p>This is <mark>highlighted</mark> text</p>')
     expect(result).toContain('<mark>highlighted</mark>')

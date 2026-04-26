@@ -281,7 +281,7 @@ export function defineProfile<values extends Record<string, unknown> = Record<st
   function detector(html: string, url: URL): defineProfile.Profile<values> | undefined {
     const generator = getMetaContent(html, 'generator')
     const markers = [
-      ...(generator && config.detect.generator.test(generator)
+      ...(generator && config.detect.generator?.test(generator)
         ? [`meta:generator=${generator}`]
         : []),
       ...(config.detect.includesAny.needles.some((needle) => html.includes(needle))
@@ -319,7 +319,7 @@ export namespace defineProfile {
     checks?: CheckCase[]
     contentRootSelectors: string[]
     detect: {
-      generator: RegExp
+      generator?: RegExp | undefined
       includesAny: {
         marker: string
         needles: string[]

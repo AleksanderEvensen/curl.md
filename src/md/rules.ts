@@ -34,6 +34,25 @@ export const claudeCode = appendMd({
   patterns: [new URLPattern({ hostname: 'code.claude.com' })],
   checks: [{ url: 'https://code.claude.com/docs/en/overview', contains: ['Claude'] }],
 })
+export const conductor = acceptMarkdown({
+  key: 'conductor',
+  patterns: [
+    new URLPattern({ hostname: 'conductor.build', pathname: '/docs' }),
+    new URLPattern({ hostname: 'conductor.build', pathname: '/docs/' }),
+    new URLPattern({ hostname: 'conductor.build', pathname: '/docs/:path+' }),
+    new URLPattern({ hostname: 'www.conductor.build', pathname: '/docs' }),
+    new URLPattern({ hostname: 'www.conductor.build', pathname: '/docs/' }),
+    new URLPattern({ hostname: 'www.conductor.build', pathname: '/docs/:path+' }),
+    new URLPattern({ hostname: 'docs.conductor.build', pathname: '/' }),
+    new URLPattern({ hostname: 'docs.conductor.build', pathname: '/:path+' }),
+  ],
+  checks: [
+    {
+      url: 'https://www.conductor.build/docs',
+      contains: ['Run a team of coding agents'],
+    },
+  ],
+})
 export const openai = appendMd({
   key: 'openai',
   patterns: [new URLPattern({ hostname: 'developers.openai.com' })],

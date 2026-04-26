@@ -1,5 +1,22 @@
 import { defineProfile } from './mod.ts'
 
+// TODO: Probe Accept: text/markdown for detected Fumadocs sites when HTML extraction is thin.
+export const fumadocs = defineProfile({
+  contentRootSelectors: ['#nd-docs-layout', '#nd-flux-layout', '#nd-notebook-layout', '#nd-page'],
+  detect: {
+    includesAny: {
+      marker: 'dom:nd-page',
+      needles: [
+        'id="nd-page"',
+        'id="nd-docs-layout"',
+        'id="nd-notebook-layout"',
+        'id="nd-flux-layout"',
+      ],
+    },
+  },
+  key: 'fumadocs',
+})
+
 export const gitbook = defineProfile<{
   markdownRequest: { headers: Record<string, string>; url: string }
   normalize: (content: string) => string

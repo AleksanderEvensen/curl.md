@@ -67,7 +67,7 @@ jobs:
         uses: planetscale/setup-pscale-action@d0c2789e7018488bae9d469592876b3428fa03f6 # v1
 
       - name: Setup PlanetScale branch
-        id: ps
+        id: pscale
         run: |
           set +e
           pscale branch show "$PLANETSCALE_DB" "$PREVIEW_BRANCH_NAME" --org "$PLANETSCALE_ORG" > /dev/null 2>&1
@@ -137,7 +137,7 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          DB_URL: ${{ steps.ps.outputs.db_url }}
+          DB_URL: ${{ steps.pscale.outputs.db_url }}
 
       - name: Setup preview KV
         id: kv
@@ -210,7 +210,7 @@ jobs:
       - name: Run migrations on preview database
         run: pnpm db:migrate latest
         env:
-          DB_URL: ${{ steps.ps.outputs.db_url }}
+          DB_URL: ${{ steps.pscale.outputs.db_url }}
 
       - name: Generate code
         run: |
@@ -220,7 +220,7 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          DB_URL: ${{ steps.ps.outputs.db_url }}
+          DB_URL: ${{ steps.pscale.outputs.db_url }}
 
       - name: Build
         run: pnpm build
@@ -228,7 +228,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ENV: preview
-          DB_URL: ${{ secrets.DB_URL }}
+          DB_URL: ${{ steps.pscale.outputs.db_url }}
           GIT_SHA: ${{ inputs.sha }}
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
 
