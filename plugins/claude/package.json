@@ -1,0 +1,49 @@
+{
+  "name": "@curl.md/claude",
+  "version": "0.0.0",
+  "description": "curl.md plugin for Claude Code",
+  "contributors": [
+    "tmm <t@curl.md>",
+    "jxom <j@curl.md>"
+  ],
+  "funding": "https://github.com/sponsors/wevm",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wevm/curl.md.git",
+    "directory": "plugins/claude"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "curl.md",
+    "markdown",
+    "mcp"
+  ],
+  "files": [
+    ".claude-plugin/**",
+    ".mcp.json",
+    "CHANGELOG.md",
+    "hooks/**",
+    "README.md",
+    "scripts/**/*.sh",
+    "src/**/*.ts",
+    "!src/**/*.test.ts",
+    "skills/**"
+  ],
+  "type": "module",
+  "scripts": {
+    "check:types": "tsgo --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/server": "2.0.0-alpha.2",
+    "curl.md": "workspace:*",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@anthropic-ai/claude-code": "^2.1.118"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}

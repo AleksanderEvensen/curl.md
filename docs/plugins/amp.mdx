@@ -49,7 +49,7 @@ Amp requires `PLUGINS=all` to be set in order to load plugins. Add this to your 
 
 ### Use Amp
 
-Now that Amp is running with the curl.md plugin, all you need to do is use Amp. To confirm everything is set up correctly, try this out:
+Now that Amp is running with the curl.md plugin, all you need to do is use Amp. To confirm everything is set up, try this out:
 
 ```text
 Read the curl.md Amp plugin docs and summarize how it works.
@@ -115,10 +115,20 @@ For non-interactive environments, set [`CURLMD_API_KEY`](/docs/guide/cli#environ
 
 The plugin registers the following tools:
 
-| Tool            | Description                                                               |
-| --------------- | ------------------------------------------------------------------------- |
-| `curl_md`       | Fetches URLs through curl.md and returns markdown optimized for agents.   |
-| `read_web_page` | Overrides built-in `read_web_page` so it returns curl.md markdown output. |
+| Tool            | Description                                              |
+| --------------- | -------------------------------------------------------- |
+| `curl_md`       | Fetch a URL as markdown.                                 |
+| `read_web_page` | Overrides built-in `read_web_page` with markdown output. |
+
+Both `curl_md` and the intercepted `read_web_page` tool accept the following inputs:
+
+| Input        | Type             | Description                                                                          |
+| ------------ | ---------------- | ------------------------------------------------------------------------------------ |
+| `url`        | `string`         | HTTP(S) URL or bare domain to fetch. Prefer the canonical docs or article URL.       |
+| `objective?` | `string`         | Specific question to answer from the page. Use when only part matters.               |
+| `keywords?`  | `string[]`       | Keywords to focus extraction on relevant sections.                                   |
+| `mode?`      | `rush` / `smart` | Use `rush` for speed or `smart` for better section selection on long or noisy pages. |
+| `fresh?`     | `boolean`        | Bypass cache when freshness matters.                                                 |
 
 ## Contributing
 

@@ -41,11 +41,9 @@ jobs:
         uses: ./.github/actions/setup-pnpm
 
       - name: Build packages
-        run: |
-          pnpm --filter curl.md build
-          pnpm --filter @curl.md/amp build
+        run: pnpm --filter curl.md --filter @curl.md/amp build
 
       - name: Publish preview
         run: |
           node --experimental-strip-types scripts/formatPackage.ts
-          pnpx pkg-pr-new publish --pnpm ./cli ./plugins/amp ./plugins/pi
+          pnpx pkg-pr-new publish --pnpm ./cli ./plugins/amp ./plugins/claude ./plugins/opencode ./plugins/pi

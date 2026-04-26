@@ -39,7 +39,7 @@ $ pi
 
 ### Use Pi
 
-Now that Pi is running with the curl.md extension, all you need to do is use Pi. To confirm everything is set up correctly, try this out:
+Now that Pi is running with the curl.md extension, all you need to do is use Pi. To confirm everything is set up, try this out:
 
 ```text
 Read the curl.md Pi extension docs and summarize how it works.
@@ -123,25 +123,35 @@ For non-interactive environments, set [`CURLMD_API_KEY`](/docs/guide/cli#environ
 
 After installing, Pi registers the following commands:
 
-| Command          | Description                                                                  |
-| ---------------- | ---------------------------------------------------------------------------- |
-| `curl_md_login`  | Starts browser-based curl.md login flow and stores resulting session.        |
-| `curl_md_logout` | Logs out current curl.md session.                                            |
-| `curl_md_org`    | Switches the active curl.md account or organization Pi should use.           |
-| `curl_md_status` | Shows curl.md auth status, registered tool info, `curl.md` CLI availability. |
+| Command          | Description          |
+| ---------------- | -------------------- |
+| `curl_md_login`  | Log in.              |
+| `curl_md_logout` | Log out.             |
+| `curl_md_org`    | Switch organization. |
+| `curl_md_status` | Show status.         |
 
 ### Tools
 
 The plugin also registers the following tools:
 
-| Tool            | Description                                                             |
-| --------------- | ----------------------------------------------------------------------- |
-| `curl_md`       | Compatibility alias for `read_web_page`.                                |
-| `read_web_page` | Fetches URLs through curl.md and returns markdown optimized for agents. |
+| Tool            | Description                              |
+| --------------- | ---------------------------------------- |
+| `curl_md`       | Compatibility alias for `read_web_page`. |
+| `read_web_page` | Fetch a URL as markdown.                 |
+
+Both `read_web_page` and the `curl_md` alias accept the following inputs:
+
+| Input        | Type             | Description                                                                          |
+| ------------ | ---------------- | ------------------------------------------------------------------------------------ |
+| `url`        | `string`         | HTTP(S) URL or bare domain to fetch. Prefer the canonical docs or article URL.       |
+| `objective?` | `string`         | Specific question to answer from the page. Use when only part matters.               |
+| `keywords?`  | `string[]`       | Keywords to focus extraction on relevant sections.                                   |
+| `mode?`      | `rush` / `smart` | Use `rush` for speed or `smart` for better section selection on long or noisy pages. |
+| `fresh?`     | `boolean`        | Bypass cache when freshness matters.                                                 |
 
 ### Status/Debugging
 
-Use the `curl_md_status` command to confirm auth state, tool registration, and `curl.md` CLI availability.
+Use the `curl_md_status` command to confirm auth state, tool registration, and CLI availability.
 
 ```text
 /curl_md_status

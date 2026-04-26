@@ -20,7 +20,7 @@ export default function (pi: ExtensionAPI) {
   const resolver = Auth.createResolver(baseUrl, apiKey)
 
   pi.registerCommand('curl_md_login', {
-    description: 'Log in to curl.md',
+    description: 'Log in',
     async handler(_args, ctx) {
       const start = await Auth.startLogin(baseUrl)
       if (!start.ok) {
@@ -96,7 +96,7 @@ export default function (pi: ExtensionAPI) {
   })
 
   pi.registerCommand('curl_md_logout', {
-    description: 'Log out of curl.md',
+    description: 'Log out',
     async handler(_args, ctx) {
       if (!Session.read(baseUrl)) {
         ctx.ui.notify('Already logged out of curl.md', 'info')
@@ -115,7 +115,7 @@ export default function (pi: ExtensionAPI) {
   })
 
   pi.registerCommand('curl_md_org', {
-    description: 'Switch active curl.md organization',
+    description: 'Switch organization',
     async handler(args, ctx) {
       const authHeaders = await resolver()
       if (!authHeaders) {
@@ -128,7 +128,7 @@ export default function (pi: ExtensionAPI) {
         client.api.orgs.$get(),
         client.api.auth.me.$get(),
       ])
-      if (!orgsRes.ok || !meRes.ok) {
+      if (orgsRes.status !== 200 || meRes.status !== 200) {
         ctx.ui.notify('Failed to fetch curl.md organizations.', 'error')
         return
       }
@@ -158,10 +158,10 @@ export default function (pi: ExtensionAPI) {
       }
 
       const choices = [
-        ...orgsJson.organizations.map((o) => ({
-          id: o.id,
+        ...orgsJson.organizations.map((organization) => ({
+          id: organization.id,
           kind: 'organization' as const,
-          label: o.login,
+          label: organization.login,
         })),
         {
           id: undefined,
@@ -187,6 +187,7 @@ export default function (pi: ExtensionAPI) {
                 emptyText: '  No matching organizations',
                 footerText: '(escape/ctrl+c to cancel)',
                 formatItem: (choice, props) => {
+                  if (!choice) return ''
                   const { isSelected, theme } = props
                   const prefix = isSelected ? theme.fg('accent', '→ ') : '  '
                   const label = isSelected ? theme.fg('accent', choice.label) : choice.label
@@ -195,7 +196,7 @@ export default function (pi: ExtensionAPI) {
                   return `${prefix}${label}${badge}${check}`
                 },
                 placeholder: 'Type to filter. Use arrows to move, enter to select.',
-                searchText: (choice) => `${choice.label} ${choice.kind}`,
+                searchText: (choice) => (choice ? `${choice.label} ${choice.kind}` : ''),
                 title: 'Switch curl.md organization',
               },
               done,
@@ -223,7 +224,7 @@ export default function (pi: ExtensionAPI) {
   })
 
   pi.registerCommand('curl_md_status', {
-    description: 'Show curl.md status',
+    description: 'Show status',
     async handler(_args, ctx) {
       const lines = [`${packageJson.name} v${packageJson.version}`]
       const cliPath = (() => {
@@ -261,8 +262,8 @@ export default function (pi: ExtensionAPI) {
             }),
           })
           const res = await client.api.auth.me.$get()
-          if (!res.ok) {
-            const json = await res.json().catch((_error) => undefined)
+          if (res.status !== 200) {
+            const json = await res.json().catch(() => undefined)
             const error = parseApiError(json)
             return {
               message: error ? formatApiError(error) : `status ${res.status}`,
@@ -309,45 +310,40 @@ export default function (pi: ExtensionAPI) {
   })
 
   const readWebPageTool = defineTool({
-    description: 'Fetch a URL through curl.md and return markdown optimized for coding agents.',
+    description: 'Fetch a URL as markdown.',
     label: 'curl.md Fetch',
     name: 'read_web_page',
     parameters: Type.Object({
       fresh: Type.Optional(
         Type.Boolean({
-          description:
-            'Bypass curl.md cache when freshness matters, such as changelogs, release notes, or recently updated docs.',
+          description: 'Bypass cache when freshness matters.',
         }),
       ),
       keywords: Type.Optional(
         Type.Array(
           Type.String({
-            description:
-              'Keyword to pre-filter sections by. Prefer 2-5 distinct terms when only part of a long page matters.',
+            description: 'Keyword to focus extraction on relevant sections.',
           }),
         ),
       ),
       mode: Type.Optional(
         Type.Union([
           Type.Literal('rush', {
-            description:
-              'Lower-latency mode. Best when you already know the section or answer you want.',
+            description: 'Faster mode.',
           }),
           Type.Literal('smart', {
-            description:
-              'Higher-quality narrowing mode. Best for long or noisy pages where better extraction matters more than speed.',
+            description: 'Better section selection on long or noisy pages.',
           }),
         ]),
       ),
       objective: Type.Optional(
         Type.String({
-          description:
-            'Specific question or goal to answer from the page. Prefer concrete objectives like "compare pricing tiers" or "find auth header requirements".',
+          description: 'Specific question to answer from the page. Use when only part matters.',
         }),
       ),
       url: Type.String({
         description:
-          'HTTP(S) URL or bare domain to fetch via curl.md. Prefer the canonical docs or article URL you want summarized.',
+          'HTTP(S) URL or bare domain to fetch. Prefer the canonical docs or article URL.',
       }),
     }),
     prepareArguments(args) {
@@ -360,12 +356,12 @@ export default function (pi: ExtensionAPI) {
       return { ...rawArgs, url: url.toString() }
     },
     promptGuidelines: [
-      'Use read_web_page for documentation pages, changelogs, articles, and other web URLs when you want markdown back from curl.md.',
+      'Use read_web_page for docs, changelogs, articles, and other web URLs when you want markdown back.',
       'Set objective to the exact question you need answered when only part of the page matters.',
       'Add keywords for long pages when you know the relevant terms, and choose rush for speed or smart for higher-quality narrowing.',
     ],
     promptSnippet:
-      'Fetch a web page via curl.md. Use objective for a concrete question, keywords for long pages, rush for speed, smart for better narrowing.',
+      'Fetch a URL as markdown. Use objective for a concrete question, keywords for long pages, rush for speed, smart for better narrowing.',
     renderCall(args, theme, context) {
       const text = (context.lastComponent as Text | undefined) ?? new Text('', 0, 0)
       let content = `${theme.fg('toolTitle', theme.bold('read_web_page'))} ${theme.fg('accent', args.url)}`
@@ -490,7 +486,7 @@ export default function (pi: ExtensionAPI) {
         const json = await res
           .clone()
           .json()
-          .catch((_error) => undefined)
+          .catch(() => undefined)
         const error = parseApiError(json)
         if (error) throw new Error(formatApiError(error))
 

@@ -15,6 +15,14 @@
       "entry": ["src/install.ts"],
       "ignore": ["**/*.test.ts"]
     },
+    "plugins/claude": {
+      "entry": ["scripts/sync.ts", "src/server.ts"],
+      "ignore": ["**/*.test.ts"],
+      "ignoreDependencies": ["@anthropic-ai/claude-code"]
+    },
+    "plugins/opencode": {
+      "ignore": ["**/*.test.ts"]
+    },
     "plugins/pi": {
       "ignore": ["**/*.test.ts", "test/**"]
     }

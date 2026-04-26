@@ -31,9 +31,12 @@ curl.md example.com
 md example.com
 
 # Add to your agent
-opencode plugin @curl.md/opencode
-pi install @curl.md/pi
+opencode plugin -g @curl.md/opencode
+pi install npm:@curl.md/pi
 npx @curl.md/amp install
+
+claude plugin marketplace add https://curl.md/claude.json
+claude plugin install curl-md@curl-md
 
 # Add skills
 npx skills add https://curl.md --yes
