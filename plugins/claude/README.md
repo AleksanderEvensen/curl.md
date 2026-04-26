@@ -9,7 +9,7 @@
   <br>
 </p>
 
-# @curl.md/amp - URL to markdown for Claude
+# @curl.md/claude - URL to markdown for Claude
 
 Turn websites into **optimized, low token output** to **supercharge your context**.
 

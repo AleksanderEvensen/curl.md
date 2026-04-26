@@ -4,7 +4,6 @@
   },
   "description": "Use curl.md inside Claude Code for low-token web fetches.",
   "homepage": "https://curl.md/docs/plugins/claude",
-  "hooks": "./hooks/hooks.json",
   "license": "MIT",
   "name": "curl-md",
   "repository": "https://github.com/wevm/curl.md/tree/main/plugins/claude",
