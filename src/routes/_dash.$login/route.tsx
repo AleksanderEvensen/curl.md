@@ -10,6 +10,7 @@ import {
   useMatches,
   useNavigate,
   useRouter,
+  type NotFoundRouteProps,
 } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { getRequest } from '@tanstack/react-start/server'
@@ -20,6 +21,7 @@ import { Dashboard } from '#components/Dashboard.tsx'
 import { Dialog } from '#components/Dialog.tsx'
 import { Nav } from '#components/Nav.tsx'
 import { createClient } from '#db/client.ts'
+import type { DB } from '#db/types.gen.ts'
 import * as Cookie from '#lib/cookie.ts'
 import { rpc } from '#lib/rpc.ts'
 
@@ -28,14 +30,17 @@ const searchSchema = z.object({
 })
 
 export const Route = createFileRoute('/_dash/$login')({
-  async beforeLoad({ location, params }) {
+  async beforeLoad({ location, params }): Promise<DashboardLayoutData> {
     const data = await getLayoutData({ data: { login: params.login } })
     if (data === false)
       throw redirect({
         to: '/login',
         search: { next: location.publicHref ?? location.pathname },
       })
-    if (!data) throw notFound()
+    if (!data)
+      throw notFound({
+        data: await getNotFoundLayoutData({ data: { login: params.login } }),
+      })
     return data
   },
   validateSearch: searchSchema,
@@ -45,7 +50,16 @@ export const Route = createFileRoute('/_dash/$login')({
 })
 
 function Component() {
-  const { account, entity, organizations } = Route.useRouteContext()
+  return (
+    <DashboardLayout data={Route.useRouteContext()}>
+      <Outlet />
+    </DashboardLayout>
+  )
+}
+
+function DashboardLayout(props: React.PropsWithChildren<{ data: DashboardLayoutData }>) {
+  const { children, data } = props
+  const { account, entity, organizations } = data
   const router = useRouter()
 
   const logout = useMutation({
@@ -222,7 +236,7 @@ function Component() {
         setOpen={setCreateOrgOpen}
       />
       <main className="min-w-0 flex-1 md:ms-52" id={Nav.skipId}>
-        <Outlet />
+        {children}
       </main>
     </div>
   )
@@ -297,9 +311,22 @@ function AccountSwitcher(props: {
   )
 }
 
-function DashboardNotFound() {
+function DashboardNotFound(props: NotFoundRouteProps) {
+  const routeContext = useMatches().find((match) => match.routeId === '/_dash/$login')?.context
+  const layoutData = isDashboardLayoutData(props.data)
+    ? props.data
+    : isDashboardLayoutData(routeContext)
+      ? routeContext
+      : undefined
   const { login } = Route.useParams()
+  const content = <DashboardNotFoundContent login={layoutData?.entity.login ?? login} />
 
+  if (!layoutData) return content
+
+  return <DashboardLayout data={layoutData}>{content}</DashboardLayout>
+}
+
+function DashboardNotFoundContent(props: { login: string }) {
   return (
     <Dashboard.Content>
       <Dashboard.Heading level={1}>Not Found</Dashboard.Heading>
@@ -308,7 +335,7 @@ function DashboardNotFound() {
         <p className="text-gray8 mt-1 text-sm">Check the URL or go back to the overview.</p>
         <Link
           className="bg-gray10 text-bg1 mt-4 inline-flex px-3 py-1.5 text-sm transition-opacity hover:opacity-90"
-          params={{ login }}
+          params={{ login: props.login }}
           to="/$login"
         >
           Back to overview
@@ -460,45 +487,98 @@ function EntityAvatar(props: { avatarUrl?: string | null | undefined; name: stri
 const getLayoutData = createServerFn({ method: 'GET' })
   .inputValidator((d: { login: string }) => d)
   .handler(async (c) => {
-    const request = getRequest()
-    const db = createClient(env.DB.connectionString)
-    const sessionId = await Cookie.parseSigned(
-      request.headers.get('cookie') ?? '',
-      env.COOKIE_SECRET,
-      'curl.session',
-    )
-    const accountId = sessionId
-      ? ((
-          await db
-            .selectFrom('session')
-            .where('id', '=', sessionId)
-            .where('expires_at', '>', new Date())
-            .select('account_id')
-            .executeTakeFirst()
-        )?.account_id ?? null)
-      : null
-    if (!accountId) return false
+    const data = await getDashboardViewerData()
+    if (!data) return false
 
-    const account = await db
-      .selectFrom('account')
-      .where('id', '=', accountId)
-      .select(['avatar_url', 'email', 'id', 'login', 'name'])
-      .executeTakeFirst()
-    if (!account) return false
+    const entity = getDashboardEntity(data, c.data.login)
+    if (!entity) return null
 
-    const organizations = await db
-      .selectFrom('organization')
-      .innerJoin('organization_member', 'organization_member.organization_id', 'organization.id')
-      .where('organization.deleted_at', 'is', null)
-      .where('organization_member.account_id', '=', accountId)
-      .select(['organization.id', 'organization.login', 'organization.name'])
-      .execute()
-
-    if (account.login === c.data.login)
-      return { account, entity: { type: 'account' as const, ...account }, organizations }
-
-    const org = organizations.find((o) => o.login === c.data.login)
-    if (!org) return null
-
-    return { account, entity: { type: 'organization' as const, ...org }, organizations }
+    return { ...data, entity }
   })
+
+const getNotFoundLayoutData = createServerFn({ method: 'GET' })
+  .inputValidator((d: { login: string }) => d)
+  .handler(async (c) => {
+    const data = await getDashboardViewerData()
+    if (!data) return null
+
+    return {
+      ...data,
+      entity: getDashboardEntity(data, c.data.login) ?? {
+        ...data.account,
+        type: 'account' as const,
+      },
+    }
+  })
+
+async function getDashboardViewerData(): Promise<DashboardViewerData | false> {
+  const request = getRequest()
+  const db = createClient(env.DB.connectionString)
+  const sessionId = await Cookie.parseSigned(
+    request.headers.get('cookie') ?? '',
+    env.COOKIE_SECRET,
+    'curl.session',
+  )
+  const accountId = sessionId
+    ? ((
+        await db
+          .selectFrom('session')
+          .where('id', '=', sessionId)
+          .where('expires_at', '>', new Date())
+          .select('account_id')
+          .executeTakeFirst()
+      )?.account_id ?? null)
+    : null
+  if (!accountId) return false
+
+  const account = await db
+    .selectFrom('account')
+    .where('id', '=', accountId)
+    .select(['avatar_url', 'email', 'id', 'login', 'name'])
+    .executeTakeFirst()
+  if (!account) return false
+
+  const organizations = await db
+    .selectFrom('organization')
+    .innerJoin('organization_member', 'organization_member.organization_id', 'organization.id')
+    .where('organization.deleted_at', 'is', null)
+    .where('organization_member.account_id', '=', accountId)
+    .select(['organization.id', 'organization.login', 'organization.name'])
+    .execute()
+
+  return { account, organizations }
+}
+
+function getDashboardEntity(
+  data: DashboardViewerData,
+  login: string,
+): DashboardLayoutData['entity'] | null {
+  if (data.account.login === login) return { ...data.account, type: 'account' }
+
+  const org = data.organizations.find((organization) => organization.login === login)
+  if (!org) return null
+
+  return { ...org, type: 'organization' }
+}
+
+function isDashboardLayoutData(data: unknown): data is DashboardLayoutData {
+  return (
+    !!data &&
+    typeof data === 'object' &&
+    'account' in data &&
+    'entity' in data &&
+    'organizations' in data
+  )
+}
+
+type DashboardLayoutData = {
+  account: Pick<DB.account, 'avatar_url' | 'email' | 'id' | 'login' | 'name'>
+  entity:
+    | (Pick<DB.account, 'avatar_url' | 'email' | 'id' | 'login' | 'name'> & {
+        type: 'account'
+      })
+    | (Pick<DB.organization, 'id' | 'login' | 'name'> & { type: 'organization' })
+  organizations: Array<Pick<DB.organization, 'id' | 'login' | 'name'>>
+}
+
+type DashboardViewerData = Omit<DashboardLayoutData, 'entity'>

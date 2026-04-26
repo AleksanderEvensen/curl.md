@@ -43,7 +43,6 @@ export default defineConfig(async () => ({
           }
         : {}),
     }),
-    tanstackStart(),
     icons({
       compiler: 'jsx',
       customCollections: {
@@ -53,7 +52,7 @@ export default defineConfig(async () => ({
     }),
     autoImport({
       dts: 'src/auto-imports.d.ts',
-      include: [/\.[jt]sx?$/, /\.[jt]sx?\?tsr-split/],
+      include: [/\.[jt]sx?$/, /\.[jt]sx?\?tsr-/],
       resolvers: [
         iconsResolver({
           prefix: 'Icon',
@@ -63,6 +62,7 @@ export default defineConfig(async () => ({
         }),
       ],
     }),
+    tanstackStart(),
     docs(),
     viteReact(),
   ],

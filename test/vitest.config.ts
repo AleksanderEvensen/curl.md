@@ -95,7 +95,7 @@ export default defineConfig({
           }),
           autoImport({
             dts: false,
-            include: [/\.[jt]sx?$/],
+            include: [/\.[jt]sx?$/, /\.[jt]sx?\?tsr-/],
             resolvers: [
               iconsResolver({
                 prefix: 'Icon',

@@ -30,7 +30,7 @@ function Root(props: React.PropsWithChildren<{ fixed?: boolean }>) {
     <nav
       className={`flex h-17 items-center px-6 ${props.fixed ? 'bg-bg1 fixed inset-x-0 top-0 z-50' : ''}`}
     >
-      {props.children ?? <Logo />}
+      {props.children ?? <Logo variant="icon" />}
     </nav>
   )
 }

@@ -15,6 +15,25 @@ test('shows stats with zero values for new account', async ({ factory, page, set
   await expect(page.getByRole('button', { name: 'Add payment method' })).toBeVisible()
 })
 
+test('keeps the dashboard layout for an unknown login and links back to overview', async ({
+  factory,
+  page,
+  setSession,
+}) => {
+  const account = await factory.account.insert({})
+  await setSession(account.id)
+
+  await page.goto(`/missing-${account.login}`)
+
+  await expect(page.getByRole('link', { exact: true, name: 'Overview' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Not Found' })).toBeVisible()
+
+  await page.getByRole('link', { name: 'Back to overview' }).click()
+
+  await expect(page).toHaveURL(new RegExp(`/${account.login}$`))
+  await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible()
+})
+
 test('opens add payment method dialog with a masked route', async ({
   factory,
   page,
