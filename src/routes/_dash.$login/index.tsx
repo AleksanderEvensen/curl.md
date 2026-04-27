@@ -12,8 +12,8 @@ import { Dashboard } from '#components/Dashboard.tsx'
 import { createClient } from '#db/client.ts'
 import { requestTokensSavedSql, requestTokensSavedSumSql } from '#db/utils.ts'
 import { useCopyToClipboard } from '#hooks/useCopyToClipboard.ts'
-import * as Cookie from '#lib/cookie.ts'
 import { formatCost } from '#lib/format.ts'
+import { getSessionAccountId, requireEntityRead } from '#server/access.ts'
 
 export const Route = createFileRoute('/_dash/$login/')({
   head: () => ({ meta: [{ title: `Overview - ${__HOST__}` }] }),
@@ -81,17 +81,14 @@ const getUsageData = createServerFn({ method: 'GET' })
     const request = getRequest()
     const db = createClient(env.DB.connectionString)
     const timeZone = (request as { cf?: { timezone?: string } }).cf?.timezone ?? 'UTC'
-    const sessionId = await Cookie.parseSigned(
-      request.headers.get('cookie') ?? '',
-      env.COOKIE_SECRET,
-      'curl.session',
-    )
-    if (!sessionId) return { daily: [], tokens_saved: 0 }
+    const accountId = await getSessionAccountId(request, db)
+    if (!accountId) return { daily: [], tokens_saved: 0 }
 
-    const requestColumn = c.data.entityType === 'organization' ? 'organization_id' : 'account_id'
+    const entity = await requireEntityRead(db, c.data.entityType, c.data.entityId, accountId)
+    const requestColumn = entity.type === 'organization' ? 'organization_id' : 'account_id'
     const statsResult = await db
       .selectFrom('request')
-      .where(requestColumn, '=', c.data.entityId)
+      .where(requestColumn, '=', entity.id)
       .select(requestTokensSavedSumSql().as('total'))
       .executeTakeFirst()
 
@@ -101,7 +98,7 @@ const getUsageData = createServerFn({ method: 'GET' })
       .selectFrom(
         db
           .selectFrom('request')
-          .where(requestColumn, '=', c.data.entityId)
+          .where(requestColumn, '=', entity.id)
           .where('created_at', '>=', startOfWindowSql)
           .select([
             sql<string>`to_char(created_at AT TIME ZONE ${timeZone}, 'YYYY-MM-DD')`.as('date'),

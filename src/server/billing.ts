@@ -4,13 +4,19 @@ import { env } from 'cloudflare:workers'
 import Stripe from 'stripe'
 import { createClient } from '#db/client.ts'
 import * as Constants from '#lib/constants.ts'
-import * as Cookie from '#lib/cookie.ts'
 import {
   getDefaultPaymentMethod,
   getSavedPaymentMethodCount,
   listCardPaymentMethods,
   stripeOptions,
 } from '#lib/stripe.ts'
+import {
+  getSessionAccountId,
+  requireEntityAdmin,
+  requireEntityRead,
+  requireSameOrigin,
+  requireSession,
+} from '#server/access.ts'
 
 export type PaymentMethod = Pick<Stripe.PaymentMethod, 'id'> &
   Pick<
@@ -23,7 +29,7 @@ export const getBillingData = createServerFn({ method: 'GET' })
   .handler(async (c) => {
     const request = getRequest()
     const db = createClient(env.DB.connectionString)
-    const accountId = await resolveAccountId(request, db)
+    const accountId = await getSessionAccountId(request, db)
     if (!accountId)
       return {
         balance_mills: 0,
@@ -31,10 +37,10 @@ export const getBillingData = createServerFn({ method: 'GET' })
         timezone: undefined as string | undefined,
       }
 
-    const table = c.data.entityType === 'organization' ? 'organization' : 'account'
+    const entity = await requireEntityRead(db, c.data.entityType, c.data.entityId, accountId)
     const billing = await db
-      .selectFrom(table)
-      .where('id', '=', c.data.entityId)
+      .selectFrom(entity.type)
+      .where('id', '=', entity.id)
       .select(['balance_mills', 'default_payment_method_id', 'stripe_customer_id'])
       .executeTakeFirst()
 
@@ -48,9 +54,9 @@ export const getBillingData = createServerFn({ method: 'GET' })
       )
       if (defaultPaymentMethod?.id !== billing.default_payment_method_id)
         await db
-          .updateTable(table)
+          .updateTable(entity.type)
           .set({ default_payment_method_id: defaultPaymentMethod?.id ?? null })
-          .where('id', '=', c.data.entityId)
+          .where('id', '=', entity.id)
           .execute()
       paymentMethods = methods.map((pm) => ({
         brand: pm.card.brand,
@@ -82,7 +88,7 @@ export const getTransactions = createServerFn({ method: 'GET' })
   .handler(async (c) => {
     const request = getRequest()
     const db = createClient(env.DB.connectionString)
-    const accountId = await resolveAccountId(request, db)
+    const accountId = await getSessionAccountId(request, db)
     if (!accountId)
       return {
         prior_sum: 0,
@@ -95,17 +101,18 @@ export const getTransactions = createServerFn({ method: 'GET' })
         }[],
       }
 
-    const col = c.data.entityType === 'organization' ? 'organization_id' : 'account_id'
+    const entity = await requireEntityRead(db, c.data.entityType, c.data.entityId, accountId)
+    const col = entity.type === 'organization' ? 'organization_id' : 'account_id'
 
     const [countResult, transactions, priorResult] = await Promise.all([
       db
         .selectFrom('credit_transaction')
-        .where(col, '=', c.data.entityId)
+        .where(col, '=', entity.id)
         .select((eb) => eb.fn.countAll<number>().as('total'))
         .executeTakeFirstOrThrow(),
       db
         .selectFrom('credit_transaction')
-        .where(col, '=', c.data.entityId)
+        .where(col, '=', entity.id)
         .orderBy('created_at', 'desc')
         .offset(c.data.offset)
         .limit(c.data.limit)
@@ -116,7 +123,7 @@ export const getTransactions = createServerFn({ method: 'GET' })
             .selectFrom(
               db
                 .selectFrom('credit_transaction')
-                .where(col, '=', c.data.entityId)
+                .where(col, '=', entity.id)
                 .orderBy('created_at', 'desc')
                 .limit(c.data.offset)
                 .select('amount_mills')
@@ -147,6 +154,7 @@ const allowedPaymentAmounts = new Set(Constants.creditAmounts.map(Number))
 export const changePaymentAmount = createServerFn({ method: 'POST' })
   .inputValidator((d: { amount: number; id: string }) => d)
   .handler(async (c) => {
+    requireSameOrigin(getRequest())
     if (!allowedPaymentAmounts.has(c.data.amount)) throw new Error('invalid_amount')
 
     const data = await env.KV.get(`payment:${c.data.id}`, 'json')
@@ -162,6 +170,7 @@ export const changePaymentAmount = createServerFn({ method: 'POST' })
 export const deletePayment = createServerFn({ method: 'POST' })
   .inputValidator((d: { id: string }) => d)
   .handler(async (c) => {
+    requireSameOrigin(getRequest())
     await env.KV.delete(`payment:${c.data.id}`)
   })
 
@@ -169,18 +178,14 @@ export const setupPaymentMethod = createServerFn({ method: 'POST' })
   .inputValidator((d: { entityId: string; entityType: 'account' | 'organization' }) => d)
   .handler(async (c) => {
     const request = getRequest()
+    requireSameOrigin(request)
     const db = createClient(env.DB.connectionString)
-    const accountId = await resolveAccountId(request, db)
-    if (!accountId) throw new Error('Authentication required')
-
-    const table = c.data.entityType === 'organization' ? 'organization' : 'account'
-    if (c.data.entityType === 'organization') {
-      await requireOrgAdmin(db, c.data.entityId, accountId)
-    }
+    const accountId = await requireSession(request, db)
+    const entity = await requireEntityAdmin(db, c.data.entityType, c.data.entityId, accountId)
 
     const billing = await db
-      .selectFrom(table)
-      .where('id', '=', c.data.entityId)
+      .selectFrom(entity.type)
+      .where('id', '=', entity.id)
       .select('stripe_customer_id')
       .executeTakeFirst()
     if (!billing) throw new Error('Not found')
@@ -190,12 +195,12 @@ export const setupPaymentMethod = createServerFn({ method: 'POST' })
 
     if (!stripeCustomerId) {
       const customer = await stripe.customers.create({
-        metadata: { entity_type: c.data.entityType, entity_id: c.data.entityId },
+        metadata: { entity_type: entity.type, entity_id: entity.id },
       })
       const result = await db
-        .updateTable(table)
+        .updateTable(entity.type)
         .set({ stripe_customer_id: customer.id })
-        .where('id', '=', c.data.entityId)
+        .where('id', '=', entity.id)
         .where('stripe_customer_id', 'is', null)
         .returning('stripe_customer_id')
         .executeTakeFirst()
@@ -203,8 +208,8 @@ export const setupPaymentMethod = createServerFn({ method: 'POST' })
         stripeCustomerId = result.stripe_customer_id
       } else {
         const existing = await db
-          .selectFrom(table)
-          .where('id', '=', c.data.entityId)
+          .selectFrom(entity.type)
+          .where('id', '=', entity.id)
           .select('stripe_customer_id')
           .executeTakeFirstOrThrow()
         stripeCustomerId = existing.stripe_customer_id
@@ -236,18 +241,14 @@ export const setDefaultPaymentMethod = createServerFn({ method: 'POST' })
   )
   .handler(async (c) => {
     const request = getRequest()
+    requireSameOrigin(request)
     const db = createClient(env.DB.connectionString)
-    const accountId = await resolveAccountId(request, db)
-    if (!accountId) throw new Error('Authentication required')
-
-    const table = c.data.entityType === 'organization' ? 'organization' : 'account'
-    if (c.data.entityType === 'organization') {
-      await requireOrgAdmin(db, c.data.entityId, accountId)
-    }
+    const accountId = await requireSession(request, db)
+    const entity = await requireEntityAdmin(db, c.data.entityType, c.data.entityId, accountId)
 
     const billing = await db
-      .selectFrom(table)
-      .where('id', '=', c.data.entityId)
+      .selectFrom(entity.type)
+      .where('id', '=', entity.id)
       .select('stripe_customer_id')
       .executeTakeFirst()
     if (!billing?.stripe_customer_id) throw new Error('Not found')
@@ -257,9 +258,9 @@ export const setDefaultPaymentMethod = createServerFn({ method: 'POST' })
       throw new Error('Not found')
 
     await db
-      .updateTable(table)
+      .updateTable(entity.type)
       .set({ default_payment_method_id: c.data.paymentMethodId })
-      .where('id', '=', c.data.entityId)
+      .where('id', '=', entity.id)
       .execute()
   })
 
@@ -269,18 +270,14 @@ export const removePaymentMethod = createServerFn({ method: 'POST' })
   )
   .handler(async (c) => {
     const request = getRequest()
+    requireSameOrigin(request)
     const db = createClient(env.DB.connectionString)
-    const accountId = await resolveAccountId(request, db)
-    if (!accountId) throw new Error('Authentication required')
-
-    const table = c.data.entityType === 'organization' ? 'organization' : 'account'
-    if (c.data.entityType === 'organization') {
-      await requireOrgAdmin(db, c.data.entityId, accountId)
-    }
+    const accountId = await requireSession(request, db)
+    const entity = await requireEntityAdmin(db, c.data.entityType, c.data.entityId, accountId)
 
     const billing = await db
-      .selectFrom(table)
-      .where('id', '=', c.data.entityId)
+      .selectFrom(entity.type)
+      .where('id', '=', entity.id)
       .select(['default_payment_method_id', 'stripe_customer_id'])
       .executeTakeFirst()
     if (!billing?.stripe_customer_id) throw new Error('Not found')
@@ -302,42 +299,11 @@ export const removePaymentMethod = createServerFn({ method: 'POST' })
     )
     if (defaultPaymentMethod?.id !== billing.default_payment_method_id)
       await db
-        .updateTable(table)
+        .updateTable(entity.type)
         .set({ default_payment_method_id: defaultPaymentMethod?.id ?? null })
-        .where('id', '=', c.data.entityId)
+        .where('id', '=', entity.id)
         .execute()
   })
-
-async function resolveAccountId(request: Request, db: ReturnType<typeof createClient>) {
-  const sessionId = await Cookie.parseSigned(
-    request.headers.get('cookie') ?? '',
-    env.COOKIE_SECRET,
-    'curl.session',
-  )
-  if (!sessionId) return null
-  const session = await db
-    .selectFrom('session')
-    .where('id', '=', sessionId)
-    .where('expires_at', '>', new Date())
-    .select('account_id')
-    .executeTakeFirst()
-  return session?.account_id ?? null
-}
-
-async function requireOrgAdmin(
-  db: ReturnType<typeof createClient>,
-  organizationId: string,
-  accountId: string,
-) {
-  const member = await db
-    .selectFrom('organization_member')
-    .where('organization_id', '=', organizationId)
-    .where('account_id', '=', accountId)
-    .select('role')
-    .executeTakeFirst()
-  if (!member || (member.role !== 'owner' && member.role !== 'admin'))
-    throw new Error('Insufficient permissions')
-}
 
 function createStripe() {
   return new Stripe(env.STRIPE_SECRET_KEY, stripeOptions(env.STRIPE_API_URL))

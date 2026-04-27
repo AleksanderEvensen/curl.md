@@ -10,7 +10,7 @@ import { Dashboard } from '#components/Dashboard.tsx'
 import { Dialog } from '#components/Dialog.tsx'
 import { createClient } from '#db/client.ts'
 import * as Constants from '#lib/constants.ts'
-import * as Cookie from '#lib/cookie.ts'
+import { requireSameOrigin, requireSession } from '#server/access.ts'
 
 export const Route = createFileRoute('/_dash/$login/settings')({
   head: () => ({ meta: [{ title: `Settings - ${__HOST__}` }] }),
@@ -431,23 +431,9 @@ const updateEntity = createServerFn({ method: 'POST' })
   .inputValidator((data) => z.parse(updateEntityInput, data))
   .handler(async (c) => {
     const request = getRequest()
+    requireSameOrigin(request)
     const db = createClient(env.DB.connectionString)
-    const sessionId = await Cookie.parseSigned(
-      request.headers.get('cookie') ?? '',
-      env.COOKIE_SECRET,
-      'curl.session',
-    )
-    const accountId = sessionId
-      ? ((
-          await db
-            .selectFrom('session')
-            .where('id', '=', sessionId)
-            .where('expires_at', '>', new Date())
-            .select('account_id')
-            .executeTakeFirst()
-        )?.account_id ?? null)
-      : null
-    if (!accountId) throw new Error('Authentication required')
+    const accountId = await requireSession(request, db)
 
     const { entityId, entityType, login, name } = c.data
     if (!login && !name) throw new Error('No changes provided')
@@ -508,23 +494,9 @@ const deleteOrganization = createServerFn({ method: 'POST' })
   .inputValidator((data: { organizationId: string }) => data)
   .handler(async (c) => {
     const request = getRequest()
+    requireSameOrigin(request)
     const db = createClient(env.DB.connectionString)
-    const sessionId = await Cookie.parseSigned(
-      request.headers.get('cookie') ?? '',
-      env.COOKIE_SECRET,
-      'curl.session',
-    )
-    const accountId = sessionId
-      ? ((
-          await db
-            .selectFrom('session')
-            .where('id', '=', sessionId)
-            .where('expires_at', '>', new Date())
-            .select('account_id')
-            .executeTakeFirst()
-        )?.account_id ?? null)
-      : null
-    if (!accountId) throw new Error('Authentication required')
+    const accountId = await requireSession(request, db)
 
     const member = await db
       .selectFrom('organization_member')
@@ -556,23 +528,9 @@ const deleteAccount = createServerFn({ method: 'POST' })
   .inputValidator((data: { accountId: string }) => data)
   .handler(async (c) => {
     const request = getRequest()
+    requireSameOrigin(request)
     const db = createClient(env.DB.connectionString)
-    const sessionId = await Cookie.parseSigned(
-      request.headers.get('cookie') ?? '',
-      env.COOKIE_SECRET,
-      'curl.session',
-    )
-    const accountId = sessionId
-      ? ((
-          await db
-            .selectFrom('session')
-            .where('id', '=', sessionId)
-            .where('expires_at', '>', new Date())
-            .select('account_id')
-            .executeTakeFirst()
-        )?.account_id ?? null)
-      : null
-    if (!accountId) throw new Error('Authentication required')
+    const accountId = await requireSession(request, db)
     if (accountId !== c.data.accountId) throw new Error('Insufficient permissions')
 
     const account = await db
