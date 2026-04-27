@@ -436,15 +436,15 @@ export const api = new Hono<{
     },
   )
   .post('/api/auth/device', async (c) => {
-    const rl = await hono.rateLimit(c.env.KV, c.executionCtx, {
+    const rateLimit = await hono.rateLimit(c.env.KV, c.executionCtx, {
       ip: c.req.header('cf-connecting-ip') ?? 'unknown',
       key: 'device',
       max: 15,
       window: 60,
     })
-    if (rl.error)
+    if (rateLimit.error)
       return c.json({ code: 'rate_limit_exceeded' as const, message: 'Rate limit exceeded' }, 429, {
-        'retry-after': String(rl.reset - Math.floor(Date.now() / 1000)),
+        'retry-after': String(rateLimit.reset - Math.floor(Date.now() / 1000)),
       })
 
     const code = Nanoid.generate()
@@ -527,18 +527,18 @@ export const api = new Hono<{
     async (c) => {
       if (hono.narrowValidation) return hono.validationError(c)
 
-      const rl = await hono.rateLimit(c.env.KV, c.executionCtx, {
+      const rateLimit = await hono.rateLimit(c.env.KV, c.executionCtx, {
         ip: c.req.header('cf-connecting-ip') ?? 'unknown',
         key: 'device_token',
         max: 30,
         window: 60,
       })
-      if (rl.error)
+      if (rateLimit.error)
         return c.json(
           { code: 'rate_limit_exceeded' as const, message: 'Rate limit exceeded' },
           429,
           {
-            'retry-after': String(rl.reset - Math.floor(Date.now() / 1000)),
+            'retry-after': String(rateLimit.reset - Math.floor(Date.now() / 1000)),
           },
         )
 
@@ -794,6 +794,21 @@ export const api = new Hono<{
           )
       }
 
+      const rateLimit = await hono.rateLimit(c.env.KV, c.executionCtx, {
+        ip: entityId,
+        key: `credits_add:${entityType}`,
+        max: 10,
+        window: 3600, // 1 hour
+      })
+      if (rateLimit.error)
+        return c.json(
+          { code: 'rate_limit_exceeded' as const, message: 'Rate limit exceeded' },
+          429,
+          {
+            'retry-after': String(rateLimit.reset - Math.floor(Date.now() / 1000)),
+          },
+        )
+
       const billing = await c.var.db
         .selectFrom(entityType)
         .where('id', '=', entityId)
@@ -965,6 +980,21 @@ export const api = new Hono<{
           .where('id', '=', entityId)
           .execute()
 
+      const rateLimit = await hono.rateLimit(c.env.KV, c.executionCtx, {
+        ip: entityId,
+        key: `credits_charge:${entityType}`,
+        max: 10,
+        window: 3600, // 1 hour
+      })
+      if (rateLimit.error)
+        return c.json(
+          { code: 'rate_limit_exceeded' as const, message: 'Rate limit exceeded' },
+          429,
+          {
+            'retry-after': String(rateLimit.reset - Math.floor(Date.now() / 1000)),
+          },
+        )
+
       const createRequiresActionResponse = async (paymentIntent: Stripe.PaymentIntent) => {
         const paymentIntentSecret = StripeUtils.getPaymentIntentSecret(
           paymentIntent,
@@ -1127,15 +1157,15 @@ export const api = new Hono<{
   .get('/api/og.png', hono.validator('query', Og.schema), async (c) => {
     if (hono.narrowValidation) return hono.validationError(c)
 
-    const rl = await hono.rateLimit(c.env.KV, c.executionCtx, {
+    const rateLimit = await hono.rateLimit(c.env.KV, c.executionCtx, {
       ip: c.req.header('cf-connecting-ip') ?? 'unknown',
       key: 'og',
       max: import.meta.env.DEV ? 60 : 30,
       window: 60,
     })
-    if (rl.error)
+    if (rateLimit.error)
       return c.json({ code: 'rate_limit_exceeded' as const, message: 'Rate limit exceeded' }, 429, {
-        'retry-after': String(rl.reset - Math.floor(Date.now() / 1000)),
+        'retry-after': String(rateLimit.reset - Math.floor(Date.now() / 1000)),
       })
 
     const query = c.req.valid('query')
@@ -1208,6 +1238,21 @@ export const api = new Hono<{
       if (!c.var.session)
         return c.json({ code: 'unauthorized' as const, message: 'Authentication required' }, 401)
 
+      const rateLimit = await hono.rateLimit(c.env.KV, c.executionCtx, {
+        ip: c.var.session.account_id,
+        key: 'org_create',
+        max: 3,
+        window: 3600, // 1 hour
+      })
+      if (rateLimit.error)
+        return c.json(
+          { code: 'rate_limit_exceeded' as const, message: 'Rate limit exceeded' },
+          429,
+          {
+            'retry-after': String(rateLimit.reset - Math.floor(Date.now() / 1000)),
+          },
+        )
+
       const json = c.req.valid('json')
       if (Constants.reservedLogins.has(json.login))
         return c.json({ code: 'login_reserved' as const, message: 'Login is reserved' }, 409)
@@ -1267,6 +1312,21 @@ export const api = new Hono<{
       if (hono.narrowValidation) return hono.validationError(c)
       if (!c.var.session)
         return c.json({ code: 'unauthorized' as const, message: 'Authentication required' }, 401)
+
+      const rateLimit = await hono.rateLimit(c.env.KV, c.executionCtx, {
+        ip: c.var.session.account_id,
+        key: `org_invite:${c.req.param('id')}`,
+        max: 20,
+        window: 3600, // 1 hour
+      })
+      if (rateLimit.error)
+        return c.json(
+          { code: 'rate_limit_exceeded' as const, message: 'Rate limit exceeded' },
+          429,
+          {
+            'retry-after': String(rateLimit.reset - Math.floor(Date.now() / 1000)),
+          },
+        )
 
       const member = await c.var.db
         .selectFrom('organization_member')
@@ -1407,6 +1467,21 @@ export const api = new Hono<{
       if (!c.var.session)
         return c.json({ code: 'unauthorized' as const, message: 'Authentication required' }, 401)
 
+      const rateLimit = await hono.rateLimit(c.env.KV, c.executionCtx, {
+        ip: c.var.session.account_id,
+        key: `org_member_add:${c.req.param('id')}`,
+        max: 50,
+        window: 3600, // 1 hour
+      })
+      if (rateLimit.error)
+        return c.json(
+          { code: 'rate_limit_exceeded' as const, message: 'Rate limit exceeded' },
+          429,
+          {
+            'retry-after': String(rateLimit.reset - Math.floor(Date.now() / 1000)),
+          },
+        )
+
       const currentMember = await c.var.db
         .selectFrom('organization_member')
         .where('organization_id', '=', c.req.param('id'))
@@ -1541,6 +1616,21 @@ export const api = new Hono<{
         return c.json(
           { code: 'forbidden', message: 'Cannot create tokens with API token auth' },
           403,
+        )
+
+      const rateLimit = await hono.rateLimit(c.env.KV, c.executionCtx, {
+        ip: c.var.session.account_id,
+        key: `token_create:${c.var.organization_id ?? 'account'}`,
+        max: 25,
+        window: 3600, // 1 hour
+      })
+      if (rateLimit.error)
+        return c.json(
+          { code: 'rate_limit_exceeded' as const, message: 'Rate limit exceeded' },
+          429,
+          {
+            'retry-after': String(rateLimit.reset - Math.floor(Date.now() / 1000)),
+          },
         )
 
       const json = c.req.valid('json')

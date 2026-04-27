@@ -166,57 +166,6 @@ type AuthContext = Pick<MiddlewareContext, 'displayName' | 'error'> & {
   var: { apiKey?: string | undefined; baseUrl: string; commands: Command[] }
 }
 
-function expiredSession(c: AuthContext) {
-  if (c.var.apiKey) return authError(c)
-  Session.delete(c.var.baseUrl)
-  return authError(c)
-}
-
-function authError(
-  c: Pick<MiddlewareContext, 'displayName' | 'error'> & {
-    var: { commands: Command[] }
-  },
-) {
-  return c.error({
-    code: 'NOT_AUTHENTICATED',
-    message: 'Not authenticated.',
-    cta: {
-      description: c.var.commands.length ? 'Authenticate:' : undefined,
-      commands: [
-        {
-          command: `${c.displayName} auth login`,
-          description: 'log in with browser',
-        },
-        {
-          command: `${c.displayName} auth status --token <token>`,
-          description: 'use API token instead',
-        },
-        ...c.var.commands,
-      ],
-    },
-  })
-}
-
-function noActiveOrg(
-  c: Pick<MiddlewareContext, 'displayName' | 'error'> & {
-    var: { commands: Command[] }
-  },
-) {
-  return c.error({
-    code: 'NO_ACTIVE_ORG',
-    message: 'No active organization.',
-    cta: {
-      commands: [
-        {
-          command: `${c.displayName} org switch`,
-          description: 'switch organization',
-        },
-        ...c.var.commands,
-      ],
-    },
-  })
-}
-
 const auth = Cli.create('auth', {
   description: 'Authenticate with curl.md (login, logout, status)',
   vars,
@@ -579,7 +528,7 @@ const invite = Cli.create('invite', {
     format: 'md',
     async run(c) {
       const orgId = Session.read(c.var.baseUrl)?.organization_id
-      if (!orgId) return noActiveOrg(c)
+      if (!orgId) return noActiveOrgError(c)
 
       const res = await c.var.client.api.orgs[':id'].invites.$post({
         param: { id: orgId },
@@ -625,7 +574,7 @@ const invite = Cli.create('invite', {
     format: 'md',
     async run(c) {
       const orgId = Session.read(c.var.baseUrl)?.organization_id
-      if (!orgId) return noActiveOrg(c)
+      if (!orgId) return noActiveOrgError(c)
 
       const res = await c.var.client.api.orgs[':id'].invites.$get({
         param: { id: orgId },
@@ -680,7 +629,7 @@ const invite = Cli.create('invite', {
     format: 'md',
     async run(c) {
       const orgId = Session.read(c.var.baseUrl)?.organization_id
-      if (!orgId) return noActiveOrg(c)
+      if (!orgId) return noActiveOrgError(c)
 
       let inviteId = c.args.invite
       let displayToken = c.args.invite
@@ -787,7 +736,7 @@ const member = Cli.create('member', {
     format: 'md',
     async run(c) {
       const orgId = Session.read(c.var.baseUrl)?.organization_id
-      if (!orgId) return noActiveOrg(c)
+      if (!orgId) return noActiveOrgError(c)
 
       const res = await c.var.client.api.orgs[':id'].members.$post({
         param: { id: orgId },
@@ -824,7 +773,7 @@ const member = Cli.create('member', {
     format: 'md',
     async run(c) {
       const orgId = Session.read(c.var.baseUrl)?.organization_id
-      if (!orgId) return noActiveOrg(c)
+      if (!orgId) return noActiveOrgError(c)
 
       const res = await c.var.client.api.orgs[':id'].members.$get({
         param: { id: orgId },
@@ -874,7 +823,7 @@ const member = Cli.create('member', {
     format: 'md',
     async run(c) {
       const orgId = Session.read(c.var.baseUrl)?.organization_id
-      if (!orgId) return noActiveOrg(c)
+      if (!orgId) return noActiveOrgError(c)
 
       const listRes = await c.var.client.api.orgs[':id'].members.$get({
         param: { id: orgId },
@@ -992,7 +941,7 @@ const member = Cli.create('member', {
     format: 'md',
     async run(c) {
       const orgId = Session.read(c.var.baseUrl)?.organization_id
-      if (!orgId) return noActiveOrg(c)
+      if (!orgId) return noActiveOrgError(c)
 
       const listRes = await c.var.client.api.orgs[':id'].members.$get({
         param: { id: orgId },
@@ -1143,6 +1092,11 @@ const org = Cli.create('org', {
         })
       }
       if (res.status === 401) return expiredSession(c)
+
+      if (res.status === 429) {
+        const json = await res.json()
+        return rateLimitError(c, json, { retryAfter: res.headers.get('retry-after') })
+      }
 
       if (res.status === 409) {
         const json = await res.json()
@@ -1890,11 +1844,9 @@ async function run(
 
   if (res.status === 429) {
     const json = await res.json()
-    const retryAfter = res.headers.get('retry-after')
     const activeSession = c.var.apiKey ? null : Session.read(c.var.baseUrl)
-    return c.error({
-      code: json.code.toUpperCase(),
-      message: retryAfter ? `${json.message}. Try again in ${retryAfter}s` : json.message,
+    return rateLimitError(c, json, {
+      retryAfter: res.headers.get('retry-after'),
       cta: {
         description: activeSession
           ? 'Add credits to remove rate limits:'
@@ -1963,5 +1915,76 @@ async function run(
 
   return c.ok(text, {
     cta: { commands: c.var.commands },
+  })
+}
+
+function expiredSession(c: AuthContext) {
+  if (c.var.apiKey) return authError(c)
+  Session.delete(c.var.baseUrl)
+  return authError(c)
+}
+
+function authError(
+  c: Pick<MiddlewareContext, 'displayName' | 'error'> & {
+    var: { commands: Command[] }
+  },
+) {
+  return c.error({
+    code: 'NOT_AUTHENTICATED',
+    message: 'Not authenticated.',
+    cta: {
+      description: c.var.commands.length ? 'Authenticate:' : undefined,
+      commands: [
+        {
+          command: `${c.displayName} auth login`,
+          description: 'log in with browser',
+        },
+        {
+          command: `${c.displayName} auth status --token <token>`,
+          description: 'use API token instead',
+        },
+        ...c.var.commands,
+      ],
+    },
+  })
+}
+
+function noActiveOrgError(
+  c: Pick<MiddlewareContext, 'displayName' | 'error'> & {
+    var: { commands: Command[] }
+  },
+) {
+  return c.error({
+    code: 'NO_ACTIVE_ORG',
+    message: 'No active organization.',
+    cta: {
+      commands: [
+        {
+          command: `${c.displayName} org switch`,
+          description: 'switch organization',
+        },
+        ...c.var.commands,
+      ],
+    },
+  })
+}
+
+function rateLimitError(
+  c: AuthContext,
+  rateLimit: { code: string; message: string },
+  options?: {
+    cta?: { description?: string | undefined; commands?: Command[] | undefined }
+    retryAfter?: string | null | undefined
+  },
+) {
+  return c.error({
+    code: rateLimit.code.toUpperCase(),
+    message: options?.retryAfter
+      ? `${rateLimit.message}. Try again in ${options.retryAfter}s`
+      : rateLimit.message,
+    cta: {
+      description: options?.cta?.description ?? 'Try again later:',
+      commands: options?.cta?.commands ?? c.var.commands,
+    },
   })
 }

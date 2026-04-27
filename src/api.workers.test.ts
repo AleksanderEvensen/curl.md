@@ -965,6 +965,32 @@ describe('POST /api/credits/add', () => {
     expect(res.status).toBe(401)
   })
 
+  test('returns 429 when credits add rate limit exceeded', async () => {
+    const account = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: account.id })
+
+    await env.KV.put(
+      `ratelimit:credits_add:account:${account.id}`,
+      JSON.stringify({ count: 10, reset: Math.floor(Date.now() / 1000) + 3600 }),
+      { expirationTtl: 3600 },
+    )
+
+    const res = await client.api.credits.add.$post(
+      { json: { amount: '500' } },
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
+        },
+      },
+    )
+    expect(res.status).toBe(429)
+    expect(res.headers.get('retry-after')).toBeTruthy()
+    await expect(res.json()).resolves.toEqual({
+      code: 'rate_limit_exceeded',
+      message: expect.any(String),
+    })
+  })
+
   test('creates payment intent for account', async () => {
     const account = await factory.account.insert({})
     const session = await factory.session.insert({ account_id: account.id })
@@ -1315,9 +1341,55 @@ describe('POST /api/credits/charge', () => {
     expect(res.status).toBe(401)
   })
 
+  test('returns 429 when credits charge rate limit exceeded', async () => {
+    const account = await factory.account.insert({})
+    await db
+      .updateTable('account')
+      .set({ stripe_customer_id: `cus_${Nanoid.generate()}` })
+      .where('id', '=', account.id)
+      .execute()
+    const session = await factory.session.insert({ account_id: account.id })
+
+    await env.KV.put(
+      `ratelimit:credits_charge:account:${account.id}`,
+      JSON.stringify({ count: 10, reset: Math.floor(Date.now() / 1000) + 3600 }),
+      { expirationTtl: 3600 },
+    )
+
+    server.use(
+      http.get('https://api.stripe.com/v1/payment_methods', () =>
+        HttpResponse.json({
+          data: [{ id: 'pm_test', card: { brand: 'visa', last4: '4242' } }],
+          object: 'list',
+        }),
+      ),
+    )
+
+    const res = await client.api.credits.charge.$post(
+      { json: { amount: '1000' } },
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
+        },
+      },
+    )
+    expect(res.status).toBe(429)
+    expect(res.headers.get('retry-after')).toBeTruthy()
+    await expect(res.json()).resolves.toEqual({
+      code: 'rate_limit_exceeded',
+      message: expect.any(String),
+    })
+  })
+
   test('returns 400 when no stripe customer', async () => {
     const account = await factory.account.insert({})
     const session = await factory.session.insert({ account_id: account.id })
+
+    await env.KV.put(
+      `ratelimit:credits_charge:account:${account.id}`,
+      JSON.stringify({ count: 10, reset: Math.floor(Date.now() / 1000) + 3600 }),
+      { expirationTtl: 3600 },
+    )
 
     const res = await client.api.credits.charge.$post(
       { json: { amount: '1000' } },
@@ -1727,6 +1799,32 @@ describe('POST /api/tokens', () => {
       .executeTakeFirstOrThrow()
     const expectedHash = await ApiKey.hash(json.api_key.token)
     expect(stored.key_hash).toBe(expectedHash)
+  })
+
+  test('returns 429 when token create rate limit exceeded', async () => {
+    const account = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: account.id })
+
+    await env.KV.put(
+      `ratelimit:token_create:account:${account.id}`,
+      JSON.stringify({ count: 25, reset: Math.floor(Date.now() / 1000) + 3600 }),
+      { expirationTtl: 3600 },
+    )
+
+    const res = await client.api.tokens.$post(
+      { json: { name: 'test token' } },
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
+        },
+      },
+    )
+    expect(res.status).toBe(429)
+    expect(res.headers.get('retry-after')).toBeTruthy()
+    await expect(res.json()).resolves.toEqual({
+      code: 'rate_limit_exceeded',
+      message: expect.any(String),
+    })
   })
 
   test('requires auth', async () => {
@@ -2217,6 +2315,32 @@ describe('POST /api/orgs', () => {
       json: { login: 'my-org' },
     })
     expect(res.status).toBe(401)
+  })
+
+  test('returns 429 when org create rate limit exceeded', async () => {
+    const account = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: account.id })
+
+    await env.KV.put(
+      `ratelimit:org_create:${account.id}`,
+      JSON.stringify({ count: 3, reset: Math.floor(Date.now() / 1000) + 3600 }),
+      { expirationTtl: 3600 },
+    )
+
+    const res = await client.api.orgs.$post(
+      { json: { login: `org-${Nanoid.generate()}` } },
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
+        },
+      },
+    )
+    expect(res.status).toBe(429)
+    expect(res.headers.get('retry-after')).toBeTruthy()
+    await expect(res.json()).resolves.toEqual({
+      code: 'rate_limit_exceeded',
+      message: expect.any(String),
+    })
   })
 
   test('creates organization and membership', async () => {
@@ -3403,6 +3527,38 @@ describe('POST /api/orgs/:id/invites', () => {
     expect(json.invite.max_uses).toBeNull()
   })
 
+  test('returns 429 when org invite rate limit exceeded', async () => {
+    const account = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: account.id })
+    const org = await factory.organization.insert({})
+    await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: account.id,
+      role: 'owner',
+    })
+
+    await env.KV.put(
+      `ratelimit:org_invite:${org.id}:${account.id}`,
+      JSON.stringify({ count: 20, reset: Math.floor(Date.now() / 1000) + 3600 }),
+      { expirationTtl: 3600 },
+    )
+
+    const res = await client.api.orgs[':id'].invites.$post(
+      { param: { id: org.id }, json: {} },
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
+        },
+      },
+    )
+    expect(res.status).toBe(429)
+    expect(res.headers.get('retry-after')).toBeTruthy()
+    await expect(res.json()).resolves.toEqual({
+      code: 'rate_limit_exceeded',
+      message: expect.any(String),
+    })
+  })
+
   test('returns 401 when unauthenticated', async () => {
     const org = await factory.organization.insert({})
     const res = await client.api.orgs[':id'].invites.$post({
@@ -3820,6 +3976,39 @@ describe('POST /api/orgs/:id/members', () => {
       .select('role')
       .executeTakeFirst()
     expect(dbMember?.role).toBe('member')
+  })
+
+  test('returns 429 when org member add rate limit exceeded', async () => {
+    const owner = await factory.account.insert({})
+    const session = await factory.session.insert({ account_id: owner.id })
+    const org = await factory.organization.insert({})
+    await factory.organization_member.insert({
+      organization_id: org.id,
+      account_id: owner.id,
+      role: 'owner',
+    })
+    const target = await factory.account.insert({})
+
+    await env.KV.put(
+      `ratelimit:org_member_add:${org.id}:${owner.id}`,
+      JSON.stringify({ count: 50, reset: Math.floor(Date.now() / 1000) + 3600 }),
+      { expirationTtl: 3600 },
+    )
+
+    const res = await client.api.orgs[':id'].members.$post(
+      { param: { id: org.id }, json: { login: target.login, role: 'member' } },
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
+        },
+      },
+    )
+    expect(res.status).toBe(429)
+    expect(res.headers.get('retry-after')).toBeTruthy()
+    await expect(res.json()).resolves.toEqual({
+      code: 'rate_limit_exceeded',
+      message: expect.any(String),
+    })
   })
 
   test('adds member as admin with member role', async () => {
