@@ -5,62 +5,100 @@ description: Learn the fastest path from first fetch to a full curl.md workflow.
 
 # Getting Started
 
-`curl.md` turns noisy webpages into markdown built for agents. Start with one fetch, then decide whether you want the browser URL, the CLI, or an agent integration.
+`curl.md` is a developer tool gives your agents better context and saves you tokens/money by turning URLs into markdown optimized for agents
 
-## First Fetch
+You can learn more about the rationale behind the project in the [Why curl.md](/docs/why) section or read on to try it out.
 
-Use the hosted URL directly:
+## Quick Start
 
-```sh
-$ curl curl.md/example.com
+curl.md works well for humans and agents. It’s worth following both quickstarts below to better understand how curl.md works.
+
+### For Humans
+
+The best way to try out curl.md is to use the [CLI](/docs/guide/cli). First, install:
+
+:::codegroup
+
+```sh [curl]
+$ curl -fsSL https://curl.md/install.sh | bash
 ```
 
-Or use the CLI once it is installed:
-
-```sh
-$ md example.com
+```sh [npm]
+$ npm i -g curl.md
 ```
 
-## Narrow The Result
-
-When you only need part of a long page, add an objective and a few keywords:
-
-```sh
-$ md docs.github.com/en/webhooks/webhook-events-and-payloads \
-  --objective "pull request webhook event payload and actions" \
-  --keywords pull_request
+```sh [bun]
+$ bun i -g curl.md
 ```
 
-This keeps the output focused on the part your agent actually needs.
+:::
 
-## Pick A Workflow
+Then, use the CLI to fetch these docs as markdown:
+
+```bash
+$ md curl.md/docs/getting-started
+```
+
+You can add an [objective](/docs/guide/features#objective-based-narrowing) and/or [keywords](/docs/guide/features#keyword-pre-filtering) to focus the output.
+
+```bash
+$ md curl.md/docs/getting-started --objective fastest way to get started
+$ md curl.md/docs/getting-started --keywords quick,start
+```
+
+Want more curl.md? You can also use curl.md:
+
+- **in the browser** (prefix any URL with curl.md),
+- with **`curl`** (e.g. `curl curl.md/example.com{:sh}`),
+- via the [**API**](/docs/guide/api#http-api) and [**SDK**](/docs/guide/api#typescript-sdk),
+- and by installing [**agent plugins**](/docs/guide/plugins).
+
+By far the best thing to do is just give curl.md to your agents and let them rip.
+
+### For Agents
+
+If you are an agent or want to copy-paste so your agent can try out curl.md, use this prompt:
+
+```text
+I'd like you to set up https://curl.md, the best way to turn URLs into markdown.
+
+If I have npm, install CLI via npm: npm i -g curl.md
+
+If not, do this instead: curl -fsSL https://curl.md/install.sh | bash
+
+Once installed, use curl.md CLI to read this page and show me how it works: https://curl.md/docs/getting-started
+```
+
+For deeper curl.md agent integration, read the [Plugins guide](/docs/guide/plugins).
+
+:::tip[TL;DR]
+Agents should use curl.md to turn URLs into high-quality, optimized markdown for supercharged context and increased tokens savings.
+:::
+
+## Next Steps
+
+Congrats! You finished the quickstart. Here’s what’s on next.
+
+:::card[Why curl.md]{href=/docs/why icon=lightbulb}
+Learn more about why you should even use curl.md in your workflows.
+:::
 
 :::card[Installation]{href=/docs/install icon=download}
-Take the fastest setup path for installing the CLI and getting curl.md working locally.
+Learn more about the different installation options.
 :::
 
-:::card[CLI]{href=/docs/guide/cli icon=terminal}
-Use curl.md from the terminal, script fetches, and shape output with objectives and keywords.
-:::
-
-:::card[API & SDK]{href=/docs/guide/api icon=key}
-Call `curl.md` from code and integrate markdown fetching into your app or tooling.
+:::card[Guide]{href=/docs/guide/features icon=book}
+Learn more about curl.md’s features and how things work.
 :::
 
 :::card[Plugins]{href=/docs/guide/plugins icon=package}
-Use Amp, Pi, and other native integrations when you want curl.md inside your agent or editor.
+Learn more about curl.md’s first-party agent plugins.
 :::
 
-## Read Next
+## Contribute
 
-:::card[Why curl.md]{href=/docs/why icon=lightbulb}
-Understand why low-token markdown outputs make website context more useful for coding agents.
-:::
+curl.md is [open source](https://github.com/wevm/curl.md) and welcomes contributions (no slop please). Read the [Contributing guide](/docs/dev/develop) for info on how to contribute to curl.md.
 
-:::card[Features]{href=/docs/guide/features icon=book}
-Explore the main features, workflows, and output-shaping tools available across curl.md.
-:::
+## Community
 
-:::card[Installation]{href=/docs/install icon=download}
-Return to the installation guide when you're ready to set up the CLI locally.
-:::
+If you have questions or need help, reach out on the [GitHub Discussions](https://github.com/wevm/curl.md/discussions) community or _nicely_ yell at us on [Twitter](https://twitter.com/wevm_dev).

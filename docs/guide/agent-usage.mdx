@@ -77,7 +77,7 @@ Prefer `.md` URLs when you want a canonical markdown link you can paste into pro
 
 Every docs page includes agent-friendly page actions:
 
-- `Copy page` copies the page's canonical markdown to your clipboard
+- `Copy page` copies the page’s canonical markdown to your clipboard
 - `View markdown` opens the generated `.md` page in a new tab
 
 This is the fastest manual workflow:
@@ -92,7 +92,7 @@ Use `View markdown` when your agent can fetch URLs directly and you want to give
 
 We implement [`llms.txt`](https://curl.md/llms.txt) and [`llms-full.txt`](https://curl.md/llms-full.txt) as follows:
 
-- [`llms.txt`](https://curl.md/llms.txt) - A compact directory of curl.md's docs and agent entry points. It includes a short product summary, example CLI and HTTP usage, links to important docs pages, and links to things like [skills](/docs/skills).
+- [`llms.txt`](https://curl.md/llms.txt) - A compact directory of curl.md’s docs and agent entry points. It includes a short product summary, example CLI and HTTP usage, links to important docs pages, and links to things like [skills](/docs/skills).
 - [`llms-full.txt`](https://curl.md/llms-full.txt) - The full contents of the canonical curl.md documentation in a single file, intended for broad indexing, bulk ingestion, or large-context workflows. It is much larger than `llms.txt`, so it is usually not the right default for routine prompts.
 
 Prefer page-level `.md` URLs first, then `llms.txt`, then `llms-full.txt` only when broader context is necessary.

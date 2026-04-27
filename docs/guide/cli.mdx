@@ -165,7 +165,7 @@ If you want to install the skills into the current project instead of your globa
 $ curl.md skills add --no-global
 ```
 
-It's recommended to use native agent [plugins](/docs/guide/plugins) instead of direct CLI usage when possible.
+It’s recommended to use native agent [plugins](/docs/guide/plugins) instead of direct CLI usage when possible.
 
 ### MCP
 
@@ -175,7 +175,7 @@ If your editor or agent supports MCP stdio servers, you can run the CLI directly
 $ curl.md --mcp
 ```
 
-That exposes curl.md's `fetch` command as an MCP tool, so hosts without a first-party curl.md integration can still fetch URLs through the normal CLI/API path.
+That exposes curl.md’s `fetch` command as an MCP tool, so hosts without a first-party curl.md integration can still fetch URLs through the normal CLI/API path.
 
 If your agent supports automatic MCP registration, you can also use:
 
@@ -343,7 +343,7 @@ $ curl.md org create <login> [options]
 
 | Argument | Type    | Description                      |
 | -------- | ------- | -------------------------------- |
-| `login`  | `login` | Organization login (e.g. "wevm") |
+| `login`  | `login` | Organization login (e.g. “wevm”) |
 
 | Option   | Type     | Description  |
 | -------- | -------- | ------------ |
@@ -508,7 +508,7 @@ $ curl.md org switch [login]
 
 | Argument | Type    | Description                                    |
 | -------- | ------- | ---------------------------------------------- |
-| `login`  | `login` | Organization login to switch to (or "account") |
+| `login`  | `login` | Organization login to switch to (or “account”) |
 
 <a id="org-view"></a>
 #### `view`
@@ -711,4 +711,4 @@ $ curl.md skills list
 
 ## When to use the CLI
 
-Use the CLI when you want your agent to be able to use `curl.md`, but there isn't a [plugin](/docs/guide/plugins), or in shell scripts, editor terminals, local automation, or quick one-off research.
+Use the CLI when you want your agent to be able to use `curl.md`, but there isn’t a [plugin](/docs/guide/plugins), or in shell scripts, editor terminals, local automation, or quick one-off research.

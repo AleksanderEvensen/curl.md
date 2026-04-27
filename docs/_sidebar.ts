@@ -3,7 +3,7 @@ export const sidebar = [
     type: 'group',
     label: 'Introduction',
     items: [
-      { type: 'link', label: 'Getting Started', path: '/getting-started', wip: true },
+      { type: 'link', label: 'Getting Started', path: '/getting-started' },
       { type: 'link', label: 'Installation', path: '/install' },
       { type: 'link', label: 'Why curl.md', path: '/why', wip: true },
     ],

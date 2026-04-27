@@ -69,8 +69,8 @@ Secrets are managed via [GitHub Environments](https://docs.github.com/en/actions
 ### Creating a Cloudflare API Token
 
 1. Go to [Cloudflare API Tokens](https://dash.cloudflare.com/?to=/:account/api-tokens).
-2. Click "Create Token".
-3. Select "Create Custom Token".
+2. Click “Create Token”.
+3. Select “Create Custom Token”.
 4. Add these permissions.
    - **Account** -> **Browser Rendering** -> **Edit**
    - **Account** -> **Workers AI** -> **Edit**
@@ -83,22 +83,22 @@ Secrets are managed via [GitHub Environments](https://docs.github.com/en/actions
 
 5. Set Account Resources to your account.
 6. Set Zone Resources to your domain, for example `curl.md`.
-7. Click "Continue to summary" and then "Create Token".
+7. Click “Continue to summary” and then “Create Token”.
 
 ### GitHub App Setup
 
 1. Go to [GitHub Developer Settings -> GitHub Apps](https://github.com/organizations/wevm/settings/apps).
-2. Click "New GitHub App".
+2. Click “New GitHub App”.
 3. Fill in:
    - **GitHub App name**: `curl.md`
    - **Homepage URL**: `https://curl.md`
    - **Callback URL**: `https://curl.md/api/auth/github/callback`
-   - Check "Expire user authorization tokens"
-   - Check "Enable Device Flow" for CLI authentication
-   - Uncheck "Active" under Webhook
+   - Check “Expire user authorization tokens”
+   - Check “Enable Device Flow” for CLI authentication
+   - Uncheck “Active” under Webhook
 
 4. Under Permissions, set **Account permissions** -> **Email addresses** -> **Read-only**.
-5. Click "Create GitHub App".
+5. Click “Create GitHub App”.
 6. Copy the **Client ID** into `GH_CLIENT_ID`.
 7. Generate a new client secret and copy it into `GH_CLIENT_SECRET`.
 
@@ -110,7 +110,7 @@ Stripe powers prepaid credit billing. A single Stripe account is used with test 
 2. Copy your **Publishable key** from [API keys](https://dashboard.stripe.com/apikeys) into `STRIPE_PUBLISHABLE_KEY`.
 3. Copy your **Secret key** from [API keys](https://dashboard.stripe.com/apikeys) into `STRIPE_SECRET_KEY`.
 4. Set the callback webhook URL and get the webhook secret.
-   - Go to [Webhooks](https://dashboard.stripe.com/webhooks) and click "Add endpoint".
+   - Go to [Webhooks](https://dashboard.stripe.com/webhooks) and click “Add endpoint”.
    - Set URL to `https://curl.md/api/stripe/webhook`.
    - Select events: `payment_intent.succeeded`, `charge.dispute.created`, `refund.created`.
    - Copy the signing secret into `STRIPE_WEBHOOK_SECRET`.
@@ -121,6 +121,21 @@ Error tracking for both server-side workers and the React client.
 
 1. Create a [Sentry](https://sentry.io) project for JavaScript / Cloudflare.
 2. Copy the **DSN** from Project Settings -> Client Keys.
+
+### HTTPS Enforcement
+
+Enforce HTTPS at Cloudflare instead of in the Worker.
+
+1. Go to [Edge Certificates](https://dash.cloudflare.com/?to=/:account/:zone/ssl-tls/edge-certificates) for the `curl.md` zone.
+2. Enable [Always Use HTTPS](https://developers.cloudflare.com/ssl/edge-certificates/additional-options/always-use-https/).
+3. Enable [HTTP Strict Transport Security (HSTS)](https://developers.cloudflare.com/ssl/edge-certificates/additional-options/http-strict-transport-security/).
+4. Use these HSTS settings.
+   - **Max Age Header**: `6 months`
+   - **Apply HSTS policy to subdomains**: `off`
+   - **Preload**: `off`
+   - **No-Sniff Header**: `on`
+
+Keep `includeSubDomains` off unless every current and future `*.curl.md` hostname should be HTTPS-only. Preview environments use `*.curl.md` custom domains, so enabling `includeSubDomains` would apply HSTS to them too.
 
 ### WWW Redirect
 

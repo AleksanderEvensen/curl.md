@@ -1,11 +1,26 @@
 ---
 title: Contributing
-description: Use this page to get a local curl.md development environment running and to find the commands used most often while contributing.
+description: Learn the best ways to contribute and get a local development environment running.
+outlineMaxLevel: 3
 ---
 
 # Contributing
 
-Use this page to get a local `curl.md` development environment running and to find the commands used most often while contributing.
+Thank you for your interest in contributing to curl.md! We’re building the best way to go from URL to markdown, and we’d love your help.
+
+Use this page to get a local curl.md development environment running and learn how to contribute.
+
+## Ways To Contribute
+
+We welcome and appreciate any form of contributions, here are some ideas:
+
+- **Bug Reports** Report markdown extraction issues, share performance regressions, or document edge cases
+- **Feature Development** Add new agent plugins or site profiles, rules, and extraction methods.
+- **Documentation** Add new guides or improve areas that were difficult to understand.
+- **Testing** Improve test coverage, create performance benchmarks, or level up plugin tests.
+- **Infrastructure** Improve build and CI systems, or maintain compat with ohter tools.
+
+You can also check out [GitHub issues](https://github.com/wevm/curl.md/issues) for good first issues.
 
 ## Prerequisites
 
@@ -18,7 +33,7 @@ Use this page to get a local `curl.md` development environment running and to fi
 
 ### Install and start OrbStack
 
-OrbStack provides the local Docker runtime used by `curl.md` on macOS.
+OrbStack provides the local Docker runtime used by curl.md on macOS.
 
 ```sh
 $ orb start
@@ -26,11 +41,15 @@ $ orb start
 
 ### Copy the environment file
 
+And fill out any missing env vars.
+
 ```sh
 $ cp .env.example .env
 ```
 
 ### Start the app with Docker Compose
+
+You can also run the `pnpm dev` script.
 
 ```sh
 $ docker compose up -d
@@ -53,7 +72,6 @@ The app runs inside Docker during local development.
 ```sh
 $ docker compose up
 $ docker logs curl -f
-$ docker compose exec app sh
 ```
 
 ## Local Package Scripts
@@ -62,15 +80,11 @@ Use these scripts to exercise the shipped CLI and plugin entrypoints against you
 
 ```sh
 $ pnpm md example.com
-$ pnpm amp
-$ pnpm opencode
-$ pnpm pi
+$ pnpm plugin amp
 ```
 
 - `pnpm md` runs the local CLI against `https://curl.local`
-- `pnpm amp` symlinks the local Amp plugin into `.amp/plugins/curlmd.ts` and launches Amp with `PLUGINS=all`
-- `pnpm opencode` writes a local OpenCode plugin shim into `.opencode/plugins/curlmd.ts` and launches OpenCode from the repo root
-- `pnpm pi` starts Pi with the local extension entrypoint in `plugins/pi/extensions/index.ts`
+- `pnpm plugin [name]` runs agent plugin locally. You can also run short versions: `pnpm amp`, `pnpm opencode`, `pnpm pi`, etc.
 
 ## Testing
 
@@ -78,9 +92,7 @@ Use scoped Vitest projects while iterating, then run the broader set that matche
 
 ```sh
 $ pnpm test --project cli
-$ pnpm test --project plugins:opencode
 $ pnpm test --project plugins:pi
-$ pnpm test --project plugins:amp
 $ pnpm test --project app --project md --project workers
 ```
 
@@ -100,7 +112,7 @@ $ pnpm check
 $ pnpm check:types
 ```
 
-If you changed dependencies in `cli/`, also run:
+If you changed dependencies in `cli/` or `plugins/`, also run:
 
 ```sh
 $ pnpm check:deps
@@ -126,7 +138,7 @@ If your change affects a published package or release notes, add a changeset.
 $ pnpm changeset
 ```
 
-That creates a markdown file in `.changeset/` where you select the package and bump type. In this repo, that commonly means `curl.md`, `@curl.md/amp`, `@curl.md/claude`, `@curl.md/opencode`, or `@curl.md/pi`.
+That creates a markdown file in `.changeset/` where you select the package and bump type.
 
 Docs-only or purely local dev changes usually do not need a changeset.
 
