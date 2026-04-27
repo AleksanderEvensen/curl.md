@@ -23,19 +23,20 @@
   },
   "exports": {
     ".": {
-      "types": "./src/server.ts",
-      "default": "./src/server.ts"
+      "types": "./server.ts",
+      "default": "./server.ts"
     },
     "./server": {
-      "types": "./src/server.ts",
-      "default": "./src/server.ts"
+      "types": "./server.ts",
+      "default": "./server.ts"
     },
     "./tui": {
-      "types": "./src/tui.ts",
-      "default": "./src/tui.ts"
+      "types": "./tui.ts",
+      "default": "./tui.ts"
     }
   },
   "files": [
+    "*.ts",
     "src/**/*.ts",
     "!src/**/*.test.ts"
   ],

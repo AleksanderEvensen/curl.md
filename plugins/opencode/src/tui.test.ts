@@ -39,10 +39,15 @@ test('package exposes an OpenCode tui entrypoint', () => {
   ) as {
     engines?: Record<string, unknown>
     exports?: Record<string, unknown>
+    files?: string[]
   }
 
   expect(packageJson.engines?.opencode).toBe('^1.0.0')
   expect(packageJson.exports?.['./tui']).toBeTruthy()
+  expect(packageJson.exports?.['.']).toBeTruthy()
+  expect(packageJson.files).toContain('*.ts')
+  expect(fs.existsSync(new URL('../server.ts', import.meta.url))).toBe(true)
+  expect(fs.existsSync(new URL('../tui.ts', import.meta.url))).toBe(true)
 })
 
 test('registers a login command and completes device flow', async () => {
