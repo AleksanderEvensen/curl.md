@@ -1,9 +1,9 @@
-import { createFileRoute, notFound } from '@tanstack/react-router'
+import { createFileRoute, getRouteApi, notFound } from '@tanstack/react-router'
 import * as React from 'react'
 import { rpc } from '#lib/rpc.ts'
 import { findDoc } from './-catalog.ts'
-import { DocsRouteContent, getDocsHead, validateSearch } from './-route.tsx'
-import { useDocsSignedIn } from './route.tsx'
+import { getDocsHead, useDocsSignedIn, validateSearch } from './-helpers.ts'
+import { DocsRouteContent } from './-route.tsx'
 
 export const Route = createFileRoute('/docs/')({
   head() {
@@ -26,8 +26,10 @@ export const Route = createFileRoute('/docs/')({
   component: Component,
 })
 
+const docsIndexRouteApi = getRouteApi('/docs/')
+
 function Component() {
-  const navigate = Route.useNavigate()
+  const navigate = docsIndexRouteApi.useNavigate()
   const signedIn = useDocsSignedIn()
   const handleCodeGroupValueChange = React.useCallback(
     (value: string) => {

@@ -1,8 +1,6 @@
 import { Combobox } from '@base-ui/react/combobox'
 import { Menu } from '@base-ui/react/menu'
-import * as Query from '@tanstack/react-query'
 import { Link, Outlet, createFileRoute, useNavigate, useRouterState } from '@tanstack/react-router'
-import { useServerFn } from '@tanstack/react-start'
 import * as React from 'react'
 import { Dialog } from '#components/Dialog.tsx'
 import { Nav } from '#components/Nav.tsx'
@@ -10,10 +8,10 @@ import { config, type Config } from '#docs/_config.ts'
 import { sidebar, type SidebarItem } from '#docs/_sidebar.ts'
 import { useBrowserLayoutEffect } from '#hooks/useBrowserLayoutEffect.ts'
 import { type Theme, useTheme } from '#hooks/useTheme.ts'
-import { getHasSessionCookie, getSessionLogin } from '#server/session.ts'
+import { getHasSessionCookie } from '#server/session.ts'
 import { findDoc, searchDocs } from './-catalog.ts'
+import { docsRouteApi, useDocsSession, validateSearch } from './-helpers.ts'
 import { DocSearchPreview } from './-render.tsx'
-import { validateSearch } from './-route.tsx'
 import type { DocSearchResult } from './-search.ts'
 import { docSearchHighlightClassName, getDocSearchHighlightRanges, type Doc } from './-utils.ts'
 import './styles.css'
@@ -39,8 +37,8 @@ function Component() {
   const navigate = useNavigate()
   const pathname = useRouterState({ select: (state) => state.location.pathname })
   const docsSession = useDocsSession()
-  const { next } = Route.useLoaderData()
-  const searchQueryFromUrl = Route.useSearch({ select: (search) => search.q ?? '' })
+  const { next } = docsRouteApi.useLoaderData()
+  const searchQueryFromUrl = docsRouteApi.useSearch({ select: (search) => search.q ?? '' })
   const desktopSidebarScrollRef = React.useRef<HTMLDivElement>(null)
   const [open, setOpen] = React.useState(false)
   const [recentSearchResults, setRecentSearchResults] =
@@ -597,23 +595,6 @@ function SidebarNavItem(props: { item: SidebarItem; onNavigate: () => void }) {
 function getSidebarItemKey(item: SidebarItem, index: number) {
   if (item.type === 'separator') return `separator:${index}`
   return `${item.type}:${item.label}`
-}
-
-export function useDocsSession() {
-  const { hasSessionCookie } = Route.useLoaderData()
-  const fetchLogin = useServerFn(getSessionLogin)
-  const { data } = Query.useQuery({
-    enabled: typeof window !== 'undefined' && hasSessionCookie,
-    queryFn: () => fetchLogin(),
-    queryKey: ['session-login'],
-  })
-
-  if (!hasSessionCookie) return { login: null, signedIn: false }
-  return { login: data, signedIn: data !== null }
-}
-
-export function useDocsSignedIn() {
-  return useDocsSession().signedIn
 }
 
 function SearchTrigger(props: {
