@@ -1,36 +1,54 @@
 ---
 title: Why curl.md
-description: Why curl.md exists and when it is better than raw HTML, reader mode, or copy-pasting docs by hand.
+description: Agents love the web. The web was not designed for them. curl.md fixes that.
 ---
 
 # Why curl.md
 
-Agents work best when the source material is clean, structured, and focused. Most webpages are the opposite.
+Agents love the web. The web was not designed for them.
 
-## Raw Webpages Waste Context
+## The Problem curl.md is Solving
 
-HTML pages usually include navigation, footers, sidebars, scripts, cookie banners, and unrelated content. That noise costs tokens and makes it harder for an agent to find the part that matters.
+Coding agents need high-quality context to do useful work. The web should be perfect for that. It has documentation, changelogs, release notes, engineering blogs, and loads of other resources they can use.
 
-## Reader Mode Is Not Enough
+But most webpages are terrible inputs for agents. HTML is noisy and token-heavy, JavaScript can change what renders, and page elements like navigation, sidebars, cookie banners, and scripts often make it difficult to extract the content that actually matter.
 
-Generic reader tools can improve readability, but they usually do not optimize for agent workflows. They also do not help when you want just one section, one endpoint, or one implementation detail from a long page.
+Markdown is a much better fit: plain text, structured, and easy for agents to process. Converting URLs to markdown isn’t trivial. That’s where curl.md comes in.
 
-## curl.md Fits The Agent Workflow
+curl.md is built for developers and coding agents. It turns the web into agent-optimized markdown so you can ship faster, waste fewer tokens, and save money.
 
-`curl.md` is built around the common loop of agent work:
+## Fits Right Into Your Workflow
 
-- fetch a page as markdown
-- narrow it to a specific objective
-- pre-filter with keywords when the page is large
-- pass the result into your editor, terminal, or agent tool
+curl.md is built around the common loop in developer and coding-agent workflows:
 
-## Good Use Cases
+- Fetch a URL from a prompt, doc, or search result
+- Pull the useful parts into the context window
+- Use that context to code, debug, or decide what to do next
 
-- API docs where you only need one endpoint or auth requirement
-- changelogs where freshness matters
-- long guides where only one subsection is relevant
-- agent tools that need markdown instead of full HTML
+Many agent tools already include built-in `read_web_page` or `webfetch` support. curl.md goes further for coding workflows:
 
-## Read Next
+- **Fetch markdown directly** and shortcut HTML conversion with source-aware rules, `Accept` headers, and other optimizations.
+- **Narrow long pages to [an objective](/docs/guide/features#objective-based-narrowing)** or **[pre-filter with keywords](/docs/guide/features#keyword-pre-filtering)** to extract only what matters and reduce tokens.
+- **Read optimized markdown** through curl.md by cleaning up syntax with markdown engineered especially for agents.
 
-If you already know why you want it, continue to [Features](/docs/guide/features) or go straight to [Installation](/docs/install).
+You can use all of this through the [CLI](/docs/guide/cli), [plugins](/docs/guide/plugins), [skills](/docs/skills), and [API & SDK](/docs/guide/api), with caching built in.
+
+## Save Money on Tokens
+
+Coding agents are powerful, but they are not known for being token efficient. Their business is selling tokens, not reducing how many you use.
+
+Pulling raw URLs into context is one of the fastest ways to burn tokens and bloat context. curl.md reduces that overhead by returning [optimized markdown](/docs/guide/features#markdown-optimized-for-agents) by default.
+
+Features like [objective-based narrowing](/docs/guide/features#objective-based-narrowing) reduce input tokens even further by returning only the content needed for the task.
+
+curl.md also adds observability, so you can see how many tokens and how much money you are saving as an individual or across a team.
+
+## Fully Open Source
+
+curl.md is fully open source and not a black box platform. You (or your agent) can inspect the source, submit improvements, fork it, build on top of it, and do whatever you want with the code.
+
+We welcome contributions from the community. See our [Contributing Guide](/docs/dev/develop) to get involved.
+
+## Easy to Type, Easy to Remember
+
+curl.md is short, memorable, and easy to use in prompts, terminals, and tools. It is also an homage to (we think) [the greatest CLI tool of all time](https://curl.se).

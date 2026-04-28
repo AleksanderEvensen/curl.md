@@ -5,7 +5,7 @@ export const sidebar = [
     items: [
       { type: 'link', label: 'Getting Started', path: '/getting-started' },
       { type: 'link', label: 'Installation', path: '/install' },
-      { type: 'link', label: 'Why curl.md', path: '/why', wip: true },
+      { type: 'link', label: 'Why curl.md', path: '/why' },
     ],
   },
   {
@@ -37,7 +37,7 @@ export const sidebar = [
     items: [
       { type: 'href', href: '/docs/llms.txt', label: 'llms.txt' },
       { type: 'href', href: '/docs/llms-full.txt', label: 'llms-full.txt' },
-      { type: 'link', label: 'Skills', path: '/skills', wip: true },
+      { type: 'link', label: 'Skills', path: '/skills' },
     ],
   },
   {

@@ -5,6 +5,69 @@ description: Official curl.md skills ready to integration into your agent
 
 # Skills
 
-:::tip
-Skills are great, but it’s highly recommended to integrate curl.md deeper into your agent or editor through [plugins](/docs/guide/plugins).
+Skills are useful when you want your agent to automatically use curl.md when fetching URLs and follow best practices.
+
+## Quick Start
+
+Install the curl.md skills and CLI, and start curling.
+
+::::steps
+
+### Install skills
+
+```sh
+$ npx skills add https://curl.md --yes
+```
+
+### Install CLI
+
+Optionally, install the CLI (agents love using it).
+
+:::codegroup
+
+```sh [curl]
+$ curl -fsSL https://curl.md/install.sh | bash
+```
+
+```sh [npm]
+$ npm i -g curl.md
+```
+
+```sh [bun]
+$ bun i -g curl.md
+```
+
+:::
+
+If the CLI is not installed, the skills fallback to using `curl`, e.g. `curl curl.md/<url>{:sh}`.
+
+### Start curling
+
+Start your favorite agent and try this out:
+
+```text
+Read the curl.md skills docs and summarize how it works.
+https://curl.md/docs/skills
+```
+
+Your agent should automatically use curl.md to turn URLs you paste, or URLs it decides to fetch on its own, into markdown.
+
+::::
+
+## Install
+
+Install the official curl.md skills with:
+
+```sh
+$ npx skills add https://curl.md --yes
+```
+
+Hosted skills are available at [`https://curl.md/.well-known/skills/index.json`](https://curl.md/.well-known/skills/index.json).
+
+## Usage
+
+Once the curl.md skills are installed, there's nothing more to do. Your coding agent should automatically use curl.md to turn URLs you paste, or URLs it decides to fetch on its own, into markdown.
+
+:::important
+If your agent is struggling to use curl.md automatically, please [open an issue](https://github.com/wevm/curl.md/issues/new?template=issue.yml) so we can get to the bottom of it.
 :::

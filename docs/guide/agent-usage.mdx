@@ -20,10 +20,30 @@ If curl.md docs are relevant, prefer .md docs pages or llms.txt over raw page fe
 This usually gives the agent cleaner, lower-noise context than a raw page fetch or browser snapshot.
 
 :::tip[Go deeper]
-Install a native [plugin](/docs/guide/plugins) (recommended), or use the [CLI skills](/docs/guide/cli#agents) or [MCP mode](/docs/guide/cli#mcp) to integrate more deeply.
+Install a native [plugin](/docs/guide/plugins) (recommended), or use [skills](/docs/skills) or [MCP mode](/docs/guide/cli#mcp) to integrate more deeply.
 :::
 
+## Skills
+
+If your agent supports [skills](https://agentskills.io/home), install the official curl.md skills with:
+
+```sh
+$ npx skills add https://curl.md --yes
+```
+
+Hosted skills are available at [`https://curl.md/.well-known/skills/index.json`](https://curl.md/.well-known/skills/index.json).
+
+Skills are useful when you want the agent to:
+
+- fetch pages through the [CLI](/docs/guide/cli)
+- use curl.md inside local terminal workflows
+- follow recommended curl.md usage patterns without manual prompt setup
+
+For broader integration options, see [Plugins](/docs/guide/plugins), [CLI](/docs/guide/cli), and [API & SDK](/docs/guide/api).
+
 ## Single-Page Markdown Access
+
+There are multiple ways to get the curl.md docs as markdown.
 
 ### .md Endpoints
 
@@ -73,7 +93,7 @@ $ curl https://curl.md/docs/guide/cli
 
 Prefer `.md` URLs when you want a canonical markdown link you can paste into prompts, rules, or agent context. Use content negotiation when you already have a `/docs/...` URL and want markdown without rewriting the path.
 
-## Copy Page
+### Copy Page
 
 Every docs page includes agent-friendly page actions:
 
@@ -96,21 +116,3 @@ We implement [`llms.txt`](https://curl.md/llms.txt) and [`llms-full.txt`](https:
 - [`llms-full.txt`](https://curl.md/llms-full.txt) - The full contents of the canonical curl.md documentation in a single file, intended for broad indexing, bulk ingestion, or large-context workflows. It is much larger than `llms.txt`, so it is usually not the right default for routine prompts.
 
 Prefer page-level `.md` URLs first, then `llms.txt`, then `llms-full.txt` only when broader context is necessary.
-
-## Skills
-
-If your agent supports [skills](https://agentskills.io/home), install the official curl.md skills with:
-
-```sh
-$ npx skills add https://curl.md --yes
-```
-
-Hosted skills are available at [`https://curl.md/.well-known/skills/index.json`](https://curl.md/.well-known/skills/index.json).
-
-Skills are useful when you want the agent to:
-
-- fetch pages through the [CLI](/docs/guide/cli)
-- use curl.md inside local terminal workflows
-- follow recommended curl.md usage patterns without manual prompt setup
-
-For broader integration options, see [Plugins](/docs/guide/plugins), [CLI](/docs/guide/cli), and [API & SDK](/docs/guide/api).
