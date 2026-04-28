@@ -39,10 +39,8 @@ jobs:
       - name: Setup Playwright
         uses: ./.github/actions/setup-playwright
 
-      # TODO: Remove `--ignore-registry-errors`
-      # https://github.com/pnpm/pnpm/issues/11265
       - name: Audit dependencies
-        run: pnpm audit --ignore-registry-errors
+        run: pnpm audit
 
       - name: Lint
         run: pnpm check

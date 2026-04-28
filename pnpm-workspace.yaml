@@ -2,14 +2,15 @@ packages:
   - cli
   - plugins/*
 
+allowBuilds:
+  '@anthropic-ai/claude-code': true
+  bun: true
+  msw: true
+  opencode-ai: true
+  simple-git-hooks: true
+  workerd: true
+
 auditConfig:
-  ignoreCves:
-    - CVE-2026-1525
-    - CVE-2026-1526
-    - CVE-2026-1527
-    - CVE-2026-1528
-    - CVE-2026-2229
-    - CVE-2026-2581
   ignoreGhsas:
     # false positive — matches npm "cli" package, not our "curl.md" workspace
     - GHSA-6cpc-mj5c-m9rq
@@ -20,16 +21,7 @@ catalog:
 minimumReleaseAge: 1440
 
 minimumReleaseAgeExclude:
-  - hono
   - incur
-
-onlyBuiltDependencies:
-  - '@anthropic-ai/claude-code'
-  - bun
-  - msw
-  - opencode-ai
-  - simple-git-hooks
-  - workerd
 
 overrides:
   # Force emulate's transitive @hono/node-server to the patched release for GHSA-92pp-h63x-v22m.
@@ -41,11 +33,6 @@ overrides:
   h3: 2.0.1-rc.18
   h3-v2: npm:h3@2.0.1-rc.18
   lodash@>=4.0.0 <4.18.0: 4.18.0
-  # Override undici to avoid miniflare bug where POST + 401 → 500.
-  # TODO: Remove once miniflare ships with a fixed undici version.
-  # https://github.com/cloudflare/workers-sdk/issues/12912
-  miniflare>undici: 7.18.2
-  path-to-regexp@>=8.0.0 <8.4.0: 8.4.0
   picomatch@>=4.0.0 <4.0.4: 4.0.4
   postcss@<8.5.10: 8.5.10
   protobufjs@<7.5.5: 7.5.5
