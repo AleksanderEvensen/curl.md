@@ -1,9 +1,9 @@
 #!/bin/sh
 set -eu
 
-case "${CLAUDE_PLUGIN_OPTION_webfetch_redirect:-}" in
-  1|[Tt][Rr][Uu][Ee]) ;;
-  *) exit 0 ;;
+case "${CLAUDE_PLUGIN_OPTION_webfetch_redirect:-true}" in
+  0|[Ff][Aa][Ll][Ss][Ee]) exit 0 ;;
+  *) ;;
 esac
 
 cat <<'EOF'

@@ -24,24 +24,10 @@ test('plugin manifest passes Claude validation', () => {
   expect(stdout).toContain('Validation passed')
 })
 
-test('WebFetch redirect hook stays inert by default', () => {
+test('WebFetch redirect hook blocks WebFetch by default', () => {
   const stdout = execFileSync('sh', [redirectScriptPath], {
     encoding: 'utf8',
     env: process.env,
-    input:
-      '{"tool_name":"WebFetch","tool_input":{"prompt":"Summarize the page","url":"https://example.com"}}\n',
-  })
-
-  expect(stdout).toBe('')
-})
-
-test('WebFetch redirect hook blocks WebFetch when opt-in is enabled', () => {
-  const stdout = execFileSync('sh', [redirectScriptPath], {
-    encoding: 'utf8',
-    env: {
-      ...process.env,
-      CLAUDE_PLUGIN_OPTION_webfetch_redirect: 'true',
-    },
     input:
       '{"tool_name":"WebFetch","tool_input":{"prompt":"Summarize the page","url":"https://example.com"}}\n',
   })
@@ -56,12 +42,32 @@ test('WebFetch redirect hook blocks WebFetch when opt-in is enabled', () => {
   })
 })
 
+test('WebFetch redirect hook stays inert when explicitly disabled', () => {
+  const stdout = execFileSync('sh', [redirectScriptPath], {
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      CLAUDE_PLUGIN_OPTION_webfetch_redirect: 'false',
+    },
+    input:
+      '{"tool_name":"WebFetch","tool_input":{"prompt":"Summarize the page","url":"https://example.com"}}\n',
+  })
+
+  expect(stdout).toBe('')
+})
+
 test('marketplace manifest stays in sync with package and plugin metadata', () => {
   const packageJsonPath = path.join(pluginRoot, 'package.json')
-  const marketplaceJsonPath = path.resolve(pluginRoot, '../../public/claude.json')
+  const repoMarketplaceJsonPath = path.resolve(pluginRoot, '../../.claude-plugin/marketplace.json')
+  const hostedMarketplaceJsonPath = path.resolve(pluginRoot, '../../public/claude.json')
   const pluginJsonPath = path.join(pluginRoot, '.claude-plugin', 'plugin.json')
 
-  const marketplaceJson = JSON.parse(readFileSync(marketplaceJsonPath, 'utf8')) as {
+  const repoMarketplaceJson = JSON.parse(readFileSync(repoMarketplaceJsonPath, 'utf8')) as {
+    name?: string
+    owner?: { name: string }
+    plugins?: Array<Record<string, unknown>>
+  }
+  const hostedMarketplaceJson = JSON.parse(readFileSync(hostedMarketplaceJsonPath, 'utf8')) as {
     name?: string
     owner?: { name: string }
     plugins?: Array<Record<string, unknown>>
@@ -81,7 +87,23 @@ test('marketplace manifest stays in sync with package and plugin metadata', () =
   }
 
   expect(pluginJson.version).toBe(packageJson.version)
-  expect(marketplaceJson).toEqual({
+  expect(repoMarketplaceJson).toEqual({
+    name: pluginJson.name,
+    owner: pluginJson.author,
+    plugins: [
+      {
+        author: pluginJson.author,
+        description: pluginJson.description,
+        homepage: pluginJson.homepage,
+        license: pluginJson.license,
+        name: pluginJson.name,
+        repository: pluginJson.repository,
+        source: './plugins/claude',
+        version: packageJson.version,
+      },
+    ],
+  })
+  expect(hostedMarketplaceJson).toEqual({
     name: pluginJson.name,
     owner: pluginJson.author,
     plugins: [

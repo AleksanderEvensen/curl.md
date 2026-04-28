@@ -8,7 +8,8 @@ const repoRoot = path.resolve(pluginRoot, '../..')
 
 const packageJsonPath = path.join(pluginRoot, 'package.json')
 const pluginJsonPath = path.join(pluginRoot, '.claude-plugin', 'plugin.json')
-const marketplaceJsonPath = path.join(repoRoot, 'public/claude.json')
+const repoMarketplaceJsonPath = path.join(repoRoot, '.claude-plugin', 'marketplace.json')
+const hostedMarketplaceJsonPath = path.join(repoRoot, 'public', 'claude.json')
 
 const packageJson = JSON.parse(await fs.readFile(packageJsonPath, 'utf8')) as {
   license?: string
@@ -23,21 +24,22 @@ const packageJson = JSON.parse(await fs.readFile(packageJsonPath, 'utf8')) as {
 }
 
 const repository = formatRepositoryUrl(packageJson.repository)
+const repositoryDirectory =
+  typeof packageJson.repository === 'string' ? undefined : packageJson.repository?.directory
 
 const pluginManifest = {
   author: {
     name: 'curl.md',
   },
-  description: 'Use curl.md inside Claude Code for low-token web fetches.',
+  description: 'URL to markdown for Claude',
   homepage: 'https://curl.md/docs/plugins/claude',
   license: packageJson.license,
   name: 'curl-md',
   repository,
   userConfig: {
     webfetch_redirect: {
-      default: false,
-      description:
-        "Block Claude Code's built-in WebFetch tool and tell Claude to retry with curl_md.",
+      default: true,
+      description: "Redirect Claude's built-in WebFetch tool and tell Claude to retry with curl_md",
       title: 'Redirect WebFetch to curl_md',
       type: 'boolean',
     },
@@ -45,7 +47,24 @@ const pluginManifest = {
   version: packageJson.version,
 } satisfies PluginManifest
 
-const marketplaceManifest = {
+const repoMarketplaceManifest = {
+  name: pluginManifest.name,
+  owner: pluginManifest.author,
+  plugins: [
+    {
+      author: pluginManifest.author,
+      description: pluginManifest.description,
+      homepage: pluginManifest.homepage,
+      license: pluginManifest.license,
+      name: pluginManifest.name,
+      repository: pluginManifest.repository,
+      source: repositoryDirectory ? `./${repositoryDirectory}` : './plugins/claude',
+      version: packageJson.version,
+    },
+  ],
+} satisfies MarketplaceManifest
+
+const hostedMarketplaceManifest = {
   name: pluginManifest.name,
   owner: pluginManifest.author,
   plugins: [
@@ -65,10 +84,18 @@ const marketplaceManifest = {
   ],
 } satisfies MarketplaceManifest
 
+await fs.mkdir(path.dirname(pluginJsonPath), { recursive: true })
+await fs.mkdir(path.dirname(repoMarketplaceJsonPath), { recursive: true })
+
 await fs.writeFile(pluginJsonPath, `${JSON.stringify(pluginManifest, undefined, 2)}\n`, 'utf8')
 await fs.writeFile(
-  marketplaceJsonPath,
-  `${JSON.stringify(marketplaceManifest, undefined, 2)}\n`,
+  repoMarketplaceJsonPath,
+  `${JSON.stringify(repoMarketplaceManifest, undefined, 2)}\n`,
+  'utf8',
+)
+await fs.writeFile(
+  hostedMarketplaceJsonPath,
+  `${JSON.stringify(hostedMarketplaceManifest, undefined, 2)}\n`,
   'utf8',
 )
 
@@ -98,10 +125,12 @@ type MarketplaceManifest = {
     license?: string | undefined
     name: string
     repository?: string | undefined
-    source: {
-      package: string
-      source: 'npm'
-    }
+    source:
+      | string
+      | {
+          package: string
+          source: 'npm'
+        }
     version: string
   }>
 }

@@ -1,7 +1,7 @@
 {
   "name": "@curl.md/claude",
   "version": "0.0.3",
-  "description": "curl.md plugin for Claude Code",
+  "description": "URL to markdown for Claude",
   "contributors": [
     "tmm <t@curl.md>",
     "jxom <j@curl.md>"

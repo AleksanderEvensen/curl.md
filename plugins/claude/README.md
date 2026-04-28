@@ -16,7 +16,7 @@ Turn websites into **optimized, low token output** to **supercharge your context
 ## Install
 
 ```sh
-claude plugin marketplace add https://curl.md/claude.json
+claude plugin marketplace add wevm/curl.md
 claude plugin install curl-md@curl-md
 ```
 
@@ -31,9 +31,9 @@ claude plugin install curl-md@curl-md
 
 For full documentation, visit [curl.md/docs](https://curl.md/docs/plugins/claude)
 
-## Optional WebFetch Redirect
+## WebFetch Redirect
 
-Enable the plugin's `webfetch_redirect` setting to block built-in `WebFetch` calls and nudge Claude to retry with the plugin's `curl_md` tool.
+The plugin redirects built-in `WebFetch` calls to `curl_md` by default. Set `webfetch_redirect` to `false` if you want to keep Claude's built-in `WebFetch` enabled.
 
 ## License
 

@@ -2,15 +2,15 @@
   "author": {
     "name": "curl.md"
   },
-  "description": "Use curl.md inside Claude Code for low-token web fetches.",
+  "description": "URL to markdown for Claude",
   "homepage": "https://curl.md/docs/plugins/claude",
   "license": "MIT",
   "name": "curl-md",
   "repository": "https://github.com/wevm/curl.md/tree/main/plugins/claude",
   "userConfig": {
     "webfetch_redirect": {
-      "default": false,
-      "description": "Block Claude Code's built-in WebFetch tool and tell Claude to retry with curl_md.",
+      "default": true,
+      "description": "Redirect Claude's built-in WebFetch tool and tell Claude to retry with curl_md",
       "title": "Redirect WebFetch to curl_md",
       "type": "boolean"
     }

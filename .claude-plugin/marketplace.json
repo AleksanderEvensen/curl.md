@@ -13,10 +13,7 @@
       "license": "MIT",
       "name": "curl-md",
       "repository": "https://github.com/wevm/curl.md/tree/main/plugins/claude",
-      "source": {
-        "package": "@curl.md/claude",
-        "source": "npm"
-      },
+      "source": "./plugins/claude",
       "version": "0.0.3"
     }
   ]

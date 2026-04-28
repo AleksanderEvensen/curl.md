@@ -26,7 +26,7 @@ Add the marketplace and plugin, launch Claude Code, and start curling.
 Add the curl.md [plugin marketplace](https://code.claude.com/docs/en/plugin-marketplaces#plugin-marketplace-add) to Claude Code.
 
 ```sh
-$ claude plugin marketplace add https://curl.md/claude.json
+$ claude plugin marketplace add wevm/curl.md
 ```
 
 ### Install plugin
@@ -60,19 +60,19 @@ Optionally, [authenticate](#authentication) with `curl.md auth login` or `CURLMD
 
 ## Install
 
-Claude installs plugins through marketplaces, so the public install path is the hosted marketplace manifest at [`https://curl.md/claude.json`](https://curl.md/claude.json).
+Claude installs plugins through marketplaces, and curl.md ships its marketplace manifest at [`.claude-plugin/marketplace.json`](https://github.com/wevm/curl.md/blob/main/.claude-plugin/marketplace.json) in this repository.
 
 From your terminal:
 
 ```sh
-$ claude plugin marketplace add https://curl.md/claude.json
+$ claude plugin marketplace add wevm/curl.md
 $ claude plugin install curl-md@curl-md
 ```
 
 Or inside Claude:
 
 ```sh
-/plugin marketplace add https://curl.md/claude.json
+/plugin marketplace add wevm/curl.md
 /plugin install curl-md@curl-md
 /reload-plugins
 ```
@@ -94,21 +94,21 @@ Or inside Claude:
 
 ## Configuration
 
-Claude Code’s built-in web reader is `WebFetch`. Since Claude plugins cannot transparently replace built-in tool results, the curl.md plugin ships an opt-in redirect hook that blocks `WebFetch` and tells Claude to retry with `curl_md` using the same URL.
+Claude Code’s built-in web reader is `WebFetch`. Since Claude plugins cannot transparently replace built-in tool results, the curl.md plugin ships a redirect hook that blocks `WebFetch` and tells Claude to retry with `curl_md` using the same URL.
 
-| Option              | Type      | Default | Description                                                                                                    |
-| ------------------- | --------- | ------- | -------------------------------------------------------------------------------------------------------------- |
-| `webfetch_redirect` | `boolean` | `false` | Block built-in `WebFetch` and tell Claude to retry with `curl_md`, mapping the original prompt to `objective`. |
+| Option              | Type      | Default | Description                                                                                                                     |
+| ------------------- | --------- | ------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `webfetch_redirect` | `boolean` | `true`  | Redirect Claude's built-in `WebFetch` tool and tell Claude to retry with `curl_md`, mapping the original prompt to `objective`. |
 
 :::note
-By default, the plugin leaves Claude’s built-in `WebFetch` enabled. If you want to turn on the `WebFetch` redirect manually, add the plugin option to your Claude settings:
+By default, the plugin redirects Claude’s built-in `WebFetch` to `curl_md`. If you want to turn that redirect off, add the plugin option to your Claude settings:
 
 ```json title="~/.claude/settings.json"
 {
   "pluginConfigs": {
     "curl-md@curl-md": {
       "options": {
-        "webfetch_redirect": true
+        "webfetch_redirect": false
       }
     }
   }
