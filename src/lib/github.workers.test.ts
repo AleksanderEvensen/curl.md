@@ -1,6 +1,6 @@
 import { env } from 'cloudflare:workers'
 import { HttpResponse, http } from 'msw'
-import { afterAll, afterEach, describe, expect, test } from 'vitest'
+import { afterAll, describe, expect, test } from 'vitest'
 import { createClient } from '#db/client.ts'
 import * as Crypto from '#lib/crypto.ts'
 import * as GitHub from '#lib/github.ts'
@@ -11,9 +11,6 @@ const db = createClient(env.DB.connectionString, { max: 1 })
 const factory = createFactory(db)
 
 afterAll(() => db.destroy())
-
-server.listen({ onUnhandledRequest: 'error' })
-afterEach(() => server.resetHandlers())
 
 describe('GitHub.resolveToken', () => {
   test('returns decrypted token when not expired', async () => {

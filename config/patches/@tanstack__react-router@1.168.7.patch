@@ -1,22 +1,23 @@
 diff --git a/dist/esm/headContentUtils.js b/dist/esm/headContentUtils.js
-index fef47fc424ed16eb2c8bc09edd69d59d3c2baf22..b059b6a979f076a937392b91f01a0c0ca585be68 100644
+index 6b27256..16ddf91 100644
 --- a/dist/esm/headContentUtils.js
 +++ b/dist/esm/headContentUtils.js
 @@ -1,5 +1,5 @@
  import { useRouter } from "./useRouter.js";
--import { deepEqual, escapeHtml, getAssetCrossOrigin, resolveManifestAssetLink } from "@tanstack/router-core";
-+import { deepEqual, escapeHtml, getAssetCrossOrigin, getUnmaskOnReloadScript, resolveManifestAssetLink, routePathToRegExpSource } from "@tanstack/router-core";
+-import { deepEqual, escapeHtml, getAssetCrossOrigin, isInlinableStylesheet, resolveManifestAssetLink } from "@tanstack/router-core";
++import { deepEqual, escapeHtml, getAssetCrossOrigin, getUnmaskOnReloadScript, isInlinableStylesheet, resolveManifestAssetLink, routePathToRegExpSource } from "@tanstack/router-core";
  import * as React$1 from "react";
  import { useStore } from "@tanstack/react-store";
  import { isServer } from "@tanstack/router-core/isServer";
-@@ -96,12 +96,14 @@ function buildTagsFromMatches(router, nonce, matches, assetCrossOrigin) {
- 		},
- 		children
+@@ -57,6 +57,7 @@ function buildTagsFromMatches(router, nonce, matches, assetCrossOrigin) {
+ 			nonce
+ 		}
  	}));
 +	const unmaskOnReloadScript = buildUnmaskOnReloadHeadScript(router, nonce);
- 	return uniqBy([
- 		...resultMeta,
- 		...preloadLinks,
+ 	const manifest = router.ssr?.manifest;
+ 	const assetLinks = matches.map((match) => manifest?.routes[match.routeId]?.assets ?? []).filter(Boolean).flat(1).flatMap((asset) => {
+ 		if (asset.tag === "link") {
+@@ -117,6 +118,7 @@ function buildTagsFromMatches(router, nonce, matches, assetCrossOrigin) {
  		...constructedLinks,
  		...assetLinks,
  		...styles,
@@ -24,13 +25,15 @@ index fef47fc424ed16eb2c8bc09edd69d59d3c2baf22..b059b6a979f076a937392b91f01a0c0c
  		...headScripts
  	], (d) => JSON.stringify(d));
  }
-@@ -215,16 +217,29 @@ var useTags = (assetCrossOrigin) => {
+@@ -237,6 +239,7 @@ var useTags = (assetCrossOrigin) => {
  		},
  		children
  	})), deepEqual);
 +	const unmaskOnReloadScript = React$1.useMemo(() => buildUnmaskOnReloadHeadScript(router, nonce), [router, nonce]);
- 	return uniqBy([
- 		...meta,
+ 	const headScripts = useStore(router.stores.matches, (matches) => matches.map((match) => match.headScripts).flat(1).filter(Boolean).map(({ children, ...script }) => ({
+ 		tag: "script",
+ 		attrs: {
+@@ -250,11 +253,23 @@ var useTags = (assetCrossOrigin) => {
  		...preloadLinks,
  		...links,
  		...styles,

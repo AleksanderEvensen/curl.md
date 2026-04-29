@@ -1,6 +1,6 @@
 import { Tabs } from '@base-ui/react/tabs'
 import * as Query from '@tanstack/react-query'
-import { Link, type MetaDescriptor } from '@tanstack/react-router'
+import { Link } from '@tanstack/react-router'
 import { useServerFn } from '@tanstack/react-start'
 import * as React from 'react'
 import { TextMorph } from 'torph/react'
@@ -8,31 +8,8 @@ import { Nav } from '#components/Nav.tsx'
 import { useAnimatedValue } from '#hooks/useAnimatedValue.ts'
 import { useCopyToClipboard } from '#hooks/useCopyToClipboard.ts'
 import { formatCost } from '#lib/format.ts'
-import { rpc } from '#lib/rpc.ts'
 import { getSessionLogin } from '#server/session.ts'
 import { getTokensSaved } from '#server/stats.ts'
-
-export function head() {
-  const ogImage = rpc.api['og.png'].$url({ query: { page: 'index' } }).toString()
-  return {
-    meta: [
-      { title: 'curl.md - URL to markdown for agents' },
-      { name: 'description', content: 'URL to markdown for agents' },
-      { property: 'og:title', content: __HOST__ },
-      { property: 'og:description', content: 'URL to markdown for agents' },
-      { property: 'og:image', content: ogImage },
-      { property: 'og:image:width', content: '1200' },
-      { property: 'og:image:height', content: '630' },
-      { property: 'og:image:type', content: 'image/png' },
-      { property: 'og:type', content: 'website' },
-      { property: 'og:url', content: `https://${__HOST__}` },
-      { name: 'twitter:card', content: 'summary_large_image' },
-      { name: 'twitter:title', content: __HOST__ },
-      { name: 'twitter:description', content: 'URL to markdown for agents' },
-      { name: 'twitter:image', content: ogImage },
-    ] satisfies Array<MetaDescriptor>,
-  }
-}
 
 export function Home(props: { login?: string | null | undefined }) {
   const fetchLogin = useServerFn(getSessionLogin)
@@ -70,7 +47,6 @@ export function Home(props: { login?: string | null | undefined }) {
           )}
         </Nav.Group>
       </Nav.Root>
-
       <main className="flex-1" id={Nav.skipId}>
         <div className="mx-auto flex w-full max-w-2xl flex-col px-6">
           <TokensSaved />
@@ -121,21 +97,33 @@ export function Home(props: { login?: string | null | undefined }) {
           </div>
         </div>
       </main>
-
       <footer className="mt-24 flex w-full items-center justify-center gap-4 px-6 py-6 text-sm md:mt-48">
         <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6">
           <Link className="text-gray8 hover:text-gray10" to="/docs">
             Docs
           </Link>
-          <Link className="text-gray8 hover:text-gray10" to="/">
-            Terms
-          </Link>
-          <Link className="text-gray8 hover:text-gray10" to="/">
-            Privacy
-          </Link>
+          <a className="text-gray8 hover:text-gray10" href="mailto:dev@curl.md">
+            Contact
+          </a>
           <a
             className="text-gray8 hover:text-gray10"
             href="#TODO"
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            Terms
+          </a>
+          <a
+            className="text-gray8 hover:text-gray10"
+            href="#TODO"
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            Privacy
+          </a>
+          <a
+            className="text-gray8 hover:text-gray10"
+            href="/api/health"
             rel="noopener noreferrer"
             target="_blank"
           >
@@ -159,7 +147,6 @@ export function Home(props: { login?: string | null | undefined }) {
           </a>
         </div>
       </footer>
-
       <div className="mt-4 flex justify-center overflow-hidden pb-32">
         <UrlShowcase />
       </div>
@@ -235,11 +222,9 @@ const showcaseUrls = [
   'typescriptlang.org',
   'ui.shadcn.com',
   'vercel.com',
-  'viem.sh',
   'vite.dev',
   'vitest.dev',
   'vuejs.org',
-  'wagmi.sh',
   'zero.rocicorp.dev',
 ]
 
@@ -255,7 +240,7 @@ function UrlShowcase() {
   }, [])
 
   return (
-    <span className="font-pixel text-base md:text-2xl">
+    <span className="font-pixel text-lg md:text-2xl">
       curl.md/
       <TextMorph className="text-gray8">{url}</TextMorph>
     </span>

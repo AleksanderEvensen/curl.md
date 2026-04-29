@@ -574,7 +574,7 @@ describe('auth', () => {
 
     server.use(
       http.post(`${env.CURLMD_BASE_URL}/api/auth/logout`, async ({ request }) => {
-        expect(request.headers.get('authorization')).toMatch(/^Bearer curlmd_rt_/)
+        expect(request.headers.get('authorization')).toMatch(/^Bearer curlmd_at_/)
         return HttpResponse.json(
           { code: 'upstream_error', message: 'Upstream request failed' },
           { status: 500 },

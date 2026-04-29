@@ -49,7 +49,7 @@ export const conductor = acceptMarkdown({
   checks: [
     {
       url: 'https://www.conductor.build/docs',
-      contains: ['Run a team of coding agents'],
+      contains: ['Conductor simplifies running Claude Code'],
     },
   ],
 })
