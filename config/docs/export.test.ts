@@ -2,6 +2,7 @@ import { expect, test } from 'vitest'
 import {
   generateDocsLlmsFullTxt,
   generateDocsLlmsTxt,
+  getDocsInSidebarOrder,
   getDocsLlmsSections,
   rewriteGeneratedDocsLinks,
 } from './export.ts'
@@ -213,4 +214,88 @@ test('generateDocsLlmsFullTxt combines the docs into one markdown document', () 
   expect(llmsFull.indexOf('## /docs/index.md')).toBeLessThan(
     llmsFull.indexOf('## /docs/getting-started/installation.md'),
   )
+})
+
+test('getDocsInSidebarOrder follows sidebar order and appends docs missing from the sidebar', () => {
+  const docs = getDocsInSidebarOrder(
+    new Map([
+      [
+        '',
+        {
+          description: 'URL to markdown for agents',
+          path: '',
+          source: '# Introduction',
+          title: 'Introduction',
+        },
+      ],
+      [
+        'install',
+        {
+          description: 'Install the curl.md CLI',
+          path: 'install',
+          source: '# Installation',
+          title: 'Installation',
+        },
+      ],
+      [
+        'guide/cli',
+        {
+          description: 'Use curl.md from the terminal',
+          path: 'guide/cli',
+          source: '# CLI',
+          title: 'CLI',
+        },
+      ],
+    ]),
+    [
+      {
+        items: [
+          { label: 'CLI', path: '/guide/cli', type: 'link' },
+          { label: 'Installation', path: '/install', type: 'link' },
+        ],
+        label: 'Guide',
+        type: 'group',
+      },
+    ],
+  )
+
+  expect(docs.map((doc) => doc.path)).toEqual(['guide/cli', 'install', ''])
+})
+
+test('getDocsLlmsSections and llms-full inputs can exclude legal docs', () => {
+  const docs = [
+    {
+      description: 'Privacy policy',
+      path: 'privacy',
+      source: '# Privacy Policy',
+      title: 'Privacy Policy',
+    },
+    {
+      description: 'Terms of use',
+      path: 'terms',
+      source: '# Terms of Use',
+      title: 'Terms of Use',
+    },
+    {
+      description: 'URL to markdown for agents',
+      path: '',
+      source: '# Introduction',
+      title: 'Introduction',
+    },
+  ]
+
+  const llmsDocs = docs.filter((doc) => !new Set(['privacy', 'terms']).has(doc.path))
+  const sections = getDocsLlmsSections(new Map(llmsDocs.map((doc) => [doc.path, doc])), [
+    { label: 'Introduction', path: '/', type: 'link' },
+    { label: 'Terms of Use', path: '/terms', type: 'link' },
+    { label: 'Privacy Policy', path: '/privacy', type: 'link' },
+  ])
+  const llmsFull = generateDocsLlmsFullTxt({ docs: llmsDocs })
+
+  expect(sections).toHaveLength(1)
+  expect(sections[0]?.title).toBe('Overview')
+  expect(sections[0]?.docs.map((doc) => doc.path)).toEqual([''])
+  expect(llmsFull).toContain('## /docs/index.md')
+  expect(llmsFull).not.toContain('/docs/privacy.md')
+  expect(llmsFull).not.toContain('/docs/terms.md')
 })

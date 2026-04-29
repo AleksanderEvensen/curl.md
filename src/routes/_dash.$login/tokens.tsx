@@ -23,6 +23,7 @@ function Component() {
         <Link
           className="underline underline-offset-2"
           params={{ _splat: 'guide/cli' }}
+          hash="token"
           to="/docs/$"
         >
           documentation

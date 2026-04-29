@@ -9,6 +9,7 @@ const docsDirectoryPath = path.join(process.cwd(), 'docs')
 const docsGeneratedManifestPath = path.join(process.cwd(), 'public/docs/.generated-docs.json')
 const docsPublicDirectoryPath = path.dirname(docsGeneratedManifestPath)
 const sidebarPath = path.join(docsDirectoryPath, '_sidebar.ts')
+const llmsExcludedDocPaths = new Set(['privacy', 'terms'])
 
 type DocsLlmsSection = {
   docs: Array<{ description: string | undefined; path: string; title: string }>
@@ -76,6 +77,20 @@ export function generateDocsLlmsFullTxt(props: { docs: Array<DocsStaticFile> }) 
   return `${lines.join('\n')}\n`
 }
 
+export function getDocsInSidebarOrder<
+  obj extends { description: string | undefined; path: string; title: string },
+>(docsByPath: Map<string, obj>, sidebarItems: Array<SidebarItem>) {
+  const docs = collectSidebarDocs(sidebarItems, docsByPath)
+  const seenPaths = new Set(docs.map((doc) => doc.path))
+
+  for (const doc of docsByPath.values()) {
+    if (seenPaths.has(doc.path)) continue
+    docs.push(doc)
+  }
+
+  return docs
+}
+
 export function getDocsLlmsSections(
   docsByPath: Map<string, { description: string | undefined; path: string; title: string }>,
   sidebarItems: Array<SidebarItem>,
@@ -123,11 +138,12 @@ export async function syncDocsStaticAssets() {
     ...doc,
     source: rewriteGeneratedDocsLinks(doc.source),
   }))
-  const docsByPath = new Map(docs.map((doc) => [doc.path, doc]))
+  const llmsDocs = docsWithRewrittenLinks.filter((doc) => !llmsExcludedDocPaths.has(doc.path))
+  const docsByPath = new Map(llmsDocs.map((doc) => [doc.path, doc]))
   const files = [
     {
       filePath: path.join(docsPublicDirectoryPath, 'llms-full.txt'),
-      content: generateDocsLlmsFullTxt({ docs: docsWithRewrittenLinks }),
+      content: generateDocsLlmsFullTxt({ docs: getDocsInSidebarOrder(docsByPath, sidebar) }),
     },
     {
       filePath: path.join(docsPublicDirectoryPath, 'llms.txt'),
@@ -211,11 +227,10 @@ async function findDocsMdxFiles(directoryPath: string): Promise<Array<string>> {
   return filePaths.flat()
 }
 
-function collectSidebarDocs(
-  items: Array<SidebarItem>,
-  docsByPath: Map<string, { description: string | undefined; path: string; title: string }>,
-) {
-  const docs: Array<DocsLlmsSection['docs'][number]> = []
+function collectSidebarDocs<
+  obj extends { description: string | undefined; path: string; title: string },
+>(items: Array<SidebarItem>, docsByPath: Map<string, obj>) {
+  const docs: Array<obj> = []
 
   for (const item of items) {
     if (item.type === 'link') {

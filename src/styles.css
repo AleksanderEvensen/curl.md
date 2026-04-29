@@ -215,3 +215,7 @@ html[data-theme='dark'] {
     border-radius: 3px;
   }
 }
+
+[data-home-faq-summary]::marker {
+  color: var(--color-gray8);
+}

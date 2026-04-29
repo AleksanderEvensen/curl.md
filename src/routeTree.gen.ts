@@ -9,6 +9,8 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TermsRouteImport } from './routes/terms'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PlaygroundRouteImport } from './routes/playground'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as HomeRouteImport } from './routes/home'
@@ -31,6 +33,16 @@ import { Route as DashLoginBillingAdd_payment_methodRouteImport } from './routes
 import { Route as DashLoginBillingRemove_payment_methodPaymentMethodIdRouteImport } from './routes/_dash.$login/billing.remove_payment_method.$paymentMethodId'
 import { Route as DashLoginBillingAdd_creditsPaymentIdRouteImport } from './routes/_dash.$login/billing.add_credits.$paymentId'
 
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PlaygroundRoute = PlaygroundRouteImport.update({
   id: '/playground',
   path: '/playground',
@@ -146,6 +158,8 @@ export interface FileRoutesByFullPath {
   '/home': typeof HomeRoute
   '/login': typeof LoginRoute
   '/playground': typeof PlaygroundRoute
+  '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/$login': typeof DashLoginRouteRouteWithChildren
   '/auth/device': typeof AuthDeviceRoute
   '/auth/error': typeof AuthErrorRoute
@@ -168,6 +182,8 @@ export interface FileRoutesByTo {
   '/home': typeof HomeRoute
   '/login': typeof LoginRoute
   '/playground': typeof PlaygroundRoute
+  '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/auth/device': typeof AuthDeviceRoute
   '/auth/error': typeof AuthErrorRoute
   '/docs/$': typeof DocsSplatRoute
@@ -191,6 +207,8 @@ export interface FileRoutesById {
   '/home': typeof HomeRoute
   '/login': typeof LoginRoute
   '/playground': typeof PlaygroundRoute
+  '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/_dash/$login': typeof DashLoginRouteRouteWithChildren
   '/auth/device': typeof AuthDeviceRoute
   '/auth/error': typeof AuthErrorRoute
@@ -216,6 +234,8 @@ export interface FileRouteTypes {
     | '/home'
     | '/login'
     | '/playground'
+    | '/privacy'
+    | '/terms'
     | '/$login'
     | '/auth/device'
     | '/auth/error'
@@ -238,6 +258,8 @@ export interface FileRouteTypes {
     | '/home'
     | '/login'
     | '/playground'
+    | '/privacy'
+    | '/terms'
     | '/auth/device'
     | '/auth/error'
     | '/docs/$'
@@ -260,6 +282,8 @@ export interface FileRouteTypes {
     | '/home'
     | '/login'
     | '/playground'
+    | '/privacy'
+    | '/terms'
     | '/_dash/$login'
     | '/auth/device'
     | '/auth/error'
@@ -284,6 +308,8 @@ export interface RootRouteChildren {
   HomeRoute: typeof HomeRoute
   LoginRoute: typeof LoginRoute
   PlaygroundRoute: typeof PlaygroundRoute
+  PrivacyRoute: typeof PrivacyRoute
+  TermsRoute: typeof TermsRoute
   DashLoginRouteRoute: typeof DashLoginRouteRouteWithChildren
   AuthDeviceRoute: typeof AuthDeviceRoute
   AuthErrorRoute: typeof AuthErrorRoute
@@ -293,6 +319,20 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/playground': {
       id: '/playground'
       path: '/playground'
@@ -503,6 +543,8 @@ const rootRouteChildren: RootRouteChildren = {
   HomeRoute: HomeRoute,
   LoginRoute: LoginRoute,
   PlaygroundRoute: PlaygroundRoute,
+  PrivacyRoute: PrivacyRoute,
+  TermsRoute: TermsRoute,
   DashLoginRouteRoute: DashLoginRouteRouteWithChildren,
   AuthDeviceRoute: AuthDeviceRoute,
   AuthErrorRoute: AuthErrorRoute,

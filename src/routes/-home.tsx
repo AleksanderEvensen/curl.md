@@ -83,20 +83,18 @@ export function Home(props: { login?: string | null | undefined }) {
             <h2 className="text-lg font-bold">FAQ</h2>
             <div className="mt-4 flex flex-col">
               {faqs.map((faq) => (
-                <details className="group" key={faq.question}>
-                  <summary className="flex cursor-pointer list-none items-center gap-3 py-3 text-sm">
-                    <span className="text-gray8 dark:text-gray7 text-xs leading-none group-open:rotate-90">
-                      ▶
-                    </span>
+                <details key={faq.question}>
+                  <summary className="cursor-pointer py-3 text-sm" data-home-faq-summary>
                     {faq.question}
                   </summary>
-                  <div className="text-gray8 ps-5 pb-3 text-sm leading-relaxed">{faq.answer}</div>
+                  <div className="text-gray8 pb-3 text-sm leading-relaxed">{faq.answer}</div>
                 </details>
               ))}
             </div>
           </div>
         </div>
       </main>
+
       <footer className="mt-24 flex w-full items-center justify-center gap-4 px-6 py-6 text-sm md:mt-48">
         <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6">
           <Link className="text-gray8 hover:text-gray10" to="/docs">
@@ -105,22 +103,12 @@ export function Home(props: { login?: string | null | undefined }) {
           <a className="text-gray8 hover:text-gray10" href="mailto:dev@curl.md">
             Contact
           </a>
-          <a
-            className="text-gray8 hover:text-gray10"
-            href="#TODO"
-            rel="noopener noreferrer"
-            target="_blank"
-          >
+          <Link className="text-gray8 hover:text-gray10" to="/terms">
             Terms
-          </a>
-          <a
-            className="text-gray8 hover:text-gray10"
-            href="#TODO"
-            rel="noopener noreferrer"
-            target="_blank"
-          >
+          </Link>
+          <Link className="text-gray8 hover:text-gray10" to="/privacy">
             Privacy
-          </a>
+          </Link>
           <a
             className="text-gray8 hover:text-gray10"
             href="/api/health"
@@ -155,18 +143,111 @@ export function Home(props: { login?: string | null | undefined }) {
 }
 
 const faqs = [
-  { question: 'What is curl.md?', answer: 'TODO' },
+  {
+    question: 'What is curl.md?',
+    answer: (
+      <>
+        curl.md turns URLs into markdown optimized for agents to help you get better context and
+        save tokens/money.
+      </>
+    ),
+  },
   {
     question: 'How do I use curl.md?',
-    answer: 'TODO',
+    answer: (
+      <>
+        You can use it in{' '}
+        <a
+          href="https://curl.md/example.com"
+          className="underline"
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          the browser
+        </a>{' '}
+        by prefixing any URL with `curl.md/`, in the terminal via {'`curl curl.md/<url>`'} or with{' '}
+        <Link className="underline" params={{ _splat: 'guide/cli' }} to="/docs/$">
+          the CLI
+        </Link>
+        ,{' '}
+        <Link className="underline" params={{ _splat: 'guide/plugins' }} to="/docs/$">
+          agent plugins
+        </Link>
+        , or through the{' '}
+        <Link className="underline" params={{ _splat: 'guide/api' }} to="/docs/$">
+          API and SDK
+        </Link>
+        .
+      </>
+    ),
   },
-  { question: 'How much does curl.md cost?', answer: 'TODO' },
-  { question: 'Which coding agents does curl.md support?', answer: 'TODO' },
+  {
+    question: 'How much does curl.md cost?',
+    answer: (
+      <>
+        You can use curl.md for free with generous{' '}
+        <Link
+          className="underline"
+          hash="rate-limiting"
+          params={{ _splat: 'guide/api' }}
+          to="/docs/$"
+        >
+          rate limits
+        </Link>
+        .{' '}
+        <Link className="underline" to="/login">
+          Sign in
+        </Link>{' '}
+        for higher limits or use prepaid credits to skip rate limits.
+      </>
+    ),
+  },
+  {
+    question: 'Which coding agents does curl.md support?',
+    answer: (
+      <>
+        Official integrations exist for{' '}
+        <Link className="underline" params={{ _splat: 'plugins/amp' }} to="/docs/$">
+          Amp
+        </Link>
+        ,{' '}
+        <Link className="underline" params={{ _splat: 'plugins/claude' }} to="/docs/$">
+          Claude
+        </Link>
+        ,{' '}
+        <Link className="underline" params={{ _splat: 'plugins/opencode' }} to="/docs/$">
+          OpenCode
+        </Link>
+        , and{' '}
+        <Link className="underline" params={{ _splat: 'plugins/pi' }} to="/docs/$">
+          Pi
+        </Link>
+        . Codex, Cursor, and other agents can use{' '}
+        <Link className="underline" params={{ _splat: 'skills' }} to="/docs/$">
+          skills
+        </Link>
+        , the{' '}
+        <Link className="underline" hash="mcp" params={{ _splat: 'guide/cli' }} to="/docs/$">
+          CLI/MCP server
+        </Link>
+        , or add their own integrations by reading the{' '}
+        <Link
+          className="underline"
+          params={{ _splat: 'guide/plugins' }}
+          hash="build-your-own-integration"
+          to="/docs/$"
+        >
+          Plugins Guide
+        </Link>
+        .
+      </>
+    ),
+  },
   {
     question: 'Is curl.md open source?',
     answer: (
       <>
-        Yes, curl.md is fully open source. The source code is public on{' '}
+        Yes. The source code is public on{' '}
         <a
           className="underline"
           href="https://github.com/wevm/curl.md"
@@ -184,8 +265,7 @@ const faqs = [
         >
           MIT License
         </a>
-        , meaning anyone can use, modify, or contribute to its development. Anyone from the
-        community can file issues, submit pull requests, and extend functionality.
+        . Anyone can use it, modify it, or contribute.
       </>
     ),
   },
