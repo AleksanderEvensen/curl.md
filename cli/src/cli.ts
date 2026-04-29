@@ -1480,37 +1480,45 @@ const update = Cli.create('update', {
   output: z.string(),
   format: 'md',
   async run(c) {
+    const checkSpinner = c.options.target ? null : UI.createSpinner('Checking for updates')
     const version = await (async () => {
-      if (c.options.target) return c.options.target
-      // Try curl.md API first
       try {
-        const res = await c.var.client.api.cli.latest.$get(
-          {
-            query: {
-              current: pkg.version,
-              os: process.platform,
-              arch: process.arch,
-              standalone: String(isStandalone()),
+        if (c.options.target) return c.options.target
+        // Try curl.md API first
+        try {
+          const res = await c.var.client.api.cli.latest.$get(
+            {
+              query: {
+                current: pkg.version,
+                os: process.platform,
+                arch: process.arch,
+                standalone: String(isStandalone()),
+              },
             },
-          },
-          { init: { signal: AbortSignal.timeout(3_000) } },
-        )
-        if (res.status === 200) {
-          const json = await res.json()
-          if (json.version) return json.version
+            { init: { signal: AbortSignal.timeout(3_000) } },
+          )
+          if (res.status === 200) {
+            const json = await res.json()
+            if (json.version) return json.version
+          }
+        } catch {}
+        // Fallback: npm registry
+        try {
+          const res = await fetch(
+            `https://registry.npmjs.org/${encodeURIComponent(c.name)}/latest`,
+            {
+              signal: AbortSignal.timeout(5_000),
+              headers: { accept: 'application/json' },
+            },
+          )
+          if (!res.ok) return null
+          const npm = (await res.json()) as { version?: string }
+          return npm.version ?? null
+        } catch {
+          return null
         }
-      } catch {}
-      // Fallback: npm registry
-      try {
-        const res = await fetch(`https://registry.npmjs.org/${encodeURIComponent(c.name)}/latest`, {
-          signal: AbortSignal.timeout(5_000),
-          headers: { accept: 'application/json' },
-        })
-        if (!res.ok) return null
-        const npm = (await res.json()) as { version?: string }
-        return npm.version ?? null
-      } catch {
-        return null
+      } finally {
+        checkSpinner?.stop()
       }
     })()
     if (!version)
@@ -1526,18 +1534,18 @@ const update = Cli.create('update', {
     try {
       if (isStandalone()) await updateStandalone(version, aliases)
       else await installGlobal(c.name, version)
-      spinner.stop()
       const url = `https://github.com/wevm/curl.md/releases/tag/${c.name}@${version}`
       return c.ok(
         UI.success(`Updated ${c.name} ${pc.cyan(pkg.version)} → ${pc.cyan(version)}`) +
           `\n  ${pc.dim(url)}`,
       )
     } catch (error) {
-      spinner.stop()
       return c.error({
         code: 'UPDATE_FAILED',
         message: error instanceof Error ? error.message : 'Update failed.',
       })
+    } finally {
+      spinner.stop()
     }
   },
 })

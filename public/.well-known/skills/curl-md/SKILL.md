@@ -1,88 +1,161 @@
 ---
 name: curl-md
-description: Fetch any URL as markdown using curl.md. Use when the user needs to read, summarize, or extract content from a web page as markdown.
+description: Fetch web pages and docs as optimized markdown with curl.md. Use when the user shares a URL, asks about page content, wants lower-token web context, or needs current curl.md CLI, HTTP, docs markdown, skills, or MCP usage.
 ---
 
 # curl.md
 
-Fetch any URL as clean markdown.
+Use curl.md to turn URLs into agent-friendly markdown with less noise and fewer tokens.
 
 ## When to Use
 
 Use curl.md when:
 
-- The user asks to read, summarize, or extract content from a web page
-- You need to fetch documentation before answering a technical question
-- The user shares a URL and asks about its content
-- You need to research a topic using a specific web source
-- The user asks "what does this page say about X"
+- The user shares a URL or asks what a page says
+- You need docs, changelogs, articles, reference pages, or API docs as markdown before answering
+- You want to narrow a long page to a specific question or task
+- You need current curl.md usage for the CLI, hosted HTTP endpoint, docs markdown endpoints, skills, or MCP
 
-## Usage
+## Preferred Entry Points
+
+Prefer these in order:
+
+- The local `curl.md` CLI or `md` alias when available
+- The hosted HTTP endpoint at `https://curl.md/<url>`
+- For curl.md's own docs, the canonical `.md` docs endpoints or `Accept: text/markdown`
+
+For normal page fetches, prefer the stable top-level fetch interface (`curl.md/<url>` or `client.fetch(...)`). Avoid lower-level experimental `/api` routes unless the task is specifically about auth, orgs, tokens, invites, or request history.
+
+## Stable Request Vocabulary
+
+Prefer these names in new usage:
+
+- `objective` — narrow output to a specific question or task
+- `keywords` — pre-filter the page before extraction; comma-separated in HTTP/CLI strings
+- `mode` — `smart` or `rush`; only matters with `objective`
+- `fresh` — bypass cache and force a fresh fetch
+- `token` — API key auth in the CLI; raw HTTP should prefer `Authorization: Bearer <token>`
+
+`smart` is the default and best for most docs lookups. Use `rush` when speed matters more than recall.
+
+HTTP aliases still work (`q`/`o`, `k`, `m`, `f`), but prefer the full names above in new examples and instructions.
+
+## CLI
+
+Prefer the CLI when it is installed locally. It handles auth, organization context, higher-level commands, and agent-friendly workflows.
 
 ```sh
-# Fetch a URL as markdown
-curl curl.md/<url>
+# Basic fetch
+curl.md example.com
+md example.com
 
-# Focus output with a query (AI-powered extraction)
-curl curl.md/<url>?q=<query>
+# Narrow to a specific task
+curl.md docs.github.com/en/webhooks/webhook-events-and-payloads \
+  --objective "pull request webhook event payload and actions" \
+  --keywords pull_request
 
-# Bypass cache for fresh content
-curl curl.md/<url>?fresh=
+# Faster, less thorough pass
+curl.md developers.cloudflare.com/d1/get-started \
+  --objective "how to query D1 from a worker" \
+  --keywords D1,bindings \
+  --mode rush
+
+# Force a fresh fetch
+curl.md example.com --fresh
+
+# Use API key auth
+curl.md example.com --token "$CURLMD_API_KEY"
 ```
 
-### Parameters
+Notes:
 
-| Parameter | Description                                                                                                               |
-| --------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `q`       | Optional query to extract only relevant sections from the page using AI. Reduces output size and keeps responses focused. |
-| `fresh`   | Bypass the 15-minute cache to fetch the latest content.                                                                   |
+- No protocol required for the target URL. curl.md normalizes to HTTPS unless the URL already specifies `http://` or `https://`.
+- `curl.md fetch <url>` is equivalent to the root `curl.md <url>` command.
+- If the user asks for latest or recent content, add `--fresh`.
 
-No protocol needed — `curl curl.md/example.com` automatically uses HTTPS.
+## Hosted HTTP Endpoint
+
+Use the hosted HTTP endpoint when the CLI is unavailable or when a simple one-off fetch is enough.
 
 ## Examples
 
 ```sh
-# Get React docs as markdown
-curl curl.md/react.dev
+# Default response is markdown
+curl "https://curl.md/example.com"
 
-# Get focused content
-curl curl.md/react.dev?q=fullstack+support
+# Narrow with stable query names
+curl "https://curl.md/developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch?objective=streaming+response+body&keywords=ReadableStream,getReader"
 
-# Wikipedia article section
-curl curl.md/en.wikipedia.org/wiki/Linux?q=kernel+history
+# Force a fresh fetch
+curl "https://curl.md/example.com?fresh"
 
-# GitHub REST API docs
-curl curl.md/docs.github.com/en/rest?q=rate+limiting
+# Request JSON instead of markdown
+curl "https://curl.md/example.com" -H 'Accept: application/json'
 
-# Bypass cache for a fast-changing page
-curl curl.md/status.example.com?fresh
+# Authenticated request
+curl "https://curl.md/example.com" -H "Authorization: Bearer $CURLMD_API_KEY"
 ```
 
-## Tips
+Successful fetches return markdown by default. JSON responses have the shape:
 
-- **Use `?q=` to reduce token usage.** Without it, you get the entire page. With it, only relevant sections are returned verbatim.
-- **Pipe to tools** for further processing: `curl curl.md/example.com | head -100`
-- **Known doc sites** (like Cloudflare, Vercel, Bun, PlanetScale) are fetched as native markdown for higher quality output.
-- **Content is cached for 15 minutes.** Use `?fresh` if you need the latest version.
+```json
+{
+  "content": "# Example\n..."
+}
+```
+
+## curl.md Docs
+
+For curl.md's own docs, prefer markdown-native docs endpoints instead of re-fetching the HTML docs page through curl.md.
+
+```sh
+curl https://curl.md/docs/guide/cli.md
+curl https://curl.md/docs/guide/api.md
+curl https://curl.md/llms.txt
+```
+
+Or use content negotiation:
+
+```sh
+curl https://curl.md/docs/guide/cli -H 'Accept: text/markdown'
+```
+
+Prefer page-level `.md` URLs first, then `llms.txt`, then `llms-full.txt` only when broader curl.md documentation context is needed.
+
+For app-code integrations instead of agent usage, see `https://curl.md/docs/guide/api.md`.
+
+## Agent Setup
+
+When the user asks to install or wire curl.md into an agent/editor, use the current setup commands:
+
+```sh
+# Install hosted skills
+npx skills add https://curl.md --yes
+
+# Sync CLI-generated skills into supported agents
+curl.md skills add
+curl.md skills add --no-global
+
+# Run as MCP stdio server
+curl.md --mcp
+
+# Register the MCP server with an agent
+curl.md mcp add
+curl.md mcp add --agent claude-code
+```
+
+Prefer first-party plugins over raw CLI or MCP when the target agent has an official curl.md integration.
+
+## Best Practices
+
+- Use `objective` when only part of a long page matters.
+- Add `keywords` when you already know the terms that matter and want to shrink the search space first.
+- Use `fresh` for changelogs, status pages, release notes, or any request where freshness matters.
+- Use auth when the user needs higher limits, paid usage, or account/org-scoped behavior.
+- For curl.md docs, prefer `.md` docs pages or `llms.txt` over HTML fetches.
 
 ## Limitations
 
-- Pages that require JavaScript rendering (SPAs without SSR) may return incomplete content.
-- Paywalled or authenticated content is not accessible.
-- Very large pages are truncated to ~100k characters when using `?q=`.
-- Returns JSON `{ "error": "..." }` if the upstream site returns an error.
-
-## MCP Server
-
-An MCP server is also available with a `fetch_page` tool:
-
-```sh
-npx add-mcp curl.md/mcp
-```
-
-### `fetch_page` Tool
-
-| Parameter | Type   | Required | Description                                                                    |
-| --------- | ------ | -------- | ------------------------------------------------------------------------------ |
-| `url`     | string | Yes      | URL of the web page to fetch (e.g. `"https://example.com"` or `"example.com"`) |
-| `query`   | string | No       | Query to narrow down the returned content to relevant sections                 |
+- Paywalled or authenticated content still requires valid access.
+- Some highly dynamic pages may still be incomplete or noisy.
+- Errors are returned as JSON with stable string `code` and human-readable `message` fields.

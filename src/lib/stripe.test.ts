@@ -2,7 +2,7 @@ import { createEmulator, type Emulator } from 'emulate'
 import { HttpResponse, http } from 'msw'
 import { setupServer } from 'msw/node'
 import Stripe from 'stripe'
-import { afterEach, beforeAll, expect, test, vi } from 'vitest'
+import { afterEach, beforeAll, expect, test } from 'vitest'
 import * as Constants from '#lib/constants.ts'
 import {
   createPaymentElementCustomerSession,
@@ -69,7 +69,6 @@ test('getDefaultPaymentMethod falls back to first method when stored default is 
 })
 
 test('listCardPaymentMethods filters out non-card methods', async () => {
-  // TODO: Switch this to emulate once Stripe payment_methods are supported there.
   server.use(
     http.get('https://api.stripe.com/v1/payment_methods', () =>
       HttpResponse.json({
@@ -87,21 +86,15 @@ test('listCardPaymentMethods filters out non-card methods', async () => {
   expect(paymentMethods.map((paymentMethod) => paymentMethod.id)).toEqual(['pm_card'])
 })
 
-test('listCardPaymentMethods returns empty list for emulate not-found responses', async () => {
-  const stripe = {
-    paymentMethods: {
-      list: vi.fn().mockResolvedValue({
-        documentation_url: 'https://emulate.dev/stripe',
-        message: 'Not Found',
-      }),
-    },
-  } as unknown as Stripe
+test('listCardPaymentMethods returns empty list from emulate', async () => {
+  const customer = await stripeClient().customers.create({
+    email: 'payment-methods-empty@example.com',
+  })
 
-  await expect(listCardPaymentMethods(stripe, 'cus_test')).resolves.toEqual([])
+  await expect(listCardPaymentMethods(stripeClient(), customer.id)).resolves.toEqual([])
 })
 
 test('getSavedPaymentMethodCount requests at most one more than the cap', async () => {
-  // TODO: Switch this to emulate once Stripe payment_methods are supported there.
   let requestUrl = ''
   server.use(
     http.get('https://api.stripe.com/v1/payment_methods', ({ request }) => {
@@ -124,7 +117,7 @@ test('getSavedPaymentMethodCount requests at most one more than the cap', async 
 })
 
 test('createPaymentElementCustomerSession falls back to legacy features', async () => {
-  // TODO: Switch this to emulate once Stripe customer_sessions are supported there.
+  // Simulate older Stripe accounts rejecting redisplay filters so the retry path stays covered.
   const requestBodies: string[] = []
   server.use(
     http.post('https://api.stripe.com/v1/customer_sessions', async ({ request }) => {

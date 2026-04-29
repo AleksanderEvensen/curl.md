@@ -7,6 +7,7 @@ import { TextMorph } from 'torph/react'
 import { Nav } from '#components/Nav.tsx'
 import { useAnimatedValue } from '#hooks/useAnimatedValue.ts'
 import { useCopyToClipboard } from '#hooks/useCopyToClipboard.ts'
+import { agentSetupPrompt } from '#lib/constants.ts'
 import { formatCost } from '#lib/format.ts'
 import { getSessionLogin } from '#server/session.ts'
 import { getTokensSaved } from '#server/stats.ts'
@@ -444,11 +445,7 @@ function InstallTabs() {
 
 function InstallCommand() {
   const { copied, copy } = useCopyToClipboard({
-    content: `I'd like you to set up https://curl.md, the best way to turn URLs into markdown.
-
-If I have npm, install CLI and setup skill: npm i -g curl.md && curl.md skills add
-
-If not, do this instead: curl -fsSL https://curl.md/install.sh | bash`,
+    content: agentSetupPrompt,
     timeout: 5_000,
   })
 

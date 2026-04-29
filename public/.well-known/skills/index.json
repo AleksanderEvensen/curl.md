@@ -2,7 +2,7 @@
   "skills": [
     {
       "name": "curl-md",
-      "description": "Fetch any URL as markdown using curl.md. Use when the user needs to read, summarize, or extract content from a web page and save tokens.",
+      "description": "Fetch web pages and docs as optimized markdown with curl.md. Use when the user shares a URL, asks about page content, wants lower-token web context, or needs current curl.md CLI, HTTP, docs markdown, skills, or MCP usage.",
       "files": ["SKILL.md"]
     }
   ]

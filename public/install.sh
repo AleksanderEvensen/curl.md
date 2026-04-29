@@ -66,9 +66,9 @@ main() {
   # Verify checksum
   checksumfile="$(mktemp)"
   if has_gh_auth; then
-    gh release download "$tag" --repo "$REPO" --pattern "${artifact}.sha256" --output "$checksumfile" --clobber 2>/dev/null
+    gh release download "$tag" --repo "$REPO" --pattern "${artifact}.sha256" --output "$checksumfile" --clobber 2>/dev/null || true
   else
-    curl -fsSL "${base_url}/${artifact}.sha256" -o "$checksumfile" 2>/dev/null
+    curl -fsSL "${base_url}/${artifact}.sha256" -o "$checksumfile" 2>/dev/null || true
   fi
   if [ -s "$checksumfile" ]; then
     expected="$(cat "$checksumfile")"

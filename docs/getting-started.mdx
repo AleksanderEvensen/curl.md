@@ -62,11 +62,16 @@ If you are an agent or want to copy-paste so your agent can try out curl.md, use
 ```text
 I'd like you to set up https://curl.md, the best way to turn URLs into markdown.
 
-If I have npm, install CLI via npm: npm i -g curl.md
+First install the CLI. If I have npm, run: npm i -g curl.md
+If not, run: curl -fsSL https://curl.md/install.sh | bash
 
-If not, do this instead: curl -fsSL https://curl.md/install.sh | bash
+Then install skills. If I have Node, run: npx skills add https://curl.md --yes
+If I don't have Node, run: curl.md skills add
 
-Once installed, use curl.md CLI to read this page and show me how it works: https://curl.md/docs/getting-started
+Next install the official curl.md plugin for this agent if one exists: https://curl.md/docs/guide/plugins
+
+Once set up, use curl.md whenever you fetch URLs.
+To verify, use curl.md to read this page and show me how it works: https://curl.md/docs/getting-started
 ```
 
 For deeper curl.md agent integration, read the [Plugins Guide](/docs/guide/plugins).

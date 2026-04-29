@@ -1,15 +1,28 @@
 export const packageName = 'curl.md'
 
+export const agentSetupPrompt = `I'd like you to set up https://curl.md, the best way to turn URLs into markdown.
+
+First install the CLI. If I have npm, run: npm i -g curl.md
+If not, run: curl -fsSL https://curl.md/install.sh | bash
+
+Then install skills. If I have Node, run: npx skills add https://curl.md --yes
+If I don't have Node, run: curl.md skills add
+
+Next install the official curl.md plugin for this agent if one exists: https://curl.md/docs/guide/plugins
+
+Once set up, use curl.md whenever you fetch URLs.
+To verify, use curl.md to read this page and show me how it works: https://curl.md/docs/getting-started`
+
 export const creditAmounts = ['500', '1000', '2000', '5000'] as const
 export const maxSavedPaymentMethods = 3
 export const stripeApiVersion = '2026-02-25.clover'
 
-// https://developers.cloudflare.com/workers-ai/platform/pricing/
+// https://developers.cloudflare.com/workers-ai/platform/pricing
 export const modes = {
   rush: {
     model: '@cf/meta/llama-3.1-8b-instruct-fp8' as const,
-    inputPricePerMToken: 0.152,
-    outputPricePerMToken: 0.287,
+    inputPricePerMToken: 0.045,
+    outputPricePerMToken: 0.384,
   },
   smart: {
     model: '@cf/meta/llama-4-scout-17b-16e-instruct' as const,

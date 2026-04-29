@@ -12,6 +12,7 @@ import { Dashboard } from '#components/Dashboard.tsx'
 import { createClient } from '#db/client.ts'
 import { requestTokensSavedSql, requestTokensSavedSumSql } from '#db/utils.ts'
 import { useCopyToClipboard } from '#hooks/useCopyToClipboard.ts'
+import { agentSetupPrompt } from '#lib/constants.ts'
 import { formatCost } from '#lib/format.ts'
 import { getSessionAccountId, requireEntityRead } from '#server/access.ts'
 
@@ -270,11 +271,7 @@ function AuthLoginCommand(props: { separator?: boolean }) {
 
 function InstallCommand() {
   const { copied, copy } = useCopyToClipboard({
-    content: `I'd like you to set up https://curl.md, the best way to turn URLs into markdown.
-
-If I have npm, install CLI and setup skill: npm i -g curl.md && curl.md skills add
-
-If not, do this instead: curl -fsSL https://curl.md/install.sh | bash`,
+    content: agentSetupPrompt,
     timeout: 5_000,
   })
 
