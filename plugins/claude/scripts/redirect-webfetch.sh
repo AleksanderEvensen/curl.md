@@ -2,7 +2,11 @@
 set -eu
 
 case "${CLAUDE_PLUGIN_OPTION_webfetch_redirect:-true}" in
-  0|[Ff][Aa][Ll][Ss][Ee]) exit 0 ;;
+  0|[Ff][Aa][Ll][Ss][Ee])
+    # Drain the hook payload before exiting so callers piping JSON into stdin do not hit EPIPE.
+    cat >/dev/null || true
+    exit 0
+    ;;
   *) ;;
 esac
 
