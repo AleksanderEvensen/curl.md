@@ -78,31 +78,31 @@ test('registers a login command and completes device flow', async () => {
   expect(commands).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
-        description: 'Log in',
         slash: { name: 'curl_md_login' },
         title: 'Log in',
         value: 'curlmd.login',
       }),
       expect.objectContaining({
-        description: 'Log out',
         slash: { name: 'curl_md_logout' },
         title: 'Log out',
         value: 'curlmd.logout',
       }),
       expect.objectContaining({
-        description: 'Switch organization',
         slash: { name: 'curl_md_org' },
         title: 'Switch organization',
         value: 'curlmd.org',
       }),
       expect.objectContaining({
-        description: 'Show status',
         slash: { name: 'curl_md_status' },
         title: 'Show status',
         value: 'curlmd.status',
       }),
     ]),
   )
+  expect(findCommand(commands, 'curlmd.login').description).toBeUndefined()
+  expect(findCommand(commands, 'curlmd.logout').description).toBeUndefined()
+  expect(findCommand(commands, 'curlmd.org').description).toBeUndefined()
+  expect(findCommand(commands, 'curlmd.status').description).toBeUndefined()
 
   await findCommand(commands, 'curlmd.login').onSelect?.()
 
@@ -292,7 +292,11 @@ test('shows curl.md status', async () => {
 })
 
 function findCommand(
-  commands: Array<{ onSelect?: () => Promise<void> | void; value?: string }>,
+  commands: Array<{
+    description?: string
+    onSelect?: () => Promise<void> | void
+    value?: string
+  }>,
   value: string,
 ) {
   const command = commands.find((command) => command.value === value)
@@ -332,7 +336,11 @@ function createTuiApi() {
       return props
     },
   )
-  let commands: Array<{ onSelect?: () => Promise<void> | void; value?: string }> = []
+  let commands: Array<{
+    description?: string
+    onSelect?: () => Promise<void> | void
+    value?: string
+  }> = []
   const register = vi.fn((cb: () => typeof commands) => {
     commands = cb()
     return vi.fn()

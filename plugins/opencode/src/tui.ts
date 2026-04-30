@@ -22,7 +22,6 @@ export const tuiPlugin: opencodePluginTui.TuiPluginModule = {
     api.command.register(() => [
       {
         category: 'curl.md',
-        description: 'Log in',
         onSelect: async () => {
           if (loginAbortController) {
             api.ui.toast({
@@ -108,7 +107,6 @@ export const tuiPlugin: opencodePluginTui.TuiPluginModule = {
       },
       {
         category: 'curl.md',
-        description: 'Log out',
         onSelect: async () => {
           api.ui.dialog.clear()
 
@@ -145,7 +143,6 @@ export const tuiPlugin: opencodePluginTui.TuiPluginModule = {
       },
       {
         category: 'curl.md',
-        description: 'Switch organization',
         onSelect: async () => {
           const authHeaders = await resolver()
           if (!authHeaders) {
@@ -238,7 +235,6 @@ export const tuiPlugin: opencodePluginTui.TuiPluginModule = {
       },
       {
         category: 'curl.md',
-        description: 'Show status',
         onSelect: async () => {
           api.ui.dialog.clear()
 

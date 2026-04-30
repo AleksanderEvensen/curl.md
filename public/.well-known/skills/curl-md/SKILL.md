@@ -1,6 +1,6 @@
 ---
 name: curl-md
-description: Fetch web pages and docs as optimized markdown with curl.md. Use when the user shares a URL, asks about page content, wants lower-token web context, or needs current curl.md CLI, HTTP, docs markdown, skills, or MCP usage.
+description: Fetch web pages and docs as optimized markdown with curl.md. Use when the user shares a URL, asks about page content, or you need to read web page or webfetch.
 ---
 
 # curl.md
@@ -12,9 +12,10 @@ Use curl.md to turn URLs into agent-friendly markdown with less noise and fewer 
 Use curl.md when:
 
 - The user shares a URL or asks what a page says
+- You just need to quickly fetch one page without setting up a deeper integration
 - You need docs, changelogs, articles, reference pages, or API docs as markdown before answering
 - You want to narrow a long page to a specific question or task
-- You need current curl.md usage for the CLI, hosted HTTP endpoint, docs markdown endpoints, skills, or MCP
+- You need current curl.md usage for the CLI, hosted HTTP endpoint, skills, or MCP
 
 ## Preferred Entry Points
 
@@ -75,7 +76,7 @@ Notes:
 
 ## Hosted HTTP Endpoint
 
-Use the hosted HTTP endpoint when the CLI is unavailable or when a simple one-off fetch is enough.
+Use the hosted HTTP endpoint when the CLI is unavailable or when you just need to quickly fetch one page.
 
 ## Examples
 
@@ -103,26 +104,6 @@ Successful fetches return markdown by default. JSON responses have the shape:
   "content": "# Example\n..."
 }
 ```
-
-## curl.md Docs
-
-For curl.md's own docs, prefer markdown-native docs endpoints instead of re-fetching the HTML docs page through curl.md.
-
-```sh
-curl https://curl.md/docs/guide/cli.md
-curl https://curl.md/docs/guide/api.md
-curl https://curl.md/llms.txt
-```
-
-Or use content negotiation:
-
-```sh
-curl https://curl.md/docs/guide/cli -H 'Accept: text/markdown'
-```
-
-Prefer page-level `.md` URLs first, then `llms.txt`, then `llms-full.txt` only when broader curl.md documentation context is needed.
-
-For app-code integrations instead of agent usage, see `https://curl.md/docs/guide/api.md`.
 
 ## Agent Setup
 

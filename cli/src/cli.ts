@@ -1757,6 +1757,7 @@ async function run(
     >
   >[0],
 ) {
+  const spinner = UI.createSpinner('')
   const result = z.safeParse(
     z
       .string()
@@ -1794,7 +1795,6 @@ async function run(
 
   const keywords = c.options.keywords?.flatMap((k: string) => k.split(','))
   const token = c.options.token ?? c.var.apiKey
-  const spinner = UI.createSpinner('')
   const res = await c.var.client.fetch(result.data, {
     fresh: c.options.fresh,
     keywords,
