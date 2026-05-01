@@ -69,6 +69,7 @@ declare global {
   const IconOcticonHash16: typeof import('~icons/octicon/hash16.jsx').default
   const IconOcticonHome16: typeof import('~icons/octicon/home16.jsx').default
   const IconOcticonInfo16: typeof import('~icons/octicon/info16.jsx').default
+  const IconOcticonJersey: typeof import('~icons/octicon/jersey.jsx').default
   const IconOcticonKebabHorizontal16: typeof import('~icons/octicon/kebab-horizontal16.jsx').default
   const IconOcticonKey16: typeof import('~icons/octicon/key16.jsx').default
   const IconOcticonLightBulb16: typeof import('~icons/octicon/light-bulb16.jsx').default

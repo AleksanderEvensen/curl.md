@@ -83,17 +83,19 @@ function DashboardLayout(props: React.PropsWithChildren<{ data: DashboardLayoutD
   const matches = useMatches()
   const leafRouteId = matches[matches.length - 1]?.routeId
   const switchTo =
-    leafRouteId === '/_dash/$login/tokens'
-      ? '/$login/tokens'
-      : leafRouteId === '/_dash/$login/billing'
-        ? '/$login/billing'
-        : leafRouteId === '/_dash/$login/members'
-          ? '/$login/members'
-          : leafRouteId === '/_dash/$login/requests'
-            ? '/$login/requests'
-            : leafRouteId === '/_dash/$login/settings'
-              ? '/$login/settings'
-              : '/$login'
+    leafRouteId === '/_dash/$login/admin'
+      ? '/$login/admin'
+      : leafRouteId === '/_dash/$login/tokens'
+        ? '/$login/tokens'
+        : leafRouteId === '/_dash/$login/billing'
+          ? '/$login/billing'
+          : leafRouteId === '/_dash/$login/members'
+            ? '/$login/members'
+            : leafRouteId === '/_dash/$login/requests'
+              ? '/$login/requests'
+              : leafRouteId === '/_dash/$login/settings'
+                ? '/$login/settings'
+                : '/$login'
   const [open, setOpen] = React.useState(false)
   const { modal } = Route.useSearch()
   const navigate = useNavigate()
@@ -150,8 +152,18 @@ function DashboardLayout(props: React.PropsWithChildren<{ data: DashboardLayoutD
         to: '/$login/settings',
         enabled: true,
       },
+      ...(account.role === 'crew'
+        ? [
+            {
+              icon: <IconOcticonJersey />,
+              label: 'Admin',
+              to: '/$login/admin',
+              enabled: true,
+            },
+          ]
+        : []),
     ],
-    [entity.type],
+    [account.role, entity.type],
   )
 
   return (
@@ -534,7 +546,7 @@ async function getDashboardViewerData(): Promise<DashboardViewerData | false> {
   const account = await db
     .selectFrom('account')
     .where('id', '=', accountId)
-    .select(['avatar_url', 'email', 'id', 'login', 'name'])
+    .select(['avatar_url', 'email', 'id', 'login', 'name', 'role'])
     .executeTakeFirst()
   if (!account) return false
 
@@ -572,7 +584,7 @@ function isDashboardLayoutData(data: unknown): data is DashboardLayoutData {
 }
 
 type DashboardLayoutData = {
-  account: Pick<DB.account, 'avatar_url' | 'email' | 'id' | 'login' | 'name'>
+  account: Pick<DB.account, 'avatar_url' | 'email' | 'id' | 'login' | 'name' | 'role'>
   entity:
     | (Pick<DB.account, 'avatar_url' | 'email' | 'id' | 'login' | 'name'> & {
         type: 'account'

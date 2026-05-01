@@ -29,6 +29,7 @@ import { Route as DashLoginSettingsRouteImport } from './routes/_dash.$login/set
 import { Route as DashLoginRequestsRouteImport } from './routes/_dash.$login/requests'
 import { Route as DashLoginMembersRouteImport } from './routes/_dash.$login/members'
 import { Route as DashLoginBillingRouteImport } from './routes/_dash.$login/billing'
+import { Route as DashLoginAdminRouteImport } from './routes/_dash.$login/admin'
 import { Route as DashLoginBillingAdd_payment_methodRouteImport } from './routes/_dash.$login/billing.add_payment_method'
 import { Route as DashLoginBillingRemove_payment_methodPaymentMethodIdRouteImport } from './routes/_dash.$login/billing.remove_payment_method.$paymentMethodId'
 import { Route as DashLoginBillingAdd_creditsPaymentIdRouteImport } from './routes/_dash.$login/billing.add_credits.$paymentId'
@@ -133,6 +134,11 @@ const DashLoginBillingRoute = DashLoginBillingRouteImport.update({
   path: '/billing',
   getParentRoute: () => DashLoginRouteRoute,
 } as any)
+const DashLoginAdminRoute = DashLoginAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => DashLoginRouteRoute,
+} as any)
 const DashLoginBillingAdd_payment_methodRoute =
   DashLoginBillingAdd_payment_methodRouteImport.update({
     id: '/add_payment_method',
@@ -166,6 +172,7 @@ export interface FileRoutesByFullPath {
   '/docs/$': typeof DocsSplatRoute
   '/invite/$token': typeof InviteTokenRoute
   '/docs/': typeof DocsIndexRoute
+  '/$login/admin': typeof DashLoginAdminRoute
   '/$login/billing': typeof DashLoginBillingRouteWithChildren
   '/$login/members': typeof DashLoginMembersRoute
   '/$login/requests': typeof DashLoginRequestsRoute
@@ -189,6 +196,7 @@ export interface FileRoutesByTo {
   '/docs/$': typeof DocsSplatRoute
   '/invite/$token': typeof InviteTokenRoute
   '/docs': typeof DocsIndexRoute
+  '/$login/admin': typeof DashLoginAdminRoute
   '/$login/billing': typeof DashLoginBillingRouteWithChildren
   '/$login/members': typeof DashLoginMembersRoute
   '/$login/requests': typeof DashLoginRequestsRoute
@@ -215,6 +223,7 @@ export interface FileRoutesById {
   '/docs/$': typeof DocsSplatRoute
   '/invite/$token': typeof InviteTokenRoute
   '/docs/': typeof DocsIndexRoute
+  '/_dash/$login/admin': typeof DashLoginAdminRoute
   '/_dash/$login/billing': typeof DashLoginBillingRouteWithChildren
   '/_dash/$login/members': typeof DashLoginMembersRoute
   '/_dash/$login/requests': typeof DashLoginRequestsRoute
@@ -242,6 +251,7 @@ export interface FileRouteTypes {
     | '/docs/$'
     | '/invite/$token'
     | '/docs/'
+    | '/$login/admin'
     | '/$login/billing'
     | '/$login/members'
     | '/$login/requests'
@@ -265,6 +275,7 @@ export interface FileRouteTypes {
     | '/docs/$'
     | '/invite/$token'
     | '/docs'
+    | '/$login/admin'
     | '/$login/billing'
     | '/$login/members'
     | '/$login/requests'
@@ -290,6 +301,7 @@ export interface FileRouteTypes {
     | '/docs/$'
     | '/invite/$token'
     | '/docs/'
+    | '/_dash/$login/admin'
     | '/_dash/$login/billing'
     | '/_dash/$login/members'
     | '/_dash/$login/requests'
@@ -459,6 +471,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashLoginBillingRouteImport
       parentRoute: typeof DashLoginRouteRoute
     }
+    '/_dash/$login/admin': {
+      id: '/_dash/$login/admin'
+      path: '/admin'
+      fullPath: '/$login/admin'
+      preLoaderRoute: typeof DashLoginAdminRouteImport
+      parentRoute: typeof DashLoginRouteRoute
+    }
     '/_dash/$login/billing/add_payment_method': {
       id: '/_dash/$login/billing/add_payment_method'
       path: '/add_payment_method'
@@ -516,6 +535,7 @@ const DashLoginBillingRouteWithChildren =
   DashLoginBillingRoute._addFileChildren(DashLoginBillingRouteChildren)
 
 interface DashLoginRouteRouteChildren {
+  DashLoginAdminRoute: typeof DashLoginAdminRoute
   DashLoginBillingRoute: typeof DashLoginBillingRouteWithChildren
   DashLoginMembersRoute: typeof DashLoginMembersRoute
   DashLoginRequestsRoute: typeof DashLoginRequestsRoute
@@ -525,6 +545,7 @@ interface DashLoginRouteRouteChildren {
 }
 
 const DashLoginRouteRouteChildren: DashLoginRouteRouteChildren = {
+  DashLoginAdminRoute: DashLoginAdminRoute,
   DashLoginBillingRoute: DashLoginBillingRouteWithChildren,
   DashLoginMembersRoute: DashLoginMembersRoute,
   DashLoginRequestsRoute: DashLoginRequestsRoute,
