@@ -1787,24 +1787,6 @@ export const api = new Hono<{
 
     return c.json({ received: true }, 200)
   })
-  .post('/api/sentry/tunnel', async (c) => {
-    const body = await c.req.text()
-    if (!body.includes('\n'))
-      return c.json({ code: 'invalid_envelope' as const, message: 'Invalid envelope' }, 400)
-    const dsn = new URL(c.env.SENTRY_DSN)
-    const project = dsn.pathname.replace(/^\//, '')
-    const res = await fetch(`https://${dsn.hostname}/api/${project}/envelope/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-sentry-envelope' },
-      body,
-    })
-    if (!res.ok)
-      return c.json(
-        { code: 'sentry_upstream_error' as const, message: 'Sentry upstream error' },
-        502,
-      )
-    return c.json({ ok: true }, 200)
-  })
   .get(
     '/api/requests',
     hono.validator(
@@ -1913,6 +1895,24 @@ export const api = new Hono<{
       },
       200,
     )
+  })
+  .post('/api/tunnel', async (c) => {
+    const body = await c.req.arrayBuffer()
+    if (!new Uint8Array(body).includes(10))
+      return c.json({ code: 'invalid_envelope' as const, message: 'Invalid envelope' }, 400)
+    const dsn = new URL(c.env.SENTRY_DSN)
+    const project = dsn.pathname.replace(/^\//, '')
+    const res = await fetch(`https://${dsn.hostname}/api/${project}/envelope/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-sentry-envelope' },
+      body,
+    })
+    if (!res.ok)
+      return c.json(
+        { code: 'sentry_upstream_error' as const, message: 'Sentry upstream error' },
+        502,
+      )
+    return c.json({ ok: true }, 200)
   })
   .get(
     '/api/:url{.+}',

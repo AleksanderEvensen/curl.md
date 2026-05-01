@@ -5002,9 +5002,9 @@ describe('POST /api/stripe/webhook', () => {
   })
 })
 
-describe('POST /api/sentry/tunnel', () => {
+describe('POST /api/tunnel', () => {
   test('returns 400 for invalid envelope', async () => {
-    const res = await api.request('/api/sentry/tunnel', { method: 'POST', body: 'no-newline' }, env)
+    const res = await api.request('/api/tunnel', { method: 'POST', body: 'no-newline' }, env)
     expect(res.status).toBe(400)
     await expect(res.json()).resolves.toEqual({
       code: 'invalid_envelope',
@@ -5019,11 +5019,32 @@ describe('POST /api/sentry/tunnel', () => {
       ),
     )
 
-    const res = await api.request(
-      '/api/sentry/tunnel',
-      { method: 'POST', body: 'header\npayload' },
-      env,
+    const res = await api.request('/api/tunnel', { method: 'POST', body: 'header\npayload' }, env)
+    expect(res.status).toBe(200)
+    await expect(res.json()).resolves.toEqual({ ok: true })
+  })
+
+  test('forwards replay envelope bytes to sentry', async () => {
+    const envelope = new Uint8Array([
+      ...new TextEncoder().encode(
+        '{"event_id":"1","sent_at":"2026-05-01T19:35:51.828Z"}\n' +
+          '{"type":"replay_recording","length":4}\n' +
+          '{"segment_id":0}\n',
+      ),
+      0,
+      255,
+      1,
+      10,
+    ])
+
+    server.use(
+      http.post('https://o123.ingest.us.sentry.io/api/456/envelope/', async ({ request }) => {
+        assert.deepStrictEqual(new Uint8Array(await request.arrayBuffer()), envelope)
+        return HttpResponse.json({ id: 'ok' })
+      }),
     )
+
+    const res = await api.request('/api/tunnel', { method: 'POST', body: envelope }, env)
     expect(res.status).toBe(200)
     await expect(res.json()).resolves.toEqual({ ok: true })
   })
@@ -5035,11 +5056,7 @@ describe('POST /api/sentry/tunnel', () => {
       ),
     )
 
-    const res = await api.request(
-      '/api/sentry/tunnel',
-      { method: 'POST', body: 'header\npayload' },
-      env,
-    )
+    const res = await api.request('/api/tunnel', { method: 'POST', body: 'header\npayload' }, env)
     expect(res.status).toBe(502)
     await expect(res.json()).resolves.toEqual({
       code: 'sentry_upstream_error',

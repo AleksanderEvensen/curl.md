@@ -5,81 +5,94 @@ description: URL to markdown for agents
 
 # curl.md
 
-URL to markdown for agents
+URL to markdown for agents.
+
+Turn websites into optimized, low token output to supercharge your context and save tokens. Works with every agent.
+
+## Quick Start
 
 ```sh
-# Fetch a URL
+# No install required
 curl curl.md/example.com
+open https://curl.md/example.com
 
-# Install agent skill
-npx curl.md skills add
+# Install CLI
+curl -fsSL https://curl.md/install.sh | bash
+npm i -g curl.md
+bun i -g curl.md
 
+# Use CLI
+curl.md example.com
+md example.com
 ```
 
 ## Usage
 
 ```sh
-# Filter by objective
-curl curl.md/example.com?q=pricing
+# Basic fetch
+curl.md example.com
 
-# Filter by keywords
-curl curl.md/example.com?k=api,auth
+# Use short alias
+md example.com
 
-# Combine both
-curl "curl.md/example.com?q=authentication&k=oauth,jwt"
+# Narrow content with objective
+curl.md developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch --objective streaming response body
+
+# Pre-filter to terms with keywords
+curl.md developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch --keywords ReadableStream,getReader
+
+# Combine objective with targeted keywords
+curl.md developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch --objective streaming response body --keywords ReadableStream,getReader
+
+# Force fresh fetch
+curl.md developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch --fresh
 ```
 
-### Examples
+## Agent Setup
+
+Install the CLI first. Then add curl.md skills or an official plugin for your agent.
 
 ```sh
-# GitHub webhook payloads
-curl "curl.md/docs.github.com/en/webhooks/webhook-events-and-payloads?q=pull+request+webhook+event+payload+and+actions&k=pull_request,pull+request"
+# Hosted skills
+npx skills add https://curl.md --yes
 
-# Vercel MCP setup for Claude Code
-curl "curl.md/vercel.com/docs/agent-resources/vercel-mcp?q=how+do+i+install+for+claude+code&k=claude+code"
+# If Node is unavailable but the CLI is installed
+curl.md skills add
 
-# MDN Fetch API streaming
-curl "curl.md/developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch?q=streaming+response+body&k=ReadableStream,getReader"
+# Official plugins
+claude plugin marketplace add wevm/curl.md
+claude plugin install curl-md@curl-md
+npx @curl.md/amp install --yes
+opencode plugin -g @curl.md/opencode
+pi install npm:@curl.md/pi
 
-# Cloudflare D1 from a Worker
-curl "curl.md/developers.cloudflare.com/d1/get-started?q=how+to+query+D1+from+a+worker&k=D1,bindings"
-
-# Cloudflare Workers database connections
-curl "curl.md/developers.cloudflare.com/workers/databases/connecting-to-databases?q=how+do+i+connect+to+d1+with+planetscale&k=d1,planetscale"
-
-# AI SDK text streaming
-curl "curl.md/ai-sdk.dev/docs/ai-sdk-core/generating-text?q=how+to+stream+text+with+the+ai+sdk&k=streamText,generateText"
+# Skills-based installs for agents without a first-party plugin yet
+npx skills add https://curl.md --agent codex --yes
+npx skills add https://curl.md --agent cursor --yes
 ```
 
-## CLI
+## More Examples
 
 ```sh
-# Run with npx
-npx curl.md example.com
+curl.md example.com
 
-# Or install globally
-npm i -g curl.md
+curl.md docs.github.com/en/webhooks/webhook-events-and-payloads --objective pull request webhook event payload and actions --keywords pull_request
 
-# Filter by objective
-curl.md example.com -q "pricing plans"
+curl.md developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch --objective streaming response body --keywords ReadableStream,getReader
 
-# Filter by keywords
-curl.md example.com -k "api,auth"
+curl.md developers.cloudflare.com/d1/get-started --objective how to query D1 from a worker --keywords D1,bindings
 
-# Combine both
-curl.md example.com -q "authentication" -k "oauth,jwt"
+curl.md ai-sdk.dev/docs/ai-sdk-core/generating-text --objective how to stream text with the ai sdk --keywords streamText,generateText
 
-# Pipe from stdin
-echo "example.com" | curl.md
-
-# Show all options
-curl.md --help
+curl.md zod.dev/error-formatting --objective tree error formatting --keywords treeifyError
 ```
 
 ## Links
 
-- [GitHub](https://github.com/wevm/curl.md)
+- [Homepage](https://curl.md)
+- [Docs](https://curl.md/docs)
+- [Docs llms.txt](https://curl.md/docs/llms.txt)
+- [Docs llms-full.txt](https://curl.md/docs/llms-full.txt)
 - [Playground](https://curl.md/playground)
-- [X](https://x.com/wevm_dev)
-- [llms.txt](https://curl.md/llms.txt)
-- [Skill](https://curl.md/skills)
+- [GitHub](https://github.com/wevm/curl.md)
+- [Discussions](https://github.com/wevm/curl.md/discussions)

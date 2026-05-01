@@ -37,7 +37,7 @@ export function getRouter() {
   if (!import.meta.env.SSR)
     Sentry.init({
       dsn: __SENTRY_DSN__,
-      tunnel: rpc.api.sentry.tunnel.$url().pathname,
+      tunnel: rpc.api.tunnel.$url().pathname,
       integrations: [
         Sentry.tanstackRouterBrowserTracingIntegration(router),
         Sentry.replayIntegration(),

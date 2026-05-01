@@ -112,7 +112,7 @@ export function Home(props: { login?: string | null | undefined }) {
           </Link>
           <a
             className="text-gray8 hover:text-gray10"
-            href="/api/health"
+            href="https://status.curl.md"
             rel="noopener noreferrer"
             target="_blank"
           >
