@@ -4,6 +4,7 @@ packages:
 
 allowBuilds:
   '@anthropic-ai/claude-code': true
+  '@sentry/cli': true
   bun: true
   msw: true
   opencode-ai: true

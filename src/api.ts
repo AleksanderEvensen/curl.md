@@ -37,7 +37,19 @@ export const api = new Hono<{
   }
 }>()
   .onError((error, c) => {
-    Sentry.captureException(error)
+    const status = 'status' in error && typeof error.status === 'number' ? error.status : undefined
+    if (!status || status <= 299 || status >= 500) {
+      const spanName = `${c.req.method} ${c.req.path}`
+      const activeSpan = Sentry.getActiveSpan()
+      if (activeSpan) {
+        activeSpan.updateName(spanName)
+        Sentry.updateSpanName(Sentry.getRootSpan(activeSpan), spanName)
+      }
+      Sentry.getIsolationScope().setTransactionName(spanName)
+      Sentry.captureException(error, {
+        mechanism: { handled: false, type: 'auto.faas.hono.error_handler' },
+      })
+    }
     return c.json({ code: 'internal_error', message: 'Internal server error' }, 500)
   })
   .use(async (c, next) => {

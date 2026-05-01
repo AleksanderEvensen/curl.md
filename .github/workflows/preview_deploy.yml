@@ -230,6 +230,7 @@ jobs:
           CLOUDFLARE_ENV: preview
           DB_URL: ${{ steps.pscale.outputs.db_url }}
           GIT_SHA: ${{ inputs.sha }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
 
       - name: Deploy preview

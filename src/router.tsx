@@ -1,4 +1,4 @@
-import * as Sentry from '@sentry/react'
+import * as Sentry from '@sentry/tanstackstart-react'
 import { createRouteMask, createRouter } from '@tanstack/react-router'
 import { rpc } from '#lib/rpc.ts'
 import { routeTree } from './routeTree.gen'
@@ -34,15 +34,19 @@ export function getRouter() {
     scrollRestoration: true,
   })
 
-  if (!router.isServer)
+  if (!import.meta.env.SSR)
     Sentry.init({
       dsn: __SENTRY_DSN__,
       tunnel: rpc.api.sentry.tunnel.$url().pathname,
-      integrations: [Sentry.browserTracingIntegration(), Sentry.replayIntegration()],
-      environment: __HOST__.split('.').length > 2 ? 'preview' : 'production',
+      integrations: [
+        Sentry.tanstackRouterBrowserTracingIntegration(router),
+        Sentry.replayIntegration(),
+      ],
+      environment: __ENV__,
       release: __GIT_SHA__,
       replaysOnErrorSampleRate: 1.0,
       replaysSessionSampleRate: 0.1,
+      sendDefaultPii: true,
       tracesSampleRate: 0.01,
     })
 

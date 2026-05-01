@@ -316,7 +316,7 @@ function UrlShowcase() {
   React.useEffect(() => {
     const id = setInterval(() => {
       setIndex((i) => (i + 1) % showcaseUrls.length)
-    }, 3_000)
+    }, 2_000)
     return () => clearInterval(id)
   }, [])
 

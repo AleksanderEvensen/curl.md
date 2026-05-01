@@ -20,8 +20,10 @@ const staticAssets = {
 export default Sentry.withSentry<Env, QueueHandlerMessage>(
   (env) => ({
     dsn: env.SENTRY_DSN,
-    tracesSampleRate: 0.01,
+    environment: __ENV__,
+    release: __GIT_SHA__,
     sendDefaultPii: true,
+    tracesSampleRate: 0.01,
   }),
   {
     async fetch(request, env, ctx) {

@@ -1,3 +1,4 @@
+declare const __ENV__: 'development' | 'preview' | 'production'
 declare const __GIT_SHA__: string
 declare const __HOST__: string
 declare const __ORIGIN__: string
