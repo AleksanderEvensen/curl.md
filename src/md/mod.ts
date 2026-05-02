@@ -115,6 +115,16 @@ export function create(options: create.Options = {}): create.ReturnType {
         sourceTokensMethod = 'html'
         profile = detectPageProfile(text, inputURL, profiles)
 
+        const markdownAlternateUrl = getMarkdownAlternateUrl(text, inputURL)
+        if (markdownAlternateUrl) {
+          const markdownResult = await tryMarkdownUrl(
+            markdownAlternateUrl,
+            fetchResponse,
+            profile?.generator ?? getMetaContent(text, 'generator'),
+          )
+          if (markdownResult) return markdownResult
+        }
+
         if (profile?.markdownRequest) {
           const markdownResult = await tryMarkdownRequest(
             profile.markdownRequest,
@@ -518,6 +528,21 @@ async function tryMarkdownRequest(
   return extractMarkdownResponse(response, url, generator)
 }
 
+async function tryMarkdownUrl(
+  markdownUrl: string,
+  fetchResponse: (
+    url: URL,
+    ruleFetch?: Rule['fetch'],
+    overrideInit?: RequestInit,
+  ) => Promise<Response>,
+  generator?: string | undefined,
+): Promise<{ content: string; meta: Meta } | undefined> {
+  const url = new URL(markdownUrl)
+  const response = await fetchResponse(url)
+  if (!response.ok) return
+  return extractMarkdownResponse(response, url, generator)
+}
+
 type MarkdownRequest = { headers: Record<string, string>; url: string }
 
 function isLikelyMarkdownResponse(response: Response, text: string, url: URL): boolean {
@@ -530,6 +555,32 @@ function isLikelyMarkdownResponse(response: Response, text: string, url: URL): b
     contentType.includes('text/plain') ||
     /\.mdx?$/i.test(url.pathname)
   )
+}
+
+function getMarkdownAlternateUrl(html: string, baseUrl: URL): string | undefined {
+  for (const match of html.matchAll(/<link\b[^>]*>/giu)) {
+    const attributes = parseHtmlTagAttributes(match[0])
+    const rel = attributes.rel?.toLowerCase().split(/\s+/).filter(Boolean) ?? []
+    if (!rel.includes('alternate')) continue
+    if (attributes.type?.toLowerCase() !== 'text/markdown') continue
+    if (!attributes.href) continue
+
+    try {
+      return new URL(attributes.href, baseUrl).href
+    } catch {}
+  }
+}
+
+function parseHtmlTagAttributes(tag: string): Record<string, string> {
+  const attributes: Record<string, string> = {}
+  for (const match of tag.matchAll(
+    /([^\s"'=<>`/]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/gu,
+  )) {
+    const key = match[1]?.toLowerCase()
+    if (!key || key === 'link') continue
+    attributes[key] = match[2] ?? match[3] ?? match[4] ?? ''
+  }
+  return attributes
 }
 
 function normalizeMarkdown(content: string, origin?: string, profile?: DetectedProfile): string {

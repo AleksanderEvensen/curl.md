@@ -1,5 +1,36 @@
 import { defineProfile } from './mod.ts'
 
+export const docusaurus = defineProfile({
+  checks: [{ url: 'https://docusaurus.io/docs' }],
+  contentRootSelectors: ['.markdown', '.theme-doc-markdown'],
+  detect: {
+    generator: /^docusaurus\b/i,
+    includesAny: {
+      marker: 'dom:__docusaurus',
+      needles: ['class="theme-doc-markdown', 'id=__docusaurus', 'name=docusaurus_locale'],
+    },
+  },
+  key: 'docusaurus',
+})
+
+export const exdoc = defineProfile<{
+  markdownRequest: { headers: Record<string, string>; url: string }
+}>({
+  checks: [{ url: 'https://hexdocs.pm/boombox/readme.html' }],
+  contentRootSelectors: ['#content', '.content-inner'],
+  detect: {
+    generator: /^exdoc\b/i,
+    includesAny: {
+      marker: 'dom:sidebar-list-nav',
+      needles: ['class="copy-markdown icon-action"', 'href="llms.txt"', 'id="sidebar-list-nav"'],
+    },
+  },
+  key: 'exdoc',
+  resolve: (url) => ({
+    markdownRequest: { headers: { Accept: 'text/markdown' }, url: url.href },
+  }),
+})
+
 // TODO: Probe Accept: text/markdown for detected Fumadocs sites when HTML extraction is thin.
 export const fumadocs = defineProfile({
   contentRootSelectors: ['#nd-docs-layout', '#nd-flux-layout', '#nd-notebook-layout', '#nd-page'],
@@ -64,6 +95,46 @@ export const mintlify = defineProfile<{
         .replace(/\n*Built with \[Mintlify\]\([^)]*\)\.?\n*/g, '\n')
     },
   }),
+})
+
+export const mkdocs = defineProfile({
+  checks: [{ url: 'https://www.mkdocs.org/user-guide/' }],
+  contentRootSelectors: ['.col-md-9', '.md-content', '.md-content__inner'],
+  detect: {
+    includesAny: {
+      marker: 'dom:mkdocs',
+      needles: [
+        'data-md-component="content"',
+        'data-md-component=content',
+        'id="mkdocs_search_modal"',
+      ],
+    },
+  },
+  key: 'mkdocs',
+})
+
+export const readTheDocs = defineProfile({
+  checks: [{ url: 'https://docs.readthedocs.com/platform/' }],
+  contentRootSelectors: ['.document', '.rst-content'],
+  detect: {
+    includesAny: {
+      marker: 'dom:readthedocs',
+      needles: ['class="rst-content"', 'class="wy-nav-content"', 'name="readthedocs-project-slug"'],
+    },
+  },
+  key: 'readTheDocs',
+})
+
+export const sphinx = defineProfile({
+  checks: [{ url: 'https://docs.python.org/3/library/functions.html' }],
+  contentRootSelectors: ['.body', '.bodywrapper', '.documentwrapper'],
+  detect: {
+    includesAny: {
+      marker: 'dom:sphinx',
+      needles: ['_static/doctools.js', 'class="sphinxsidebar"', 'data-content_root='],
+    },
+  },
+  key: 'sphinx',
 })
 
 export const vitepress = defineProfile<{ markdownUrl: string }>({

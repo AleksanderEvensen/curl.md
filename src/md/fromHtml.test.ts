@@ -315,6 +315,17 @@ describe('resolves relative links', () => {
     expect(result).toContain('Content')
   })
 
+  test('strips decorative heading permalink anchors', async () => {
+    const { content: result } = await fromHtml(
+      html({
+        body: '<h1 id="title">Title<a class="headerlink" href="#title" title="Permanent link"></a></h1>',
+      }),
+      { baseUrl },
+    )
+    expect(result).toContain('# Title')
+    expect(result).not.toContain('')
+  })
+
   test('removes anchor elements with no href (id-only anchors)', async () => {
     const { content: result } = await fromHtml(
       html({ body: '<a id="some-writing"></a><h1>Some writing</h1>' }),
@@ -417,6 +428,16 @@ describe('pre newlines', () => {
     expect(result).toContain('line1\nline2\nline3')
     expect(result).not.toContain('line1\n\nline2')
   })
+
+  test('does not split syntax-highlighted tokens from sphinx code blocks', async () => {
+    const { content: result } = await fromHtml(
+      html({
+        body: '<pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">all</span><span class="p">(</span><span class="n">iterable</span><span class="p">):</span>\n    <span class="k">return</span> <span class="kc">True</span>\n</pre>',
+      }),
+    )
+    expect(result).toContain('def all(iterable):\n    return True')
+    expect(result).not.toContain('def\nall\n(')
+  })
 })
 
 describe('strips form elements', () => {
@@ -439,6 +460,28 @@ describe('strips form elements', () => {
     expect(result).toContain('Main content')
     expect(result).not.toContain('Side content')
     expect(result).not.toContain('Buy now')
+  })
+
+  test('strips elements with navbar class names', async () => {
+    const { content: result } = await fromHtml(
+      html({
+        body: '<div class="navbar fixed-top"><a href="/">Home</a><a href="/next">Next</a></div><main><p>Content</p></main>',
+      }),
+    )
+    expect(result).toContain('Content')
+    expect(result).not.toContain('Home')
+    expect(result).not.toContain('Next')
+  })
+
+  test('strips elements with footer class names', async () => {
+    const { content: result } = await fromHtml(
+      html({
+        body: '<main><p>Content</p></main><div class="footer">Copyright 2001 Python Software Foundation. <a href="/donate">Please donate.</a></div>',
+      }),
+    )
+    expect(result).toContain('Content')
+    expect(result).not.toContain('Copyright 2001')
+    expect(result).not.toContain('Please donate')
   })
 
   test('ignores noise tokens inside Tailwind utility classes', async () => {

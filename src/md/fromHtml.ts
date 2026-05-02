@@ -16,8 +16,8 @@ export async function fromHtml(
     .use(rehypeExtractMeta, options?.baseUrl)
     .use(rehypeStripNoise, options?.profile)
     .use(rehypeResolveLinks, options?.baseUrl)
+    .use(rehypeNormalizePreCode)
     .use(rehypeStripEmpty)
-    .use(rehypePreNewlines)
     .use(rehypeRemark, {
       handlers: {
         mark(state, node) {
@@ -133,8 +133,10 @@ const noiseClassIdTokens = new Set([
   'comment',
   'comments',
   'cookie',
+  'footer',
   'menu',
   'modal',
+  'navbar',
   'newsletter',
   'popup',
   'promo',
@@ -177,6 +179,7 @@ function strip(
     if (role && strippedRoles.has(role)) return false
 
     if (isHidden(child)) return false
+    if (isDecorativeHashLink(child)) return false
     if (isSkipLink(child)) return false
     if (!knownContentRoot && matchesNoiseClassId(child)) return false
     if (!knownContentRoot && isHighLinkDensity(child)) return false
@@ -209,6 +212,37 @@ function isSkipLink(node: Element): boolean {
   if (typeof href !== 'string' || !href.startsWith('#')) return false
   const text = hastToText(node).toLowerCase()
   return text.includes('skip')
+}
+
+function isDecorativeHashLink(node: Element): boolean {
+  if (node.tagName !== 'a') return false
+  const href = node.properties?.href
+  if (typeof href !== 'string' || !href.startsWith('#')) return false
+
+  const className = node.properties?.className
+  const classes = Array.isArray(className)
+    ? className.map((value) => String(value).toLowerCase())
+    : typeof className === 'string'
+      ? className.toLowerCase().split(/\s+/).filter(Boolean)
+      : []
+  if (classes.includes('headerlink') || classes.includes('hash-link')) return true
+
+  const labels = [node.properties?.title, node.properties?.ariaLabel]
+    .filter((value): value is string => typeof value === 'string')
+    .map((value) => value.toLowerCase())
+  if (
+    labels.some(
+      (label) =>
+        label.includes('permanent link') ||
+        label.includes('direct link') ||
+        label.includes('link to this heading') ||
+        label.includes('link to this definition'),
+    )
+  )
+    return true
+
+  const text = hastToText(node).trim()
+  return text !== '' && /^[¶#§\u200b]+$/u.test(text)
 }
 
 function isHidden(node: Element): boolean {
@@ -320,62 +354,64 @@ function resolveLinks(node: Element | Root, baseUrl: string, baseOrigin?: string
   }
 }
 
-// Ensure elements inside <pre> are separated by newlines so
-// rehype-remark preserves line breaks in code blocks.
-// Also strips trailing <br> inside child elements to avoid
-// double newlines (e.g. <div class="cm-line">...<br/></div>).
-function rehypePreNewlines() {
+// Flatten syntax-highlighted HTML inside <pre> to plain text so rehype-remark
+// emits a single code block instead of splitting every token span onto a line.
+function rehypeNormalizePreCode() {
   return (tree: Root) => {
-    insertPreNewlines(tree)
+    normalizePreCode(tree)
   }
 }
 
-function insertPreNewlines(node: Element | Root) {
+function normalizePreCode(node: Element | Root) {
   if (!node.children) return
-  for (const child of node.children) if (child.type === 'element') insertPreNewlines(child)
+  for (const child of node.children) if (child.type === 'element') normalizePreCode(child)
   if (node.type !== 'element' || node.tagName !== 'pre') return
-  stripTrailingBr(node)
-  stripInterElementWhitespace(node)
-  const updated: typeof node.children = []
-  for (let i = 0; i < node.children.length; i++) {
-    const child = node.children[i]
-    if (!child) continue
-    updated.push(child)
-    if (child.type !== 'element') continue
-    const next = node.children[i + 1]
-    const alreadyHasNewline = next?.type === 'text' && next.value.startsWith('\n')
-    if (!alreadyHasNewline) updated.push({ type: 'text', value: '\n' })
-  }
-  node.children = updated
+
+  const code = node.children.find(
+    (child): child is Element => child.type === 'element' && child.tagName === 'code',
+  )
+  const text = normalizePreText(code ?? node).replace(/\n+$/, '')
+  node.children = [
+    code
+      ? { ...code, children: [{ type: 'text', value: text }] }
+      : {
+          type: 'element',
+          tagName: 'code',
+          properties: {},
+          children: [{ type: 'text', value: text }],
+        },
+  ]
 }
 
-const blockTags = new Set(['div', 'p', 'li', 'tr', 'section', 'article'])
+const preLineContainerTags = new Set(['article', 'div', 'li', 'p', 'section', 'tr'])
 
-// Strip whitespace-only text nodes between block element siblings inside <pre>.
-// HTML formatting newlines between <div>s inside <pre><code> cause extra
-// blank lines in the output because rehype-remark treats them as content.
-function stripInterElementWhitespace(node: Element | Root) {
-  if (!('children' in node)) return
-  for (const child of node.children)
-    if (child.type === 'element') stripInterElementWhitespace(child)
-  node.children = node.children.filter((child, i, arr) => {
-    if (child.type !== 'text' || child.value.trim() !== '') return true
-    const prev = arr[i - 1]
-    const next = arr[i + 1]
-    const prevBlock = prev?.type === 'element' && blockTags.has(prev.tagName)
-    const nextBlock = next?.type === 'element' && blockTags.has(next.tagName)
-    return !(prevBlock || nextBlock)
-  })
+function normalizePreText(node: Element | ElementContent): string {
+  if (node.type === 'text') return node.value
+  if (node.type !== 'element') return ''
+  if (node.tagName === 'br') return '\n'
+
+  const text = node.children
+    .flatMap((child, index, children) =>
+      child.type === 'text' && shouldIgnorePreWhitespace(child, index, children)
+        ? []
+        : [normalizePreText(child)],
+    )
+    .join('')
+  if (!preLineContainerTags.has(node.tagName) || text.endsWith('\n')) return text
+  return `${text}\n`
 }
 
-function stripTrailingBr(node: Element | Root) {
-  if (!('children' in node)) return
-  for (const child of node.children) {
-    if (child.type !== 'element') continue
-    stripTrailingBr(child)
-    const last = child.children[child.children.length - 1]
-    if (last?.type === 'element' && last.tagName === 'br') child.children.pop()
-  }
+function shouldIgnorePreWhitespace(
+  node: Extract<ElementContent, { type: 'text' }>,
+  index: number,
+  siblings: ElementContent[],
+): boolean {
+  if (node.value.trim() !== '') return false
+  const prev = siblings[index - 1]
+  const next = siblings[index + 1]
+  const prevBlock = prev?.type === 'element' && preLineContainerTags.has(prev.tagName)
+  const nextBlock = next?.type === 'element' && preLineContainerTags.has(next.tagName)
+  return prevBlock || nextBlock
 }
 
 function hastToText(node: Element | ElementContent): string {

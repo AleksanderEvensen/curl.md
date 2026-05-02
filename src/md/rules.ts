@@ -1,3 +1,4 @@
+import { fromHtml } from './fromHtml.ts'
 import { defineRule } from './mod.ts'
 import { cloudflare } from './rules/cloudflare.ts'
 import { curlDocs, curlMd } from './rules/curl.ts'
@@ -7,8 +8,10 @@ import {
   appendMd,
   appendMdWithoutHtml,
   appendMdWithIndex,
+  githubPageMarkdown,
   prefixedWithIndex,
   repo,
+  rawRepoWithIndex,
 } from './rules/utils.ts'
 
 export { githubBlob, githubIssue, githubPr, githubPrChanges, githubRepo }
@@ -53,10 +56,90 @@ export const conductor = acceptMarkdown({
     },
   ],
 })
+export const docker = acceptMarkdown({
+  key: 'docker',
+  patterns: [new URLPattern({ hostname: 'docs.docker.com' })],
+  checks: [{ url: 'https://docs.docker.com/get-started/', contains: ['Get started'] }],
+})
+export const drizzle = rawRepoWithIndex({
+  key: 'drizzle',
+  repo: 'drizzle-team/drizzle-orm-docs',
+  prefix: 'src/content/docs',
+  stripPrefix: '/docs',
+  extension: '.mdx',
+  patterns: [
+    new URLPattern({ hostname: 'orm.drizzle.team', pathname: '/docs' }),
+    new URLPattern({ hostname: 'orm.drizzle.team', pathname: '/docs/' }),
+    new URLPattern({ hostname: 'orm.drizzle.team', pathname: '/docs/:path+' }),
+    new URLPattern({ hostname: 'orm.drizzle.team', pathname: '/docs/:path+/' }),
+  ],
+  checks: [{ url: 'https://orm.drizzle.team/docs/overview', contains: ['Drizzle ORM'] }],
+})
 export const openai = appendMd({
   key: 'openai',
   patterns: [new URLPattern({ hostname: 'developers.openai.com' })],
   checks: [{ url: 'https://developers.openai.com/docs/quickstart', contains: ['OpenAI'] }],
+})
+export const kubernetes = rawRepoWithIndex({
+  key: 'kubernetes',
+  repo: 'kubernetes/website',
+  prefix: 'content/en',
+  extension: '.md',
+  indexName: '_index',
+  patterns: [
+    new URLPattern({ hostname: 'kubernetes.io', pathname: '/docs' }),
+    new URLPattern({ hostname: 'kubernetes.io', pathname: '/docs/' }),
+    new URLPattern({ hostname: 'kubernetes.io', pathname: '/docs/:path+' }),
+    new URLPattern({ hostname: 'kubernetes.io', pathname: '/docs/:path+/' }),
+  ],
+  checks: [
+    {
+      url: 'https://kubernetes.io/docs/concepts/overview/',
+      contains: ['This page is an overview of Kubernetes.'],
+    },
+  ],
+})
+export const nuxt = acceptMarkdown({
+  key: 'nuxt',
+  patterns: [
+    new URLPattern({ hostname: 'nuxt.com', pathname: '/docs' }),
+    new URLPattern({ hostname: 'nuxt.com', pathname: '/docs/' }),
+    new URLPattern({ hostname: 'nuxt.com', pathname: '/docs/:path+' }),
+    new URLPattern({ hostname: 'nuxt.com', pathname: '/docs/:path+/' }),
+  ],
+  checks: [
+    {
+      url: 'https://nuxt.com/docs/getting-started/introduction',
+      contains: ['Nuxt is a free and [open-source framework]'],
+    },
+  ],
+})
+export const pnpm = githubPageMarkdown({
+  key: 'pnpm',
+  patterns: [new URLPattern({ hostname: 'pnpm.io' })],
+  checks: [{ url: 'https://pnpm.io/installation', contains: ['pnpm', 'Corepack'] }],
+})
+export const prisma = rawRepoWithIndex({
+  key: 'prisma',
+  repo: 'prisma/docs',
+  prefix: 'apps/docs/content',
+  extension: '.mdx',
+  patterns: [
+    new URLPattern({ hostname: 'prisma.io', pathname: '/docs' }),
+    new URLPattern({ hostname: 'prisma.io', pathname: '/docs/' }),
+    new URLPattern({ hostname: 'prisma.io', pathname: '/docs/:path+' }),
+    new URLPattern({ hostname: 'prisma.io', pathname: '/docs/:path+/' }),
+    new URLPattern({ hostname: 'www.prisma.io', pathname: '/docs' }),
+    new URLPattern({ hostname: 'www.prisma.io', pathname: '/docs/' }),
+    new URLPattern({ hostname: 'www.prisma.io', pathname: '/docs/:path+' }),
+    new URLPattern({ hostname: 'www.prisma.io', pathname: '/docs/:path+/' }),
+  ],
+  checks: [
+    {
+      url: 'https://www.prisma.io/docs/orm/prisma-client/queries/crud',
+      contains: ['This page describes how to perform CRUD operations with Prisma Client'],
+    },
+  ],
 })
 export const rolldown = repo({
   key: 'rolldown',
@@ -220,6 +303,88 @@ export const sentry = acceptMarkdown({
     },
   ],
 })
+export const supabase = rawRepoWithIndex({
+  key: 'supabase',
+  repo: 'supabase/supabase',
+  branch: 'master',
+  prefix: 'apps/docs/content',
+  stripPrefix: '/docs',
+  extension: '.mdx',
+  patterns: [
+    new URLPattern({ hostname: 'supabase.com', pathname: '/docs' }),
+    new URLPattern({ hostname: 'supabase.com', pathname: '/docs/' }),
+    new URLPattern({ hostname: 'supabase.com', pathname: '/docs/:path+' }),
+    new URLPattern({ hostname: 'supabase.com', pathname: '/docs/:path+/' }),
+  ],
+  checks: [
+    {
+      url: 'https://supabase.com/docs/guides/getting-started',
+      contains: ["title: 'Features'", '### Use cases'],
+    },
+  ],
+})
+export const svelte = githubPageMarkdown({
+  key: 'svelte',
+  patterns: [
+    new URLPattern({ hostname: 'svelte.dev', pathname: '/docs/svelte' }),
+    new URLPattern({ hostname: 'svelte.dev', pathname: '/docs/svelte/' }),
+    new URLPattern({ hostname: 'svelte.dev', pathname: '/docs/svelte/:path+' }),
+    new URLPattern({ hostname: 'svelte.dev', pathname: '/docs/svelte/:path+/' }),
+  ],
+  checks: [
+    {
+      url: 'https://svelte.dev/docs/svelte/overview',
+      contains: ['Svelte is a framework for building user interfaces on the web.'],
+    },
+  ],
+})
+export const svelteKit = githubPageMarkdown({
+  key: 'svelteKit',
+  patterns: [
+    new URLPattern({ hostname: 'svelte.dev', pathname: '/docs/kit' }),
+    new URLPattern({ hostname: 'svelte.dev', pathname: '/docs/kit/' }),
+    new URLPattern({ hostname: 'svelte.dev', pathname: '/docs/kit/:path+' }),
+    new URLPattern({ hostname: 'svelte.dev', pathname: '/docs/kit/:path+/' }),
+  ],
+  checks: [
+    {
+      url: 'https://svelte.dev/docs/kit/introduction',
+      contains: ['SvelteKit is a framework for rapidly developing'],
+    },
+  ],
+})
+export const typescript = githubPageMarkdown({
+  key: 'typescript',
+  patterns: [
+    new URLPattern({ hostname: 'typescriptlang.org', pathname: '/docs' }),
+    new URLPattern({ hostname: 'typescriptlang.org', pathname: '/docs/' }),
+    new URLPattern({ hostname: 'typescriptlang.org', pathname: '/docs/:path+' }),
+    new URLPattern({ hostname: 'typescriptlang.org', pathname: '/docs/:path+/' }),
+    new URLPattern({ hostname: 'www.typescriptlang.org', pathname: '/docs' }),
+    new URLPattern({ hostname: 'www.typescriptlang.org', pathname: '/docs/' }),
+    new URLPattern({ hostname: 'www.typescriptlang.org', pathname: '/docs/:path+' }),
+    new URLPattern({ hostname: 'www.typescriptlang.org', pathname: '/docs/:path+/' }),
+  ],
+  checks: [
+    {
+      url: 'https://www.typescriptlang.org/docs/handbook/intro.html',
+      contains: ['The goal of TypeScript is to be a static typechecker for JavaScript programs'],
+    },
+  ],
+})
+export const zod = rawRepoWithIndex({
+  key: 'zod',
+  repo: 'colinhacks/zod',
+  prefix: 'packages/docs/content',
+  extension: '.mdx',
+  patterns: [new URLPattern({ hostname: 'zod.dev' })],
+  checks: [
+    {
+      url: 'https://zod.dev/basics',
+      contains: ['This page will walk you through the basics of creating schemas'],
+    },
+  ],
+})
 
 export const bun = prefixedWithIndex({
   key: 'bun',
@@ -256,11 +421,72 @@ export const planetscale = prefixedWithIndex({
   patterns: [new URLPattern({ hostname: 'planetscale.com' })],
   checks: [{ url: 'https://planetscale.com/docs/vitess', contains: ['PlanetScale'] }],
 })
+export const postgres = defineRule({
+  key: 'postgres',
+  patterns: [
+    new URLPattern({ hostname: 'postgresql.org', pathname: '/docs' }),
+    new URLPattern({ hostname: 'postgresql.org', pathname: '/docs/' }),
+    new URLPattern({ hostname: 'postgresql.org', pathname: '/docs/:path+' }),
+    new URLPattern({ hostname: 'www.postgresql.org', pathname: '/docs' }),
+    new URLPattern({ hostname: 'www.postgresql.org', pathname: '/docs/' }),
+    new URLPattern({ hostname: 'www.postgresql.org', pathname: '/docs/:path+' }),
+  ],
+  checks: [
+    {
+      url: 'https://www.postgresql.org/docs/current/sql-select.html',
+      contains: ['SELECT, TABLE, WITH — retrieve rows from a table or view', '## Synopsis'],
+      minLength: 500,
+      title: 'SELECT',
+    },
+  ],
+  async extract(response) {
+    const html = await response.text()
+    const result = await fromHtml(html, {
+      baseUrl: response.url,
+      profile: html.includes('id="docContent"')
+        ? {
+            contentRootSelectors: ['#docContent'],
+            key: 'postgres',
+            markers: ['dom:docContent'],
+          }
+        : undefined,
+    })
+    const title = html.match(/<span class="refentrytitle">([^<]+)<\/span>/)?.[1]?.trim()
+    const description = html
+      .match(/<div class="refnamediv">[\s\S]*?<p>([\s\S]*?)<\/p>/)?.[1]
+      ?.replace(/<[^>]+>/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+
+    return {
+      content: result.content,
+      meta: {
+        ...result.meta,
+        ...(description && { description }),
+        ...(title && { title }),
+      },
+    }
+  },
+})
 export const render = prefixedWithIndex({
   key: 'render',
   prefix: '/docs',
   patterns: [new URLPattern({ hostname: 'render.com' })],
   checks: [{ url: 'https://render.com/docs/web-services', contains: ['Render'] }],
+})
+export const terraform = githubPageMarkdown({
+  key: 'terraform',
+  patterns: [
+    new URLPattern({ hostname: 'developer.hashicorp.com', pathname: '/terraform' }),
+    new URLPattern({ hostname: 'developer.hashicorp.com', pathname: '/terraform/' }),
+    new URLPattern({ hostname: 'developer.hashicorp.com', pathname: '/terraform/:path+' }),
+  ],
+  checks: [
+    {
+      url: 'https://developer.hashicorp.com/terraform/language/modules/configuration',
+      contains: ['Use modules in your configuration'],
+    },
+  ],
 })
 export const vercel = prefixedWithIndex({
   key: 'vercel',

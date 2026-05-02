@@ -162,8 +162,10 @@ test('tanstack does not match blog paths', () => {
 })
 
 test.each([
+  [rules.docker, 'https://docs.docker.com/get-started/'],
   [rules.conductor, 'https://www.conductor.build/docs'],
   [rules.hexdocs, 'https://hexdocs.pm/ex_doc'],
+  [rules.nuxt, 'https://nuxt.com/docs/getting-started/introduction'],
   [rules.sentry, 'https://docs.sentry.io/platforms/javascript/guides/react/'],
   [rules.tanstack, 'https://tanstack.com/start/latest/docs/framework/react/overview'],
 ] as const)('%s requests markdown', async (factory, url) => {
@@ -240,6 +242,69 @@ test('repo: rolldown rewrites to raw.githubusercontent.com with prefix', () => {
   )
 })
 
+test('rawRepoWithIndex: drizzle rewrites docs path to raw mdx', () => {
+  expect(patternsMatch(rules.drizzle(), 'https://orm.drizzle.team/docs/overview')).toBe(true)
+  expect(rewrite(rules.drizzle, 'https://orm.drizzle.team/docs/overview')?.href).toBe(
+    'https://raw.githubusercontent.com/drizzle-team/drizzle-orm-docs/main/src/content/docs/overview.mdx',
+  )
+})
+
+test('rawRepoWithIndex: prisma falls back to index.mdx for section roots', async () => {
+  const requests: string[] = []
+  const md = create({
+    rules: [rules.prisma()],
+    fetch: async (input) => {
+      const url = input instanceof URL ? input.href : input instanceof Request ? input.url : input
+      requests.push(url)
+      if (url.endsWith('/docs/orm.mdx')) return new Response(null, { status: 404 })
+      if (url.endsWith('/docs/orm/index.mdx'))
+        return new Response('# Prisma ORM\n', {
+          headers: { 'content-type': 'text/plain' },
+          status: 200,
+        })
+      return new Response(null, { status: 404 })
+    },
+  })
+
+  const result = await md.fetch('https://www.prisma.io/docs/orm')
+  expect(result.ok).toBe(true)
+  if (!result.ok) return
+
+  expect(requests).toEqual([
+    'https://raw.githubusercontent.com/prisma/docs/main/apps/docs/content/docs/orm.mdx',
+    'https://raw.githubusercontent.com/prisma/docs/main/apps/docs/content/docs/orm/index.mdx',
+  ])
+  expect(result.content).toContain('# Prisma ORM')
+})
+
+test('rawRepoWithIndex: kubernetes falls back to _index.md for section roots', async () => {
+  const requests: string[] = []
+  const md = create({
+    rules: [rules.kubernetes()],
+    fetch: async (input) => {
+      const url = input instanceof URL ? input.href : input instanceof Request ? input.url : input
+      requests.push(url)
+      if (url.endsWith('/docs/concepts/overview.md')) return new Response(null, { status: 404 })
+      if (url.endsWith('/docs/concepts/overview/_index.md'))
+        return new Response('# Overview\n', {
+          headers: { 'content-type': 'text/plain' },
+          status: 200,
+        })
+      return new Response(null, { status: 404 })
+    },
+  })
+
+  const result = await md.fetch('https://kubernetes.io/docs/concepts/overview/')
+  expect(result.ok).toBe(true)
+  if (!result.ok) return
+
+  expect(requests).toEqual([
+    'https://raw.githubusercontent.com/kubernetes/website/main/content/en/docs/concepts/overview.md',
+    'https://raw.githubusercontent.com/kubernetes/website/main/content/en/docs/concepts/overview/_index.md',
+  ])
+  expect(result.content).toContain('# Overview')
+})
+
 test('repo: vitePlus rewrites to raw.githubusercontent.com with prefix', () => {
   expect(patternsMatch(rules.vitePlus(), 'https://viteplus.dev/guide/install')).toBe(true)
   expect(rewrite(rules.vitePlus, 'https://viteplus.dev/guide/install')?.href).toBe(
@@ -302,4 +367,97 @@ test('reactDev returns undefined for empty pathname', () => {
   const url = new URL('https://react.dev')
   url.pathname = ''
   expect(rules.reactDev().rewrite?.(url, {} as URLPatternResult)).toBeUndefined()
+})
+
+test('githubPageMarkdown: typescript fetches linked GitHub markdown source', async () => {
+  const requests: string[] = []
+  const md = create({
+    rules: [rules.typescript()],
+    fetch: async (input) => {
+      const url = input instanceof URL ? input.href : input instanceof Request ? input.url : input
+      requests.push(url)
+      if (url === 'https://www.typescriptlang.org/docs/handbook/intro.html')
+        return new Response(
+          '<html><body><a href="https://github.com/microsoft/TypeScript-Website/blob/v2/packages/documentation/copy/en/handbook-v2/The Handbook.md">Edit</a></body></html>',
+          { headers: { 'content-type': 'text/html; charset=utf-8' }, status: 200 },
+        )
+      if (
+        url ===
+        'https://raw.githubusercontent.com/microsoft/TypeScript-Website/v2/packages/documentation/copy/en/handbook-v2/The%20Handbook.md'
+      )
+        return new Response('# The TypeScript Handbook\n', {
+          headers: { 'content-type': 'text/plain; charset=utf-8' },
+          status: 200,
+        })
+      return new Response(null, { status: 404 })
+    },
+  })
+
+  const result = await md.fetch('https://www.typescriptlang.org/docs/handbook/intro.html')
+  expect(result.ok).toBe(true)
+  if (!result.ok) return
+
+  expect(requests).toEqual([
+    'https://www.typescriptlang.org/docs/handbook/intro.html',
+    'https://raw.githubusercontent.com/microsoft/TypeScript-Website/v2/packages/documentation/copy/en/handbook-v2/The%20Handbook.md',
+  ])
+  expect(result.content).toContain('# The TypeScript Handbook')
+})
+
+test('githubPageMarkdown: terraform fetches githubFileUrl mdx source from embedded JSON', async () => {
+  const requests: string[] = []
+  const md = create({
+    rules: [rules.terraform()],
+    fetch: async (input) => {
+      const url = input instanceof URL ? input.href : input instanceof Request ? input.url : input
+      requests.push(url)
+      if (url === 'https://developer.hashicorp.com/terraform/language/modules/configuration')
+        return new Response(
+          '<html><body><script type="application/json">{"githubFileUrl":"https://github.com/hashicorp/web-unified-docs/blob/main/content/terraform/v1.15.x/docs/language/modules/configuration.mdx"}</script></body></html>',
+          { headers: { 'content-type': 'text/html; charset=utf-8' }, status: 200 },
+        )
+      if (
+        url ===
+        'https://raw.githubusercontent.com/hashicorp/web-unified-docs/main/content/terraform/v1.15.x/docs/language/modules/configuration.mdx'
+      )
+        return new Response(
+          '---\ntitle: Use modules in your configuration\n---\n\nimport Tabs from "./Tabs"\n\n# Use modules in your configuration\n',
+          { headers: { 'content-type': 'text/plain; charset=utf-8' }, status: 200 },
+        )
+      return new Response(null, { status: 404 })
+    },
+  })
+
+  const result = await md.fetch(
+    'https://developer.hashicorp.com/terraform/language/modules/configuration',
+  )
+  expect(result.ok).toBe(true)
+  if (!result.ok) return
+
+  expect(requests).toEqual([
+    'https://developer.hashicorp.com/terraform/language/modules/configuration',
+    'https://raw.githubusercontent.com/hashicorp/web-unified-docs/main/content/terraform/v1.15.x/docs/language/modules/configuration.mdx',
+  ])
+  expect(result.content).toContain('# Use modules in your configuration')
+  expect(result.content).not.toContain('import Tabs')
+})
+
+test('postgres extracts refentry content and metadata from docs pages', async () => {
+  const md = create({
+    rules: [rules.postgres()],
+    fetch: async () =>
+      new Response(
+        `<!doctype html><html><head><title>PostgreSQL: Documentation: 18: SELECT</title></head><body><div id="docContent"><div class="navheader"><a href="index.html">Home</a></div><div class="refentry"><div class="refnamediv"><h2><span class="refentrytitle">SELECT</span></h2><p>SELECT, TABLE, WITH — retrieve rows from a table or view</p></div><div class="refsynopsisdiv"><h2>Synopsis</h2><pre class="synopsis">SELECT * FROM table_name</pre></div></div></div></body></html>`,
+        { headers: { 'content-type': 'text/html; charset=utf-8' }, status: 200 },
+      ),
+  })
+
+  const result = await md.fetch('https://www.postgresql.org/docs/current/sql-select.html')
+  expect(result.ok).toBe(true)
+  if (!result.ok) return
+
+  expect(result.meta.title).toBe('SELECT')
+  expect(result.meta.description).toBe('SELECT, TABLE, WITH — retrieve rows from a table or view')
+  expect(result.content).toContain('## Synopsis')
+  expect(result.content).toContain('SELECT * FROM table_name')
 })

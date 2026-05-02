@@ -93,13 +93,13 @@ function disableTransitions(callback: () => void) {
 // Inline script to prevent flash - runs before React hydrates
 export const themeScript = `
 (function() {
-  var mq = window.matchMedia('(prefers-color-scheme: dark)');
+  var query = window.matchMedia('(prefers-color-scheme: dark)');
   function apply() {
     var theme = localStorage.getItem('${THEME_STORAGE_KEY}') || 'system';
     document.documentElement.dataset.theme =
-      theme === 'system' ? (mq.matches ? 'dark' : 'light') : theme;
+      theme === 'system' ? (query.matches ? 'dark' : 'light') : theme;
   }
   apply();
-  mq.addEventListener('change', apply);
+  query.addEventListener('change', apply);
 })();
 `

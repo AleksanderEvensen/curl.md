@@ -42,9 +42,17 @@ main() {
   if [ -n "$1" ]; then
     tag="$1"
   elif has_gh_auth; then
-    tag="$(gh api "repos/${REPO}/releases?per_page=10" --jq '.[] | select(.tag_name | startswith("curl.md@")) | .tag_name' 2>/dev/null | head -n1)"
+    if releases="$(gh api "repos/${REPO}/releases?per_page=10" --jq '.[].tag_name' 2>/dev/null)"; then
+      tag="$(printf '%s\n' "$releases" | grep '^curl\.md@' | head -n1)"
+    else
+      error "Could not access GitHub releases"
+    fi
   else
-    tag="$(curl -fsSL "https://api.github.com/repos/${REPO}/releases?per_page=10" | grep '"tag_name"' | cut -d'"' -f4 | grep '^curl\.md@' | head -n1)"
+    if releases="$(curl -fsSL "https://api.github.com/repos/${REPO}/releases?per_page=10" 2>/dev/null)"; then
+      tag="$(printf '%s\n' "$releases" | grep -o '"tag_name":"[^"]*"' | cut -d'"' -f4 | grep '^curl\.md@' | head -n1)"
+    else
+      error "Could not access GitHub releases"
+    fi
   fi
 
   if [ -z "$tag" ]; then
@@ -186,10 +194,10 @@ setup_path() {
   esac
 }
 
-info() { printf '\033[0;36m%s\033[0m\n' "$*"; }
+info() { printf '%s\n' "$*"; }
 warn() { printf '\033[0;33m%s\033[0m\n' "$*"; }
 error() {
-  printf '\033[0;31merror: %s\033[0m\n' "$*" >&2
+  printf 'Error: %s\n' "$*" >&2
   exit 1
 }
 

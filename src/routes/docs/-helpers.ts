@@ -14,8 +14,14 @@ export function getDocsHead(path: string, ogImage: string) {
   const doc = findDoc(path)
   const title = `${doc?.title ?? 'Docs'} - ${__HOST__}`
   const url = `https://${__HOST__}/docs${path ? `/${path}` : ''}`
+  const markdownAlternateUrl = doc
+    ? `https://${__HOST__}${doc.path ? `/docs/${doc.path}.md` : '/docs/index.md'}`
+    : undefined
 
   return {
+    links: markdownAlternateUrl
+      ? [{ href: markdownAlternateUrl, rel: 'alternate', type: 'text/markdown' }]
+      : [],
     meta: [
       { title },
       { name: 'description', content: doc?.description ?? 'URL to markdown for agents' },
