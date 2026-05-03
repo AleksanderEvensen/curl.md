@@ -1476,6 +1476,47 @@ describe('POST /api/credits/charge', () => {
     })
   })
 
+  test('forwards stripe idempotency key for off-session charges', async () => {
+    const account = await factory.account.insert({})
+    await db
+      .updateTable('account')
+      .set({ stripe_customer_id: `cus_${Nanoid.generate()}` })
+      .where('id', '=', account.id)
+      .execute()
+    const session = await factory.session.insert({ account_id: account.id })
+
+    let idempotencyKey: string | null = null
+
+    server.use(
+      http.get('https://api.stripe.com/v1/payment_methods', () =>
+        HttpResponse.json({
+          data: [{ id: 'pm_test', card: { brand: 'visa', last4: '4242' } }],
+          object: 'list',
+        }),
+      ),
+      http.post('https://api.stripe.com/v1/payment_intents', ({ request }) => {
+        idempotencyKey = request.headers.get('idempotency-key')
+        return HttpResponse.json({
+          id: 'pi_charge_test',
+          status: 'succeeded',
+          object: 'payment_intent',
+        })
+      }),
+    )
+
+    const res = await client.api.credits.charge.$post(
+      { json: { amount: '1000' } },
+      {
+        headers: {
+          Cookie: await Cookie.generateSigned('curl.session', session.id, env.COOKIE_SECRET),
+          'Idempotency-Key': 'charge_attempt_test',
+        },
+      },
+    )
+    expect(res.status).toBe(200)
+    expect(idempotencyKey).toBe('charge_attempt_test')
+  })
+
   test('returns payment_failed when saved card is declined', async () => {
     const account = await factory.account.insert({})
     await db
@@ -2949,6 +2990,61 @@ test('GET /api/:url retries transient AI timeouts and normalizes HTML error page
   })
 })
 
+test('GET /api/:url bounds objective chunk inference concurrency', async () => {
+  const url = 'https://ai-chunk-pool.example.com/'
+  await env.KV.put(
+    `page:${url}`,
+    JSON.stringify({
+      content: [
+        `## Alpha\n\n${'a'.repeat(40_000)}`,
+        `## Beta\n\n${'b'.repeat(40_000)}`,
+        `## Gamma\n\n${'c'.repeat(40_000)}`,
+      ].join('\n\n'),
+      extras: {},
+      meta: {
+        site: 'ai-chunk-pool.example.com',
+        url,
+      },
+    }),
+  )
+
+  let activeCalls = 0
+  let maxActiveCalls = 0
+  const aiRun = vi.fn(async () => {
+    activeCalls += 1
+    maxActiveCalls = Math.max(maxActiveCalls, activeCalls)
+    await new Promise((resolve) => setTimeout(resolve, 10))
+    activeCalls -= 1
+    return {
+      response: '## Matched\n\nRelevant content',
+      usage: { completion_tokens: 1, prompt_tokens: 1 },
+    }
+  })
+
+  const localClient = testClient(
+    api,
+    {
+      ...env,
+      AI: {
+        run: aiRun,
+      } as unknown as typeof env.AI,
+    } as unknown as typeof env,
+    executionCtx,
+  )
+
+  const res = await localClient.api[':url{.+}'].$get(
+    {
+      param: { url: 'ai-chunk-pool.example.com' },
+      query: { objective: 'find the relevant content' },
+    },
+    { headers: { 'cf-connecting-ip': '10.0.0.41' } },
+  )
+
+  expect(res.status).toBe(200)
+  expect(aiRun).toHaveBeenCalledTimes(3)
+  expect(maxActiveCalls).toBeLessThanOrEqual(2)
+})
+
 test('GET /api/:url reports upstream 5xx fetch failures to sentry', async () => {
   const captureException = vi.spyOn(Sentry, 'captureException').mockImplementation(() => '')
   server.use(
@@ -3040,14 +3136,12 @@ test('GET /api/:url authed 429 includes credits message', async () => {
   })
 })
 
-test('GET /api/:url paid user skips rate limits', async () => {
+test('GET /api/:url paid user skips auth rate limits', async () => {
   const account = await factory.account.insert({})
   const session = await factory.session.insert({ account_id: account.id })
 
-  // Seed balance cache
   await env.KV.put(`balance:${account.id}`, '1000')
 
-  // Seed rate limit to already exceeded
   await env.KV.put(
     `ratelimit:fetch:${account.id}`,
     JSON.stringify({
@@ -3075,10 +3169,9 @@ test('GET /api/:url paid user skips rate limits', async () => {
       },
     },
   )
-  // Paid user should NOT get 429 even though rate limit is exceeded
   expect(res.status).toBe(200)
-  // Should not have rate limit headers
-  expect(res.headers.get('x-ratelimit-limit')).toBeNull()
+  expect(res.headers.get('x-credits-remaining')).toBe('999')
+  await expect(res.text()).resolves.toContain('ok')
 })
 
 test('GET /api/:url zero balance user gets authed rate limits', async () => {
@@ -4968,22 +5061,7 @@ describe('POST /api/stripe/webhook', () => {
       },
     })
 
-    // Compute HMAC signature (async-safe for Workers)
-    const timestamp = Math.floor(Date.now() / 1000)
-    const key = await crypto.subtle.importKey(
-      'raw',
-      new TextEncoder().encode(env.STRIPE_WEBHOOK_SECRET),
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['sign'],
-    )
-    const sig = await crypto.subtle.sign(
-      'HMAC',
-      key,
-      new TextEncoder().encode(`${timestamp}.${payload}`),
-    )
-    const hex = [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, '0')).join('')
-    const header = `t=${timestamp},v1=${hex}`
+    const header = await createStripeWebhookSignature(payload)
 
     const res = await api.request(
       '/api/stripe/webhook',
@@ -4999,6 +5077,112 @@ describe('POST /api/stripe/webhook', () => {
     )
     expect(res.status).toBe(200)
     await expect(res.json()).resolves.toEqual({ received: true })
+  })
+
+  test('queues charge disputes after expanding the charge customer inline', async () => {
+    const sendSpy = vi.spyOn(env.STRIPE_WEBHOOK_QUEUE, 'send').mockResolvedValue({
+      metadata: { metrics: { backlogBytes: 0, backlogCount: 0 } },
+    })
+    server.use(
+      http.get('https://api.stripe.com/v1/charges/ch_test_dispute', () =>
+        HttpResponse.json({
+          customer: 'cus_test_dispute',
+          id: 'ch_test_dispute',
+          object: 'charge',
+        }),
+      ),
+    )
+    const payload = JSON.stringify({
+      id: 'evt_test_dispute',
+      type: 'charge.dispute.created',
+      data: {
+        object: {
+          amount: 500,
+          charge: 'ch_test_dispute',
+          id: 'dp_test_dispute',
+        },
+      },
+    })
+
+    try {
+      const res = await api.request(
+        '/api/stripe/webhook',
+        {
+          method: 'POST',
+          body: payload,
+          headers: {
+            'content-type': 'application/json',
+            'stripe-signature': await createStripeWebhookSignature(payload),
+          },
+        },
+        env,
+      )
+
+      expect(res.status).toBe(200)
+      expect(sendSpy).toHaveBeenCalledWith({
+        type: 'charge.dispute.created',
+        data: {
+          amount_total: 500,
+          customer: 'cus_test_dispute',
+          id: 'dp_test_dispute',
+        },
+      })
+    } finally {
+      sendSpy.mockRestore()
+    }
+  })
+
+  test('queues refunds after expanding the charge customer inline', async () => {
+    const sendSpy = vi.spyOn(env.STRIPE_WEBHOOK_QUEUE, 'send').mockResolvedValue({
+      metadata: { metrics: { backlogBytes: 0, backlogCount: 0 } },
+    })
+    server.use(
+      http.get('https://api.stripe.com/v1/charges/ch_test_refund', () =>
+        HttpResponse.json({
+          customer: 'cus_test_refund',
+          id: 'ch_test_refund',
+          object: 'charge',
+        }),
+      ),
+    )
+    const payload = JSON.stringify({
+      id: 'evt_test_refund',
+      type: 'refund.created',
+      data: {
+        object: {
+          amount: 700,
+          charge: 'ch_test_refund',
+          id: 're_test_refund',
+        },
+      },
+    })
+
+    try {
+      const res = await api.request(
+        '/api/stripe/webhook',
+        {
+          method: 'POST',
+          body: payload,
+          headers: {
+            'content-type': 'application/json',
+            'stripe-signature': await createStripeWebhookSignature(payload),
+          },
+        },
+        env,
+      )
+
+      expect(res.status).toBe(200)
+      expect(sendSpy).toHaveBeenCalledWith({
+        type: 'refund.created',
+        data: {
+          amount_total: 700,
+          customer: 'cus_test_refund',
+          id: 're_test_refund',
+        },
+      })
+    } finally {
+      sendSpy.mockRestore()
+    }
   })
 })
 
@@ -5069,4 +5253,22 @@ function toSearchParams(formData: FormData) {
   return new URLSearchParams(
     Array.from(formData.entries()).map(([key, value]) => [key, String(value)]),
   )
+}
+
+async function createStripeWebhookSignature(payload: string) {
+  const timestamp = Math.floor(Date.now() / 1000)
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(env.STRIPE_WEBHOOK_SECRET),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  )
+  const sig = await crypto.subtle.sign(
+    'HMAC',
+    key,
+    new TextEncoder().encode(`${timestamp}.${payload}`),
+  )
+  const hex = [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, '0')).join('')
+  return `t=${timestamp},v1=${hex}`
 }

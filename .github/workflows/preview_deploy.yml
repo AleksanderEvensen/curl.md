@@ -197,7 +197,12 @@ jobs:
               .replace(/(?<=^[^"]*(?:"[^"]*"[^"]*)*)\/\/.*$/gm, "")
               .replace(/,(\s*[\]}])/g, "$1");
             const queues = JSON.parse(text).env.preview.queues;
-            const names = new Set([...queues.producers.map(p => p.queue), ...queues.consumers.map(c => c.queue)]);
+            const names = new Set([
+              ...queues.producers.map((producer) => producer.queue),
+              ...queues.consumers.flatMap((consumer) =>
+                consumer.dead_letter_queue ? [consumer.queue, consumer.dead_letter_queue] : [consumer.queue],
+              ),
+            ]);
             for (const name of names) console.log(name);
           ')
           for queue in $QUEUES; do

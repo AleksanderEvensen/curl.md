@@ -1049,15 +1049,19 @@ export const api = new Hono<{
 
       let paymentIntent: Stripe.PaymentIntent
       try {
-        paymentIntent = await stripe.paymentIntents.create({
-          amount,
-          confirm: true,
-          currency: 'usd',
-          customer: stripeCustomerId,
-          metadata: { entity_type: entityType, entity_id: entityId },
-          off_session: true,
-          payment_method: defaultPaymentMethod.id,
-        })
+        const idempotencyKey = c.req.header('idempotency-key')
+        paymentIntent = await stripe.paymentIntents.create(
+          {
+            amount,
+            confirm: true,
+            currency: 'usd',
+            customer: stripeCustomerId,
+            metadata: { entity_type: entityType, entity_id: entityId },
+            off_session: true,
+            payment_method: defaultPaymentMethod.id,
+          },
+          idempotencyKey ? { idempotencyKey } : undefined,
+        )
       } catch (error) {
         if (
           error instanceof Stripe.errors.StripeCardError &&
@@ -1733,7 +1737,7 @@ export const api = new Hono<{
 
     switch (event.type) {
       case 'payment_intent.succeeded': {
-        const paymentIntent = event.data.object as import('stripe').Stripe.PaymentIntent
+        const paymentIntent = event.data.object
         const customer = typeof paymentIntent.customer === 'string' ? paymentIntent.customer : null
         if (customer && paymentIntent.amount)
           await c.env.STRIPE_WEBHOOK_QUEUE.send({
@@ -1748,7 +1752,7 @@ export const api = new Hono<{
       }
       case 'charge.dispute.created': {
         // TODO: send chargeback alert (email/Slack)
-        const dispute = event.data.object as import('stripe').Stripe.Dispute
+        const dispute = event.data.object
         const charge =
           typeof dispute.charge === 'string'
             ? await stripe.charges.retrieve(dispute.charge)
@@ -1766,7 +1770,7 @@ export const api = new Hono<{
         break
       }
       case 'refund.created': {
-        const refund = event.data.object as import('stripe').Stripe.Refund
+        const refund = event.data.object
         const charge =
           typeof refund.charge === 'string'
             ? await stripe.charges.retrieve(refund.charge)
@@ -2045,7 +2049,6 @@ export const api = new Hono<{
           vary: 'Accept',
         })
 
-      // Rate limit: three tiers (anon, authed/free, paid)
       const identity = c.var.session
         ? c.var.session.account_id
         : (c.req.header('cf-connecting-ip') ?? 'unknown')
@@ -2059,23 +2062,22 @@ export const api = new Hono<{
         if (balanceMills > 0) billable = true
       }
 
-      const limit = (() => {
-        if (query.objective)
-          return {
-            key: `query:${identity}` as const,
-            max: c.var.session ? 10 : 3,
-            window: 3600,
-          }
-        return {
-          key: `fetch:${identity}` as const,
-          max: c.var.session ? 1000 : 100,
-          window: 3600,
-        }
-      })()
-
-      // Paid users skip rate limiting
       let rateLimitHeaders: Record<string, string> = {}
       if (!billable) {
+        const limit = (() => {
+          if (query.objective)
+            return {
+              key: `query:${identity}` as const,
+              max: c.var.session ? 10 : 3,
+              window: 3600,
+            }
+          return {
+            key: `fetch:${identity}` as const,
+            max: c.var.session ? 1000 : 100,
+            window: 3600,
+          }
+        })()
+
         const kvKey = `ratelimit:${limit.key}` as const
         const now = Math.floor(Date.now() / 1000)
         const record = await c.env.KV.get(kvKey, 'json')
@@ -2251,7 +2253,18 @@ export const api = new Hono<{
             }
 
             const chunks = Md.chunk(filteredContent)
-            const results = await Promise.all(chunks.map(extractChunk))
+            const results: Awaited<ReturnType<typeof extractChunk>>[] = []
+            let chunkIndex = 0
+            // Bound Workers AI fan-out so one large objective request can't saturate inference capacity.
+            await Promise.all(
+              Array.from({ length: Math.min(2, chunks.length) }, async () => {
+                while (chunkIndex < chunks.length) {
+                  const currentIndex = chunkIndex
+                  chunkIndex += 1
+                  results[currentIndex] = await extractChunk(chunks[currentIndex]!)
+                }
+              }),
+            )
             const filtered = results
               .filter((r) => r.response && r.response.trim() !== Constants.sentinelValue)
               .map((r) => r.response)
