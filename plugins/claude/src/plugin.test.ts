@@ -37,7 +37,7 @@ test('WebFetch redirect hook blocks WebFetch by default', () => {
       hookEventName: 'PreToolUse',
       permissionDecision: 'deny',
       permissionDecisionReason:
-        'Use curl_md instead of WebFetch for URL reads. Retry this request with curl_md using the same url, and map the WebFetch prompt to curl_md objective.',
+        'Use the curl.md plugin fetch tool instead of built-in WebFetch for URL reads. Retry with fetch using the same url, and map the WebFetch prompt to objective.',
     },
   })
 })
@@ -59,15 +59,9 @@ test('WebFetch redirect hook stays inert when explicitly disabled', () => {
 test('marketplace manifest stays in sync with package and plugin metadata', () => {
   const packageJsonPath = path.join(pluginRoot, 'package.json')
   const repoMarketplaceJsonPath = path.resolve(pluginRoot, '../../.claude-plugin/marketplace.json')
-  const hostedMarketplaceJsonPath = path.resolve(pluginRoot, '../../public/claude.json')
   const pluginJsonPath = path.join(pluginRoot, '.claude-plugin', 'plugin.json')
 
   const repoMarketplaceJson = JSON.parse(readFileSync(repoMarketplaceJsonPath, 'utf8')) as {
-    name?: string
-    owner?: { name: string }
-    plugins?: Array<Record<string, unknown>>
-  }
-  const hostedMarketplaceJson = JSON.parse(readFileSync(hostedMarketplaceJsonPath, 'utf8')) as {
     name?: string
     owner?: { name: string }
     plugins?: Array<Record<string, unknown>>
@@ -88,26 +82,6 @@ test('marketplace manifest stays in sync with package and plugin metadata', () =
 
   expect(pluginJson.version).toBe(packageJson.version)
   expect(repoMarketplaceJson).toEqual({
-    name: pluginJson.name,
-    owner: pluginJson.author,
-    plugins: [
-      {
-        author: pluginJson.author,
-        description: pluginJson.description,
-        homepage: pluginJson.homepage,
-        license: pluginJson.license,
-        name: pluginJson.name,
-        repository: pluginJson.repository,
-        source: {
-          package: packageJson.name,
-          source: 'npm',
-          version: packageJson.version,
-        },
-        version: packageJson.version,
-      },
-    ],
-  })
-  expect(hostedMarketplaceJson).toEqual({
     name: pluginJson.name,
     owner: pluginJson.author,
     plugins: [

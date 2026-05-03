@@ -7,7 +7,7 @@ import packageJson from '../../plugins/claude/package.json'
 
 # Claude
 
-First-party [Claude Code](https://code.claude.com) plugin that adds a `curl_md` MCP tool, `/curl-md:fetch` slash skill, and an opt-in `WebFetch` redirect hook.
+First-party [Claude Code](https://code.claude.com) plugin that adds a `fetch` MCP tool, `/curl-md:fetch` slash skill, and an opt-in `WebFetch` redirect hook.
 
 <PackageLinks
   npm="@curl.md/claude"
@@ -94,14 +94,14 @@ Or inside Claude:
 
 ## Configuration
 
-Claude Code’s built-in web reader is `WebFetch`. Since Claude plugins cannot transparently replace built-in tool results, the curl.md plugin ships a redirect hook that blocks `WebFetch` and tells Claude to retry with `curl_md` using the same URL.
+Claude Code’s built-in web reader is `WebFetch`. Since Claude plugins cannot transparently replace built-in tool results, the curl.md plugin ships a redirect hook that blocks `WebFetch` and tells Claude to retry with curl.md `fetch` using the same URL.
 
-| Option              | Type      | Default | Description                                                                                                                     |
-| ------------------- | --------- | ------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `webfetch_redirect` | `boolean` | `true`  | Redirect Claude’s built-in `WebFetch` tool and tell Claude to retry with `curl_md`, mapping the original prompt to `objective`. |
+| Option              | Type      | Default | Description                                                                                                                           |
+| ------------------- | --------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `webfetch_redirect` | `boolean` | `true`  | Redirect Claude’s built-in `WebFetch` tool and tell Claude to retry with curl.md `fetch`, mapping the original prompt to `objective`. |
 
 :::note
-By default, the plugin redirects Claude’s built-in `WebFetch` to `curl_md`. If you want to turn that redirect off, add the plugin option to your Claude settings:
+By default, the plugin redirects Claude’s built-in `WebFetch` to curl.md `fetch`. If you want to turn that redirect off, add the plugin option to your Claude settings:
 
 ```json title="~/.claude/settings.json"
 {
@@ -150,19 +150,19 @@ For non-interactive environments, set [`CURLMD_API_KEY`](/docs/guide/cli#environ
 
 After installing, Claude registers the following slash skill:
 
-| Skill            | Description                                        |
-| ---------------- | -------------------------------------------------- |
-| `/curl-md:fetch` | Explicitly tells Claude to use the `curl_md` tool. |
+| Skill            | Description                                      |
+| ---------------- | ------------------------------------------------ |
+| `/curl-md:fetch` | Explicitly tells Claude to use the `fetch` tool. |
 
 ### Tools
 
 The plugin also registers the following tool:
 
-| Tool      | Description              |
-| --------- | ------------------------ |
-| `curl_md` | Fetch a URL as markdown. |
+| Tool    | Description              |
+| ------- | ------------------------ |
+| `fetch` | Fetch a URL as markdown. |
 
-The `curl_md` tool accepts the following inputs:
+The `fetch` tool accepts the following inputs:
 
 | Input        | Type             | Description                                                                          |
 | ------------ | ---------------- | ------------------------------------------------------------------------------------ |
@@ -181,7 +181,7 @@ If you want to confirm Claude loaded the plugin correctly:
 /skills
 ```
 
-You should see the `curl_md` MCP server/tool and the `/curl-md:fetch` skill.
+You should see the `fetch` MCP tool and the `/curl-md:fetch` skill.
 
 ## Contributing
 

@@ -33,7 +33,7 @@ For full documentation, visit [curl.md/docs](https://curl.md/docs/plugins/claude
 
 ## WebFetch Redirect
 
-The plugin redirects built-in `WebFetch` calls to `curl_md` by default. Set `webfetch_redirect` to `false` if you want to keep Claude's built-in `WebFetch` enabled.
+The plugin redirects built-in `WebFetch` calls to curl.md `fetch` by default. Set `webfetch_redirect` to `false` if you want to keep Claude's built-in `WebFetch` enabled.
 
 ## License
 

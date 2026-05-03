@@ -16,7 +16,7 @@ const server = new McpServer({
 })
 
 server.registerTool(
-  'curl_md',
+  'fetch',
   {
     title: 'curl.md',
     description: 'Fetch a URL as markdown.',

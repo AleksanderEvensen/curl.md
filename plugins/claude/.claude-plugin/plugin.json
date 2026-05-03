@@ -10,8 +10,8 @@
   "userConfig": {
     "webfetch_redirect": {
       "default": true,
-      "description": "Redirect Claude's built-in WebFetch tool and tell Claude to retry with curl_md",
-      "title": "Redirect WebFetch to curl_md",
+      "description": "Redirect Claude's built-in WebFetch tool and tell Claude to retry with curl.md fetch",
+      "title": "Redirect WebFetch to curl.md fetch",
       "type": "boolean"
     }
   },

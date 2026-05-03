@@ -75,7 +75,7 @@ test('registers the Claude MCP tool and connects stdio transport', async () => {
   const tool = await loadTool()
 
   expect(mcpState.infos).toEqual([{ name: 'curl_md', version: '0.0.1' }])
-  expect(tool.name).toBe('curl_md')
+  expect(tool.name).toBe('fetch')
   expect(
     tool.config.inputSchema.safeParse({
       fresh: true,
@@ -322,8 +322,8 @@ test('surfaces API error codes for non-ok responses', async () => {
 
 async function loadTool() {
   await import('./server.ts')
-  const tool = mcpState.tools.find((tool) => tool.name === 'curl_md')
-  if (!tool) throw new Error('Expected curl_md tool to be registered')
+  const tool = mcpState.tools.find((tool) => tool.name === 'fetch')
+  if (!tool) throw new Error('Expected fetch tool to be registered')
   return tool
 }
 

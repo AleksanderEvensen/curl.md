@@ -3,7 +3,7 @@ name: fetch
 description: Fetches markdown from public URLs, docs pages, articles, or changelogs. Use when web content needs to be read or summarized.
 ---
 
-Use `curl_md` to fetch the URL or domain in `$ARGUMENTS` or the surrounding conversation.
+Use `fetch` to fetch the URL or domain in `$ARGUMENTS` or the surrounding conversation.
 
 Guidelines:
 
