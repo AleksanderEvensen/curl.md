@@ -92,6 +92,16 @@ Or inside Claude:
 /reload-plugins
 ```
 
+:::tip
+If the plugin still reports the old version after updating, force-update the npm cache and reinstall:
+
+```sh
+$ npm install --prefix ~/.claude/plugins/npm-cache @curl.md/claude@latest
+$ claude plugin install curl-md@curl-md
+```
+
+:::
+
 ## Configuration
 
 Claude Code’s built-in web reader is `WebFetch`. Since Claude plugins cannot transparently replace built-in tool results, the curl.md plugin ships a redirect hook that blocks `WebFetch` and tells Claude to retry with curl.md `fetch` using the same URL.
