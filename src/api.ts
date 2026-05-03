@@ -2136,7 +2136,7 @@ export const api = new Hono<{
           Md.transports.fetch(),
           Md.transports.cfBrowserRendering({
             accountId: c.env.CLOUDFLARE_ACCOUNT_ID,
-            apiToken: c.env.CLOUDFLARE_API_TOKEN,
+            apiToken: c.env.CLOUDFLARE_BROWSER_API_TOKEN,
           }),
         ]),
       })

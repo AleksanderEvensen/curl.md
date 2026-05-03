@@ -73,10 +73,16 @@ test.each([
   expect(rewrite(factory, url)?.href).toBe(`${url}index.md`)
 })
 
-test('cloudflare rewrites docs path to raw mdx', () => {
+test('cloudflare rewrites docs pages to /index.md', () => {
   expect(patternsMatch(rules.cloudflare(), 'https://developers.cloudflare.com/workers')).toBe(true)
   expect(rewrite(rules.cloudflare, 'https://developers.cloudflare.com/workers')?.href).toBe(
-    'https://raw.githubusercontent.com/cloudflare/cloudflare-docs/production/src/content/docs/workers.mdx',
+    'https://developers.cloudflare.com/workers/index.md',
+  )
+})
+
+test('cloudflare rewrites docs root to /index.md', () => {
+  expect(rewrite(rules.cloudflare, 'https://developers.cloudflare.com/')?.href).toBe(
+    'https://developers.cloudflare.com/index.md',
   )
 })
 
@@ -108,10 +114,20 @@ test('curlDocs keeps generated markdown paths unchanged', () => {
   )
 })
 
-test('cloudflare keeps trailing slash paths on raw mdx candidate', () => {
+test('cloudflare rewrites trailing slash paths to /index.md', () => {
   expect(rewrite(rules.cloudflare, 'https://developers.cloudflare.com/workers/')?.href).toBe(
-    'https://raw.githubusercontent.com/cloudflare/cloudflare-docs/production/src/content/docs/workers.mdx',
+    'https://developers.cloudflare.com/workers/index.md',
   )
+})
+
+test('cloudflare keeps file-like paths unchanged', () => {
+  expect(rewrite(rules.cloudflare, 'https://developers.cloudflare.com/llms.txt')).toBeUndefined()
+})
+
+test('cloudflare keeps reserved /cdn-cgi paths unchanged', () => {
+  expect(
+    rewrite(rules.cloudflare, 'https://developers.cloudflare.com/cdn-cgi/trace'),
+  ).toBeUndefined()
 })
 
 test.each([

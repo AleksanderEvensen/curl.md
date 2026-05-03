@@ -56,6 +56,7 @@ jobs:
           {
             echo "CLOUDFLARE_ACCOUNT_ID=$CLOUDFLARE_ACCOUNT_ID"
             echo "CLOUDFLARE_API_TOKEN=$CLOUDFLARE_API_TOKEN"
+            echo "CLOUDFLARE_BROWSER_API_TOKEN=dummy"
             echo "DB_URL=$DB_URL"
             echo "GH_CLIENT_ID=dummy"
             echo "COOKIE_SECRET=dummy"

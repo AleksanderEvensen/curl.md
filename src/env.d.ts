@@ -2,8 +2,8 @@ declare namespace Cloudflare {
   // Adding stronger types to Clouflare.Env
   // https://github.com/cloudflare/workers-sdk/issues/7112
   interface Env {
+    CLOUDFLARE_BROWSER_API_TOKEN: string
     CLOUDFLARE_ACCOUNT_ID: string
-    CLOUDFLARE_API_TOKEN: string
     KV: KV
     REQUEST_ENRICH_QUEUE: Queue<
       import('#queues/request-enrichment.ts').processRequestEnrichmentMessage.Body

@@ -26,16 +26,17 @@ Secrets are managed via [GitHub Environments](https://docs.github.com/en/actions
 
 [**Repository secrets**](https://github.com/wevm/curl.md/settings/secrets/actions) - shared across all environments:
 
-| Name                    | Purpose                                                                                                        |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account ID.                                                                                         |
-| `CLOUDFLARE_API_TOKEN`  | Cloudflare API token for deployments. See [Creating a Cloudflare API Token](#creating-a-cloudflare-api-token). |
-| `COOKIE_SECRET`         | Secret for signing session cookies. Generate with `openssl rand -base64 32`.                                   |
-| `GH_CLIENT_ID`          | GitHub App client ID. See [GitHub App Setup](#github-app-setup).                                               |
-| `GH_CLIENT_SECRET`      | GitHub App client secret. See [GitHub App Setup](#github-app-setup).                                           |
-| `SENTRY_DSN`            | Sentry DSN for error tracking. See [Sentry](#sentry).                                                          |
-| `SENTRY_AUTH_TOKEN`     | Sentry auth token for release creation and source map uploads. See [Sentry](#sentry).                          |
-| `TOKEN_ENCRYPTION_KEY`  | Base64-encoded 256-bit key for encrypting OAuth tokens. Generate with `openssl rand -base64 32`.               |
+| Name                           | Purpose                                                                                                                      |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| `CLOUDFLARE_ACCOUNT_ID`        | Cloudflare account ID. Used by CI, deploys, and Browser Rendering fallback at runtime.                                       |
+| `CLOUDFLARE_API_TOKEN`         | Cloudflare API token for deploys and admin scripts. See [Creating a Cloudflare API Token](#creating-a-cloudflare-api-token). |
+| `CLOUDFLARE_BROWSER_API_TOKEN` | Cloudflare Browser Rendering runtime token. Scope it to `Browser Rendering - Edit` on the `curl.md` account only.            |
+| `COOKIE_SECRET`                | Secret for signing session cookies. Generate with `openssl rand -base64 32`.                                                 |
+| `GH_CLIENT_ID`                 | GitHub App client ID. See [GitHub App Setup](#github-app-setup).                                                             |
+| `GH_CLIENT_SECRET`             | GitHub App client secret. See [GitHub App Setup](#github-app-setup).                                                         |
+| `SENTRY_DSN`                   | Sentry DSN for error tracking. See [Sentry](#sentry).                                                                        |
+| `SENTRY_AUTH_TOKEN`            | Sentry auth token for release creation and source map uploads. See [Sentry](#sentry).                                        |
+| `TOKEN_ENCRYPTION_KEY`         | Base64-encoded 256-bit key for encrypting OAuth tokens. Generate with `openssl rand -base64 32`.                             |
 
 **[`production`](https://github.com/wevm/curl.md/settings/environments/12871461617/edit) environment secrets**:
 
@@ -85,6 +86,13 @@ Secrets are managed via [GitHub Environments](https://docs.github.com/en/actions
 5. Set Account Resources to your account.
 6. Set Zone Resources to your domain, for example `curl.md`.
 7. Click “Continue to summary” and then “Create Token”.
+
+Create a second Cloudflare token for Browser Rendering runtime access:
+
+1. Create another custom token.
+2. Add **Account** -> **Browser Rendering** -> **Edit** only.
+3. Scope it to the `curl.md` account.
+4. Save it as `CLOUDFLARE_BROWSER_API_TOKEN` in GitHub Actions secrets and your local `.env`.
 
 ### GitHub App Setup
 

@@ -1,3 +1,4 @@
+import type {} from 'vitest'
 import { z } from 'zod'
 
 declare module 'vitest' {
@@ -7,6 +8,8 @@ declare module 'vitest' {
 }
 
 const schema = z.object({
+  CLOUDFLARE_ACCOUNT_ID: z.string(),
+  CLOUDFLARE_BROWSER_API_TOKEN: z.string(),
   COOKIE_SECRET: z.string(),
   CURLMD_BASE_URL: z.string(),
   DB_URL: z.string(),
@@ -27,6 +30,8 @@ type Input = z.infer<typeof schema>
 export const Env = {
   get(overrides: Partial<Input> = {}) {
     return {
+      CLOUDFLARE_ACCOUNT_ID: 'test-account-id',
+      CLOUDFLARE_BROWSER_API_TOKEN: 'test-browser-token',
       COOKIE_SECRET: 'test-secret',
       CURLMD_BASE_URL: 'http://localhost',
       DB_URL: 'postgres://localhost:5432/test',

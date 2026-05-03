@@ -18,7 +18,7 @@ export const cfBrowserRendering = defineTransport<{
       body: JSON.stringify({
         url: url.toString(),
         rejectResourceTypes: ['font', 'image', 'media'],
-        goToOptions: { waitUntil: 'networkidle2' },
+        gotoOptions: { waitUntil: 'networkidle2' },
       }),
       signal: init?.signal ? AbortSignal.any([init?.signal, signal]) : signal,
     },

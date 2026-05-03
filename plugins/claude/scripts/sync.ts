@@ -24,8 +24,6 @@ const packageJson = JSON.parse(await fs.readFile(packageJsonPath, 'utf8')) as {
 }
 
 const repository = formatRepositoryUrl(packageJson.repository)
-const repositoryDirectory =
-  typeof packageJson.repository === 'string' ? undefined : packageJson.repository?.directory
 
 const pluginManifest = {
   author: {
@@ -58,7 +56,11 @@ const repoMarketplaceManifest = {
       license: pluginManifest.license,
       name: pluginManifest.name,
       repository: pluginManifest.repository,
-      source: repositoryDirectory ? `./${repositoryDirectory}` : './plugins/claude',
+      source: {
+        package: packageJson.name,
+        source: 'npm',
+        version: packageJson.version,
+      },
       version: packageJson.version,
     },
   ],
@@ -78,6 +80,7 @@ const hostedMarketplaceManifest = {
       source: {
         package: packageJson.name,
         source: 'npm',
+        version: packageJson.version,
       },
       version: packageJson.version,
     },
@@ -130,6 +133,7 @@ type MarketplaceManifest = {
       | {
           package: string
           source: 'npm'
+          version?: string
         }
     version: string
   }>

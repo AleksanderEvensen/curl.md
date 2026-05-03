@@ -98,7 +98,11 @@ test('marketplace manifest stays in sync with package and plugin metadata', () =
         license: pluginJson.license,
         name: pluginJson.name,
         repository: pluginJson.repository,
-        source: './plugins/claude',
+        source: {
+          package: packageJson.name,
+          source: 'npm',
+          version: packageJson.version,
+        },
         version: packageJson.version,
       },
     ],
@@ -117,6 +121,7 @@ test('marketplace manifest stays in sync with package and plugin metadata', () =
         source: {
           package: packageJson.name,
           source: 'npm',
+          version: packageJson.version,
         },
         version: packageJson.version,
       },
