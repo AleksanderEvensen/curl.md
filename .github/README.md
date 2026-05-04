@@ -3,7 +3,7 @@
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="../public/dark.svg">
       <source media="(prefers-color-scheme: light)" srcset="../public/light.svg">
-      <img src="../public/light.svg" alt="curl.md" height="40" style="width: auto;">
+      <img src="../public/light.svg" alt="curl.md" height="30" style="width: auto;">
     </picture>
   </a>
   <br>
@@ -11,7 +11,13 @@
 
 ### URL to markdown for agents.
 
-Turn websites into **optimized, low token output** to **supercharge your context**. Works with **every agent**.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../public/sheep/static/thunder.png">
+  <source media="(prefers-color-scheme: light)" srcset="../public/sheep/static/cloud.png">
+  <img align="right" src="../public/sheep/static/cloud.png" alt="curl.md sheep" width="80" height="80">
+</picture>
+
+Turn websites into **optimized, low token output** to **supercharge your context**. Save money on tokens. Works with **every agent**.
 
 ---
 

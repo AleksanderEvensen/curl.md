@@ -25,8 +25,14 @@ function Root(props: { className?: string }) {
 
   React.useEffect(() => {
     const stored = localStorage.getItem(storageKey)
-    if (stored && (variants as ReadonlyArray<string>).includes(stored))
+    if (stored && (variants as ReadonlyArray<string>).includes(stored)) {
       setVariant(stored as Variant)
+      applySheepVariant(stored as Variant)
+      return
+    }
+    applySheepVariant(
+      window.matchMedia('(prefers-color-scheme: dark)').matches ? 'thunder' : 'cloud',
+    )
   }, [])
 
   return (
@@ -45,6 +51,7 @@ function Root(props: { className?: string }) {
           const next = variants[(currentIndex + 1) % variants.length]!
           setVariant(next)
           localStorage.setItem(storageKey, next)
+          applySheepVariant(next)
         }}
         onBlur={() => {
           isActive.current = false
@@ -70,6 +77,7 @@ function Root(props: { className?: string }) {
               onValueChange={(value) => {
                 setVariant(value as Variant)
                 localStorage.setItem(storageKey, value)
+                applySheepVariant(value as Variant)
               }}
             >
               {variants.map((variant) => (
@@ -84,7 +92,7 @@ function Root(props: { className?: string }) {
                 </ContextMenu.RadioItem>
               ))}
             </ContextMenu.RadioGroup>
-            <ContextMenu.Separator className="bg-gray5 mx-3 my-1 h-px" />
+            <ContextMenu.Separator className="bg-gray5 my-1 h-px" />
             <ContextMenu.Item
               className="data-[highlighted]:bg-gray3 flex cursor-default rounded-[2px] px-3 py-2 outline-hidden select-none"
               onClick={() =>
@@ -128,5 +136,25 @@ async function copyStaticSheep(
 
   await copy(url)
 }
+
+function applySheepVariant(variant: Variant) {
+  document.documentElement.dataset.sheepVariant = variant
+}
+
+export const sheepVariantScript = `
+(function() {
+  var variants = ${JSON.stringify(variants)};
+  var query = window.matchMedia('(prefers-color-scheme: dark)');
+  function apply() {
+    var stored = localStorage.getItem('${storageKey}');
+    document.documentElement.dataset.sheepVariant =
+      variants.indexOf(stored) === -1 ? (query.matches ? 'thunder' : 'cloud') : stored;
+  }
+  apply();
+  query.addEventListener('change', function() {
+    if (!localStorage.getItem('${storageKey}')) apply();
+  });
+})();
+`
 
 export const Sheep = { Root, variants }

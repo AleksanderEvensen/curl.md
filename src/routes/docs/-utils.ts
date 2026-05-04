@@ -3,13 +3,16 @@ import { type Heading } from '#lib/docs.ts'
 
 export type { Heading } from '#lib/docs.ts'
 
+export type MdxComponentMap = Record<string, any>
+
 export type Doc = {
-  Component: ComponentType<{ components?: Record<string, ComponentType> }>
+  Component: ComponentType<{ components?: MdxComponentMap }>
   description: string | undefined
   headings: Array<Heading>
   lastUpdated?: string
   outlineMaxLevel?: number
   path: string
+  search?: boolean
   source: string
   sourcePath: string
   title: string

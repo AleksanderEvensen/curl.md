@@ -231,7 +231,7 @@ function Component() {
               </div>
               <div className="flex items-center">
                 <label className="text-gray9 dark:text-gray6 shrink-0" htmlFor="objective">
-                  q=
+                  o=
                 </label>
                 <input
                   className="bg-gray-a1 text-gray10 placeholder:text-gray9 dark:placeholder:text-gray6 w-full px-2 py-1"
@@ -308,7 +308,7 @@ function Component() {
                     {example.url.includes('/') && `/${example.url.split('/').slice(1).join('/')}`}
                     {example.q && (
                       <>
-                        ?q=
+                        ?o=
                         <span className="text-gray10">{example.q}</span>
                       </>
                     )}
@@ -404,7 +404,7 @@ function Component() {
                     {example.url.includes('/') && `/${example.url.split('/').slice(1).join('/')}`}
                     {example.q && (
                       <>
-                        ?q=
+                        ?o=
                         <span className="text-gray10">{example.q}</span>
                       </>
                     )}

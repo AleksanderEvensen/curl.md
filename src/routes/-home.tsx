@@ -5,6 +5,7 @@ import { useServerFn } from '@tanstack/react-start'
 import * as React from 'react'
 import { TextMorph } from 'torph/react'
 import { Nav } from '#components/Nav.tsx'
+import { Sheep } from '#components/Sheep.tsx'
 import { useAnimatedValue } from '#hooks/useAnimatedValue.ts'
 import { useCopyToClipboard } from '#hooks/useCopyToClipboard.ts'
 import { agentSetupPrompt } from '#lib/constants.ts'
@@ -66,7 +67,7 @@ export function Home(props: { login?: string | null | undefined }) {
               <CostSaved />
             </div>
             <InstallTabs />
-            <p className="text-gray8/90 -mt-3 ps-3 text-xs">
+            <p className="text-gray8/90 -mt-3 ps-3 text-sm">
               Use CLI or prefix any URL with `
               <a
                 className="hover:underline"
@@ -81,14 +82,14 @@ export function Home(props: { login?: string | null | undefined }) {
           </div>
 
           <div className="mt-16 flex flex-col md:mt-32">
-            <h2 className="text-lg font-bold">FAQ</h2>
+            <h2 className="text-xl font-bold">FAQ</h2>
             <div className="mt-4 flex flex-col">
               {faqs.map((faq) => (
                 <details key={faq.question}>
-                  <summary className="cursor-pointer py-3 text-sm" data-home-faq-summary>
+                  <summary className="cursor-pointer py-3 text-base" data-home-faq-summary>
                     {faq.question}
                   </summary>
-                  <div className="text-gray8 pb-3 text-sm leading-relaxed">{faq.answer}</div>
+                  <div className="text-gray8 pb-3 text-base leading-relaxed">{faq.answer}</div>
                 </details>
               ))}
             </div>
@@ -118,26 +119,33 @@ export function Home(props: { login?: string | null | undefined }) {
           >
             Status
           </a>
-          <a
-            className="text-gray8 hover:text-gray10"
-            href="https://github.com/wevm/curl.md"
-            rel="noopener noreferrer"
-            target="_blank"
-          >
-            GitHub
-          </a>
-          <a
-            className="text-gray8 hover:text-gray10"
-            href="https://x.com/wevm_dev"
-            rel="noopener noreferrer"
-            target="_blank"
-          >
-            X
-          </a>
+          <span className="flex items-center gap-1.5">
+            <a
+              aria-label="GitHub"
+              className="text-gray8 hover:text-gray10 p-1.5"
+              href="https://github.com/wevm/curl.md"
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              <IconOcticonMarkGithub16 className="size-[1.125rem]" />
+            </a>
+            <a
+              aria-label="X"
+              className="text-gray8 hover:text-gray10 p-1.5"
+              href="https://x.com/wevm_dev"
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              <IconSimpleIconsX className="size-4" />
+            </a>
+          </span>
         </div>
       </footer>
       <div className="mt-4 flex justify-center overflow-hidden pb-32">
         <UrlShowcase />
+      </div>
+      <div className="fixed end-6 bottom-6 z-40 hidden md:block">
+        <Sheep.Root />
       </div>
     </div>
   )
@@ -166,15 +174,21 @@ const faqs = [
         >
           the browser
         </a>{' '}
-        by prefixing any URL with `curl.md/`, in the terminal via {'`curl curl.md/<url>`'} or with{' '}
-        <Link className="underline" params={{ _splat: 'guide/cli' }} to="/docs/$">
-          the CLI
-        </Link>
-        ,{' '}
-        <Link className="underline" params={{ _splat: 'guide/plugins' }} to="/docs/$">
-          agent plugins
-        </Link>
-        , or through the{' '}
+        by prefixing any URL with <span className="whitespace-nowrap">`curl.md/`,</span> in the
+        terminal via <span className="whitespace-nowrap">{'`curl curl.md/<url>`'}</span> or with{' '}
+        <span className="whitespace-nowrap">
+          <Link className="underline" params={{ _splat: 'guide/cli' }} to="/docs/$">
+            the CLI
+          </Link>
+          ,
+        </span>{' '}
+        <span className="whitespace-nowrap">
+          <Link className="underline" params={{ _splat: 'guide/plugins' }} to="/docs/$">
+            agent plugins
+          </Link>
+          ,
+        </span>{' '}
+        or through the{' '}
         <Link className="underline" params={{ _splat: 'guide/api' }} to="/docs/$">
           API and SDK
         </Link>
@@ -277,6 +291,7 @@ const showcaseUrls = [
   'cloudflare.com',
   'react.dev',
   'stripe.com',
+  'tokio.rs',
   'anthropic.com',
   'nextjs.org',
   'developer.mozilla.org',
@@ -284,6 +299,7 @@ const showcaseUrls = [
   'typescriptlang.org',
   'nodejs.org',
   'planetscale.com',
+  'rubyonrails.org',
   'supabase.com',
   'tailwindcss.com',
   'svelte.dev',
@@ -292,10 +308,12 @@ const showcaseUrls = [
   'tanstack.com',
   'deno.com',
   'bun.sh',
+  'serde.rs',
   'prisma.io',
   'resend.com',
   'sentry.io',
   'vuejs.org',
+  'docs.pydantic.dev',
   'astral.sh',
   'expressjs.com',
   'orm.drizzle.team',
@@ -305,10 +323,12 @@ const showcaseUrls = [
   'ui.shadcn.com',
   'laravel.com',
   'oxc.rs',
+  'gofiber.io',
   'ghostty.org',
   'rspack.rs',
   'tempo.xyz',
   'zero.rocicorp.dev',
+  'fastapi.tiangolo.com',
 ]
 
 function UrlShowcase() {
@@ -347,13 +367,23 @@ function TokensSaved() {
   })
   return (
     <p className="mt-24 flex items-center gap-3 text-sm md:mt-44">
-      <span className="text-teal8 border-teal9/30 shrink-0 border px-1 py-0.5 text-xs uppercase">
+      <span
+        className="shrink-0 border px-1 py-0.5 text-xs uppercase"
+        style={{
+          borderColor: 'var(--sheep-accent-border)',
+          color: 'var(--sheep-accent)',
+        }}
+      >
         Live
       </span>
       <span className="text-gray8">
         <span className="tabular-nums">{Math.round(animated).toLocaleString()}</span> tokens saved
       </span>
-      <Link className="text-gray8/90 hidden hover:underline md:inline" to="/docs">
+      <Link
+        className="text-gray8/90 ms-1 hidden hover:underline md:inline"
+        params={{ _splat: 'install' }}
+        to="/docs/$"
+      >
         Install now
       </Link>
     </p>
@@ -375,7 +405,7 @@ function CostSaved() {
     from: 'previous',
   })
   return (
-    <p className="text-gray8/90 mt-3 ps-3 text-xs tabular-nums">
+    <p className="text-gray8/90 mt-3 ps-3 text-sm tabular-nums">
       Users saved ${formatCost(animated, 3)} by using curl.md
     </p>
   )

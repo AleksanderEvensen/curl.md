@@ -1,11 +1,16 @@
 import { sidebar, type SidebarItem } from '#docs/_sidebar.ts'
 import { createDocCopySource, type Heading } from '#lib/docs.ts'
 import { createDocsSearch, type DocSearchResult } from './-search.ts'
-import { type Doc, type DocPagination } from './-utils.ts'
+import { type Doc, type DocPagination, type MdxComponentMap } from './-utils.ts'
 
 type DocModule = {
-  default: React.ComponentType<{ components?: Record<string, React.ComponentType> }>
-  frontmatter?: { description?: string; outlineMaxLevel?: number; title?: string }
+  default: React.ComponentType<{ components?: MdxComponentMap }>
+  frontmatter?: {
+    description?: string
+    outlineMaxLevel?: number
+    search?: boolean
+    title?: string
+  }
   headings?: Array<Heading>
   lastUpdated?: string
 }
@@ -32,6 +37,7 @@ const allDocs: Array<Doc> = Object.entries(modules).map(([filePath, mod]) => {
       ? { outlineMaxLevel: mod.frontmatter.outlineMaxLevel }
       : {}),
     path: path === 'index' ? '' : path,
+    ...(typeof mod.frontmatter?.search === 'boolean' ? { search: mod.frontmatter.search } : {}),
     source: createDocCopySource(rawSource),
     sourcePath: filePath.replace('../../../', ''),
     title: mod.frontmatter?.title ?? path,
@@ -64,7 +70,7 @@ const orderedDocs = [findDoc('')]
   .filter((doc): doc is Doc => doc !== undefined)
 
 const docsSearch = createDocsSearch(
-  allDocs,
+  allDocs.filter((doc) => doc.search !== false),
   orderedDocs.map((doc) => doc.path),
 )
 

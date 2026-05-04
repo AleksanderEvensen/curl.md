@@ -2,6 +2,7 @@ import geistMonoLatin from '@fontsource-variable/geist-mono/files/geist-mono-lat
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createRootRoute, HeadContent, Link, Outlet, Scripts } from '@tanstack/react-router'
 import * as React from 'react'
+import { sheepVariantScript } from '#components/Sheep.tsx'
 import { themeScript } from '#hooks/useTheme.ts'
 import '../styles.css'
 
@@ -71,6 +72,11 @@ function RootDocument(props: React.PropsWithChildren) {
         <script
           // oxlint-disable-next-line react/no-danger: theme script is static
           dangerouslySetInnerHTML={{ __html: themeScript }}
+          suppressHydrationWarning
+        />
+        <script
+          // oxlint-disable-next-line react/no-danger: sheep variant script is static
+          dangerouslySetInnerHTML={{ __html: sheepVariantScript }}
           suppressHydrationWarning
         />
         <HeadContent />

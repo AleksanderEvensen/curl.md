@@ -5,6 +5,7 @@ import * as React from 'react'
 import IconBrandAmp from '~icons/brand/amp.jsx'
 import IconBrandCurlLight from '~icons/brand/curl-light.jsx'
 import IconBrandCurl from '~icons/brand/curl.jsx'
+import IconBrandCurlmd from '~icons/brand/curlmd.jsx'
 import IconBrandOpencode from '~icons/brand/opencode.jsx'
 import IconBrandPi from '~icons/brand/pi.jsx'
 import IconOcticonDownload16 from '~icons/octicon/download16.jsx'
@@ -529,6 +530,7 @@ function createMdxComponents(props: {
     Cards: ((cardsProps: React.PropsWithChildren) => (
       <DocsCards preview={preview} {...cardsProps} />
     )) as React.ComponentType<any>,
+    BrandAssets,
     CodeGroup: preview
       ? (codeGroupProps: React.PropsWithChildren) => (
           <PreviewCodeGroup terms={previewTerms} {...codeGroupProps} />
@@ -662,6 +664,58 @@ function createMdxComponents(props: {
     ),
   }
 }
+
+function Flock() {
+  return (
+    <div className="not-prose mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+      {Sheep.variants.map((variant) => (
+        <div className="flex flex-col items-center justify-center p-2" key={variant}>
+          <div className="flex size-24 items-center justify-center" style={checkerboardStyle}>
+            <img
+              alt={`${variant} sheep`}
+              className="size-20 [image-rendering:pixelated]"
+              src={`/sheep/static/${variant}.png`}
+            />
+          </div>
+          <p className="text-gray8 mt-3 text-sm capitalize">{variant}</p>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function Logo() {
+  return (
+    <div className="not-prose mt-4 grid gap-4 md:grid-cols-2">
+      <BrandLogoCard tone="dark" />
+      <BrandLogoCard tone="light" />
+    </div>
+  )
+}
+
+const BrandAssets = { Flock, Logo }
+
+function BrandLogoCard(props: { tone: 'dark' | 'light' }) {
+  return (
+    <div
+      className="flex aspect-[16/9] items-center justify-center p-8"
+      style={{ ...checkerboardStyle, colorScheme: props.tone }}
+    >
+      <IconBrandCurlmd
+        aria-label={`curl.md ${props.tone} logo`}
+        className="text-gray10 h-auto w-full max-w-[24rem]"
+      />
+    </div>
+  )
+}
+
+const checkerboardStyle = {
+  backgroundColor: 'var(--color-bg1)',
+  backgroundImage:
+    'linear-gradient(45deg, var(--color-gray-a1) 25%, transparent 25%), linear-gradient(-45deg, var(--color-gray-a1) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, var(--color-gray-a1) 75%), linear-gradient(-45deg, transparent 75%, var(--color-gray-a1) 75%)',
+  backgroundPosition: '0 0, 0 0.5rem, 0.5rem -0.5rem, -0.5rem 0',
+  backgroundSize: '1rem 1rem',
+} satisfies React.CSSProperties
 
 function CopyPageButton(
   props: {

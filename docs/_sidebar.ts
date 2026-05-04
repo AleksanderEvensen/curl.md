@@ -6,6 +6,7 @@ export const sidebar = [
       { type: 'link', label: 'Getting Started', path: '/getting-started' },
       { type: 'link', label: 'Installation', path: '/install' },
       { type: 'link', label: 'Why curl.md', path: '/why' },
+      { type: 'link', label: 'FAQ', path: '/faq' },
     ],
   },
   {

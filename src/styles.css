@@ -220,6 +220,46 @@ html[data-theme='dark'] {
   color: var(--color-gray8);
 }
 
+html[data-sheep-variant='cloud'] {
+  --sheep-accent: #06c2fe;
+  --sheep-accent-border: #06c2fecc;
+}
+
+html[data-sheep-variant='ember'] {
+  --sheep-accent: #9f644c;
+  --sheep-accent-border: #9f644ccc;
+}
+
+html[data-sheep-variant='glacier'] {
+  --sheep-accent: #47afff;
+  --sheep-accent-border: #47afffcc;
+}
+
+html[data-sheep-variant='lightning'] {
+  --sheep-accent: #f4cc00;
+  --sheep-accent-border: #f4cc00cc;
+}
+
+html[data-sheep-variant='mint'] {
+  --sheep-accent: #03a165;
+  --sheep-accent-border: #03a165cc;
+}
+
+html[data-sheep-variant='thunder'] {
+  --sheep-accent: #4582a4;
+  --sheep-accent-border: #4582a4cc;
+}
+
+html[data-sheep-variant='violet'] {
+  --sheep-accent: #bc70f4;
+  --sheep-accent-border: #bc70f4cc;
+}
+
+html[data-sheep-variant='voltage'] {
+  --sheep-accent: #009391;
+  --sheep-accent-border: #009391cc;
+}
+
 [data-sheep] {
   animation: sheep-walk 1.7s steps(17) infinite paused;
   background-color: transparent;
@@ -239,38 +279,42 @@ html[data-theme='dark'] {
   animation-play-state: running;
 }
 
-html[data-theme='dark'] [data-sheep] {
-  background-image: url('/sheep/thunder.png');
-}
-
+html[data-sheep-variant='cloud'] [data-sheep],
 html [data-sheep][data-sheep-variant='cloud'] {
   background-image: url('/sheep/cloud.png');
 }
 
+html[data-sheep-variant='ember'] [data-sheep],
 html [data-sheep][data-sheep-variant='ember'] {
   background-image: url('/sheep/ember.png');
 }
 
+html[data-sheep-variant='glacier'] [data-sheep],
 html [data-sheep][data-sheep-variant='glacier'] {
   background-image: url('/sheep/glacier.png');
 }
 
+html[data-sheep-variant='lightning'] [data-sheep],
 html [data-sheep][data-sheep-variant='lightning'] {
   background-image: url('/sheep/lightning.png');
 }
 
+html[data-sheep-variant='mint'] [data-sheep],
 html [data-sheep][data-sheep-variant='mint'] {
   background-image: url('/sheep/mint.png');
 }
 
+html[data-sheep-variant='thunder'] [data-sheep],
 html [data-sheep][data-sheep-variant='thunder'] {
   background-image: url('/sheep/thunder.png');
 }
 
+html[data-sheep-variant='violet'] [data-sheep],
 html [data-sheep][data-sheep-variant='violet'] {
   background-image: url('/sheep/violet.png');
 }
 
+html[data-sheep-variant='voltage'] [data-sheep],
 html [data-sheep][data-sheep-variant='voltage'] {
   background-image: url('/sheep/voltage.png');
 }
