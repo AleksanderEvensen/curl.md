@@ -5,7 +5,10 @@ import { Nav } from '#components/Nav.tsx'
 export const Route = createFileRoute('/auth/error')({
   head() {
     return {
-      meta: [{ title: `Auth Error - ${__HOST__}` }],
+      meta: [
+        { title: `Auth Error - ${__HOST__}` },
+        { name: 'robots', content: 'noindex,nofollow' },
+      ],
     }
   },
   validateSearch: z.object({

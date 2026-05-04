@@ -10,13 +10,16 @@ export const Route = createFileRoute('/')({
   },
   head() {
     const ogImage = rpc.api['og.png'].$url({ query: { page: 'index' } }).toString()
+    const description = 'Turn websites into optimized markdown for coding agents.'
     return {
+      links: [{ href: `https://${__HOST__}/`, rel: 'canonical' }],
       meta: [
         { title: 'curl.md - URL to markdown for agents' },
-        { name: 'description', content: 'URL to markdown for agents' },
+        { name: 'description', content: description },
         { property: 'og:title', content: __HOST__ },
-        { property: 'og:description', content: 'URL to markdown for agents' },
+        { property: 'og:description', content: description },
         { property: 'og:image', content: ogImage },
+        { property: 'og:image:alt', content: 'curl.md - URL to markdown for agents' },
         { property: 'og:image:width', content: '1200' },
         { property: 'og:image:height', content: '630' },
         { property: 'og:image:type', content: 'image/png' },
@@ -24,8 +27,9 @@ export const Route = createFileRoute('/')({
         { property: 'og:url', content: `https://${__HOST__}` },
         { name: 'twitter:card', content: 'summary_large_image' },
         { name: 'twitter:title', content: __HOST__ },
-        { name: 'twitter:description', content: 'URL to markdown for agents' },
+        { name: 'twitter:description', content: description },
         { name: 'twitter:image', content: ogImage },
+        { name: 'twitter:image:alt', content: 'curl.md - URL to markdown for agents' },
       ] satisfies Array<MetaDescriptor>,
     }
   },

@@ -16,7 +16,12 @@ import { changePaymentAmount, deletePayment, getPayment } from '#server/billing.
 
 export const Route = createFileRoute('/credits/add/$id')({
   head() {
-    return { meta: [{ title: `Add Credits - ${__HOST__}` }] }
+    return {
+      meta: [
+        { title: `Add Credits - ${__HOST__}` },
+        { name: 'robots', content: 'noindex,nofollow' },
+      ],
+    }
   },
   validateSearch: z.object({ next: z.optional(z.string()) }),
   loader: ({ params }) => getPayment({ data: { id: params.id } }),

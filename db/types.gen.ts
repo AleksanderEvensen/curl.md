@@ -79,6 +79,7 @@ type device_code = {
 }
 
 type organization = {
+  avatar_url: string | null
   balance_mills: k.Generated<number>
   created_at: GeneratedTimestamp
   default_payment_method_id: string | null

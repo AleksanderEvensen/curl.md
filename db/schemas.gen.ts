@@ -62,6 +62,7 @@ export const device_code = z.object({
 })
 
 export const organization = z.object({
+  avatar_url: z.string().nullable(),
   balance_mills: z.number(),
   created_at: z.date(),
   default_payment_method_id: z.string().nullable(),

@@ -21,7 +21,7 @@ export type query = z.infer<typeof schema>
 async function getElement(env: Cloudflare.Env, db: Database, query: query) {
   switch (query.page) {
     case 'docs': {
-      return docsVariant(query.title)
+      return docsVariant(query.title, query.description)
     }
     case 'url': {
       const tokensSaved = await getTokensSaved(env, db, query.url)
@@ -37,16 +37,21 @@ async function getElement(env: Cloudflare.Env, db: Database, query: query) {
   }
 }
 
-function docsVariant(title: string) {
+function docsVariant(title: string, description: string | undefined) {
   return (
     <div tw="relative flex flex-col w-full h-full bg-black text-[#ededed] font-[Geist_Mono] px-[72px] py-[64px]">
       <div tw="flex items-start justify-start">
         <BrandLogo />
       </div>
-      <div tw="flex flex-1 pe-[96px] mt-[42px]">
-        <div tw="text-[#ededed] text-[72px] leading-[1.15] font-bold tracking-[0.02em] text-left max-w-[1000px]">
+      <div tw="flex flex-1 flex-col pe-[96px] mt-[42px]">
+        <div tw="text-[#ededed] text-[68px] leading-[1.12] font-bold tracking-[0.02em] text-left max-w-[1000px]">
           {title}
         </div>
+        {description ? (
+          <div tw="text-[#a1a1a1] text-[40px] leading-[1.35] mt-[28px] text-left max-w-[960px]">
+            {description}
+          </div>
+        ) : null}
       </div>
       <div tw="absolute right-0 bottom-[100px] left-0 h-0.5 bg-[#2c2c2c]" />
     </div>

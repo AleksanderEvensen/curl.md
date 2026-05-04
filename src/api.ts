@@ -2008,7 +2008,8 @@ export const api = new Hono<{
           ).toString(),
         )
         return c.html(
-          html`<meta property="og:title" content="${`${c.env.HOST}/${url}`}" />
+          html`<meta name="robots" content="noindex,nofollow" />
+<meta property="og:title" content="${`${c.env.HOST}/${url}`}" />
 <meta property="og:description" content="URL to markdown for agents" />
 <meta property="og:image" content="${ogUrl}" />
 <meta property="og:image:width" content="1200" />
@@ -2020,6 +2021,7 @@ export const api = new Hono<{
 <meta name="twitter:description" content="URL to markdown for agents" />
 <meta name="twitter:image" content="${ogUrl}" />`,
           200,
+          { 'x-robots-tag': 'noindex, nofollow' },
         ) as never // casting to never so hono/client can infer c.json responses
       }
 
@@ -2389,6 +2391,7 @@ export const api = new Hono<{
         vary: 'Accept',
         'x-cache': cached ? 'HIT' : 'MISS',
         'x-cost-mills': String(costMills),
+        'x-robots-tag': 'noindex, nofollow',
         'x-request-id': requestId,
         'x-tokens-count': String(finalTokens),
         'x-tokens-saved': String(sourceTokens - finalTokens),

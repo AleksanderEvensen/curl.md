@@ -15,6 +15,7 @@ public/docs/**/*.md
 public/docs/.generated-docs.json
 public/docs/llms-full.txt
 public/docs/llms.txt
+public/sitemap.xml
 incur.generated.ts
 tsconfig.tsbuildinfo
 /test-results/

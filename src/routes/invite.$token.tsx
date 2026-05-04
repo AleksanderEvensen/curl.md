@@ -11,7 +11,12 @@ import { rpc } from '#lib/rpc.ts'
 
 export const Route = createFileRoute('/invite/$token')({
   head() {
-    return { meta: [{ title: `Accept Invite - ${__HOST__}` }] }
+    return {
+      meta: [
+        { title: `Accept Invite - ${__HOST__}` },
+        { name: 'robots', content: 'noindex,nofollow' },
+      ],
+    }
   },
   loader: ({ params }) => getInviteData({ data: { token: params.token } }),
   component: Component,

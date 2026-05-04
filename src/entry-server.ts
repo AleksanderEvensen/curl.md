@@ -13,6 +13,8 @@ import { processStripeWebhookMessage } from '#queues/stripe-webhook.ts'
 
 const staticAssets = {
   '/llms.txt': '/llms.txt',
+  '/robots.txt': '/robots.txt',
+  '/sitemap.xml': '/sitemap.xml',
   '/skills': '/.well-known/skills/index.json',
   '/.well-known/skills': '/.well-known/skills/index.json',
   '/.well-known/skills/curl-md': '/.well-known/skills/curl-md/SKILL.md',
@@ -37,8 +39,31 @@ export default Sentry.withSentry<Env, QueueHandlerMessage>(
       if (url.pathname.startsWith('/sheep/')) return env.ASSETS.fetch(request)
       // Serve known static assets directly from Workers Assets binding
       const path = url.pathname.replace(/\/+$/, '')
-      if (path in staticAssets)
+      if (path in staticAssets) {
+        if (path === '/robots.txt') {
+          const headers = { 'content-type': 'text/plain; charset=utf-8' }
+          if (env.HOST !== 'curl.md')
+            return new Response(['User-agent: *', 'Disallow: /', ''].join('\n'), { headers })
+          return new Response(
+            [
+              'User-agent: *',
+              'Allow: /api/og.png',
+              'Disallow: /api/',
+              'Disallow: /auth/',
+              'Disallow: /credits/',
+              'Disallow: /invite/',
+              'Disallow: /login',
+              'Disallow: /home',
+              'Disallow: /docs/*.md',
+              '',
+              'Sitemap: https://curl.md/sitemap.xml',
+              '',
+            ].join('\n'),
+            { headers },
+          )
+        }
         return env.ASSETS.fetch(new URL(staticAssets[path as keyof typeof staticAssets], url))
+      }
 
       // Route dot-segment paths (e.g. curl.md/example.com) to the API handler under /api prefix
       const firstSegment = url.pathname.split('/')[1] ?? ''

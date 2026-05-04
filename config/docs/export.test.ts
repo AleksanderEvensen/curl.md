@@ -2,6 +2,7 @@ import { expect, test } from 'vitest'
 import {
   generateDocsLlmsFullTxt,
   generateDocsLlmsTxt,
+  generateSitemapXml,
   getDocsInSidebarOrder,
   getDocsLlmsSections,
   rewriteGeneratedDocsLinks,
@@ -181,6 +182,38 @@ test('generateDocsLlmsTxt includes the published docs in sidebar order', () => {
   expect(llms.indexOf('Installation')).toBeLessThan(llms.indexOf('Quick Start'))
   expect(llms.indexOf('Quick Start')).toBeLessThan(llms.indexOf('Contributing'))
   expect(llms.indexOf('Contributing')).toBeLessThan(llms.indexOf('Kitchen Sink'))
+})
+
+test('generateSitemapXml includes public routes and docs pages', () => {
+  expect(
+    generateSitemapXml({
+      docs: [
+        { lastUpdated: '2026-01-01T00:00:00.000Z', path: '' },
+        { path: 'getting-started' },
+        { lastUpdated: '2026-01-02T00:00:00.000Z', path: 'guide/cli' },
+      ],
+    }),
+  ).toBe(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://curl.md/</loc>
+  </url>
+  <url>
+    <loc>https://curl.md/docs</loc>
+    <lastmod>2026-01-01T00:00:00.000Z</lastmod>
+  </url>
+  <url>
+    <loc>https://curl.md/playground</loc>
+  </url>
+  <url>
+    <loc>https://curl.md/docs/getting-started</loc>
+  </url>
+  <url>
+    <loc>https://curl.md/docs/guide/cli</loc>
+    <lastmod>2026-01-02T00:00:00.000Z</lastmod>
+  </url>
+</urlset>
+`)
 })
 
 test('generateDocsLlmsFullTxt combines the docs into one markdown document', () => {

@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process'
 import { statSync } from 'node:fs'
 import * as fs from 'node:fs/promises'
 import path from 'node:path'
@@ -8,6 +9,7 @@ import { createDocCopySource, type SidebarItem } from '#lib/docs.ts'
 const docsDirectoryPath = path.join(process.cwd(), 'docs')
 const docsGeneratedManifestPath = path.join(process.cwd(), 'public/docs/.generated-docs.json')
 const docsPublicDirectoryPath = path.dirname(docsGeneratedManifestPath)
+const sitemapPath = path.join(process.cwd(), 'public/sitemap.xml')
 const sidebarPath = path.join(docsDirectoryPath, '_sidebar.ts')
 const llmsExcludedDocPaths = new Set(['privacy', 'terms'])
 
@@ -18,6 +20,7 @@ type DocsLlmsSection = {
 
 type DocsStaticFile = {
   description: string | undefined
+  lastUpdated?: string
   path: string
   source: string
   title: string
@@ -75,6 +78,32 @@ export function generateDocsLlmsFullTxt(props: { docs: Array<DocsStaticFile> }) 
   }
 
   return `${lines.join('\n')}\n`
+}
+
+export function generateSitemapXml(props: {
+  docs: Array<Pick<DocsStaticFile, 'lastUpdated' | 'path'>>
+}) {
+  const docsIndex = props.docs.find((doc) => doc.path === '')
+  const urls = [
+    { loc: 'https://curl.md/' },
+    { lastUpdated: docsIndex?.lastUpdated, loc: 'https://curl.md/docs' },
+    { loc: 'https://curl.md/playground' },
+    ...props.docs
+      .filter((doc) => doc.path)
+      .map((doc) => ({ lastUpdated: doc.lastUpdated, loc: `https://curl.md/docs/${doc.path}` })),
+  ]
+
+  return `${[
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    ...urls.map((url) => {
+      const lines = ['  <url>', `    <loc>${escapeXml(url.loc)}</loc>`]
+      if (url.lastUpdated) lines.push(`    <lastmod>${escapeXml(url.lastUpdated)}</lastmod>`)
+      lines.push('  </url>')
+      return lines.join('\n')
+    }),
+    '</urlset>',
+  ].join('\n')}\n`
 }
 
 export function getDocsInSidebarOrder<
@@ -149,6 +178,12 @@ export async function syncDocsStaticAssets() {
       filePath: path.join(docsPublicDirectoryPath, 'llms.txt'),
       content: generateDocsLlmsTxt({ sections: getDocsLlmsSections(docsByPath, sidebar) }),
     },
+    {
+      filePath: sitemapPath,
+      content: generateSitemapXml({
+        docs: getDocsInSidebarOrder(new Map(docs.map((doc) => [doc.path, doc])), sidebar),
+      }),
+    },
     ...docsWithRewrittenLinks.map((doc) => ({
       filePath: path.join(docsPublicDirectoryPath, doc.path ? `${doc.path}.md` : 'index.md'),
       content: `${doc.source}\n`,
@@ -203,6 +238,7 @@ function getPublishedDocsStaticFiles(files: Array<{ filePath: string; source: st
       return {
         description:
           typeof frontmatter.description === 'string' ? frontmatter.description : undefined,
+        lastUpdated: getLastUpdated(filePath),
         path: docPath,
         source: createDocCopySource(source),
         title:
@@ -250,4 +286,26 @@ function collectSidebarDocs<
 function normalizeSidebarPath(pathname: string) {
   if (pathname === '/') return ''
   return pathname.replace(/^\//, '')
+}
+
+function escapeXml(value: string) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+}
+
+function getLastUpdated(filePath: string) {
+  const relativePath = path.relative(process.cwd(), filePath)
+  try {
+    const value = execFileSync('git', ['log', '-1', '--format=%cI', '--', relativePath], {
+      cwd: process.cwd(),
+      encoding: 'utf8',
+    }).trim()
+    return value || statSync(filePath).mtime.toISOString()
+  } catch {
+    return statSync(filePath).mtime.toISOString()
+  }
 }

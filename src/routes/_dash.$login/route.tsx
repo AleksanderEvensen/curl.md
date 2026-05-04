@@ -30,6 +30,7 @@ const searchSchema = z.object({
 })
 
 export const Route = createFileRoute('/_dash/$login')({
+  head: () => ({ meta: [{ name: 'robots', content: 'noindex,nofollow' }] }),
   async beforeLoad({ location, params }): Promise<DashboardLayoutData> {
     const data = await getLayoutData({ data: { login: params.login } })
     if (data === false)
@@ -73,11 +74,23 @@ function DashboardLayout(props: React.PropsWithChildren<{ data: DashboardLayoutD
 
   const others = [
     ...(account.login !== entity.login
-      ? [{ login: account.login, name: account.name, type: 'account' as const }]
+      ? [
+          {
+            avatar_url: account.avatar_url,
+            login: account.login,
+            name: account.name,
+            type: 'account' as const,
+          },
+        ]
       : []),
     ...organizations
       .filter((o) => o.login !== entity.login)
-      .map((o) => ({ login: o.login, name: o.name, type: 'organization' as const })),
+      .map((o) => ({
+        avatar_url: o.avatar_url,
+        login: o.login,
+        name: o.name,
+        type: 'organization' as const,
+      })),
   ]
 
   const matches = useMatches()
@@ -172,7 +185,6 @@ function DashboardLayout(props: React.PropsWithChildren<{ data: DashboardLayoutD
       <aside className="bg-bg1 border-gray-a3 sticky top-0 z-10 flex flex-row flex-wrap items-center justify-between border-b md:fixed md:top-0 md:h-dvh md:w-52 md:flex-col md:flex-nowrap md:items-stretch md:justify-start md:overflow-hidden md:border-e md:border-b-0">
         <div className="flex w-full items-center justify-between px-4 pt-4 pb-3 md:block">
           <AccountSwitcher
-            account={account}
             entity={entity}
             logout={logout}
             onCreateOrg={() => setCreateOrgOpen(true)}
@@ -257,18 +269,27 @@ function DashboardLayout(props: React.PropsWithChildren<{ data: DashboardLayoutD
 // --- Internal components ---
 
 function AccountSwitcher(props: {
-  account: { avatar_url: string | null; login: string }
-  entity: { login: string; name: string | null; type: 'account' | 'organization' }
+  entity: {
+    avatar_url: string | null
+    login: string
+    name: string | null
+    type: 'account' | 'organization'
+  }
   logout: { isPending: boolean; mutate: () => void }
   onCreateOrg: () => void
-  others: Array<{ login: string; name: string | null; type: 'account' | 'organization' }>
+  others: Array<{
+    avatar_url: string | null
+    login: string
+    name: string | null
+    type: 'account' | 'organization'
+  }>
   switchTo: string
 }) {
   return (
     <Menu.Root>
       <Menu.Trigger className="hover:bg-gray-a2 flex cursor-default items-center gap-2 px-2 py-1.5 text-sm select-none md:w-full">
         <EntityAvatar
-          avatarUrl={props.entity.type === 'account' ? props.account.avatar_url : undefined}
+          avatarUrl={props.entity.avatar_url ?? undefined}
           name={props.entity.name ?? props.entity.login}
         />
         <span className="truncate">{props.entity.name ?? props.entity.login}</span>
@@ -292,10 +313,7 @@ function AccountSwitcher(props: {
                   />
                 }
               >
-                <EntityAvatar
-                  avatarUrl={e.type === 'account' ? props.account.avatar_url : undefined}
-                  name={e.name ?? e.login}
-                />
+                <EntityAvatar avatarUrl={e.avatar_url ?? undefined} name={e.name ?? e.login} />
                 <span className="truncate">{e.name ?? e.login}</span>
               </Menu.Item>
             ))}
@@ -555,7 +573,12 @@ async function getDashboardViewerData(): Promise<DashboardViewerData | false> {
     .innerJoin('organization_member', 'organization_member.organization_id', 'organization.id')
     .where('organization.deleted_at', 'is', null)
     .where('organization_member.account_id', '=', accountId)
-    .select(['organization.id', 'organization.login', 'organization.name'])
+    .select([
+      'organization.avatar_url',
+      'organization.id',
+      'organization.login',
+      'organization.name',
+    ])
     .execute()
 
   return { account, organizations }
@@ -589,8 +612,10 @@ type DashboardLayoutData = {
     | (Pick<DB.account, 'avatar_url' | 'email' | 'id' | 'login' | 'name'> & {
         type: 'account'
       })
-    | (Pick<DB.organization, 'id' | 'login' | 'name'> & { type: 'organization' })
-  organizations: Array<Pick<DB.organization, 'id' | 'login' | 'name'>>
+    | (Pick<DB.organization, 'avatar_url' | 'id' | 'login' | 'name'> & {
+        type: 'organization'
+      })
+  organizations: Array<Pick<DB.organization, 'avatar_url' | 'id' | 'login' | 'name'>>
 }
 
 type DashboardViewerData = Omit<DashboardLayoutData, 'entity'>

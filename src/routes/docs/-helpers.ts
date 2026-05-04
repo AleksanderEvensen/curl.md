@@ -20,14 +20,18 @@ export function getDocsHead(path: string, ogImage: string) {
 
   return {
     links: markdownAlternateUrl
-      ? [{ href: markdownAlternateUrl, rel: 'alternate', type: 'text/markdown' }]
-      : [],
+      ? [
+          { href: url, rel: 'canonical' },
+          { href: markdownAlternateUrl, rel: 'alternate', type: 'text/markdown' },
+        ]
+      : [{ href: url, rel: 'canonical' }],
     meta: [
       { title },
       { name: 'description', content: doc?.description ?? 'URL to markdown for agents' },
       { property: 'og:title', content: title },
       { property: 'og:description', content: doc?.description ?? 'URL to markdown for agents' },
       { property: 'og:image', content: ogImage },
+      { property: 'og:image:alt', content: title },
       { property: 'og:image:width', content: '1200' },
       { property: 'og:image:height', content: '630' },
       { property: 'og:image:type', content: 'image/png' },
@@ -37,6 +41,7 @@ export function getDocsHead(path: string, ogImage: string) {
       { name: 'twitter:title', content: title },
       { name: 'twitter:description', content: doc?.description ?? 'URL to markdown for agents' },
       { name: 'twitter:image', content: ogImage },
+      { name: 'twitter:image:alt', content: title },
     ],
   }
 }

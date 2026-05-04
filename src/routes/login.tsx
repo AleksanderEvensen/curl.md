@@ -7,7 +7,9 @@ import { getSessionLogin } from '#server/session.ts'
 
 export const Route = createFileRoute('/login')({
   head() {
-    return { meta: [{ title: `Sign In - ${__HOST__}` }] }
+    return {
+      meta: [{ title: `Sign In - ${__HOST__}` }, { name: 'robots', content: 'noindex,nofollow' }],
+    }
   },
   validateSearch: z.object({ next: z.string().optional() }),
   async beforeLoad() {

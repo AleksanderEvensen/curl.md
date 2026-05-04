@@ -18,6 +18,7 @@ export const Route = createFileRoute('/playground')({
   head() {
     const ogImage = rpc.api['og.png'].$url({ query: { page: 'playground' } }).toString()
     return {
+      links: [{ href: `https://${__HOST__}/playground`, rel: 'canonical' }],
       meta: [
         { title: `Playground - ${__HOST__}` },
         { name: 'description', content: 'URL to markdown for agents' },

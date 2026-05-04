@@ -11,7 +11,12 @@ import { rpc } from '#lib/rpc.ts'
 
 export const Route = createFileRoute('/auth/device')({
   head() {
-    return { meta: [{ title: `Device Confirmation - ${__HOST__}` }] }
+    return {
+      meta: [
+        { title: `Device Confirmation - ${__HOST__}` },
+        { name: 'robots', content: 'noindex,nofollow' },
+      ],
+    }
   },
   validateSearch: z.object({
     code_confirmed: z.boolean().optional(),
