@@ -16,7 +16,7 @@ export const Route = createRootRoute({
           rel: 'preload',
           type: 'font/woff2',
         },
-        { href: '/favicon.svg', rel: 'icon', type: 'image/svg+xml' },
+        { href: '/sheep/static/thunder.png', rel: 'icon', type: 'image/png' },
       ],
       meta: [
         { charSet: 'utf-8' },
@@ -74,6 +74,11 @@ function RootDocument(props: React.PropsWithChildren) {
           suppressHydrationWarning
         />
         <HeadContent />
+        <script
+          // oxlint-disable-next-line react/no-danger: favicon script is static
+          dangerouslySetInnerHTML={{ __html: faviconScript }}
+          suppressHydrationWarning
+        />
       </head>
       <body>
         {children}
@@ -82,3 +87,21 @@ function RootDocument(props: React.PropsWithChildren) {
     </html>
   )
 }
+
+const faviconScript = `
+(function() {
+  var query = window.matchMedia('(prefers-color-scheme: dark)');
+  function apply() {
+    document.querySelectorAll('link[rel="icon"]').forEach(function(link) {
+      link.remove();
+    });
+    var link = document.createElement('link');
+    link.rel = 'icon';
+    link.type = 'image/png';
+    link.href = (query.matches ? '/sheep/static/thunder.png' : '/sheep/static/cloud.png') + '?theme=' + (query.matches ? 'dark' : 'light') + '&t=' + Date.now();
+    document.head.appendChild(link);
+  }
+  apply();
+  query.addEventListener('change', apply);
+})();
+`

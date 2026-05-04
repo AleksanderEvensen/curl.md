@@ -48,7 +48,7 @@ const botPaths = [
   '/xmlrpc',
 ]
 
-const excludePrefixes = ['/assets/', '/.well-known/']
+const excludePrefixes = ['/assets/', '/.well-known/', '/sheep/']
 const excludePaths = ['/api/og.png', '/dark.svg', '/favicon.svg', '/light.svg']
 
 const expression = [

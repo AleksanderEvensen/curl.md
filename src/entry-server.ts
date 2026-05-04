@@ -33,6 +33,8 @@ export default Sentry.withSentry<Env, QueueHandlerMessage>(
       // Route API requests to the Hono API handler
       if (url.pathname.startsWith('/api/')) return api.fetch(new Request(url, request), env, ctx)
 
+      // Serve sheep assets directly so they never fall through to app/API route handling.
+      if (url.pathname.startsWith('/sheep/')) return env.ASSETS.fetch(request)
       // Serve known static assets directly from Workers Assets binding
       const path = url.pathname.replace(/\/+$/, '')
       if (path in staticAssets)

@@ -172,6 +172,14 @@ function Component() {
   useBrowserLayoutEffect(() => {
     if (!open) return
 
+    const mediaQuery = window.matchMedia('(min-width: 768px)')
+    const closeOnDesktop = () => {
+      if (mediaQuery.matches) setOpen(false)
+    }
+
+    closeOnDesktop()
+    mediaQuery.addEventListener('change', closeOnDesktop)
+
     const htmlOverflow = document.documentElement.style.overflow
     const bodyOverflow = document.body.style.overflow
 
@@ -179,6 +187,7 @@ function Component() {
     document.body.style.overflow = 'hidden'
 
     return () => {
+      mediaQuery.removeEventListener('change', closeOnDesktop)
       document.documentElement.style.overflow = htmlOverflow
       document.body.style.overflow = bodyOverflow
     }

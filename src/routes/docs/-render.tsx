@@ -13,6 +13,7 @@ import IconSimpleIconsClaude from '~icons/simple-icons/claude.jsx'
 import IconSimpleIconsCursor from '~icons/simple-icons/cursor.jsx'
 import IconSimpleIconsNpm from '~icons/simple-icons/npm.jsx'
 import IconSimpleIconsOpenai from '~icons/simple-icons/openai.jsx'
+import { Sheep } from '#components/Sheep.tsx'
 import { config } from '#docs/_config.ts'
 import { useBrowserLayoutEffect } from '#hooks/useBrowserLayoutEffect.ts'
 import { useCopyToClipboard } from '#hooks/useCopyToClipboard.ts'
@@ -364,63 +365,69 @@ export function DocContent(props: {
           )}
         </article>
 
-        <aside className="border-gray-a3 hidden w-64 border-s lg:block">
-          <div className="minimal-scrollbar sticky top-17 h-[calc(100dvh-4.25rem)] overflow-y-auto py-8 ps-6 pe-6">
-            {hasHeadings && (
-              <>
-                <div className="text-gray9 flex items-center gap-2 text-xs font-medium tracking-wide uppercase">
-                  <IconOcticonListUnordered24 aria-hidden className="size-4 shrink-0" />
-                  <p>On this page</p>
+        <aside className="group border-gray-a3 hidden w-64 border-s lg:block">
+          <div className="minimal-scrollbar sticky top-17 flex h-[calc(100dvh-4.25rem)] flex-col overflow-y-auto py-8 ps-6 pe-6">
+            <div>
+              {hasHeadings && (
+                <>
+                  <div className="text-gray9 flex items-center gap-2 text-xs font-medium tracking-wide uppercase">
+                    <IconOcticonListUnordered24 aria-hidden className="size-4 shrink-0" />
+                    <p>On this page</p>
+                  </div>
+                  <DesktopDocOutline
+                    activeHeadingId={activeHeadingId}
+                    headings={outlineHeadings}
+                    onHeadingSelect={selectOutlineHeading}
+                  />
+                </>
+              )}
+
+              <div
+                className="data-[has-headings]:border-gray-a3 data-[has-headings]:mt-4 data-[has-headings]:border-t data-[has-headings]:pt-4"
+                data-has-headings={hasHeadings ? '' : undefined}
+              >
+                <div className="flex flex-col gap-1">
+                  <CopyPageButton
+                    className="text-gray9 hover:text-gray10 -ms-2 hidden py-1 ps-2 text-sm lg:flex"
+                    copyPage={copy}
+                    copied={copied}
+                  />
+
+                  <a
+                    className="text-gray9 hover:text-gray10 -ms-2 flex items-center gap-2.5 py-1 ps-2 text-sm select-none"
+                    href={markdownHref}
+                    rel="noopener noreferrer"
+                    target="_blank"
+                  >
+                    <IconOcticonMarkdown16 className="size-4 shrink-0" />
+                    <span>View markdown</span>
+                  </a>
+
+                  <a
+                    className="text-gray9 hover:text-gray10 -ms-2 flex items-center gap-2.5 py-1 ps-2 text-sm select-none"
+                    href={`${config.repoBaseUrl}/issues/new/choose`}
+                    rel="noopener noreferrer"
+                    target="_blank"
+                  >
+                    <IconOcticonMarkGithub16 className="size-4 shrink-0" />
+                    <span>Report issue</span>
+                  </a>
+
+                  <a
+                    className="text-gray9 hover:text-gray10 -ms-2 flex items-center gap-2.5 py-1 ps-2 text-sm select-none"
+                    href={editHref}
+                    rel="noopener noreferrer"
+                    target="_blank"
+                  >
+                    <IconOcticonPencil16 className="size-4 shrink-0" />
+                    <span className="select-none">Edit page</span>
+                  </a>
                 </div>
-                <DesktopDocOutline
-                  activeHeadingId={activeHeadingId}
-                  headings={outlineHeadings}
-                  onHeadingSelect={selectOutlineHeading}
-                />
-              </>
-            )}
-
-            <div
-              className="data-[has-headings]:border-gray-a3 data-[has-headings]:mt-4 data-[has-headings]:border-t data-[has-headings]:pt-4"
-              data-has-headings={hasHeadings ? '' : undefined}
-            >
-              <div className="flex flex-col gap-1">
-                <CopyPageButton
-                  className="text-gray9 hover:text-gray10 -ms-2 hidden py-1 ps-2 text-sm lg:flex"
-                  copyPage={copy}
-                  copied={copied}
-                />
-
-                <a
-                  className="text-gray9 hover:text-gray10 -ms-2 flex items-center gap-2.5 py-1 ps-2 text-sm select-none"
-                  href={markdownHref}
-                  rel="noopener noreferrer"
-                  target="_blank"
-                >
-                  <IconOcticonMarkdown16 className="size-4 shrink-0" />
-                  <span>View markdown</span>
-                </a>
-
-                <a
-                  className="text-gray9 hover:text-gray10 -ms-2 flex items-center gap-2.5 py-1 ps-2 text-sm select-none"
-                  href={`${config.repoBaseUrl}/issues/new/choose`}
-                  rel="noopener noreferrer"
-                  target="_blank"
-                >
-                  <IconOcticonMarkGithub16 className="size-4 shrink-0" />
-                  <span>Report issue</span>
-                </a>
-
-                <a
-                  className="text-gray9 hover:text-gray10 -ms-2 flex items-center gap-2.5 py-1 ps-2 text-sm select-none"
-                  href={editHref}
-                  rel="noopener noreferrer"
-                  target="_blank"
-                >
-                  <IconOcticonPencil16 className="size-4 shrink-0" />
-                  <span className="select-none">Edit page</span>
-                </a>
               </div>
+            </div>
+
+            <div className="mt-auto flex justify-start ps-2 pt-6">
+              <Sheep.Root className="opacity-[0.35] grayscale transition-[filter,opacity] group-focus-within:opacity-100 group-focus-within:grayscale-0 group-hover:opacity-100 group-hover:grayscale-0 data-[sheep-animating]:opacity-100 data-[sheep-animating]:grayscale-0" />
             </div>
           </div>
         </aside>
