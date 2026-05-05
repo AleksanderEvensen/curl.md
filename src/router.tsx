@@ -40,7 +40,10 @@ export function getRouter() {
       tunnel: rpc.api.tunnel.$url().pathname,
       integrations: [
         Sentry.tanstackRouterBrowserTracingIntegration(router),
-        Sentry.replayIntegration(),
+        Sentry.replayIntegration({
+          blockAllMedia: false,
+          maskAllText: false,
+        }),
       ],
       environment: __ENV__,
       release: __GIT_SHA__,

@@ -111,7 +111,10 @@ function SettingsForm(props: {
             {entity.avatar_url ? (
               <img alt={entity.name ?? entity.login} className="size-16" src={entity.avatar_url} />
             ) : (
-              <span className="bg-gray-a3 flex size-16 items-center justify-center text-xl uppercase">
+              <span
+                className="bg-gray-a3 flex size-16 items-center justify-center text-xl uppercase"
+                data-sentry-mask
+              >
                 {(entity.name ?? entity.login)[0]}
               </span>
             )}
@@ -193,7 +196,10 @@ function SettingsForm(props: {
             </div>
             <Dialog.Description>
               To confirm, type your current login{' '}
-              <span className="text-gray12 font-medium">{entity.login}</span>.
+              <span className="text-gray12 font-medium" data-sentry-mask>
+                {entity.login}
+              </span>
+              .
             </Dialog.Description>
             <input
               autoComplete="off"
@@ -288,7 +294,10 @@ function DeleteOrganization(props: {
             </div>
             <Dialog.Description>
               To confirm, type the organization login{' '}
-              <span className="text-gray12 font-medium">{props.entity.login}</span>.
+              <span className="text-gray12 font-medium" data-sentry-mask>
+                {props.entity.login}
+              </span>
+              .
             </Dialog.Description>
             <input
               autoComplete="off"
@@ -379,7 +388,10 @@ function DeleteAccount(props: { account: { id: string; login: string }; onDelete
             </div>
             <Dialog.Description>
               To confirm, type your login{' '}
-              <span className="text-gray12 font-medium">{props.account.login}</span>.
+              <span className="text-gray12 font-medium" data-sentry-mask>
+                {props.account.login}
+              </span>
+              .
             </Dialog.Description>
             <input
               autoComplete="off"

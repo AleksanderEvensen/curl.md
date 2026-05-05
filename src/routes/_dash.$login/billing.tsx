@@ -236,20 +236,22 @@ function Component() {
                       {pm.funding !== 'unknown' && (
                         <span className="text-gray8">{pm.funding} </span>
                       )}
-                      <span className="text-gray8">&bull;&bull;&bull;&bull; {pm.last4}</span>
+                      <span className="text-gray8" data-sentry-mask>
+                        &bull;&bull;&bull;&bull; {pm.last4}
+                      </span>
                       {pm.is_default && (
                         <span className="border-gray-a3 text-gray8 ms-2 inline-flex items-center border px-1 py-0.5 text-xs leading-none uppercase">
                           Default
                         </span>
                       )}
                     </div>
-                    <div className="text-gray8 md:hidden">
+                    <div className="text-gray8 md:hidden" data-sentry-mask>
                       Valid until {pm.exp_month}/{String(pm.exp_year).slice(-2)}
                     </div>
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-3">
-                  <span className="text-gray8 hidden text-sm md:inline">
+                  <span className="text-gray8 hidden text-sm md:inline" data-sentry-mask>
                     Valid until {pm.exp_month}/{String(pm.exp_year).slice(-2)}
                   </span>
                   <Menu.Root>
@@ -436,7 +438,7 @@ function TransactionHistory(props: {
             Balance
           </Dashboard.Table.Th>
         </Dashboard.Table.Thead>
-        <tbody>
+        <tbody data-sentry-mask>
           {data.transactions.map((tx, i) => {
             const balanceAfter =
               props.balanceMills -

@@ -292,7 +292,9 @@ function AccountSwitcher(props: {
           avatarUrl={props.entity.avatar_url ?? undefined}
           name={props.entity.name ?? props.entity.login}
         />
-        <span className="truncate">{props.entity.name ?? props.entity.login}</span>
+        <span className="truncate" data-sentry-mask>
+          {props.entity.name ?? props.entity.login}
+        </span>
         <IconLucideChevronsUpDown className="text-gray8 ms-auto size-3.5 shrink-0" />
       </Menu.Trigger>
       <Menu.Portal>
@@ -314,7 +316,9 @@ function AccountSwitcher(props: {
                 }
               >
                 <EntityAvatar avatarUrl={e.avatar_url ?? undefined} name={e.name ?? e.login} />
-                <span className="truncate">{e.name ?? e.login}</span>
+                <span className="truncate" data-sentry-mask>
+                  {e.name ?? e.login}
+                </span>
               </Menu.Item>
             ))}
             {props.others.length > 0 && <div className="border-gray-a2 -mx-1 my-1 border-t" />}
@@ -506,7 +510,10 @@ function EntityAvatar(props: { avatarUrl?: string | null | undefined; name: stri
   if (props.avatarUrl)
     return <img alt={props.name} className="size-6 shrink-0" src={props.avatarUrl} />
   return (
-    <span className="bg-gray-a3 flex size-6 shrink-0 items-center justify-center text-xs uppercase">
+    <span
+      className="bg-gray-a3 flex size-6 shrink-0 items-center justify-center text-xs uppercase"
+      data-sentry-mask
+    >
       {props.name[0]}
     </span>
   )

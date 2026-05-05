@@ -32,7 +32,7 @@ function Stat(props: { label: string; tooltip?: React.ReactNode; value?: string 
   return (
     <div className="bg-gray-a1/50 border-gray-a3 relative border px-3 py-3">
       <div className="text-gray8 text-xs">{props.label}</div>
-      <div className="mt-1 text-2xl font-bold tabular-nums">
+      <div className="mt-1 text-2xl font-bold tabular-nums" data-sentry-mask>
         {props.value ?? <span className="text-gray5">&mdash;</span>}
       </div>
       {props.tooltip && (
