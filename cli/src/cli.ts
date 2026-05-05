@@ -27,11 +27,11 @@ const env = z.object({
 })
 
 const vars = z.object({
-  apiKey: z.custom<string | undefined>(),
-  baseUrl: z.custom<string>(),
-  client: z.custom<Client>(),
-  commands: z.custom<Command[]>(),
-  session: z.custom<Session.Data | null>(),
+  apiKey: z.custom<string>().optional(),
+  baseUrl: z.custom<string>().default(defaultBaseUrl),
+  client: z.custom<Client>().default(undefined as never),
+  commands: z.custom<Command[]>().default([]),
+  session: z.custom<Session.Data | null>().default(null),
 })
 
 const root = {

@@ -31,10 +31,23 @@ export default Sentry.withSentry<Env, QueueHandlerMessage>(
   {
     async fetch(request, env, ctx) {
       const url = new URL(request.url)
+
       const firstSegment = url.pathname.split('/')[1] ?? ''
+      const protocol =
+        request.headers.get('x-forwarded-proto') ??
+        (() => {
+          const cfVisitor = request.headers.get('cf-visitor')
+          if (!cfVisitor) return undefined
+          try {
+            return z.object({ scheme: z.string() }).parse(JSON.parse(cfVisitor)).scheme
+          } catch {
+            return undefined
+          }
+        })() ??
+        url.protocol.slice(0, -1)
 
       // Keep unauthenticated curl fetch paths working over HTTP, but enforce HTTPS elsewhere.
-      if (url.protocol === 'http:' && url.hostname === env.HOST) {
+      if (protocol === 'http' && url.hostname === env.HOST) {
         const isFetchPath = firstSegment.includes('.') || /^https?:$/.test(firstSegment)
         if (!isFetchPath) {
           url.protocol = 'https:'
