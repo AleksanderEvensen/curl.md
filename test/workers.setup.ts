@@ -9,6 +9,16 @@ process.on('unhandledRejection', (reason) => {
   throw reason
 })
 
+process.on('uncaughtException', (error) => {
+  if (
+    error instanceof Error &&
+    'code' in error &&
+    (error.code === 'ECONNRESET' || error.code === 'EPIPE')
+  )
+    return
+  throw error
+})
+
 beforeAll(() => {
   server.listen({ onUnhandledRequest: 'error' })
   return () => {

@@ -43,6 +43,25 @@ description: Review available Cloudflare API token permissions.
   expect(result.content).toContain('| User Details Edit | Grants write access to user details. |')
 })
 
+test('cloudflare trims blank padding inside first-party markdown code fences', async () => {
+  const md = create({
+    fetch: async () =>
+      new Response('```\n\nlower(http.host) == "www.cloudflare.com"\n\n\n```\n', {
+        headers: { 'content-type': 'text/markdown; charset=utf-8' },
+        status: 200,
+      }),
+    rules: [cloudflare()],
+  })
+
+  const result = await md.fetch(
+    'https://developers.cloudflare.com/ruleset-engine/rules-language/functions/',
+  )
+  expect(result.ok).toBe(true)
+  if (!result.ok) return
+
+  expect(result.content).toBe('```\nlower(http.host) == "www.cloudflare.com"\n```')
+})
+
 test('cloudflare rewrites slashless docs pages to /index.md', async () => {
   let request: Request | undefined
 

@@ -586,7 +586,7 @@ function parseHtmlTagAttributes(tag: string): Record<string, string> {
 }
 
 function normalizeMarkdown(content: string, origin?: string, profile?: DetectedProfile): string {
-  const normalized = profile?.normalize?.(content) ?? content
+  const normalized = normalizeCodeFencePadding(profile?.normalize?.(content) ?? content)
   return (
     normalized
       // Remove links with no text (e.g. `[](/)`)
@@ -631,4 +631,33 @@ function normalizeMarkdown(content: string, origin?: string, profile?: DetectedP
       })
       .trim()
   )
+}
+
+function normalizeCodeFencePadding(content: string): string {
+  const lines = content.split('\n')
+  const normalized: string[] = []
+  let codeFence: { char: '`' | '~'; length: number; lines: string[] } | undefined
+
+  for (const line of lines) {
+    if (codeFence) {
+      const closeMatch = line.match(/^(`{3,}|~{3,})\s*$/)
+      if (closeMatch?.[1]?.startsWith(codeFence.char) && closeMatch[1].length >= codeFence.length) {
+        while (codeFence.lines[0]?.trim() === '') codeFence.lines.shift()
+        while (codeFence.lines.at(-1)?.trim() === '') codeFence.lines.pop()
+        normalized.push(...codeFence.lines, line)
+        codeFence = undefined
+        continue
+      }
+      codeFence.lines.push(line)
+      continue
+    }
+
+    const openMatch = line.match(/^(`{3,}|~{3,})/)
+    if (openMatch?.[1])
+      codeFence = { char: openMatch[1][0] as '`' | '~', length: openMatch[1].length, lines: [] }
+    normalized.push(line)
+  }
+
+  if (codeFence) normalized.push(...codeFence.lines)
+  return normalized.join('\n')
 }

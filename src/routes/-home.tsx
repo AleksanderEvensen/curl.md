@@ -56,7 +56,7 @@ export function Home(props: { login?: string | null | undefined }) {
             URL to markdown
             <br className="hidden md:block" /> for agents
           </h1>
-          <p className="text-gray8 mt-4 text-lg leading-relaxed">
+          <p className="text-gray8 mt-6 text-lg leading-relaxed">
             Turn websites into optimized, low token output to supercharge your context. Works with
             every agent.
           </p>

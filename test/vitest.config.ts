@@ -13,6 +13,18 @@ import { Env } from './env.ts'
 
 const root = path.resolve(import.meta.dirname, '..')
 
+// TODO: remove once porsager/postgres fixes CF polyfill socket teardown.
+// https://github.com/cloudflare/workers-sdk/issues/11532
+process.on('uncaughtException', (error) => {
+  if (
+    error instanceof Error &&
+    'code' in error &&
+    (error.code === 'ECONNRESET' || error.code === 'EPIPE')
+  )
+    return
+  throw error
+})
+
 const reporters = [isAgent ? 'agent' : 'default']
 if (process.env.GITHUB_ACTIONS === 'true') reporters.push('github-actions')
 

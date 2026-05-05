@@ -31,8 +31,7 @@ async function getElement(env: Cloudflare.Env, db: Database, query: query) {
       return playgroundVariant()
     }
     case 'index': {
-      const tokensSaved = await getTokensSaved(env, db)
-      return indexVariant(tokensSaved)
+      return indexVariant()
     }
   }
 }
@@ -58,18 +57,15 @@ function docsVariant(title: string, description: string | undefined) {
   )
 }
 
-function indexVariant(tokensSaved: number) {
+function indexVariant() {
   return (
     <div tw="relative flex w-full h-full bg-black text-[#ededed] font-[Geist_Mono] px-[80px] py-[40px]">
-      <div tw="flex flex-1 flex-col items-center justify-center">
+      <div tw="flex flex-1 flex-col items-center justify-center pt-[56px]">
         <BrandLogo height={56} width={772} />
         <div tw="text-[#a1a1a1] text-[54px] mt-[44px] text-center">URL to markdown for agents</div>
-      </div>
-      <div tw="absolute right-[80px] bottom-[40px] left-[80px] flex items-end justify-between">
-        <div tw="text-[#a1a1a1] text-[36px] tracking-[0.08em] uppercase leading-none">
-          tokens saved
+        <div tw="bg-[#171717] text-[#ededed] text-[42px] mt-[44px] px-[28px] py-[16px]">
+          npm i -g curl.md
         </div>
-        <div tw="text-[#ededed] text-[36px] leading-none">{formatNumber(tokensSaved)}</div>
       </div>
     </div>
   )

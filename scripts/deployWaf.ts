@@ -49,12 +49,14 @@ const botPaths = [
 ]
 
 const excludePrefixes = ['/assets/', '/.well-known/', '/sheep/']
-const excludePaths = ['/api/og.png', '/dark.svg', '/favicon.svg', '/light.svg']
+const excludePaths = ['/api/og.png', '/dark.svg', '/favicon.svg', '/light.svg', '/og.png']
+const excludeWildcards = ['/*.*/*']
 
 const expression = [
   `(${[
     ...excludePrefixes.map((p) => `not starts_with(http.request.uri.path, "${p}")`),
     ...excludePaths.map((p) => `http.request.uri.path ne "${p}"`),
+    ...excludeWildcards.map((p) => `not (http.request.uri.path wildcard "${p}")`),
   ].join(
     ' and ',
   )} and (${extensions.map((ext) => `ends_with(http.request.uri.path, "${ext}")`).join(' or ')}))`,
