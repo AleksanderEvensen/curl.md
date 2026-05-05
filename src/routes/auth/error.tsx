@@ -28,7 +28,7 @@ function Component() {
           <h1 className="text-lg font-bold capitalize">{search.error.replace(/[_-]/g, ' ')}</h1>
           <p className="text-gray8 mt-2 text-sm leading-relaxed">{search.error_description}</p>
           <a
-            className="bg-gray10 text-bg1 rounded-0.5 mt-6 flex h-11 w-full items-center justify-center gap-2 px-4 transition-opacity hover:opacity-90"
+            className="bg-gray10 text-bg1 mt-6 flex h-11 w-full items-center justify-center gap-2 px-4 transition-opacity hover:opacity-90"
             href="/login"
           >
             Try again

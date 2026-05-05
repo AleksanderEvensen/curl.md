@@ -42,7 +42,7 @@ function Component() {
   if (!data?.pi_secret || !stripePromise || !isPaymentIntentClientSecret(data.pi_secret))
     return (
       <PageWrapper title="Add Credits" description="Add prepaid credits to your account.">
-        <p className="text-red9 border-red-a3 rounded-0.5 flex h-11 items-center gap-2 border px-3 text-sm">
+        <p className="text-red9 border-red-a3 flex h-11 items-center gap-2 border px-3 text-sm">
           <IconOcticonCircleSlash16 />
           Payment session expired or not found.
         </p>
@@ -111,7 +111,7 @@ function CheckoutForm(props: {
   return (
     <PageWrapper title="Add Credits" description="Add prepaid credits to your account.">
       {payment.isSuccess && !props.next ? (
-        <p className="text-green9 border-green-a3 rounded-0.5 flex h-11 items-center gap-2 border px-3 text-sm">
+        <p className="text-green9 border-green-a3 flex h-11 items-center gap-2 border px-3 text-sm">
           <IconOcticonCheck16 />
           Payment successful
         </p>
@@ -124,7 +124,7 @@ function CheckoutForm(props: {
           }}
         >
           {props.locked ? (
-            <div className="border-gray-a3 bg-gray-a1/50 rounded-0.5 flex h-11 items-center justify-between border px-3 text-sm">
+            <div className="border-gray-a3 bg-gray-a1/50 flex h-11 items-center justify-between border px-3 text-sm">
               <span className="text-gray10 font-semibold">Amount: ${amount / 100}</span>
               <span className="text-gray8 text-sm">~{estimateRequests(amount * 10)} requests</span>
             </div>
@@ -137,7 +137,7 @@ function CheckoutForm(props: {
             >
               {amounts.map((amount) => (
                 <Radio.Root
-                  className="group border-gray-a3 data-[checked]:border-gray10 bg-gray-a1/50 rounded-0.5 flex h-11 items-center justify-between border px-3 text-sm select-none disabled:opacity-50"
+                  className="group border-gray-a3 data-[checked]:border-gray10 bg-gray-a1/50 flex h-11 items-center justify-between border px-3 text-sm select-none disabled:opacity-50"
                   key={amount}
                   value={String(amount)}
                 >
@@ -150,7 +150,7 @@ function CheckoutForm(props: {
             </RadioGroup>
           )}
           {props.savedPaymentMethodsUnavailable && (
-            <div className="text-yellow11 bg-yellow-a2 border-yellow-a4 rounded-0.5 flex items-start gap-2 border px-3 py-2 text-sm">
+            <div className="text-yellow11 bg-yellow-a2 border-yellow-a4 flex items-start gap-2 border px-3 py-2 text-sm">
               <IconOcticonAlert16 aria-hidden className="mt-0.5 size-4 shrink-0" />
               <div>
                 <p className="font-medium">Saved payment methods unavailable</p>
@@ -172,7 +172,7 @@ function CheckoutForm(props: {
             }}
           />
           <button
-            className="bg-gray10 text-bg1 rounded-0.5 flex h-11 items-center justify-center px-4 transition-opacity hover:opacity-90 data-[submitting]:opacity-50"
+            className="bg-gray10 text-bg1 flex h-11 items-center justify-center px-4 transition-opacity hover:opacity-90 data-[submitting]:opacity-50"
             data-submitting={payment.isPending ? '' : undefined}
             disabled={!stripe || payment.isPending || updateAmount.isPending}
             type="submit"

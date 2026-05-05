@@ -80,7 +80,7 @@ function Component() {
 
           {state === 'error' && (
             <p
-              className="text-red9 border-red-a3 rounded-0.5 mt-8 flex min-h-11 max-w-md items-start gap-2 self-center border px-3 py-3 text-sm md:self-start"
+              className="text-red9 border-red-a3 mt-8 flex min-h-11 max-w-md items-start gap-2 self-center border px-3 py-3 text-sm md:self-start"
               role="alert"
             >
               <IconOcticonAlert16 className="mt-0.5 shrink-0" />
@@ -92,7 +92,7 @@ function Component() {
             <div className="mt-8 flex flex-wrap justify-center gap-2 md:justify-start">
               {user_code.split('').map((char, index) => (
                 <div
-                  className="bg-gray-a1 rounded-0.5 flex items-center justify-center px-4 py-3 text-xl font-bold md:px-5 md:py-4 md:text-2xl"
+                  className="bg-gray-a1 flex items-center justify-center px-4 py-3 text-xl font-bold md:px-5 md:py-4 md:text-2xl"
                   key={`${index}-${char}`}
                 >
                   {char}
@@ -103,7 +103,7 @@ function Component() {
 
           {state === 'success' ? (
             <p
-              className="text-green9 border-green-a3 rounded-0.5 mt-8 flex h-11 items-center gap-2 self-center border px-3 text-sm"
+              className="text-green9 border-green-a3 mt-8 flex h-11 items-center gap-2 self-center border px-3 text-sm"
               role="status"
             >
               <IconOcticonCheck16 />
@@ -112,7 +112,7 @@ function Component() {
           ) : state !== 'error' && user_code ? (
             <div className="mt-8 flex gap-3 self-center">
               <button
-                className="bg-gray10 text-bg1 rounded-0.5 flex h-11 items-center px-4 transition-opacity hover:opacity-90 disabled:opacity-50"
+                className="bg-gray10 text-bg1 flex h-11 items-center px-4 transition-opacity hover:opacity-90 disabled:opacity-50"
                 data-confirming={state === 'confirming' ? '' : undefined}
                 disabled={state === 'confirming'}
                 onClick={() => confirm.mutate(user_code)}
@@ -121,7 +121,7 @@ function Component() {
                 {state === 'confirming' ? 'Confirming' : 'Confirm code'}
               </button>
               <a
-                className="border-gray-a3 text-gray9 hover:bg-gray-a1 hover:text-gray10 focus:bg-gray-a1 focus:text-gray10 rounded-0.5 flex h-11 items-center border px-4"
+                className="border-gray-a3 text-gray9 hover:bg-gray-a1 hover:text-gray10 focus:bg-gray-a1 focus:text-gray10 flex h-11 items-center border px-4"
                 href="/"
               >
                 Cancel

@@ -47,7 +47,7 @@ function Root(props: React.PropsWithChildren<{ fixed?: boolean }>) {
 function Skip() {
   return (
     <a
-      className="bg-gray10 text-bg1 rounded-0.5 sr-only z-60 text-sm focus:not-sr-only focus:fixed focus:start-6 focus:top-4 focus:block focus:px-3 focus:py-1.5"
+      className="bg-gray10 text-bg1 sr-only z-60 text-sm focus:not-sr-only focus:fixed focus:start-6 focus:top-4 focus:block focus:px-3 focus:py-1.5"
       href={`#${skipId}`}
     >
       Skip to content
@@ -61,9 +61,9 @@ function LogoContextMenu(props: React.PropsWithChildren<{ copyWordmark: () => vo
       <ContextMenu.Trigger render={props.children as React.ReactElement} />
       <ContextMenu.Portal>
         <ContextMenu.Positioner className="z-[100] outline-hidden">
-          <ContextMenu.Popup className="bg-gray1 text-gray12 outline-gray5 rounded-0.5 min-w-64 origin-[var(--transform-origin)] p-1 text-sm shadow-lg outline-1 data-[ending-style]:opacity-0">
+          <ContextMenu.Popup className="bg-gray1 text-gray12 outline-gray5 min-w-64 origin-[var(--transform-origin)] p-1 text-sm shadow-lg outline-1 data-[ending-style]:opacity-0">
             <ContextMenu.Item
-              className="data-[highlighted]:bg-gray3 rounded-0.5 flex cursor-default items-center gap-3 px-3 py-2 outline-hidden select-none"
+              className="data-[highlighted]:bg-gray3 flex cursor-default items-center gap-3 px-3 py-2 outline-hidden select-none"
               onClick={props.copyWordmark}
             >
               <span aria-hidden="true" className="text-gray8 w-4 text-center font-mono text-base">
@@ -72,7 +72,7 @@ function LogoContextMenu(props: React.PropsWithChildren<{ copyWordmark: () => vo
               Copy Wordmark as SVG
             </ContextMenu.Item>
             <ContextMenu.Item
-              className="data-[highlighted]:bg-gray3 rounded-0.5 flex cursor-default items-center gap-3 px-3 py-2 outline-hidden select-none"
+              className="data-[highlighted]:bg-gray3 flex cursor-default items-center gap-3 px-3 py-2 outline-hidden select-none"
               render={<Link params={{ _splat: 'brand' }} to="/docs/$" />}
             >
               <IconOcticonPaintbrush16 aria-hidden="true" className="text-gray8 size-4" />

@@ -85,7 +85,7 @@ function AddCreditsDialogLoader(props: {
       stripe={stripePromise}
     >
       {data.saved_payment_methods_unavailable && (
-        <div className="text-yellow11 bg-yellow-a2 border-yellow-a4 rounded-0.5 flex items-start gap-2 border px-3 py-2 text-sm">
+        <div className="text-yellow11 bg-yellow-a2 border-yellow-a4 flex items-start gap-2 border px-3 py-2 text-sm">
           <IconOcticonAlert16 aria-hidden className="mt-0.5 size-4 shrink-0" />
           <div>
             <p className="font-medium">Saved payment methods unavailable</p>
@@ -140,7 +140,7 @@ function AddCreditsForm(props: {
         payment.mutate()
       }}
     >
-      <div className="border-gray-a3 bg-gray-a1/50 rounded-0.5 flex h-11 items-center justify-between border px-3 text-sm">
+      <div className="border-gray-a3 bg-gray-a1/50 flex h-11 items-center justify-between border px-3 text-sm">
         <span className="text-gray10 font-semibold">Amount: ${props.amount / 100}</span>
         <span className="text-gray8 text-sm">~{estimateRequests(props.amount * 10)} requests</span>
       </div>
@@ -155,7 +155,7 @@ function AddCreditsForm(props: {
         }}
       />
       <button
-        className="bg-gray10 text-bg1 rounded-0.5 flex h-11 items-center justify-center px-4 transition-opacity hover:opacity-90 data-[submitting]:opacity-50"
+        className="bg-gray10 text-bg1 flex h-11 items-center justify-center px-4 transition-opacity hover:opacity-90 data-[submitting]:opacity-50"
         data-submitting={payment.isPending ? '' : undefined}
         disabled={!stripe || payment.isPending}
         type="submit"

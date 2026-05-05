@@ -218,7 +218,7 @@ function Component() {
                 </label>
                 <input
                   ref={inputRef}
-                  className="bg-gray-a1 text-gray10 placeholder:text-gray9 dark:placeholder:text-gray6 rounded-0.5 w-full px-2 py-1"
+                  className="bg-gray-a1 text-gray10 placeholder:text-gray9 dark:placeholder:text-gray6 w-full px-2 py-1"
                   id="url"
                   onBlur={() => {
                     const stripped = url.replace(/^https?:\/\//, '')
@@ -235,7 +235,7 @@ function Component() {
                   o=
                 </label>
                 <input
-                  className="bg-gray-a1 text-gray10 placeholder:text-gray9 dark:placeholder:text-gray6 rounded-0.5 w-full px-2 py-1"
+                  className="bg-gray-a1 text-gray10 placeholder:text-gray9 dark:placeholder:text-gray6 w-full px-2 py-1"
                   id="objective"
                   onChange={(e) => setObjective(e.target.value)}
                   placeholder="objective (optional)"
@@ -248,7 +248,7 @@ function Component() {
                   k=
                 </label>
                 <input
-                  className="bg-gray-a1 text-gray10 placeholder:text-gray9 dark:placeholder:text-gray6 rounded-0.5 w-full px-2 py-1"
+                  className="bg-gray-a1 text-gray10 placeholder:text-gray9 dark:placeholder:text-gray6 w-full px-2 py-1"
                   id="keywords"
                   onChange={(e) => setKeywords(e.target.value)}
                   placeholder="keywords (optional)"
@@ -258,7 +258,7 @@ function Component() {
               </div>
               <div className="flex gap-2">
                 <button
-                  className="bg-gray10 text-bg1 not-disabled:hover:bg-gray9 rounded-0.5 px-3 py-1 disabled:opacity-50"
+                  className="bg-gray10 text-bg1 not-disabled:hover:bg-gray9 px-3 py-1 disabled:opacity-50"
                   disabled={mutation.isPending || !url.trim()}
                   type="submit"
                 >
@@ -266,7 +266,7 @@ function Component() {
                 </button>
                 {mutation.isPending && (
                   <button
-                    className="text-gray9 hover:text-gray10 dark:text-gray6 rounded-0.5 px-3 py-1"
+                    className="text-gray9 hover:text-gray10 dark:text-gray6 px-3 py-1"
                     onClick={() => abortRef.current?.abort()}
                     type="button"
                   >
@@ -275,7 +275,7 @@ function Component() {
                 )}
                 {hasResult && (
                   <button
-                    className="text-gray9 hover:text-gray10 dark:text-gray6 rounded-0.5 px-3 py-1"
+                    className="text-gray9 hover:text-gray10 dark:text-gray6 px-3 py-1"
                     onClick={() => {
                       mutation.reset()
                       setInputs({ url: '', q: '', k: '' })
@@ -295,7 +295,7 @@ function Component() {
                 </p>
                 {examples.map((example) => (
                   <button
-                    className="bg-gray-a2 text-gray9 not-disabled:hover:bg-gray-a3 dark:text-gray6 rounded-0.5 p-3 text-start break-all disabled:opacity-50"
+                    className="bg-gray-a2 text-gray9 not-disabled:hover:bg-gray-a3 dark:text-gray6 p-3 text-start break-all disabled:opacity-50"
                     disabled={mutation.isPending}
                     key={example.url}
                     onClick={() => {
@@ -361,7 +361,7 @@ function Component() {
             {hasResult && (
               <div className="text-gray9 dark:text-gray6 -mx-6 flex flex-col gap-1 md:hidden">
                 {markdown && (
-                  <pre className="minimal-scrollbar bg-bg2 text-gray10 rounded-0.5 px-6 py-4 break-words whitespace-pre-wrap">
+                  <pre className="minimal-scrollbar bg-bg2 text-gray10 px-6 py-4 break-words whitespace-pre-wrap">
                     {markdown}
                   </pre>
                 )}
@@ -382,16 +382,16 @@ function Component() {
                 <div className="absolute end-2 top-2 z-10">
                   <CopyButton text={markdown} />
                 </div>
-                <pre className="minimal-scrollbar bg-bg2 text-gray10 rounded-0.5 min-h-0 grow overflow-auto p-4 break-words whitespace-pre-wrap [scrollbar-gutter:stable]">
+                <pre className="minimal-scrollbar bg-bg2 text-gray10 min-h-0 grow overflow-auto p-4 break-words whitespace-pre-wrap [scrollbar-gutter:stable]">
                   {markdown}
                 </pre>
               </>
             ) : (
-              <div className="bg-bg2 text-gray9 dark:text-gray6 rounded-0.5 flex min-h-0 grow flex-col gap-4 p-4 [scrollbar-gutter:stable]">
+              <div className="bg-bg2 text-gray9 dark:text-gray6 flex min-h-0 grow flex-col gap-4 p-4 [scrollbar-gutter:stable]">
                 <p>Enter a URL and click Fetch, or try an example:</p>
                 {examples.map((example) => (
                   <button
-                    className="bg-gray-a2 text-gray9 not-disabled:hover:bg-gray-a3 dark:text-gray6 rounded-0.5 p-3 text-start disabled:opacity-50"
+                    className="bg-gray-a2 text-gray9 not-disabled:hover:bg-gray-a3 dark:text-gray6 p-3 text-start disabled:opacity-50"
                     disabled={mutation.isPending}
                     key={example.url}
                     onClick={() => {
@@ -432,7 +432,7 @@ function CopyButton(props: { text: string }) {
 
   return (
     <button
-      className="text-gray9 hover:text-gray10 dark:text-gray6 rounded-0.5 flex items-center gap-1"
+      className="text-gray9 hover:text-gray10 dark:text-gray6 flex items-center gap-1"
       onClick={() => copy(text)}
       type="button"
     >

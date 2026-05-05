@@ -30,7 +30,7 @@ function Section(props: React.PropsWithChildren<{ title: string }>) {
 
 function Stat(props: { label: string; tooltip?: React.ReactNode; value?: string | undefined }) {
   return (
-    <div className="bg-gray-a1/50 border-gray-a3 rounded-0.5 relative border px-3 py-3">
+    <div className="bg-gray-a1/50 border-gray-a3 relative border px-3 py-3">
       <div className="text-gray8 text-xs">{props.label}</div>
       <div className="mt-1 text-2xl font-bold tabular-nums">
         {props.value ?? <span className="text-gray5">&mdash;</span>}
@@ -46,7 +46,7 @@ function Stat(props: { label: string; tooltip?: React.ReactNode; value?: string 
             </Tooltip.Trigger>
             <Tooltip.Portal>
               <Tooltip.Positioner sideOffset={4}>
-                <Tooltip.Popup className="bg-bg1 border-gray-a3 before:bg-gray-a1/50 rounded-0.5 relative z-50 max-w-64 border px-2.5 py-1.5 text-xs leading-relaxed before:absolute before:inset-0 before:-z-1">
+                <Tooltip.Popup className="bg-bg1 border-gray-a3 before:bg-gray-a1/50 relative z-50 max-w-64 border px-2.5 py-1.5 text-xs leading-relaxed before:absolute before:inset-0 before:-z-1">
                   {props.tooltip}
                 </Tooltip.Popup>
               </Tooltip.Positioner>
@@ -60,7 +60,7 @@ function Stat(props: { label: string; tooltip?: React.ReactNode; value?: string 
 
 function Table(props: React.PropsWithChildren<{ className?: string }>) {
   return (
-    <div className="border-gray-a3 bg-gray-a1/50 rounded-0.5 min-w-0 border">
+    <div className="border-gray-a3 bg-gray-a1/50 min-w-0 border">
       <div className="minimal-scrollbar min-w-0 overflow-x-auto">
         <table className={`w-full ${props.className ?? 'text-xs'}`}>{props.children}</table>
       </div>

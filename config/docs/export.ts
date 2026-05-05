@@ -12,6 +12,7 @@ const docsPublicDirectoryPath = path.dirname(docsGeneratedManifestPath)
 const sitemapPath = path.join(process.cwd(), 'public/sitemap.xml')
 const sidebarPath = path.join(docsDirectoryPath, '_sidebar.ts')
 const llmsExcludedDocPaths = new Set(['privacy', 'terms'])
+const llmsFullExcludedDocPaths = new Set([...llmsExcludedDocPaths, 'brand', 'dev/kitchen-sink'])
 
 type DocsLlmsSection = {
   docs: Array<{ description: string | undefined; path: string; title: string }>
@@ -74,7 +75,7 @@ export function generateDocsLlmsFullTxt(props: { docs: Array<DocsStaticFile> }) 
 
     if (doc.description) lines.push(doc.description, '')
 
-    lines.push(doc.source)
+    lines.push(demoteMarkdownHeadings(doc.source))
   }
 
   return `${lines.join('\n')}\n`
@@ -109,8 +110,14 @@ export function generateSitemapXml(props: {
 export function getDocsInSidebarOrder<
   obj extends { description: string | undefined; path: string; title: string },
 >(docsByPath: Map<string, obj>, sidebarItems: Array<SidebarItem>) {
-  const docs = collectSidebarDocs(sidebarItems, docsByPath)
-  const seenPaths = new Set(docs.map((doc) => doc.path))
+  const docs: Array<obj> = []
+  const seenPaths = new Set<string>()
+
+  for (const doc of [docsByPath.get(''), ...collectSidebarDocs(sidebarItems, docsByPath)]) {
+    if (!doc || seenPaths.has(doc.path)) continue
+    docs.push(doc)
+    seenPaths.add(doc.path)
+  }
 
   for (const doc of docsByPath.values()) {
     if (seenPaths.has(doc.path)) continue
@@ -168,11 +175,17 @@ export async function syncDocsStaticAssets() {
     source: rewriteGeneratedDocsLinks(doc.source),
   }))
   const llmsDocs = docsWithRewrittenLinks.filter((doc) => !llmsExcludedDocPaths.has(doc.path))
+  const llmsFullDocs = docsWithRewrittenLinks.filter(
+    (doc) => !llmsFullExcludedDocPaths.has(doc.path),
+  )
   const docsByPath = new Map(llmsDocs.map((doc) => [doc.path, doc]))
+  const llmsFullDocsByPath = new Map(llmsFullDocs.map((doc) => [doc.path, doc]))
   const files = [
     {
       filePath: path.join(docsPublicDirectoryPath, 'llms-full.txt'),
-      content: generateDocsLlmsFullTxt({ docs: getDocsInSidebarOrder(docsByPath, sidebar) }),
+      content: generateDocsLlmsFullTxt({
+        docs: getDocsInSidebarOrder(llmsFullDocsByPath, sidebar),
+      }),
     },
     {
       filePath: path.join(docsPublicDirectoryPath, 'llms.txt'),
@@ -286,6 +299,27 @@ function collectSidebarDocs<
 function normalizeSidebarPath(pathname: string) {
   if (pathname === '/') return ''
   return pathname.replace(/^\//, '')
+}
+
+function demoteMarkdownHeadings(source: string) {
+  let fence: { char: string; length: number } | null = null
+
+  return source
+    .split('\n')
+    .map((line) => {
+      const fenceMatch = /^( {0,3})([`~]{3,})/.exec(line)
+      if (fenceMatch) {
+        const marker = fenceMatch[2] ?? ''
+        const char = marker.slice(0, 1)
+        if (!fence) fence = { char, length: marker.length }
+        else if (char === fence.char && marker.length >= fence.length) fence = null
+        return line
+      }
+
+      if (fence) return line
+      return line.replace(/^(#{1,6})(?=\s)/, (hashes) => '#'.repeat(Math.min(hashes.length + 2, 6)))
+    })
+    .join('\n')
 }
 
 function escapeXml(value: string) {

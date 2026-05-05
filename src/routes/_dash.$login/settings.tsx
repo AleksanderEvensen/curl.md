@@ -78,7 +78,7 @@ function SettingsForm(props: {
   return (
     <>
       <form
-        className={`bg-gray-a1/50 border-gray-a3 rounded-0.5 flex flex-col gap-4 border p-4 ${props.className ?? ''}`}
+        className={`bg-gray-a1/50 border-gray-a3 flex flex-col gap-4 border p-4 ${props.className ?? ''}`}
         noValidate
         onInput={(e) => {
           const form = e.currentTarget
@@ -109,18 +109,14 @@ function SettingsForm(props: {
         <div className="flex flex-col gap-1.5">
           <div className="flex items-center gap-3">
             {entity.avatar_url ? (
-              <img
-                alt={entity.name ?? entity.login}
-                className="rounded-0.5 size-16"
-                src={entity.avatar_url}
-              />
+              <img alt={entity.name ?? entity.login} className="size-16" src={entity.avatar_url} />
             ) : (
-              <span className="bg-gray-a3 rounded-0.5 flex size-16 items-center justify-center text-xl uppercase">
+              <span className="bg-gray-a3 flex size-16 items-center justify-center text-xl uppercase">
                 {(entity.name ?? entity.login)[0]}
               </span>
             )}
             <button
-              className="bg-gray-a2 text-gray8 rounded-0.5 h-8 cursor-not-allowed px-3 text-sm opacity-50"
+              className="bg-gray-a2 text-gray8 h-8 cursor-not-allowed px-3 text-sm opacity-50"
               disabled
               type="button"
             >
@@ -132,7 +128,7 @@ function SettingsForm(props: {
           <Field.Label className="text-gray8 text-xs">Name</Field.Label>
           <Field.Control
             autoComplete="off"
-            className="bg-bg1 border-gray-a3 data-[invalid]:border-red9 rounded-0.5 h-9 w-full border px-3 text-sm"
+            className="bg-bg1 border-gray-a3 data-[invalid]:border-red9 h-9 w-full border px-3 text-sm"
             data-1p-ignore
             defaultValue={entity.name ?? ''}
             placeholder="Display name"
@@ -146,7 +142,7 @@ function SettingsForm(props: {
           <Field.Label className="text-gray8 text-xs">Login</Field.Label>
           <Field.Control
             autoComplete="off"
-            className="bg-bg1 border-gray-a3 data-[invalid]:border-red9 rounded-0.5 h-9 w-full border px-3 text-sm"
+            className="bg-bg1 border-gray-a3 data-[invalid]:border-red9 h-9 w-full border px-3 text-sm"
             data-1p-ignore
             defaultValue={entity.login}
             pattern="^[a-z0-9][a-z0-9\-]*[a-z0-9]$"
@@ -161,7 +157,7 @@ function SettingsForm(props: {
           </Field.Error>
         </Field.Root>
         <button
-          className="bg-gray10 text-bg1 rounded-0.5 h-8 self-start px-3 text-sm disabled:opacity-50"
+          className="bg-gray10 text-bg1 h-8 self-start px-3 text-sm disabled:opacity-50"
           disabled={!isDirty || update.isPending}
           type="submit"
         >
@@ -185,7 +181,7 @@ function SettingsForm(props: {
           <Dialog.Popup>
             <Dialog.CloseX />
             <Dialog.Title>Change login</Dialog.Title>
-            <div className="bg-amber3/20 border-amber5/30 text-amber9 rounded-0.5 border px-3 py-2 text-sm">
+            <div className="bg-amber3/20 border-amber5/30 text-amber9 border px-3 py-2 text-sm">
               <p className="flex items-center gap-1.5 font-medium">
                 <IconOcticonAlert16 />
                 Warning
@@ -201,18 +197,18 @@ function SettingsForm(props: {
             </Dialog.Description>
             <input
               autoComplete="off"
-              className="bg-gray-a1/50 border-gray-a3 rounded-0.5 w-full border px-3 py-2 text-sm"
+              className="bg-gray-a1/50 border-gray-a3 w-full border px-3 py-2 text-sm"
               data-1p-ignore
               onChange={(e) => setConfirmLogin(e.target.value)}
               placeholder={entity.login}
               value={confirmLogin}
             />
             <div className="flex justify-end gap-2">
-              <Dialog.Close className="text-gray9 hover:bg-gray-a2 rounded-0.5 px-3 py-1.5 text-sm">
+              <Dialog.Close className="text-gray9 hover:bg-gray-a2 px-3 py-1.5 text-sm">
                 Cancel
               </Dialog.Close>
               <button
-                className="bg-amber9 rounded-0.5 px-3 py-1.5 text-sm text-white hover:opacity-90 disabled:opacity-50 dark:text-black"
+                className="bg-amber9 px-3 py-1.5 text-sm text-white hover:opacity-90 disabled:opacity-50 dark:text-black"
                 disabled={confirmLogin !== entity.login || update.isPending}
                 onClick={() => {
                   if (pendingData) update.mutate(pendingData)
@@ -248,7 +244,7 @@ function DeleteOrganization(props: {
 
   return (
     <Dashboard.Section title="Danger Zone">
-      <div className="bg-red9/8 border-red9/30 rounded-0.5 border p-4">
+      <div className="bg-red9/8 border-red9/30 border p-4">
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-sm font-medium">Delete organization</p>
@@ -257,7 +253,7 @@ function DeleteOrganization(props: {
             </p>
           </div>
           <button
-            className="bg-red9 text-bg1 rounded-0.5 shrink-0 px-3 py-1.5 text-sm transition-opacity hover:opacity-90"
+            className="bg-red9 text-bg1 shrink-0 px-3 py-1.5 text-sm transition-opacity hover:opacity-90"
             onClick={() => setOpen(true)}
             type="button"
           >
@@ -281,7 +277,7 @@ function DeleteOrganization(props: {
           <Dialog.Popup>
             <Dialog.CloseX />
             <Dialog.Title>Delete organization</Dialog.Title>
-            <div className="bg-red3/20 border-red5/30 text-red9 rounded-0.5 border px-3 py-2 text-sm">
+            <div className="bg-red3/20 border-red5/30 text-red9 border px-3 py-2 text-sm">
               <p className="flex items-center gap-1.5 font-medium">
                 <IconOcticonStop16 />
                 Danger
@@ -296,7 +292,7 @@ function DeleteOrganization(props: {
             </Dialog.Description>
             <input
               autoComplete="off"
-              className="bg-gray-a1/50 border-gray-a3 rounded-0.5 w-full border px-3 py-2 text-sm"
+              className="bg-gray-a1/50 border-gray-a3 w-full border px-3 py-2 text-sm"
               data-1p-ignore
               onChange={(e) => setConfirmLogin(e.target.value)}
               placeholder={props.entity.login}
@@ -304,11 +300,11 @@ function DeleteOrganization(props: {
             />
             {remove.isError && <p className="text-red9 text-sm">{remove.error.message}</p>}
             <div className="flex justify-end gap-2">
-              <Dialog.Close className="text-gray9 hover:bg-gray-a2 rounded-0.5 px-3 py-1.5 text-sm">
+              <Dialog.Close className="text-gray9 hover:bg-gray-a2 px-3 py-1.5 text-sm">
                 Cancel
               </Dialog.Close>
               <button
-                className="bg-red9 text-bg1 rounded-0.5 px-3 py-1.5 text-sm disabled:opacity-50"
+                className="bg-red9 text-bg1 px-3 py-1.5 text-sm disabled:opacity-50"
                 disabled={confirmLogin !== props.entity.login || remove.isPending}
                 onClick={() => remove.mutate()}
                 type="button"
@@ -339,7 +335,7 @@ function DeleteAccount(props: { account: { id: string; login: string }; onDelete
 
   return (
     <Dashboard.Section title="Danger Zone">
-      <div className="bg-red9/5 border-red9/30 rounded-0.5 border p-4">
+      <div className="bg-red9/5 border-red9/30 border p-4">
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-sm font-medium">Delete account</p>
@@ -348,7 +344,7 @@ function DeleteAccount(props: { account: { id: string; login: string }; onDelete
             </p>
           </div>
           <button
-            className="bg-red9 text-bg1 rounded-0.5 shrink-0 px-3 py-1.5 text-sm transition-opacity hover:opacity-90"
+            className="bg-red9 text-bg1 shrink-0 px-3 py-1.5 text-sm transition-opacity hover:opacity-90"
             onClick={() => setOpen(true)}
             type="button"
           >
@@ -372,7 +368,7 @@ function DeleteAccount(props: { account: { id: string; login: string }; onDelete
           <Dialog.Popup>
             <Dialog.CloseX />
             <Dialog.Title>Delete account</Dialog.Title>
-            <div className="bg-red3/20 border-red5/30 text-red9 rounded-0.5 border px-3 py-2 text-sm">
+            <div className="bg-red3/20 border-red5/30 text-red9 border px-3 py-2 text-sm">
               <p className="flex items-center gap-1.5 font-medium">
                 <IconOcticonStop16 />
                 Danger
@@ -387,7 +383,7 @@ function DeleteAccount(props: { account: { id: string; login: string }; onDelete
             </Dialog.Description>
             <input
               autoComplete="off"
-              className="bg-gray-a1/50 border-gray-a3 rounded-0.5 w-full border px-3 py-2 text-sm"
+              className="bg-gray-a1/50 border-gray-a3 w-full border px-3 py-2 text-sm"
               data-1p-ignore
               onChange={(e) => setConfirmLogin(e.target.value)}
               placeholder={props.account.login}
@@ -395,11 +391,11 @@ function DeleteAccount(props: { account: { id: string; login: string }; onDelete
             />
             {remove.isError && <p className="text-red9 text-sm">{remove.error.message}</p>}
             <div className="flex justify-end gap-2">
-              <Dialog.Close className="text-gray9 hover:bg-gray-a2 rounded-0.5 px-3 py-1.5 text-sm">
+              <Dialog.Close className="text-gray9 hover:bg-gray-a2 px-3 py-1.5 text-sm">
                 Cancel
               </Dialog.Close>
               <button
-                className="bg-red9 text-bg1 rounded-0.5 px-3 py-1.5 text-sm disabled:opacity-50"
+                className="bg-red9 text-bg1 px-3 py-1.5 text-sm disabled:opacity-50"
                 disabled={confirmLogin !== props.account.login || remove.isPending}
                 onClick={() => remove.mutate()}
                 type="button"

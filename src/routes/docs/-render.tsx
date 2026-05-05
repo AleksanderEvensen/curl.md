@@ -224,7 +224,7 @@ export function DocContent(props: {
                 >
                   <div>
                     <Menu.Trigger
-                      className="border-gray-a3 text-gray9 hover:bg-gray-a2 hover:text-gray10 data-[popup-open]:bg-gray-a2 data-[popup-open]:text-gray10 rounded-0.5 flex shrink-0 items-center gap-2.5 border px-2 py-2 text-xs font-medium outline-none"
+                      className="border-gray-a3 text-gray9 hover:bg-gray-a2 hover:text-gray10 data-[popup-open]:bg-gray-a2 data-[popup-open]:text-gray10 flex shrink-0 items-center gap-2.5 border px-2 py-2 text-xs font-medium outline-none"
                       data-mobile-doc-outline-trigger=""
                       ref={mobileOutlineTriggerRef}
                     >
@@ -259,12 +259,12 @@ export function DocContent(props: {
                       }
                     >
                       <Menu.Popup
-                        className="bg-bg1 border-gray-a3 minimal-scrollbar rounded-0.5 max-h-[min(24rem,calc(100dvh-9rem))] w-full overflow-x-hidden overflow-y-auto overscroll-contain border p-0 shadow-2xl outline-none md:w-auto"
+                        className="bg-bg1 border-gray-a3 minimal-scrollbar max-h-[min(24rem,calc(100dvh-9rem))] w-full overflow-x-hidden overflow-y-auto overscroll-contain border p-0 shadow-2xl outline-none md:w-auto"
                         data-doc-mobile-outline-panel=""
                         id="docs-mobile-outline"
                       >
                         <Menu.Item
-                          className="text-gray9 data-[active]:text-gray10 data-[highlighted]:bg-gray-a2 data-[highlighted]:text-gray10 focus-visible:ring-blue8 rounded-0.5 flex items-center gap-3 px-6 py-2.5 text-sm outline-none focus-visible:ring-1 focus-visible:outline-none focus-visible:ring-inset data-[active]:[background-color:var(--color-docs-code-surface)] dark:data-[active]:[background-color:var(--color-gray1)]"
+                          className="text-gray9 data-[active]:text-gray10 data-[highlighted]:bg-gray-a2 data-[highlighted]:text-gray10 focus-visible:ring-blue8 flex items-center gap-3 px-6 py-2.5 text-sm outline-none focus-visible:ring-1 focus-visible:outline-none focus-visible:ring-inset data-[active]:[background-color:var(--color-docs-code-surface)] dark:data-[active]:[background-color:var(--color-gray1)]"
                           closeOnClick
                           data-active={activeHeadingId === undefined ? '' : undefined}
                           onClick={(event) => {
@@ -292,7 +292,7 @@ export function DocContent(props: {
                               <div aria-hidden="true" className="border-gray-a3 border-t" />
                             )}
                             <Menu.Item
-                              className="text-gray9 data-[active]:text-gray10 data-[highlighted]:bg-gray-a2 data-[highlighted]:text-gray10 focus-visible:ring-blue8 rounded-0.5 flex items-center gap-3 px-6 py-2.5 text-sm outline-none focus-visible:ring-1 focus-visible:outline-none focus-visible:ring-inset data-[active]:[background-color:var(--color-docs-code-surface)] dark:data-[active]:[background-color:var(--color-gray1)]"
+                              className="text-gray9 data-[active]:text-gray10 data-[highlighted]:bg-gray-a2 data-[highlighted]:text-gray10 focus-visible:ring-blue8 flex items-center gap-3 px-6 py-2.5 text-sm outline-none focus-visible:ring-1 focus-visible:outline-none focus-visible:ring-inset data-[active]:[background-color:var(--color-docs-code-surface)] dark:data-[active]:[background-color:var(--color-gray1)]"
                               closeOnClick
                               data-active={activeHeadingId === heading.id ? '' : undefined}
                               onClick={() => {
@@ -758,7 +758,7 @@ function DesktopDocOutline(props: {
         <li key={heading.id} style={{ paddingInlineStart: `${(heading.level - 2) * 0.75}rem` }}>
           <a
             aria-current={activeHeadingId === heading.id ? 'location' : undefined}
-            className="text-gray9 hover:text-gray10 hover:bg-gray-a2 data-[active]:text-gray10 rounded-0.5 -ms-2 block py-1 ps-2 pe-2 text-sm data-[active]:[background-color:var(--color-docs-code-surface)] dark:data-[active]:[background-color:var(--color-gray1)]"
+            className="text-gray9 hover:text-gray10 hover:bg-gray-a2 data-[active]:text-gray10 -ms-2 block py-1 ps-2 pe-2 text-sm data-[active]:[background-color:var(--color-docs-code-surface)] dark:data-[active]:[background-color:var(--color-gray1)]"
             data-active={activeHeadingId === heading.id ? '' : undefined}
             href={`#${heading.id}`}
             onMouseDown={() => onHeadingSelect(heading.id)}
@@ -950,7 +950,7 @@ function DocsInlineCode(props: React.ComponentProps<'code'>) {
   return (
     <code
       {...props}
-      className={['bg-gray-a2 rounded-0.5 px-1 py-0.5 text-[0.9375em]', props.className]
+      className={['bg-gray-a2 px-1 py-0.5 text-[0.9375em]', props.className]
         .filter(Boolean)
         .join(' ')}
     />
@@ -963,13 +963,13 @@ function Notice(
   const { children, preview = false, title, type = 'note' } = props
   const label = title ?? noticeTitles[type] ?? noticeTitles.note
   const noticeClassName = [
-    'data-[type=caution]:border-red9/30 data-[type=caution]:bg-red9/8 data-[type=hint]:border-blue9/30 data-[type=hint]:bg-blue9/8 data-[type=important]:border-purple9/30 data-[type=important]:bg-purple9/8 data-[type=note]:border-blue9/30 data-[type=note]:bg-blue9/8 data-[type=tip]:border-green9/30 data-[type=tip]:bg-green9/8 data-[type=warning]:border-amber9/30 data-[type=warning]:bg-amber9/8 rounded-0.5 border',
+    'data-[type=caution]:border-red9/30 data-[type=caution]:bg-red9/8 data-[type=hint]:border-blue9/30 data-[type=hint]:bg-blue9/8 data-[type=important]:border-purple9/30 data-[type=important]:bg-purple9/8 data-[type=note]:border-blue9/30 data-[type=note]:bg-blue9/8 data-[type=tip]:border-green9/30 data-[type=tip]:bg-green9/8 data-[type=warning]:border-amber9/30 data-[type=warning]:bg-amber9/8 border',
     preview ? 'mt-4 p-3 text-[0.8125rem]' : 'mt-6 p-4 text-[0.9375rem]',
   ]
     .filter(Boolean)
     .join(' ')
   const badgeClassName = [
-    'data-[type=caution]:border-red9/30 data-[type=caution]:bg-red9/8 data-[type=caution]:text-red9 data-[type=hint]:border-blue9/30 data-[type=hint]:bg-blue9/8 data-[type=hint]:text-blue9 data-[type=important]:border-purple9/30 data-[type=important]:bg-purple9/8 data-[type=important]:text-purple9 data-[type=note]:border-blue9/30 data-[type=note]:bg-blue9/8 data-[type=note]:text-blue9 data-[type=tip]:border-green9/30 data-[type=tip]:bg-green9/8 data-[type=tip]:text-green9 data-[type=warning]:border-amber9/30 data-[type=warning]:bg-amber9/8 data-[type=warning]:text-amber9 inline-flex items-center rounded-0.5 border',
+    'data-[type=caution]:border-red9/30 data-[type=caution]:bg-red9/8 data-[type=caution]:text-red9 data-[type=hint]:border-blue9/30 data-[type=hint]:bg-blue9/8 data-[type=hint]:text-blue9 data-[type=important]:border-purple9/30 data-[type=important]:bg-purple9/8 data-[type=important]:text-purple9 data-[type=note]:border-blue9/30 data-[type=note]:bg-blue9/8 data-[type=note]:text-blue9 data-[type=tip]:border-green9/30 data-[type=tip]:bg-green9/8 data-[type=tip]:text-green9 data-[type=warning]:border-amber9/30 data-[type=warning]:bg-amber9/8 data-[type=warning]:text-amber9 inline-flex items-center border',
     preview ? 'gap-1 px-1.5 py-0.5' : 'gap-1.5 px-1.5 py-0.5',
   ]
     .filter(Boolean)
@@ -1110,7 +1110,7 @@ function DocsButtonLink(
   const { children, href, icon, preview = false } = props
   const iconDefinition = getDocsButtonLinkIcon(icon)
   const className = [
-    'border-gray-a1 [background-color:var(--color-docs-surface)] text-gray9 inline-flex max-w-full min-w-0 items-center rounded-0.5 border no-underline select-none',
+    'border-gray-a1 [background-color:var(--color-docs-surface)] text-gray9 inline-flex max-w-full min-w-0 items-center border no-underline select-none',
     preview ? 'h-8 gap-1.5 px-2 text-[0.75rem]' : 'h-9 gap-2 px-2.5 text-sm',
     preview
       ? 'pointer-events-none'
@@ -1191,7 +1191,7 @@ function DocsCard(
   const { children, href, icon, preview = false, title } = props
   const iconDefinition = getDocsCardIcon(icon)
   const className = [
-    'border-gray-a1 [background-color:var(--color-docs-surface)] text-gray10 flex h-full flex-col rounded-0.5 border no-underline',
+    'border-gray-a1 [background-color:var(--color-docs-surface)] text-gray10 flex h-full flex-col border no-underline',
     preview ? 'gap-2.5 p-3' : 'gap-3 p-4 hover:bg-gray-a2',
   ]
     .filter(Boolean)
@@ -1201,7 +1201,7 @@ function DocsCard(
       {iconDefinition && (
         <span
           className={[
-            'bg-gray-a2 text-gray11 inline-flex items-center justify-center rounded-0.5',
+            'bg-gray-a2 text-gray11 inline-flex items-center justify-center',
             preview ? 'size-8' : 'size-9',
           ]
             .filter(Boolean)
@@ -1458,7 +1458,7 @@ function CodeGroupFrame(props: React.PropsWithChildren<{ preview?: boolean }>) {
     <div
       className={[
         preview ? 'mt-3' : 'mt-4',
-        'rounded-0.5 overflow-hidden [background-color:var(--color-docs-code-surface)]',
+        'overflow-hidden [background-color:var(--color-docs-code-surface)]',
       ]
         .filter(Boolean)
         .join(' ')}
@@ -1659,7 +1659,7 @@ function DocsCodeBlock(props: React.ComponentProps<'pre'> & { preview?: boolean 
 
   return (
     <div
-      className={['group/code relative rounded-0.5 overflow-hidden', preview ? 'mt-3' : 'mt-4']
+      className={['group/code relative overflow-hidden', preview ? 'mt-3' : 'mt-4']
         .filter(Boolean)
         .join(' ')}
       data-docs-code-block=""
@@ -1768,7 +1768,7 @@ function CodeBlockCopyButton(props: {
     <button
       aria-label={copied ? 'Code copied' : 'Copy code'}
       className={[
-        'text-gray8 hover:text-gray10 focus-visible:text-gray10 focus-visible:ring-blue8 z-10 rounded-0.5 p-1.5 [background-color:var(--docs-code-block-background)] focus:outline-none focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset data-[copied]:opacity-100',
+        'text-gray8 hover:text-gray10 focus-visible:text-gray10 focus-visible:ring-blue8 z-10 p-1.5 [background-color:var(--docs-code-block-background)] focus:outline-none focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset data-[copied]:opacity-100',
         floating
           ? headerAligned
             ? 'absolute end-3 top-[1.375rem] -translate-y-1/2'
@@ -1838,7 +1838,7 @@ function DocPaginationLink(props: {
 
   return (
     <Link
-      className="border-gray-a3 hover:bg-gray-a1/50 rounded-0.5 flex flex-col gap-1 border px-5 py-4 text-left data-[direction=next]:items-end data-[direction=next]:text-right"
+      className="border-gray-a3 hover:bg-gray-a1/50 flex flex-col gap-1 border px-5 py-4 text-left data-[direction=next]:items-end data-[direction=next]:text-right"
       data-direction={direction}
       to={getDocHref(doc.path)}
     >

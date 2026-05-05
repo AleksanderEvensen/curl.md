@@ -60,21 +60,18 @@ function NotFoundComponent() {
 
   return (
     <div className="mx-auto w-full max-w-[56rem] px-5 py-8 md:px-12 lg:px-0 lg:pt-12">
-      <div className="border-gray-a3 bg-gray-a1/40 rounded-0.5 max-w-2xl border px-6 py-8">
+      <div className="border-gray-a3 bg-gray-a1/40 max-w-2xl border px-6 py-8">
         <p className="text-gray8 text-xs font-medium tracking-wide uppercase">404</p>
         <h1 className="text-gray10 mt-3 text-2xl font-bold">Page not found</h1>
         <p className="text-gray8 mt-3 max-w-prose text-sm leading-relaxed">
           We couldn't find that docs page.
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
-          <Link
-            className="bg-gray10 text-bg1 rounded-0.5 px-3 py-1.5 text-sm hover:opacity-90"
-            to="/docs"
-          >
+          <Link className="bg-gray10 text-bg1 px-3 py-1.5 text-sm hover:opacity-90" to="/docs">
             Back to docs
           </Link>
           <Link
-            className="text-gray8 hover:text-gray10 rounded-0.5 px-3 py-1.5 text-sm"
+            className="text-gray8 hover:text-gray10 px-3 py-1.5 text-sm"
             to={signedIn ? '/home' : '/'}
           >
             Go home

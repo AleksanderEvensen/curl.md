@@ -59,13 +59,13 @@ function Component() {
           </Dialog.Description>
           <div className="flex justify-end gap-2">
             <Dialog.Close
-              className="text-gray9 hover:bg-gray-a2 rounded-0.5 px-3 py-1.5 text-sm"
+              className="text-gray9 hover:bg-gray-a2 px-3 py-1.5 text-sm"
               disabled={remove.isPending}
             >
               Cancel
             </Dialog.Close>
             <button
-              className="bg-red9 text-bg1 rounded-0.5 px-3 py-1.5 text-sm disabled:opacity-50"
+              className="bg-red9 text-bg1 px-3 py-1.5 text-sm disabled:opacity-50"
               disabled={remove.isPending}
               onClick={() => remove.mutate()}
               type="button"

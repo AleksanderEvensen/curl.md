@@ -125,8 +125,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_CONFIG_MANAGE_PACKAGE_MANAGER_VERSIONS: false
-          # TODO(public): uncomment when repo is public
-          # NPM_CONFIG_PROVENANCE: true
+          NPM_CONFIG_PROVENANCE: true
 
       - name: Resolve release tag
         id: resolve_tag

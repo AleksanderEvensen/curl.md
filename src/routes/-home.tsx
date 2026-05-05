@@ -33,7 +33,7 @@ export function Home(props: { login?: string | null | undefined }) {
           </Link>
           {login ? (
             <Link
-              className="bg-gray10 text-bg1 rounded-[2px] px-3 py-1.5 text-sm transition-opacity hover:opacity-90"
+              className="bg-gray10 text-bg1 px-3 py-1.5 text-sm transition-opacity hover:opacity-90"
               params={{ login }}
               to="/$login"
             >
@@ -41,7 +41,7 @@ export function Home(props: { login?: string | null | undefined }) {
             </Link>
           ) : (
             <Link
-              className="bg-gray10 text-bg1 rounded-[2px] px-3 py-1.5 text-sm transition-opacity hover:opacity-90"
+              className="bg-gray10 text-bg1 px-3 py-1.5 text-sm transition-opacity hover:opacity-90"
               to="/login"
             >
               Sign in
@@ -67,7 +67,7 @@ export function Home(props: { login?: string | null | undefined }) {
               <CostSaved />
             </div>
             <InstallTabs />
-            <p className="text-gray8/90 -mt-3 ps-3 text-sm">
+            <p className="text-gray8/90 -mt-3 ps-3 text-xs sm:text-sm">
               Use CLI or prefix any URL with `
               <a
                 className="hover:underline"
@@ -368,7 +368,7 @@ function TokensSaved() {
   return (
     <p className="mt-24 flex items-center gap-3 text-sm md:mt-44">
       <span
-        className="shrink-0 rounded-[2px] border px-1 py-0.5 text-xs uppercase"
+        className="shrink-0 border px-1 py-0.5 text-xs uppercase"
         style={{
           borderColor: 'var(--sheep-accent-border)',
           color: 'var(--sheep-accent)',
@@ -405,7 +405,7 @@ function CostSaved() {
     from: 'previous',
   })
   return (
-    <p className="text-gray8/90 mt-3 ps-3 text-sm tabular-nums">
+    <p className="text-gray8/90 mt-3 ps-3 text-xs tabular-nums sm:text-sm">
       Users saved ${formatCost(animated, 3)} by using curl.md
     </p>
   )
@@ -462,7 +462,7 @@ function InstallTabs() {
         ))}
       </Tabs.List>
       <button
-        className="bg-gray-a1/50 border-gray-a3 mt-0 flex w-full items-center justify-between gap-4 rounded-[2px] border px-3 py-3 text-start transition-opacity hover:opacity-80"
+        className="bg-gray-a1/50 border-gray-a3 mt-0 flex w-full items-center justify-between gap-4 border px-3 py-3 text-start transition-opacity hover:opacity-80"
         onClick={() => copy(active.plaintext)}
         type="button"
       >
@@ -483,7 +483,7 @@ function InstallCommand() {
 
   return (
     <button
-      className="bg-gray10 text-bg1 relative flex items-center rounded-[2px] py-3 ps-3 pe-10 text-start transition-opacity hover:opacity-90"
+      className="bg-gray10 text-bg1 relative flex items-center py-3 ps-3 pe-10 text-start transition-opacity hover:opacity-90"
       onClick={() => copy()}
       type="button"
     >

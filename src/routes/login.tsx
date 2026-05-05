@@ -43,7 +43,7 @@ function Component() {
             New to curl.md or been here before? Continue below to start curling.
           </p>
           <a
-            className="bg-gray10 text-bg1 rounded-0.5 mt-6 flex h-11 w-full items-center justify-center gap-2 px-4 transition-opacity hover:opacity-90"
+            className="bg-gray10 text-bg1 mt-6 flex h-11 w-full items-center justify-center gap-2 px-4 transition-opacity hover:opacity-90"
             href={href}
           >
             <IconOcticonMarkGithub16 className="size-5" />

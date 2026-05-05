@@ -222,7 +222,7 @@ test('generateDocsLlmsFullTxt combines the docs into one markdown document', () 
       {
         description: 'URL to markdown for agents',
         path: '',
-        source: '# Introduction\n\nHello world.',
+        source: '# Introduction\n\nHello world.\n\n```md\n# Preserved code heading\n```',
         title: 'Introduction',
       },
       {
@@ -239,10 +239,10 @@ test('generateDocsLlmsFullTxt combines the docs into one markdown document', () 
     '# curl.md Docs Full\n\n> Full markdown export of the canonical curl.md documentation.',
   )
   expect(llmsFull).toContain(
-    '## /docs/index.md\n\nURL to markdown for agents\n\n# Introduction\n\nHello world.',
+    '## /docs/index.md\n\nURL to markdown for agents\n\n### Introduction\n\nHello world.\n\n```md\n# Preserved code heading\n```',
   )
   expect(llmsFull).toContain(
-    '## /docs/getting-started/installation.md\n\nInstall the curl.md CLI\n\n# Installation\n\nRun the installer.',
+    '## /docs/getting-started/installation.md\n\nInstall the curl.md CLI\n\n### Installation\n\nRun the installer.',
   )
   expect(llmsFull.indexOf('## /docs/index.md')).toBeLessThan(
     llmsFull.indexOf('## /docs/getting-started/installation.md'),
@@ -292,11 +292,23 @@ test('getDocsInSidebarOrder follows sidebar order and appends docs missing from 
     ],
   )
 
-  expect(docs.map((doc) => doc.path)).toEqual(['guide/cli', 'install', ''])
+  expect(docs.map((doc) => doc.path)).toEqual(['', 'guide/cli', 'install'])
 })
 
-test('getDocsLlmsSections and llms-full inputs can exclude legal docs', () => {
+test('getDocsLlmsSections and llms-full inputs can exclude docs', () => {
   const docs = [
+    {
+      description: 'Brand assets',
+      path: 'brand',
+      source: '# Brand',
+      title: 'Brand',
+    },
+    {
+      description: 'Preview docs components',
+      path: 'dev/kitchen-sink',
+      source: '# Kitchen Sink',
+      title: 'Kitchen Sink',
+    },
     {
       description: 'Privacy policy',
       path: 'privacy',
@@ -318,16 +330,21 @@ test('getDocsLlmsSections and llms-full inputs can exclude legal docs', () => {
   ]
 
   const llmsDocs = docs.filter((doc) => !new Set(['privacy', 'terms']).has(doc.path))
+  const llmsFullDocs = docs.filter(
+    (doc) => !new Set(['brand', 'dev/kitchen-sink', 'privacy', 'terms']).has(doc.path),
+  )
   const sections = getDocsLlmsSections(new Map(llmsDocs.map((doc) => [doc.path, doc])), [
     { label: 'Introduction', path: '/', type: 'link' },
     { label: 'Terms of Use', path: '/terms', type: 'link' },
     { label: 'Privacy Policy', path: '/privacy', type: 'link' },
   ])
-  const llmsFull = generateDocsLlmsFullTxt({ docs: llmsDocs })
+  const llmsFull = generateDocsLlmsFullTxt({ docs: llmsFullDocs })
 
   expect(sections).toHaveLength(1)
   expect(sections[0]?.title).toBe('Overview')
   expect(sections[0]?.docs.map((doc) => doc.path)).toEqual([''])
+  expect(llmsFull).not.toContain('/docs/brand.md')
+  expect(llmsFull).not.toContain('/docs/dev/kitchen-sink.md')
   expect(llmsFull).toContain('## /docs/index.md')
   expect(llmsFull).not.toContain('/docs/privacy.md')
   expect(llmsFull).not.toContain('/docs/terms.md')
