@@ -151,10 +151,10 @@ If `SENTRY_AUTH_TOKEN` is missing, builds still pass, but Sentry releases and so
 
 ### HTTPS Enforcement
 
-Enforce HTTPS at Cloudflare instead of in the Worker.
+Keep Cloudflare's blanket HTTP-to-HTTPS redirect off so bare `curl curl.md/<url>` requests reach the Worker. The Worker serves unauthenticated URL-fetch paths over HTTP and redirects all other HTTP routes to HTTPS.
 
 1. Go to [Edge Certificates](https://dash.cloudflare.com/?to=/:account/:zone/ssl-tls/edge-certificates) for the `curl.md` zone.
-2. Enable [Always Use HTTPS](https://developers.cloudflare.com/ssl/edge-certificates/additional-options/always-use-https/).
+2. Disable [Always Use HTTPS](https://developers.cloudflare.com/ssl/edge-certificates/additional-options/always-use-https/).
 3. Enable [HTTP Strict Transport Security (HSTS)](https://developers.cloudflare.com/ssl/edge-certificates/additional-options/http-strict-transport-security/).
 4. Use these HSTS settings.
    - **Max Age Header**: `6 months`

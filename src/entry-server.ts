@@ -31,6 +31,23 @@ export default Sentry.withSentry<Env, QueueHandlerMessage>(
   {
     async fetch(request, env, ctx) {
       const url = new URL(request.url)
+      const firstSegment = url.pathname.split('/')[1] ?? ''
+
+      // Keep unauthenticated curl fetch paths working over HTTP, but enforce HTTPS elsewhere.
+      if (url.protocol === 'http:' && url.hostname === env.HOST) {
+        const isFetchPath = firstSegment.includes('.') || /^https?:$/.test(firstSegment)
+        if (!isFetchPath) {
+          url.protocol = 'https:'
+          return new Response(null, { status: 301, headers: { location: url.toString() } })
+        }
+        if (
+          request.headers.has('authorization') ||
+          request.headers.has('cookie') ||
+          url.searchParams.has('t') ||
+          url.searchParams.has('token')
+        )
+          return new Response('Use HTTPS for authenticated requests', { status: 400 })
+      }
 
       // Route API requests to the Hono API handler
       if (url.pathname.startsWith('/api/')) return api.fetch(new Request(url, request), env, ctx)
@@ -66,7 +83,6 @@ export default Sentry.withSentry<Env, QueueHandlerMessage>(
       }
 
       // Route dot-segment paths (e.g. curl.md/example.com) to the API handler under /api prefix
-      const firstSegment = url.pathname.split('/')[1] ?? ''
       if (firstSegment.includes('.') || /^https?:$/.test(firstSegment)) {
         const protocolMatch = url.pathname.match(/^\/(https?:\/\/)(.+)/)
         if (protocolMatch) {
