@@ -260,7 +260,7 @@ function Component() {
               />
               <button
                 aria-label={open ? 'Close navigation' : 'Open navigation'}
-                className="hover:bg-gray-a2 flex h-11 w-11 items-center justify-center p-0 md:hidden"
+                className="hover:bg-gray-a2 rounded-0.5 flex h-11 w-11 items-center justify-center p-0 md:hidden"
                 onClick={() => setOpen((o) => !o)}
                 type="button"
               >
@@ -294,7 +294,7 @@ function Component() {
                 <DocsDashboardLink login={docsSession.login} />
               ) : (
                 <Link
-                  className="bg-gray10 text-bg1 px-3 py-1.5 text-sm hover:opacity-90"
+                  className="bg-gray10 text-bg1 rounded-0.5 px-3 py-1.5 text-sm hover:opacity-90"
                   search={{ next }}
                   to="/login"
                 >
@@ -371,7 +371,7 @@ function Component() {
                             />
                           ) : (
                             <Link
-                              className="bg-gray10 text-bg1 px-3 py-1.5 text-sm hover:opacity-90"
+                              className="bg-gray10 text-bg1 rounded-0.5 px-3 py-1.5 text-sm hover:opacity-90"
                               onClick={() => setOpen(false)}
                               search={{ next }}
                               to="/login"
@@ -438,7 +438,7 @@ function MobileTopLinks(props: { onNavigate: () => void }) {
     <div className="flex flex-col gap-1">
       {config.navbarLinks.map((link) => (
         <NavbarLinkItem
-          className="text-gray9 hover:text-gray10 hover:bg-gray-a2 block px-2 py-1.5 text-sm"
+          className="text-gray9 hover:text-gray10 hover:bg-gray-a2 rounded-0.5 block px-2 py-1.5 text-sm"
           key={link.label}
           link={link}
           onClick={props.onNavigate}
@@ -470,7 +470,7 @@ function ThemeToggle() {
     <Menu.Root modal={false}>
       <Menu.Trigger
         className={[
-          'text-gray9 hover:text-gray10 hover:bg-gray-a2 data-[popup-open]:bg-gray-a2 data-[popup-open]:text-gray10 flex w-full items-center gap-2 px-3 py-2 outline-none',
+          'text-gray9 hover:text-gray10 hover:bg-gray-a2 data-[popup-open]:bg-gray-a2 data-[popup-open]:text-gray10 flex w-full items-center gap-2 rounded-0.5 px-3 py-2 outline-none',
           'text-[0.9375rem] md:text-sm',
         ]
           .filter(Boolean)
@@ -482,12 +482,12 @@ function ThemeToggle() {
 
       <Menu.Portal>
         <Menu.Positioner align="start" className="z-60 min-w-[var(--anchor-width)]" sideOffset={8}>
-          <Menu.Popup className="bg-bg1 border-gray-a3 w-full border p-1 shadow-2xl outline-none">
+          <Menu.Popup className="bg-bg1 border-gray-a3 rounded-0.5 w-full border p-1 shadow-2xl outline-none">
             <Menu.RadioGroup onValueChange={(value) => setTheme(value as Theme)} value={theme}>
               {themeOptions.map((option) => (
                 <Menu.RadioItem
                   className={[
-                    'text-gray9 data-[checked]:text-gray10 data-[highlighted]:bg-gray-a2 data-[highlighted]:text-gray10 flex items-center gap-2 px-3 py-2.5 outline-none md:py-2',
+                    'text-gray9 data-[checked]:text-gray10 data-[highlighted]:bg-gray-a2 data-[highlighted]:text-gray10 flex items-center gap-2 rounded-0.5 px-3 py-2.5 outline-none md:py-2',
                     'text-[0.9375rem] md:text-sm',
                   ]
                     .filter(Boolean)
@@ -569,7 +569,7 @@ function SidebarNavItem(props: { item: SidebarItem; onNavigate: () => void }) {
     return (
       <li>
         <a
-          className="text-gray9 hover:text-gray10 hover:bg-gray-a2 flex items-center gap-1.5 px-2 py-1.5 text-sm md:scroll-my-3"
+          className="text-gray9 hover:text-gray10 hover:bg-gray-a2 rounded-0.5 flex items-center gap-1.5 px-2 py-1.5 text-sm md:scroll-my-3"
           href={item.href}
           onClick={onNavigate}
         >
@@ -588,7 +588,7 @@ function SidebarNavItem(props: { item: SidebarItem; onNavigate: () => void }) {
           className:
             'text-gray10 [background-color:var(--color-docs-code-surface)] dark:[background-color:var(--color-gray1)]',
         }}
-        className="text-gray9 hover:text-gray10 hover:bg-gray-a2 flex items-center gap-1.5 px-2 py-1.5 text-sm md:scroll-my-3"
+        className="text-gray9 hover:text-gray10 hover:bg-gray-a2 rounded-0.5 flex items-center gap-1.5 px-2 py-1.5 text-sm md:scroll-my-3"
         onClick={onNavigate}
         to={to}
       >
@@ -613,7 +613,7 @@ function SearchTrigger(props: {
   return (
     <button
       aria-label="Search"
-      className="hover:bg-gray-a2 group sm:bg-gray1 dark:sm:bg-gray-a2 flex h-11 w-11 items-center justify-center p-0 text-sm sm:me-2 sm:h-8 sm:w-auto sm:justify-start sm:gap-2 sm:px-0 sm:ps-2.5 sm:pe-1"
+      className="hover:bg-gray-a2 group sm:bg-gray1 dark:sm:bg-gray-a2 rounded-0.5 flex h-11 w-11 items-center justify-center p-0 text-sm sm:me-2 sm:h-8 sm:w-auto sm:justify-start sm:gap-2 sm:px-0 sm:ps-2.5 sm:pe-1"
       onClick={props.onClick}
       ref={props.triggerRef}
       type="button"
@@ -661,7 +661,7 @@ function DocsDashboardLink(props: { login: string | null | undefined; onClick?: 
   if (login)
     return (
       <Link
-        className="bg-gray10 text-bg1 px-3 py-1.5 text-sm hover:opacity-90"
+        className="bg-gray10 text-bg1 rounded-0.5 px-3 py-1.5 text-sm hover:opacity-90"
         onClick={onClick}
         params={{ login }}
         to="/$login"
@@ -672,7 +672,7 @@ function DocsDashboardLink(props: { login: string | null | undefined; onClick?: 
 
   return (
     <Link
-      className="bg-gray10 text-bg1 px-3 py-1.5 text-sm hover:opacity-90"
+      className="bg-gray10 text-bg1 rounded-0.5 px-3 py-1.5 text-sm hover:opacity-90"
       onClick={onClick}
       to="/"
     >
@@ -829,7 +829,7 @@ function DocsSearchDialog(props: {
           Close search
         </button>
 
-        <div className="border-gray-a3 flex items-center gap-1.5 border p-4">
+        <div className="border-gray-a3 rounded-0.5 flex items-center gap-1.5 border p-4">
           <span aria-hidden="true" className="text-gray8 flex w-5 shrink-0 items-center">
             <IconLucideSearch className="size-4" />
           </span>
@@ -855,7 +855,7 @@ function DocsSearchDialog(props: {
             {props.query ? (
               <button
                 aria-label="Clear docs search"
-                className="text-gray8 hover:text-gray10 hover:bg-gray-a2 flex h-10 w-10 items-center justify-center p-0 md:h-auto md:w-auto md:p-1"
+                className="text-gray8 hover:text-gray10 hover:bg-gray-a2 rounded-0.5 flex h-10 w-10 items-center justify-center p-0 md:h-auto md:w-auto md:p-1"
                 onClick={props.onClear}
                 type="button"
               >
@@ -865,7 +865,7 @@ function DocsSearchDialog(props: {
             <button
               aria-label={props.showDetails ? 'Hide body previews' : 'Show body previews'}
               aria-pressed={props.showDetails}
-              className="text-gray8 hover:text-gray10 hover:bg-gray-a2 data-[active]:bg-gray-a2 data-[active]:text-gray10 flex h-10 w-10 items-center justify-center p-0 md:h-auto md:w-auto md:p-1"
+              className="text-gray8 hover:text-gray10 hover:bg-gray-a2 data-[active]:bg-gray-a2 data-[active]:text-gray10 rounded-0.5 flex h-10 w-10 items-center justify-center p-0 md:h-auto md:w-auto md:p-1"
               data-active={props.showDetails ? '' : undefined}
               onClick={props.toggleDetails}
               type="button"
@@ -874,7 +874,7 @@ function DocsSearchDialog(props: {
             </button>
             <button
               aria-label="Close search"
-              className="text-gray8 hover:text-gray10 hover:bg-gray-a2 flex h-10 w-10 items-center justify-center p-0 md:hidden"
+              className="text-gray8 hover:text-gray10 hover:bg-gray-a2 rounded-0.5 flex h-10 w-10 items-center justify-center p-0 md:hidden"
               onClick={props.onClose}
               type="button"
             >
@@ -889,7 +889,7 @@ function DocsSearchDialog(props: {
               <div className="mt-3 flex items-center justify-between gap-3 px-1">
                 <p className="text-gray8 text-xs font-medium">Recents</p>
                 <button
-                  className="text-gray8 hover:text-gray10 hover:bg-gray-a2 px-1 py-0.5 text-xs"
+                  className="text-gray8 hover:text-gray10 hover:bg-gray-a2 rounded-0.5 px-1 py-0.5 text-xs"
                   onClick={props.onClearRecents}
                   type="button"
                 >
@@ -904,7 +904,7 @@ function DocsSearchDialog(props: {
             >
               {(result, index) => (
                 <Combobox.Item
-                  className="border-gray-a3 bg-gray-a1/30 text-gray8 hover:bg-gray-a2 data-[highlighted]:border-blue6 data-[highlighted]:text-gray10 block cursor-default border p-4 outline-none"
+                  className="border-gray-a3 bg-gray-a1/30 text-gray8 hover:bg-gray-a2 data-[highlighted]:border-blue6 data-[highlighted]:text-gray10 rounded-0.5 block cursor-default border p-4 outline-none"
                   data-details={props.showDetails ? '' : undefined}
                   index={index}
                   key={getSearchResultId(result)}
@@ -965,7 +965,7 @@ function SearchKeyboardHint(props: { children: React.ReactNode; label: string })
 
 function SearchKeycap(props: { children: React.ReactNode }) {
   return (
-    <kbd className="border-gray-a3 text-gray9 inline-flex min-h-6 min-w-6 items-center justify-center border px-1.5 text-xs leading-none">
+    <kbd className="border-gray-a3 text-gray9 rounded-0.5 inline-flex min-h-6 min-w-6 items-center justify-center border px-1.5 text-xs leading-none">
       {props.children}
     </kbd>
   )
@@ -1172,7 +1172,7 @@ function renderSearchResultSnippetInline(markdown: string, terms: Array<string> 
     } else if (match[3]) {
       nodes.push(
         <code
-          className="border-gray-a3 bg-gray-a2 rounded-[2px] border px-1 py-px text-[0.875em]"
+          className="border-gray-a3 bg-gray-a2 rounded-0.5 border px-1 py-px text-[0.875em]"
           key={`${index}-code`}
         >
           {renderHighlightedSearchResultText(match[3], terms, `${index}-code`)}

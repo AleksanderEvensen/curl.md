@@ -5,7 +5,7 @@ export function stripeAppearance(theme: 'light' | 'dark'): Appearance {
     disableAnimations: true,
     theme: theme === 'dark' ? 'night' : 'stripe',
     variables: {
-      borderRadius: '0px',
+      borderRadius: '2px',
       colorBackground: color(theme, 'bga1'),
       colorDanger: color(theme, 'red9'),
       colorPrimary: color(theme, 'gray10'),

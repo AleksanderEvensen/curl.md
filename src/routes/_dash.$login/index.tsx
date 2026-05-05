@@ -58,7 +58,7 @@ function Component() {
 
       <UsageChart daily={data.daily} />
 
-      <section className="bg-gray-a1/50 border-gray-a3 mt-3 border px-4 py-4">
+      <section className="bg-gray-a1/50 border-gray-a3 rounded-0.5 mt-3 border px-4 py-4">
         <div className="flex flex-col gap-3">
           <div>
             <h2 className="text-sm font-bold">Setup Tools</h2>
@@ -137,7 +137,7 @@ function UsageChart(props: { daily: Array<{ date: string; tokens: number }> }) {
 
   if (!hasData) {
     return (
-      <div className="border-gray-a3 bg-gray-a1/50 relative mt-3 flex h-[228px] flex-col border px-3 py-3">
+      <div className="border-gray-a3 bg-gray-a1/50 rounded-0.5 relative mt-3 flex h-[228px] flex-col border px-3 py-3">
         <div className="flex flex-1 flex-col items-center justify-center">
           <span className="text-sm font-bold">No Data</span>
           <span className="text-gray8 mt-1 text-sm">No usage in the last 7 days.</span>
@@ -147,23 +147,23 @@ function UsageChart(props: { daily: Array<{ date: string; tokens: number }> }) {
   }
 
   return (
-    <div className="border-gray-a3 bg-gray-a1/50 relative mt-3 flex h-[228px] flex-col border px-3 py-3">
+    <div className="border-gray-a3 bg-gray-a1/50 rounded-0.5 relative mt-3 flex h-[228px] flex-col border px-3 py-3">
       <div className="flex items-center gap-2">
         <ToggleGroup
-          className="border-gray-a3 flex border p-0.5 text-xs"
+          className="border-gray-a3 rounded-0.5 flex border p-0.5 text-xs"
           value={[mode]}
           onValueChange={(value) => {
             if (value.length > 0) setMode(value[0] as 'cost' | 'tokens')
           }}
         >
           <Toggle
-            className="text-gray8 hover:text-gray10 data-[pressed]:bg-gray-a2 data-[pressed]:text-gray10 px-2.5 py-1"
+            className="text-gray8 hover:text-gray10 data-[pressed]:bg-gray-a2 data-[pressed]:text-gray10 rounded-0.5 px-2.5 py-1"
             value="tokens"
           >
             Tokens
           </Toggle>
           <Toggle
-            className="text-gray8 hover:text-gray10 data-[pressed]:bg-gray-a2 data-[pressed]:text-gray10 px-2.5 py-1"
+            className="text-gray8 hover:text-gray10 data-[pressed]:bg-gray-a2 data-[pressed]:text-gray10 rounded-0.5 px-2.5 py-1"
             value="cost"
           >
             Cost
@@ -232,9 +232,9 @@ function InstallTabs() {
           </Tabs.Tab>
         ))}
       </Tabs.List>
-      <div className="bg-bg1 border-gray-a3 overflow-hidden border">
+      <div className="bg-bg1 border-gray-a3 rounded-0.5 overflow-hidden border">
         <button
-          className="hover:bg-gray-a2/50 focus-visible:ring-blue8 flex w-full items-center justify-between gap-4 px-3 py-3 text-start transition-colors outline-none focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset"
+          className="hover:bg-gray-a2/50 focus-visible:ring-blue8 rounded-0.5 flex w-full items-center justify-between gap-4 px-3 py-3 text-start transition-colors outline-none focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset"
           onClick={() => copy(active.plaintext)}
           type="button"
         >
@@ -255,7 +255,7 @@ function AuthLoginCommand(props: { separator?: boolean }) {
   const { copied, copy } = useCopyToClipboard()
   return (
     <button
-      className={`hover:bg-gray-a2/50 focus-visible:ring-blue8 flex w-full items-center justify-between gap-4 px-3 py-3 text-start transition-colors outline-none focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset ${props.separator ? 'border-gray-a3 border-t' : ''}`}
+      className={`hover:bg-gray-a2/50 focus-visible:ring-blue8 rounded-0.5 flex w-full items-center justify-between gap-4 px-3 py-3 text-start transition-colors outline-none focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset ${props.separator ? 'border-gray-a3 border-t' : ''}`}
       onClick={() => copy('curl.md auth login')}
       type="button"
     >
@@ -276,9 +276,9 @@ function InstallCommand() {
   })
 
   return (
-    <div className="bg-bg1 border-gray-a3 overflow-hidden border">
+    <div className="bg-bg1 border-gray-a3 rounded-0.5 overflow-hidden border">
       <button
-        className="hover:bg-gray-a2/50 focus-visible:ring-blue8 flex w-full items-center justify-between gap-4 px-3 py-3 text-start transition-colors outline-none focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset"
+        className="hover:bg-gray-a2/50 focus-visible:ring-blue8 rounded-0.5 flex w-full items-center justify-between gap-4 px-3 py-3 text-start transition-colors outline-none focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset"
         onClick={() => copy()}
         type="button"
       >

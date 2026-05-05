@@ -58,7 +58,7 @@ function Component() {
               This invite link is invalid or has expired.
             </p>
             <a
-              className="bg-gray10 text-bg1 mt-6 flex h-11 w-full items-center justify-center px-4 transition-opacity hover:opacity-90"
+              className="bg-gray10 text-bg1 rounded-0.5 mt-6 flex h-11 w-full items-center justify-center px-4 transition-opacity hover:opacity-90"
               href="/"
             >
               Go home
@@ -80,7 +80,7 @@ function Component() {
               Sign in to accept this invite.
             </p>
             <a
-              className="bg-gray10 text-bg1 mt-6 flex h-11 w-full items-center justify-center gap-2 px-4 transition-opacity hover:opacity-90"
+              className="bg-gray10 text-bg1 rounded-0.5 mt-6 flex h-11 w-full items-center justify-center gap-2 px-4 transition-opacity hover:opacity-90"
               href={(() => {
                 const url = rpc.api.auth.github.$url({ query: { next: `/invite/${params.token}` } })
                 return `${url.pathname}${url.search}`
@@ -108,7 +108,7 @@ function Component() {
           {accept.error?.message && <p className="text-red9 mt-4">{accept.error.message}</p>}
 
           <button
-            className="bg-gray10 text-bg1 mt-6 flex h-11 w-full items-center justify-center px-4 transition-opacity hover:opacity-90 disabled:opacity-50"
+            className="bg-gray10 text-bg1 rounded-0.5 mt-6 flex h-11 w-full items-center justify-center px-4 transition-opacity hover:opacity-90 disabled:opacity-50"
             disabled={accept.isPending}
             onClick={() => accept.mutate()}
             type="button"

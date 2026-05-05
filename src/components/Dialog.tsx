@@ -16,7 +16,7 @@ function CloseX(
     <BaseDialog.Close
       aria-label="Close"
       {...props}
-      className="text-gray7 hover:bg-gray-a2 hover:text-gray12 absolute end-4 top-4 p-1"
+      className="text-gray7 hover:bg-gray-a2 hover:text-gray12 rounded-0.5 absolute end-4 top-4 p-1"
     >
       <IconOcticonX16 aria-hidden="true" className="size-4" />
     </BaseDialog.Close>
@@ -37,7 +37,7 @@ function Popup(props: React.ComponentProps<typeof BaseDialog.Popup>) {
   const closeRef = React.useRef<HTMLButtonElement>(null)
   const hasCustomMaxWidth = typeof className === 'string' ? /(^|\s)!?max-w-/.test(className) : false
   const baseClassName = [
-    'bg-bg1 border-gray-a3 pointer-events-auto relative my-[15dvh] flex w-full flex-col gap-4 border p-6',
+    'bg-bg1 border-gray-a3 pointer-events-auto relative my-[15dvh] flex w-full flex-col gap-4 rounded-0.5 border p-6',
     hasCustomMaxWidth ? undefined : 'max-w-md',
   ]
     .filter(Boolean)

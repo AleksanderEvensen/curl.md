@@ -86,11 +86,11 @@ function SetupFormLoader(props: {
         )}
       </div>
       <div className="flex justify-end gap-2">
-        <Dialog.Close className="text-gray9 hover:bg-gray-a2 px-3 py-1.5 text-sm">
+        <Dialog.Close className="text-gray9 hover:bg-gray-a2 rounded-0.5 px-3 py-1.5 text-sm">
           Cancel
         </Dialog.Close>
         <button
-          className="bg-gray10 text-bg1 px-3 py-1.5 text-sm disabled:opacity-50"
+          className="bg-gray10 text-bg1 rounded-0.5 px-3 py-1.5 text-sm disabled:opacity-50"
           disabled={!setup.data || isSaving}
           form="setup-payment-method"
           type="submit"

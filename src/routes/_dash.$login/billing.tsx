@@ -198,7 +198,7 @@ function Component() {
       <div className="mt-3 flex flex-wrap gap-2">
         {amounts.map((amount) => (
           <button
-            className="bg-gray10 text-bg1 px-3 py-1.5 text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
+            className="bg-gray10 text-bg1 rounded-0.5 px-3 py-1.5 text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
             disabled={addCredits.isPending}
             key={amount}
             onClick={() => addCredits.mutate(String(amount) as (typeof creditAmounts)[number])}
@@ -220,7 +220,7 @@ function Component() {
 
       <Dashboard.Section title="Payment Methods">
         {data.payment_methods.length > 0 ? (
-          <div className="bg-gray-a1/50 border-gray3 border">
+          <div className="bg-gray-a1/50 border-gray3 rounded-0.5 border">
             {data.payment_methods.map((pm) => (
               <div
                 className="border-gray3 flex items-center justify-between gap-3 border-b px-3 py-2 last:border-b-0"
@@ -238,7 +238,7 @@ function Component() {
                       )}
                       <span className="text-gray8">&bull;&bull;&bull;&bull; {pm.last4}</span>
                       {pm.is_default && (
-                        <span className="border-gray-a3 text-gray8 ms-2 inline-flex items-center border px-1 py-0.5 text-xs leading-none uppercase">
+                        <span className="border-gray-a3 text-gray8 rounded-0.5 ms-2 inline-flex items-center border px-1 py-0.5 text-xs leading-none uppercase">
                           Default
                         </span>
                       )}
@@ -253,16 +253,16 @@ function Component() {
                     Valid until {pm.exp_month}/{String(pm.exp_year).slice(-2)}
                   </span>
                   <Menu.Root>
-                    <Menu.Trigger className="text-gray8 hover:bg-gray-a2 p-1">
+                    <Menu.Trigger className="text-gray8 hover:bg-gray-a2 rounded-0.5 p-1">
                       <IconOcticonKebabHorizontal16 className="size-4" />
                     </Menu.Trigger>
                     <Menu.Portal>
                       <Menu.Positioner align="end" sideOffset={4}>
-                        <Menu.Popup className="bg-bg1 border-gray-a3 before:bg-gray-a1/50 relative min-w-36 border px-1 py-1 before:absolute before:inset-0 before:-z-1">
+                        <Menu.Popup className="bg-bg1 border-gray-a3 before:bg-gray-a1/50 rounded-0.5 relative min-w-36 border px-1 py-1 before:absolute before:inset-0 before:-z-1">
                           {!pm.is_default && (
                             <>
                               <Menu.Item
-                                className="text-gray9 hover:bg-gray-a2 hover:text-gray10 flex items-center gap-2 p-1.5 text-sm disabled:opacity-30"
+                                className="text-gray9 hover:bg-gray-a2 hover:text-gray10 rounded-0.5 flex items-center gap-2 p-1.5 text-sm disabled:opacity-30"
                                 disabled={setDefault.isPending}
                                 onClick={() => setDefault.mutate(pm.id)}
                               >
@@ -274,7 +274,7 @@ function Component() {
                             </>
                           )}
                           <Menu.Item
-                            className="text-red9 hover:bg-red2/80 flex items-center gap-2 p-1.5 text-sm"
+                            className="text-red9 hover:bg-red2/80 rounded-0.5 flex items-center gap-2 p-1.5 text-sm"
                             disabled={setDefault.isPending}
                             onClick={() => openRemoveDialog(pm.id)}
                           >
@@ -291,7 +291,7 @@ function Component() {
         ) : null}
         {!hasReachedPaymentMethodLimit && (
           <button
-            className="bg-gray10 text-bg1 self-start px-3 py-1.5 text-sm transition-opacity hover:opacity-90 data-[has-methods]:mt-3"
+            className="bg-gray10 text-bg1 rounded-0.5 self-start px-3 py-1.5 text-sm transition-opacity hover:opacity-90 data-[has-methods]:mt-3"
             data-has-methods={data.payment_methods.length > 0 ? '' : undefined}
             onClick={openSetupDialog}
             type="button"
@@ -399,7 +399,7 @@ function TransactionHistory(props: {
             {page > 0 && (
               <button
                 aria-label="Previous history page"
-                className="text-gray8 hover:bg-gray-a2 hover:text-gray12 p-0.5"
+                className="text-gray8 hover:bg-gray-a2 hover:text-gray12 rounded-0.5 p-0.5"
                 onClick={() => setPage(page - 1)}
                 type="button"
               >
@@ -411,7 +411,7 @@ function TransactionHistory(props: {
             </span>
             <button
               aria-label="Next history page"
-              className="text-gray8 hover:bg-gray-a2 hover:text-gray12 p-0.5 disabled:opacity-30"
+              className="text-gray8 hover:bg-gray-a2 hover:text-gray12 rounded-0.5 p-0.5 disabled:opacity-30"
               disabled={page >= totalPages - 1}
               onClick={() => setPage(page + 1)}
               type="button"

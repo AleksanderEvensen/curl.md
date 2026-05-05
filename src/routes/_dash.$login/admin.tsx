@@ -16,7 +16,7 @@ function Component() {
   return (
     <Dashboard.Content>
       <Dashboard.Heading level={1}>Admin</Dashboard.Heading>
-      <div className="bg-gray-a1/50 border-gray-a3 flex flex-col gap-3 border p-4">
+      <div className="bg-gray-a1/50 border-gray-a3 rounded-0.5 flex flex-col gap-3 border p-4">
         <div>
           <h2 className="text-sm font-bold">Sentry Test error reporting</h2>
           <p className="text-gray8 mt-1 text-sm">
@@ -24,7 +24,7 @@ function Component() {
           </p>
         </div>
         <button
-          className="bg-red9 text-bg1 h-8 self-start px-3 text-sm transition-opacity hover:opacity-90"
+          className="bg-red9 text-bg1 rounded-0.5 h-8 self-start px-3 text-sm transition-opacity hover:opacity-90"
           onClick={() => {
             setTriggered(true)
             console.info('Sentry test error triggered. Check the browser console and Sentry.')

@@ -192,7 +192,7 @@ function DashboardLayout(props: React.PropsWithChildren<{ data: DashboardLayoutD
             switchTo={switchTo}
           />
           <button
-            className="hover:bg-gray-a2 flex size-9 items-center justify-center md:hidden"
+            className="hover:bg-gray-a2 rounded-0.5 flex size-9 items-center justify-center md:hidden"
             onClick={() => setOpen((o) => !o)}
             type="button"
           >
@@ -231,21 +231,21 @@ function DashboardLayout(props: React.PropsWithChildren<{ data: DashboardLayoutD
             <div className="border-gray-a3 my-1.5 border-t" />
 
             <Link
-              className="text-gray8 hover:text-gray10 hover:bg-gray-a2 flex w-full items-center gap-2 px-2 py-1.5 text-sm"
+              className="text-gray8 hover:text-gray10 hover:bg-gray-a2 rounded-0.5 flex w-full items-center gap-2 px-2 py-1.5 text-sm"
               to="/docs"
             >
               <IconOcticonBook16 />
               Docs
             </Link>
             <Link
-              className="text-gray8 hover:text-gray10 hover:bg-gray-a2 flex w-full items-center gap-2 px-2 py-1.5 text-sm"
+              className="text-gray8 hover:text-gray10 hover:bg-gray-a2 rounded-0.5 flex w-full items-center gap-2 px-2 py-1.5 text-sm"
               to="/playground"
             >
               <IconOcticonTerminal16 />
               Playground
             </Link>
             <Link
-              className="text-gray8 hover:text-gray10 hover:bg-gray-a2 flex w-full items-center gap-2 px-2 py-1.5 text-sm"
+              className="text-gray8 hover:text-gray10 hover:bg-gray-a2 rounded-0.5 flex w-full items-center gap-2 px-2 py-1.5 text-sm"
               to="/home"
             >
               <IconOcticonHome16 />
@@ -287,7 +287,7 @@ function AccountSwitcher(props: {
 }) {
   return (
     <Menu.Root>
-      <Menu.Trigger className="hover:bg-gray-a2 flex cursor-default items-center gap-2 px-2 py-1.5 text-sm select-none md:w-full">
+      <Menu.Trigger className="hover:bg-gray-a2 rounded-0.5 flex cursor-default items-center gap-2 px-2 py-1.5 text-sm select-none md:w-full">
         <EntityAvatar
           avatarUrl={props.entity.avatar_url ?? undefined}
           name={props.entity.name ?? props.entity.login}
@@ -297,10 +297,10 @@ function AccountSwitcher(props: {
       </Menu.Trigger>
       <Menu.Portal>
         <Menu.Positioner align="start" className="z-20 max-md:!w-[calc(100vw-2rem)]" sideOffset={4}>
-          <Menu.Popup className="bg-bg1 border-gray-a3 before:bg-gray-a1/50 relative min-w-56 border px-1 py-1 select-none before:absolute before:inset-0 before:-z-1 md:max-w-64">
+          <Menu.Popup className="bg-bg1 border-gray-a3 before:bg-gray-a1/50 rounded-0.5 relative min-w-56 border px-1 py-1 select-none before:absolute before:inset-0 before:-z-1 md:max-w-64">
             {props.others.map((e) => (
               <Menu.Item
-                className="text-gray9 hover:bg-gray-a2 hover:text-gray10 flex items-center gap-2 p-1.5 text-sm select-none"
+                className="text-gray9 hover:bg-gray-a2 hover:text-gray10 rounded-0.5 flex items-center gap-2 p-1.5 text-sm select-none"
                 key={e.login}
                 render={
                   <Link
@@ -319,7 +319,7 @@ function AccountSwitcher(props: {
             ))}
             {props.others.length > 0 && <div className="border-gray-a2 -mx-1 my-1 border-t" />}
             <Menu.Item
-              className="text-gray9 hover:bg-gray-a2 hover:text-gray10 flex min-h-9 items-center gap-2 p-1.5 text-sm select-none"
+              className="text-gray9 hover:bg-gray-a2 hover:text-gray10 rounded-0.5 flex min-h-9 items-center gap-2 p-1.5 text-sm select-none"
               onClick={props.onCreateOrg}
             >
               <IconOcticonPlus16 className="size-4" />
@@ -327,7 +327,7 @@ function AccountSwitcher(props: {
             </Menu.Item>
             <div className="border-gray-a2 -mx-1 my-1 border-t" />
             <Menu.Item
-              className="text-gray9 hover:bg-gray-a2 hover:text-gray10 flex min-h-9 items-center gap-2 p-1.5 text-sm select-none disabled:opacity-30"
+              className="text-gray9 hover:bg-gray-a2 hover:text-gray10 rounded-0.5 flex min-h-9 items-center gap-2 p-1.5 text-sm select-none disabled:opacity-30"
               disabled={props.logout.isPending}
               onClick={() => props.logout.mutate()}
             >
@@ -360,11 +360,11 @@ function DashboardNotFoundContent(props: { login: string }) {
   return (
     <Dashboard.Content>
       <Dashboard.Heading level={1}>Not Found</Dashboard.Heading>
-      <div className="bg-gray-a1/50 border-gray-a3 border px-4 py-5">
+      <div className="bg-gray-a1/50 border-gray-a3 rounded-0.5 border px-4 py-5">
         <p className="text-sm font-bold">This dashboard page does not exist.</p>
         <p className="text-gray8 mt-1 text-sm">Check the URL or go back to the overview.</p>
         <Link
-          className="bg-gray10 text-bg1 mt-4 inline-flex px-3 py-1.5 text-sm transition-opacity hover:opacity-90"
+          className="bg-gray10 text-bg1 rounded-0.5 mt-4 inline-flex px-3 py-1.5 text-sm transition-opacity hover:opacity-90"
           params={{ login: props.login }}
           to="/$login"
         >
@@ -431,7 +431,7 @@ function CreateOrgDialog(props: {
               <Field.Label className="text-gray9 text-sm">Login</Field.Label>
               <Field.Control
                 autoComplete="off"
-                className="bg-gray-a1/50 border-gray-a3 w-full border px-3 py-2 text-sm"
+                className="bg-gray-a1/50 border-gray-a3 rounded-0.5 w-full border px-3 py-2 text-sm"
                 data-1p-ignore
                 name="login"
                 pattern="[a-z0-9][a-z0-9-]*[a-z0-9]"
@@ -445,7 +445,7 @@ function CreateOrgDialog(props: {
             <Field.Root>
               <Field.Label className="text-gray9 text-sm">Name (optional)</Field.Label>
               <Field.Control
-                className="bg-gray-a1/50 border-gray-a3 w-full border px-3 py-2 text-sm"
+                className="bg-gray-a1/50 border-gray-a3 rounded-0.5 w-full border px-3 py-2 text-sm"
                 data-1p-ignore
                 name="name"
                 placeholder="My Organization"
@@ -453,11 +453,11 @@ function CreateOrgDialog(props: {
             </Field.Root>
             {error && <p className="text-red9 text-sm">{error}</p>}
             <div className="flex justify-end gap-2">
-              <Dialog.Close className="text-gray9 hover:bg-gray-a2 px-3 py-1.5 text-sm">
+              <Dialog.Close className="text-gray9 hover:bg-gray-a2 rounded-0.5 px-3 py-1.5 text-sm">
                 Cancel
               </Dialog.Close>
               <button
-                className="bg-gray10 text-bg1 px-3 py-1.5 text-sm disabled:opacity-50"
+                className="bg-gray10 text-bg1 rounded-0.5 px-3 py-1.5 text-sm disabled:opacity-50"
                 disabled={create.isPending}
                 type="submit"
               >
@@ -483,7 +483,7 @@ function SidebarLink(
     <Link
       {...(props.activeOptions ? { activeOptions: props.activeOptions } : {})}
       activeProps={{ className: 'text-gray10 bg-gray-a2' }}
-      className="text-gray8 hover:text-gray10 hover:bg-gray-a2 flex w-full items-center gap-2 px-2 py-1.5 text-sm"
+      className="text-gray8 hover:text-gray10 hover:bg-gray-a2 rounded-0.5 flex w-full items-center gap-2 px-2 py-1.5 text-sm"
       params={props.params}
       to={props.to}
     >
@@ -504,9 +504,9 @@ function SidebarDisabled(props: React.PropsWithChildren<{ icon: React.ReactNode 
 
 function EntityAvatar(props: { avatarUrl?: string | null | undefined; name: string }) {
   if (props.avatarUrl)
-    return <img alt={props.name} className="size-6 shrink-0" src={props.avatarUrl} />
+    return <img alt={props.name} className="rounded-0.5 size-6 shrink-0" src={props.avatarUrl} />
   return (
-    <span className="bg-gray-a3 flex size-6 shrink-0 items-center justify-center text-xs uppercase">
+    <span className="bg-gray-a3 rounded-0.5 flex size-6 shrink-0 items-center justify-center text-xs uppercase">
       {props.name[0]}
     </span>
   )

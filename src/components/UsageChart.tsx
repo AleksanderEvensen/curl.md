@@ -84,7 +84,7 @@ export function UsageChart(props: {
               if (!active || !payload?.[0]) return null
               const { label, tokens, value } = payload[0].payload
               return (
-                <div className="border-gray-a3 bg-bg1 border px-2.5 py-1.5 text-xs">
+                <div className="border-gray-a3 bg-bg1 rounded-0.5 border px-2.5 py-1.5 text-xs">
                   <div className="font-medium">{label}</div>
                   <div className="text-gray8 mt-0.5">
                     {isCost

@@ -71,7 +71,7 @@ function Root(props: { className?: string }) {
       />
       <ContextMenu.Portal>
         <ContextMenu.Positioner className="z-[100] outline-hidden">
-          <ContextMenu.Popup className="bg-gray1 text-gray12 outline-gray5 minimal-scrollbar max-h-[var(--available-height)] min-w-48 origin-[var(--transform-origin)] overflow-y-auto overscroll-contain rounded-[2px] p-1 text-sm shadow-lg outline-1 data-[ending-style]:opacity-0">
+          <ContextMenu.Popup className="bg-gray1 text-gray12 outline-gray5 minimal-scrollbar rounded-0.5 max-h-[var(--available-height)] min-w-48 origin-[var(--transform-origin)] overflow-y-auto overscroll-contain p-1 text-sm shadow-lg outline-1 data-[ending-style]:opacity-0">
             <ContextMenu.RadioGroup
               value={variant ?? null}
               onValueChange={(value) => {
@@ -82,7 +82,7 @@ function Root(props: { className?: string }) {
             >
               {variants.map((variant) => (
                 <ContextMenu.RadioItem
-                  className="data-[highlighted]:bg-gray3 flex cursor-default items-center gap-3 rounded-[2px] px-3 py-2 outline-hidden select-none"
+                  className="data-[highlighted]:bg-gray3 rounded-0.5 flex cursor-default items-center gap-3 px-3 py-2 outline-hidden select-none"
                   closeOnClick
                   key={variant}
                   value={variant}
@@ -94,7 +94,7 @@ function Root(props: { className?: string }) {
             </ContextMenu.RadioGroup>
             <ContextMenu.Separator className="bg-gray5 my-1 h-px" />
             <ContextMenu.Item
-              className="data-[highlighted]:bg-gray3 flex cursor-default rounded-[2px] px-3 py-2 outline-hidden select-none"
+              className="data-[highlighted]:bg-gray3 rounded-0.5 flex cursor-default px-3 py-2 outline-hidden select-none"
               onClick={() =>
                 window.open(getSheepStaticUrl(variant), '_blank', 'noopener,noreferrer')
               }
@@ -102,7 +102,7 @@ function Root(props: { className?: string }) {
               Open in new window
             </ContextMenu.Item>
             <ContextMenu.Item
-              className="data-[highlighted]:bg-gray3 flex cursor-default rounded-[2px] px-3 py-2 outline-hidden select-none"
+              className="data-[highlighted]:bg-gray3 rounded-0.5 flex cursor-default px-3 py-2 outline-hidden select-none"
               onClick={() => copyStaticSheep(variant, copy)}
             >
               Copy to clipboard

@@ -63,6 +63,7 @@ html {
 
 article details {
   border: 1px solid var(--color-gray-a3);
+  border-radius: var(--radius-0\.5);
   color: color-mix(in oklab, var(--color-gray10) 25%, var(--color-gray9));
   margin-top: 1.5rem;
   overflow: hidden;

@@ -306,7 +306,7 @@ const credits = Cli.create('credits', {
 
       const commands = [
         {
-          command: `${c.displayName} credits check`,
+          command: `${c.displayName} credits status`,
           description: 'check balance',
         },
         ...c.var.commands,
