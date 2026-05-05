@@ -17,20 +17,20 @@ export const Route = createRootRoute({
           rel: 'preload',
           type: 'font/woff2',
         },
-        { href: '/sheep/static/thunder.png', rel: 'icon', type: 'image/png' },
+        { href: 'https://cdn.usefathom.com', rel: 'preconnect' },
+        { href: '/sheep/static/cloud.png', rel: 'icon', type: 'image/png' },
+        {
+          href: '/sheep/static/thunder.png',
+          media: '(prefers-color-scheme: dark)',
+          rel: 'icon',
+          type: 'image/png',
+        },
       ],
       meta: [
         { charSet: 'utf-8' },
         {
           name: 'viewport',
           content: 'width=device-width, initial-scale=1, maximum-scale=1',
-        },
-      ],
-      scripts: [
-        {
-          src: 'https://cdn.usefathom.com/script.js',
-          'data-site': 'GPMOZIWR',
-          defer: true,
         },
       ],
     }
@@ -80,15 +80,16 @@ function RootDocument(props: React.PropsWithChildren) {
           suppressHydrationWarning
         />
         <HeadContent />
+      </head>
+      <body>
+        {children}
+        <Scripts />
+        <script data-site="GPMOZIWR" defer src="https://cdn.usefathom.com/script.js" />
         <script
           // oxlint-disable-next-line react/no-danger: favicon script is static
           dangerouslySetInnerHTML={{ __html: faviconScript }}
           suppressHydrationWarning
         />
-      </head>
-      <body>
-        {children}
-        <Scripts />
       </body>
     </html>
   )
@@ -99,15 +100,9 @@ const faviconScript = `
   var query = window.matchMedia('(prefers-color-scheme: dark)');
   function apply() {
     document.querySelectorAll('link[rel="icon"]').forEach(function(link) {
-      link.remove();
+      link.href = query.matches ? '/sheep/static/thunder.png' : '/sheep/static/cloud.png';
     });
-    var link = document.createElement('link');
-    link.rel = 'icon';
-    link.type = 'image/png';
-    link.href = (query.matches ? '/sheep/static/thunder.png' : '/sheep/static/cloud.png') + '?theme=' + (query.matches ? 'dark' : 'light') + '&t=' + Date.now();
-    document.head.appendChild(link);
   }
-  apply();
   query.addEventListener('change', apply);
 })();
 `
