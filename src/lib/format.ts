@@ -26,7 +26,8 @@ export function formatDollars(dollars: number) {
 
 export function formatCost(tokens: number, perMillionDollars: number) {
   const cost = estimateCost(tokens, perMillionDollars)
-  if (cost >= 0.01) return cost.toFixed(2)
+  if (cost >= 0.01)
+    return cost.toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 2 })
   if (cost === 0) return '0.0'
   const decimals = Math.min(4, Math.max(2, -Math.floor(Math.log10(cost)) + 1))
   const factor = 10 ** decimals

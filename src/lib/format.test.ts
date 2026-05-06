@@ -5,6 +5,7 @@ test('formatCost returns 2 decimal places for costs >= $0.01', () => {
   expect(formatCost(1_000_000, 3)).toBe('3.00')
   expect(formatCost(500_000, 3)).toBe('1.50')
   expect(formatCost(10_000_000, 0.5)).toBe('5.00')
+  expect(formatCost(462_320_000, 3)).toBe('1,386.96')
 })
 
 test('formatCost returns trimmed 4 decimal places for costs < $0.01', () => {
