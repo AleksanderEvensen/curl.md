@@ -153,7 +153,7 @@ const linkDensityBlockTags = new Set(['div', 'ol', 'section', 'ul'])
 
 function rehypeStripNoise(profile?: Profile<Record<string, unknown>>) {
   return (tree: Root) => {
-    strip(tree, false, profile)
+    strip(tree, false, false, profile)
   }
 }
 
@@ -162,6 +162,7 @@ const sectioningTags = new Set(['article', 'main', 'section'])
 function strip(
   node: Element | Root,
   inSectioning = false,
+  inContentContainer = false,
   profile?: Profile<Record<string, unknown>>,
 ) {
   if (!node.children) return
@@ -169,6 +170,8 @@ function strip(
     if (child.type === 'comment') return false
     if (child.type !== 'element') return true
     const knownContentRoot = isKnownContentRoot(child, profile)
+    const childInContentContainer =
+      inContentContainer || knownContentRoot || isContentContainer(child)
 
     if (strippedTagNames.has(child.tagName)) return false
 
@@ -183,17 +186,24 @@ function strip(
     if (isSkipLink(child)) return false
     if (!knownContentRoot && !containsContentContainer(child) && matchesNoiseClassId(child))
       return false
-    if (!knownContentRoot && isHighLinkDensity(child)) return false
+    if (!childInContentContainer && isHighLinkDensity(child)) return false
 
-    strip(child, inSectioning || sectioningTags.has(child.tagName), profile)
+    strip(
+      child,
+      inSectioning || sectioningTags.has(child.tagName),
+      childInContentContainer,
+      profile,
+    )
     return true
   })
 }
 
 function containsContentContainer(node: Element): boolean {
-  return (
-    node.tagName === 'article' || node.tagName === 'main' || hasDescendantContentContainer(node)
-  )
+  return isContentContainer(node) || hasDescendantContentContainer(node)
+}
+
+function isContentContainer(node: Element): boolean {
+  return node.tagName === 'article' || node.tagName === 'main' || node.properties?.role === 'main'
 }
 
 function isKnownContentRoot(node: Element, profile?: Profile<Record<string, unknown>>): boolean {
@@ -297,7 +307,7 @@ function getLinkTextLength(node: Element): number {
 function hasDescendantContentContainer(node: Element): boolean {
   for (const child of node.children) {
     if (child.type !== 'element') continue
-    if (child.tagName === 'article' || child.tagName === 'main') return true
+    if (isContentContainer(child)) return true
     if (hasDescendantContentContainer(child)) return true
   }
   return false

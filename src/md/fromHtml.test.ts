@@ -616,6 +616,34 @@ describe('strips form elements', () => {
     expect(result).not.toContain('Page 0')
   })
 
+  test('preserves high link density content inside main', async () => {
+    const links = Array.from(
+      { length: 10 },
+      (_, i) => `<a href="/news/${i}">Research update ${i}</a>`,
+    ).join(' ')
+    const { content: result } = await fromHtml(
+      html({
+        body: `<main><h1>News</h1><section>${links}</section></main>`,
+      }),
+    )
+    expect(result).toContain('# News')
+    expect(result).toContain('Research update 0')
+  })
+
+  test('preserves high link density content inside role main', async () => {
+    const links = Array.from(
+      { length: 10 },
+      (_, i) => `<a href="/news/${i}">Product announcement ${i}</a>`,
+    ).join(' ')
+    const { content: result } = await fromHtml(
+      html({
+        body: `<div role="main"><h1>Updates</h1><section>${links}</section></div>`,
+      }),
+    )
+    expect(result).toContain('# Updates')
+    expect(result).toContain('Product announcement 0')
+  })
+
   test('preserves content wrappers that contain an article', async () => {
     const links = Array.from(
       { length: 10 },
