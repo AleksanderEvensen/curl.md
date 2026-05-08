@@ -7,10 +7,11 @@ settings:
 catalogs:
   default:
     hono:
-      specifier: ^4.12.15
-      version: 4.12.15
+      specifier: ^4.12.16
+      version: 4.12.18
 
 overrides:
+  basic-ftp@<=5.3.0: 5.3.1
   fast-xml-parser@<5.7.0: 5.7.0
   ip-address@<10.1.1: 10.1.1
   uuid@<14.0.0: 14.0.0
@@ -37,7 +38,7 @@ importers:
         version: 5.2.8
       '@hono/zod-validator':
         specifier: ^0.7.6
-        version: 0.7.6(hono@4.12.15)(zod@4.3.6)
+        version: 0.7.6(hono@4.12.18)(zod@4.3.6)
       '@octokit/core':
         specifier: ^7.0.6
         version: 7.0.6
@@ -73,7 +74,7 @@ importers:
         version: 1.167.28(@tanstack/react-router@1.168.25(patch_hash=b32641ae4583afae68114b66d9667c7481d0a9f48ea18168d14cc3f62b771b45)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.3)(jiti@2.6.1)(yaml@2.8.3))
       hono:
         specifier: 'catalog:'
-        version: 4.12.15
+        version: 4.12.18
       kysely:
         specifier: ^0.28.16
         version: 0.28.16
@@ -194,7 +195,7 @@ importers:
         version: 4.1.5(msw@2.13.6(@types/node@25.6.0))(playwright@1.59.1)(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.3)(jiti@2.6.1)(yaml@2.8.3))(vitest@4.1.5)
       emulate:
         specifier: 0.5.0
-        version: 0.5.0(hono@4.12.15)
+        version: 0.5.0(hono@4.12.18)
       knip:
         specifier: ^6.7.0
         version: 6.7.0(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)
@@ -269,7 +270,7 @@ importers:
     dependencies:
       hono:
         specifier: 'catalog:'
-        version: 4.12.15
+        version: 4.12.18
       incur:
         specifier: 0.4.5
         version: 0.4.5
@@ -3708,8 +3709,8 @@ packages:
     engines: {node: '>=6.0.0'}
     hasBin: true
 
-  basic-ftp@5.3.0:
-    resolution: {integrity: sha512-5K9eNNn7ywHPsYnFwjKgYH8Hf8B5emh7JKcPaVjjrMJFQQwGpwowEnZNEtHs7DfR7hCZsmaK3VA4HUK0YarT+w==}
+  basic-ftp@5.3.1:
+    resolution: {integrity: sha512-bopVNp6ugyA150DDuZfPFdt1KZ5a94ZDiwX4hMgZDzF+GttD80lEy8kj98kbyhLXnPvhtIo93mdnLIjpCAeeOw==}
     engines: {node: '>=10.0.0'}
 
   bcrypt-pbkdf@1.0.2:
@@ -4548,8 +4549,8 @@ packages:
   highlight.js@10.7.3:
     resolution: {integrity: sha512-tzcUFauisWKNHaRkN4Wjl/ZA07gENAjFl3J/c480dprkGTg5EQstgaNFqBfUqCq54kZRIEcreTsAgF/m2quD7A==}
 
-  hono@4.12.15:
-    resolution: {integrity: sha512-qM0jDhFEaCBb4TxoW7f53Qrpv9RBiayUHo0S52JudprkhvpjIrGoU1mnnr29Fvd1U335ZFPZQY1wlkqgfGXyLg==}
+  hono@4.12.18:
+    resolution: {integrity: sha512-RWzP96k/yv0PQfyXnWjs6zot20TqfpfsNXhOnev8d1InAxubW93L11/oNUc3tQqn2G0bSdAOBpX+2uDFHV7kdQ==}
     engines: {node: '>=16.9.0'}
 
   hosted-git-info@9.0.2:
@@ -7664,13 +7665,13 @@ snapshots:
       protobufjs: 7.5.5
       yargs: 17.7.2
 
-  '@hono/node-server@1.19.13(hono@4.12.15)':
+  '@hono/node-server@1.19.13(hono@4.12.18)':
     dependencies:
-      hono: 4.12.15
+      hono: 4.12.18
 
-  '@hono/zod-validator@0.7.6(hono@4.12.15)(zod@4.3.6)':
+  '@hono/zod-validator@0.7.6(hono@4.12.18)(zod@4.3.6)':
     dependencies:
-      hono: 4.12.15
+      hono: 4.12.18
       zod: 4.3.6
 
   '@iconify/json@2.2.467':
@@ -10335,7 +10336,7 @@ snapshots:
 
   baseline-browser-mapping@2.10.8: {}
 
-  basic-ftp@5.3.0: {}
+  basic-ftp@5.3.1: {}
 
   bcrypt-pbkdf@1.0.2:
     dependencies:
@@ -10779,9 +10780,9 @@ snapshots:
 
   emoji-regex@9.2.2: {}
 
-  emulate@0.5.0(hono@4.12.15):
+  emulate@0.5.0(hono@4.12.18):
     dependencies:
-      '@hono/node-server': 1.19.13(hono@4.12.15)
+      '@hono/node-server': 1.19.13(hono@4.12.18)
       commander: 14.0.3
       picocolors: 1.1.1
       yaml: 2.8.3
@@ -11117,7 +11118,7 @@ snapshots:
 
   get-uri@6.0.5:
     dependencies:
-      basic-ftp: 5.3.0
+      basic-ftp: 5.3.1
       data-uri-to-buffer: 6.0.2
       debug: 4.4.3
     transitivePeerDependencies:
@@ -11349,7 +11350,7 @@ snapshots:
 
   highlight.js@10.7.3: {}
 
-  hono@4.12.15: {}
+  hono@4.12.18: {}
 
   hosted-git-info@9.0.2:
     dependencies:

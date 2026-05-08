@@ -17,7 +17,7 @@ auditConfig:
     - GHSA-6cpc-mj5c-m9rq
 
 catalog:
-  hono: ^4.12.15
+  hono: ^4.12.16
 
 minimumReleaseAge: 1440
 
@@ -25,6 +25,7 @@ minimumReleaseAgeExclude:
   - incur
 
 overrides:
+  basic-ftp@<=5.3.0: 5.3.1
   fast-xml-parser@<5.7.0: 5.7.0
   ip-address@<10.1.1: 10.1.1
   uuid@<14.0.0: 14.0.0
