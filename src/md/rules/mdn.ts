@@ -5,6 +5,7 @@ export const mdn = defineRule({
   key: 'mdn',
   patterns: [
     new URLPattern({ hostname: 'developer.mozilla.org', pathname: '/:locale/docs/:path+' }),
+    new URLPattern({ hostname: 'developer.mozilla.org', pathname: '/docs/:path+' }),
   ],
   checks: [
     {
@@ -16,7 +17,7 @@ export const mdn = defineRule({
     },
   ],
   rewrite(_url, match) {
-    const locale = match.pathname.groups.locale?.toLowerCase()
+    const locale = match.pathname.groups.locale?.toLowerCase() ?? 'en-us'
     const repo = locale === 'en-us' ? 'mdn/content' : 'mdn/translated-content'
     return new URL(
       `https://raw.githubusercontent.com/${repo}/main/files/${locale}/${match.pathname.groups.path!.toLowerCase()}/index.md`,

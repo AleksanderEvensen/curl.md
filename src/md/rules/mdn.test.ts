@@ -50,6 +50,18 @@ test('lowercases slug in rewritten URL', () => {
   expect(result?.pathname).toBe('/mdn/content/main/files/en-us/web/api/htmlelement/index.md')
 })
 
+test('rewrites locale-less docs URL to mdn/content repo', () => {
+  const rule = mdn()
+  const url = new URL('https://developer.mozilla.org/docs/Web/API/Fetch_API/Using_Fetch')
+  const pattern = rule.patterns[1]
+  assert(pattern instanceof URLPattern)
+  const match = pattern.exec(url)!
+  const result = rule.rewrite!(url, match)
+  expect(result?.href).toBe(
+    'https://raw.githubusercontent.com/mdn/content/main/files/en-us/web/api/fetch_api/using_fetch/index.md',
+  )
+})
+
 // Integration test
 
 test('extract produces expected output for Array.prototype.map', async () => {
@@ -64,6 +76,24 @@ test('extract produces expected output for Array.prototype.map', async () => {
   if (!result.ok) return
   await expect(result.content).toMatchFileSnapshot('__snapshots__/mdn-array-map.md')
   expect(result.meta.title).toBe('Array.prototype.map()')
+})
+
+test('locale-less docs URL uses markdown source so code fence info stays on the fence', async () => {
+  const md = create({
+    rules: [mdn()],
+    fetch: async (input) => {
+      const url = input instanceof URL ? input.href : typeof input === 'string' ? input : input.url
+      expect(url).toBe(
+        'https://raw.githubusercontent.com/mdn/content/main/files/en-us/web/api/fetch_api/using_fetch/index.md',
+      )
+      return new Response('---\ntitle: Test\n---\n\n```js\nconst x = 1\n```', { status: 200 })
+    },
+  })
+  const result = await md.fetch('https://developer.mozilla.org/docs/Web/API/Fetch_API/Using_Fetch')
+  expect(result.ok).toBe(true)
+  if (!result.ok) return
+  expect(result.content).toContain('```js\nconst x = 1')
+  expect(result.content).not.toContain('\njs\n\n```')
 })
 
 // Extract behavior tests
