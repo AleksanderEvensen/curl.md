@@ -1,4 +1,4 @@
-import { execSync } from 'node:child_process'
+import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import { Kysely } from 'kysely'
@@ -130,16 +130,16 @@ for (const table of publicTables) {
 
 output += 'export declare namespace DB {\n'
 for (const table of publicTables)
-  output += `\ttype ${table.name} = k.Selectable<DB["${table.name}"]>\n`
+  output += `\texport type ${table.name} = k.Selectable<DB["${table.name}"]>\n`
 output += '\n\texport namespace Insertable {\n'
 for (const table of publicTables)
-  output += `\t\ttype ${table.name} = k.Insertable<DB["${table.name}"]>\n`
+  output += `\t\texport type ${table.name} = k.Insertable<DB["${table.name}"]>\n`
 output += '\t}\n\n\texport namespace Selectable {\n'
 for (const table of publicTables)
-  output += `\t\ttype ${table.name} = k.Selectable<DB["${table.name}"]>\n`
+  output += `\t\texport type ${table.name} = k.Selectable<DB["${table.name}"]>\n`
 output += '\t}\n\n\texport namespace Updateable {\n'
 for (const table of publicTables)
-  output += `\t\ttype ${table.name} = k.Updateable<DB["${table.name}"]>\n`
+  output += `\t\texport type ${table.name} = k.Updateable<DB["${table.name}"]>\n`
 output += '\t}\n}\n'
 
 schemaOutput += 'export const db = {\n'
@@ -210,10 +210,11 @@ function parseStringUnionValues(value: string) {
 }
 
 function writeGeneratedFile(filePath: string, output: string) {
+  const root = path.resolve(import.meta.dirname, '..')
   const outputPath = path.resolve(import.meta.dirname, '..', filePath)
   fs.writeFileSync(outputPath, `${output.trimEnd()}\n`)
-  execSync(`pnpm exec oxfmt ${outputPath}`, {
-    cwd: path.resolve(import.meta.dirname, '..'),
+  execFileSync(path.resolve(root, 'node_modules/.bin/vp'), ['fmt', outputPath], {
+    cwd: root,
     stdio: 'inherit',
   })
   console.log(`Generated ${filePath}`)

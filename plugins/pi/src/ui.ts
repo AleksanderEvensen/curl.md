@@ -1,4 +1,4 @@
-import type { Theme } from '@mariozechner/pi-coding-agent'
+import type { Theme } from '@earendil-works/pi-coding-agent'
 import {
   CURSOR_MARKER,
   Container,
@@ -7,7 +7,7 @@ import {
   Text,
   fuzzyFilter,
   getKeybindings,
-} from '@mariozechner/pi-tui'
+} from '@earendil-works/pi-tui'
 
 export class SelectFilterList<item> extends Container {
   searchInput: Input

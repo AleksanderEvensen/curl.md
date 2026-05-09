@@ -2,9 +2,15 @@ allowBuilds:
   '@anthropic-ai/claude-code': true
   '@sentry/cli': true
   bun: true
+  cpu-features: false
+  esbuild: false
+  koffi: false
+  msgpackr-extract: false
   msw: true
   opencode-ai: true
-  simple-git-hooks: true
+  protobufjs: false
+  sharp: false
+  ssh2: false
   workerd: true
 auditConfig:
   ignoreGhsas:
@@ -13,6 +19,10 @@ auditConfig:
 blockExoticSubdeps: true
 catalog:
   hono: ^4.12.16
+  # Vite+ dependency aliases.
+  vite: npm:@voidzero-dev/vite-plus-core@0.1.20
+  vite-plus: 0.1.20
+  vitest: npm:@voidzero-dev/vite-plus-test@0.1.20
 minimumReleaseAge: 1440
 minimumReleaseAgeExclude:
   - incur
@@ -23,6 +33,12 @@ overrides:
   fast-xml-parser@<5.7.0: 5.7.0
   ip-address@<10.1.1: 10.1.1
   uuid@<14.0.0: 14.0.0
+  vite: 'catalog:'
+  vitest: 'catalog:'
+packageExtensions:
+  '@voidzero-dev/vite-plus-core@*':
+    dependencies:
+      vite-plus: 0.1.20
 packages:
   - cli
   - plugins/*
@@ -31,6 +47,10 @@ packages:
 patchedDependencies:
   '@tanstack/react-router@1.168.25': config/patches/@tanstack__react-router@1.168.7.patch
   '@tanstack/router-core@1.168.17': config/patches/@tanstack__router-core@1.168.6.patch
+peerDependencyRules:
+  allowAny:
+    - vite
+    - vitest
 strictDepBuilds: true
 strictPeerDependencies: true
 trustPolicy: no-downgrade
@@ -39,3 +59,4 @@ trustPolicyExclude:
   - react-redux@9.2.0
   - reselect@5.1.1
   - semver@6.3.1
+verifyDepsBeforeRun: false

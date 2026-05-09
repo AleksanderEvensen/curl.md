@@ -1,6 +1,7 @@
 /.amp
 /.claude
 /.opencode
+.vite-hooks
 .env*
 .vite
 !.env.example

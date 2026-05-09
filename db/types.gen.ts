@@ -151,57 +151,57 @@ type session_access_token = {
 }
 
 export declare namespace DB {
-  type account = k.Selectable<DB['account']>
-  type account_provider = k.Selectable<DB['account_provider']>
-  type api_key = k.Selectable<DB['api_key']>
-  type credit_transaction = k.Selectable<DB['credit_transaction']>
-  type device_code = k.Selectable<DB['device_code']>
-  type organization = k.Selectable<DB['organization']>
-  type organization_invite = k.Selectable<DB['organization_invite']>
-  type organization_member = k.Selectable<DB['organization_member']>
-  type request = k.Selectable<DB['request']>
-  type session = k.Selectable<DB['session']>
-  type session_access_token = k.Selectable<DB['session_access_token']>
+  export type account = k.Selectable<DB['account']>
+  export type account_provider = k.Selectable<DB['account_provider']>
+  export type api_key = k.Selectable<DB['api_key']>
+  export type credit_transaction = k.Selectable<DB['credit_transaction']>
+  export type device_code = k.Selectable<DB['device_code']>
+  export type organization = k.Selectable<DB['organization']>
+  export type organization_invite = k.Selectable<DB['organization_invite']>
+  export type organization_member = k.Selectable<DB['organization_member']>
+  export type request = k.Selectable<DB['request']>
+  export type session = k.Selectable<DB['session']>
+  export type session_access_token = k.Selectable<DB['session_access_token']>
 
   export namespace Insertable {
-    type account = k.Insertable<DB['account']>
-    type account_provider = k.Insertable<DB['account_provider']>
-    type api_key = k.Insertable<DB['api_key']>
-    type credit_transaction = k.Insertable<DB['credit_transaction']>
-    type device_code = k.Insertable<DB['device_code']>
-    type organization = k.Insertable<DB['organization']>
-    type organization_invite = k.Insertable<DB['organization_invite']>
-    type organization_member = k.Insertable<DB['organization_member']>
-    type request = k.Insertable<DB['request']>
-    type session = k.Insertable<DB['session']>
-    type session_access_token = k.Insertable<DB['session_access_token']>
+    export type account = k.Insertable<DB['account']>
+    export type account_provider = k.Insertable<DB['account_provider']>
+    export type api_key = k.Insertable<DB['api_key']>
+    export type credit_transaction = k.Insertable<DB['credit_transaction']>
+    export type device_code = k.Insertable<DB['device_code']>
+    export type organization = k.Insertable<DB['organization']>
+    export type organization_invite = k.Insertable<DB['organization_invite']>
+    export type organization_member = k.Insertable<DB['organization_member']>
+    export type request = k.Insertable<DB['request']>
+    export type session = k.Insertable<DB['session']>
+    export type session_access_token = k.Insertable<DB['session_access_token']>
   }
 
   export namespace Selectable {
-    type account = k.Selectable<DB['account']>
-    type account_provider = k.Selectable<DB['account_provider']>
-    type api_key = k.Selectable<DB['api_key']>
-    type credit_transaction = k.Selectable<DB['credit_transaction']>
-    type device_code = k.Selectable<DB['device_code']>
-    type organization = k.Selectable<DB['organization']>
-    type organization_invite = k.Selectable<DB['organization_invite']>
-    type organization_member = k.Selectable<DB['organization_member']>
-    type request = k.Selectable<DB['request']>
-    type session = k.Selectable<DB['session']>
-    type session_access_token = k.Selectable<DB['session_access_token']>
+    export type account = k.Selectable<DB['account']>
+    export type account_provider = k.Selectable<DB['account_provider']>
+    export type api_key = k.Selectable<DB['api_key']>
+    export type credit_transaction = k.Selectable<DB['credit_transaction']>
+    export type device_code = k.Selectable<DB['device_code']>
+    export type organization = k.Selectable<DB['organization']>
+    export type organization_invite = k.Selectable<DB['organization_invite']>
+    export type organization_member = k.Selectable<DB['organization_member']>
+    export type request = k.Selectable<DB['request']>
+    export type session = k.Selectable<DB['session']>
+    export type session_access_token = k.Selectable<DB['session_access_token']>
   }
 
   export namespace Updateable {
-    type account = k.Updateable<DB['account']>
-    type account_provider = k.Updateable<DB['account_provider']>
-    type api_key = k.Updateable<DB['api_key']>
-    type credit_transaction = k.Updateable<DB['credit_transaction']>
-    type device_code = k.Updateable<DB['device_code']>
-    type organization = k.Updateable<DB['organization']>
-    type organization_invite = k.Updateable<DB['organization_invite']>
-    type organization_member = k.Updateable<DB['organization_member']>
-    type request = k.Updateable<DB['request']>
-    type session = k.Updateable<DB['session']>
-    type session_access_token = k.Updateable<DB['session_access_token']>
+    export type account = k.Updateable<DB['account']>
+    export type account_provider = k.Updateable<DB['account_provider']>
+    export type api_key = k.Updateable<DB['api_key']>
+    export type credit_transaction = k.Updateable<DB['credit_transaction']>
+    export type device_code = k.Updateable<DB['device_code']>
+    export type organization = k.Updateable<DB['organization']>
+    export type organization_invite = k.Updateable<DB['organization_invite']>
+    export type organization_member = k.Updateable<DB['organization_member']>
+    export type request = k.Updateable<DB['request']>
+    export type session = k.Updateable<DB['session']>
+    export type session_access_token = k.Updateable<DB['session_access_token']>
   }
 }

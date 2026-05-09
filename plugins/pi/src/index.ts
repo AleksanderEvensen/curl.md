@@ -1,7 +1,7 @@
 import child_process from 'node:child_process'
-import { Type } from '@mariozechner/pi-ai'
-import { defineTool, type ExtensionAPI } from '@mariozechner/pi-coding-agent'
-import { Container, Spacer, Text, getKeybindings } from '@mariozechner/pi-tui'
+import { Type } from '@earendil-works/pi-ai'
+import { defineTool, type ExtensionAPI } from '@earendil-works/pi-coding-agent'
+import { Container, Spacer, Text, getKeybindings } from '@earendil-works/pi-tui'
 import { createClient, defaultBaseUrl } from 'curl.md'
 import { Auth, Session } from 'curl.md/internal'
 import packageJson from '../package.json' with { type: 'json' }
