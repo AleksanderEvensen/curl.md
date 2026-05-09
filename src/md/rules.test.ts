@@ -265,6 +265,15 @@ test('rawRepoWithIndex: drizzle rewrites docs path to raw mdx', () => {
   )
 })
 
+test('rawRepoWithIndex: betterAuth rewrites docs path to raw mdx', () => {
+  expect(patternsMatch(rules.betterAuth(), 'https://www.better-auth.com/docs/introduction')).toBe(
+    true,
+  )
+  expect(rewrite(rules.betterAuth, 'https://www.better-auth.com/docs/introduction')?.href).toBe(
+    'https://raw.githubusercontent.com/better-auth/better-auth/main/docs/content/docs/introduction.mdx',
+  )
+})
+
 test('rawRepoWithIndex: prisma falls back to index.mdx for section roots', async () => {
   const requests: string[] = []
   const md = create({

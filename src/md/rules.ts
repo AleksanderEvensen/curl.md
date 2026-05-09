@@ -233,6 +233,29 @@ export const baseUi = appendMd({
     },
   ],
 })
+export const betterAuth = rawRepoWithIndex({
+  key: 'betterAuth',
+  repo: 'better-auth/better-auth',
+  prefix: 'docs/content/docs',
+  stripPrefix: '/docs',
+  extension: '.mdx',
+  patterns: [
+    new URLPattern({ hostname: 'better-auth.com', pathname: '/docs' }),
+    new URLPattern({ hostname: 'better-auth.com', pathname: '/docs/' }),
+    new URLPattern({ hostname: 'better-auth.com', pathname: '/docs/:path+' }),
+    new URLPattern({ hostname: 'better-auth.com', pathname: '/docs/:path+/' }),
+    new URLPattern({ hostname: 'www.better-auth.com', pathname: '/docs' }),
+    new URLPattern({ hostname: 'www.better-auth.com', pathname: '/docs/' }),
+    new URLPattern({ hostname: 'www.better-auth.com', pathname: '/docs/:path+' }),
+    new URLPattern({ hostname: 'www.better-auth.com', pathname: '/docs/:path+/' }),
+  ],
+  checks: [
+    {
+      url: 'https://www.better-auth.com/docs/introduction',
+      contains: ['Better Auth is a framework-agnostic'],
+    },
+  ],
+})
 export const openclaw = appendMdWithIndex({
   key: 'openclaw',
   patterns: [new URLPattern({ hostname: 'docs.openclaw.ai' })],
