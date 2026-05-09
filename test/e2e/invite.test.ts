@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test'
-import { test } from '#test/e2e-utils.ts'
+import { test } from '#test/e2e.utils.ts'
 
 test('invalid token shows invalid invite page', async ({ page }) => {
   await page.goto('/invite/nonexistent-token')

@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test'
-import { test } from '#test/e2e-utils.ts'
+import { test } from '#test/e2e.utils.ts'
 
 test('creates organization from account switcher', async ({ factory, page, setSession }) => {
   const account = await factory.account.insert({})

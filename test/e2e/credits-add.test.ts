@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test'
-import { test } from '#test/e2e-utils.ts'
+import { test } from '#test/e2e.utils.ts'
 
 test('invalid payment session shows not found', async ({ page }) => {
   await page.goto('/credits/add/nonexistent-id')

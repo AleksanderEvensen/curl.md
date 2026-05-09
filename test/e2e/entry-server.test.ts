@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test'
-import { test } from '#test/e2e-utils.ts'
+import { test } from '#test/e2e.utils.ts'
 
 test('/api/health passes through to the API handler', async ({ request }) => {
   const res = await request.get('/api/health')

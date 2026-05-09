@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test'
-import { test } from '#test/e2e-utils.ts'
+import { test } from '#test/e2e.utils.ts'
 
 test('redirects to login when not authenticated', async ({ page }) => {
   await page.goto('/auth/device?user_code=ABCD1234')

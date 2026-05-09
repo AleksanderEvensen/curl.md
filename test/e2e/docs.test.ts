@@ -1,6 +1,6 @@
 import { expect } from '@playwright/test'
 import * as Cookie from '#lib/cookie.ts'
-import { test } from '#test/e2e-utils.ts'
+import { test } from '#test/e2e.utils.ts'
 
 test('/docs tab click keeps scroll position on first sync', async ({ page }) => {
   await page.goto('/docs/dev/kitchen-sink')

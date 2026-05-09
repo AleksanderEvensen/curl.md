@@ -12,7 +12,7 @@ export default async function globalSetup() {
   console.log('e2e: started database')
 
   console.log('e2e: starting github emulator')
-  const emulator = await createEmulator({
+  const gitHubEmulator = await createEmulator({
     service: 'github',
     port: await getAvailablePort(),
     seed: {
@@ -42,8 +42,8 @@ export default async function globalSetup() {
   console.log('e2e: starting dev server')
   const server = await startDevServer(container.getConnectionUri(), {
     ...env,
-    GH_API_URL: emulator.url,
-    GH_URL: emulator.url,
+    GH_API_URL: gitHubEmulator.url,
+    GH_URL: gitHubEmulator.url,
     STRIPE_API_URL: stripeEmulator.url,
   })
   console.log('e2e: started dev server')
@@ -54,7 +54,7 @@ export default async function globalSetup() {
 
   return async () => {
     server.stop()
-    await emulator.close()
+    await gitHubEmulator.close()
     await stripeEmulator.close()
     await container.stop()
   }
