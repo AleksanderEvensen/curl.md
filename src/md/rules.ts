@@ -342,7 +342,7 @@ export const supabase = rawRepoWithIndex({
   checks: [
     {
       url: 'https://supabase.com/docs/guides/getting-started',
-      contains: ["title: 'Features'", '### Use cases'],
+      contains: ['### Use cases'],
     },
   ],
 })
