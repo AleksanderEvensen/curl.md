@@ -58,7 +58,7 @@
     "@tanstack/react-start": "^1.167.50",
     "@tanstack/router-plugin": "^1.167.28",
     "hono": "catalog:",
-    "kysely": "^0.28.16",
+    "kysely": "^0.28.17",
     "kysely-postgres-js": "^3.0.0",
     "minisearch": "^7.2.0",
     "nanoid": "^5.1.9",
