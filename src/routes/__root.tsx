@@ -67,7 +67,11 @@ function NotFound() {
 function RootDocument(props: React.PropsWithChildren) {
   const { children } = props
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html
+      className="scrollbar-thumb-gray-a3 scrollbar-thin scrollbar-track-transparent scrollbar-gutter-auto md:scrollbar-gutter-stable"
+      lang="en"
+      suppressHydrationWarning
+    >
       <head>
         <script
           // oxlint-disable-next-line react/no-danger: theme script is static

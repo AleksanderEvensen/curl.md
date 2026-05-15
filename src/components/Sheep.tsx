@@ -71,7 +71,7 @@ function Root(props: { className?: string }) {
       />
       <ContextMenu.Portal>
         <ContextMenu.Positioner className="z-[100] outline-hidden">
-          <ContextMenu.Popup className="bg-gray1 text-gray12 outline-gray5 minimal-scrollbar max-h-[var(--available-height)] min-w-48 origin-[var(--transform-origin)] overflow-y-auto overscroll-contain p-1 text-sm shadow-lg outline-1 data-[ending-style]:opacity-0">
+          <ContextMenu.Popup className="bg-gray1 text-gray12 outline-gray5 scrollbar-thumb-gray-a3 max-h-[var(--available-height)] min-w-48 origin-[var(--transform-origin)] scrollbar-thin scrollbar-track-transparent overflow-y-auto overscroll-contain p-1 text-sm shadow-lg outline-1 data-[ending-style]:opacity-0">
             <ContextMenu.RadioGroup
               value={variant ?? null}
               onValueChange={(value) => {

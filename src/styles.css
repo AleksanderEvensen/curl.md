@@ -165,55 +165,10 @@ html {
   color: var(--color-gray10);
   color-scheme: light;
   font-family: var(--font-mono);
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-gray-a3) transparent;
-}
-
-html::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-html::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-html::-webkit-scrollbar-thumb {
-  background: var(--color-gray-a3);
-  border-radius: 3px;
-}
-
-html {
-  scrollbar-gutter: auto;
-}
-
-@media (min-width: 768px) {
-  html {
-    scrollbar-gutter: stable;
-  }
 }
 
 html[data-theme='dark'] {
   color-scheme: dark;
-}
-
-@utility minimal-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-gray-a3) transparent;
-
-  &::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: var(--color-gray-a3);
-    border-radius: 3px;
-  }
 }
 
 [data-home-faq-summary]::marker {

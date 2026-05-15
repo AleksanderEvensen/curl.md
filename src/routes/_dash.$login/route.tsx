@@ -205,7 +205,7 @@ function DashboardLayout(props: React.PropsWithChildren<{ data: DashboardLayoutD
         </div>
 
         <nav
-          className="minimal-scrollbar hidden w-full flex-col [scrollbar-gutter:auto] data-[open]:flex md:mt-0 md:flex md:min-h-0 md:flex-1 md:overflow-y-auto"
+          className="scrollbar-thumb-gray-a3 hidden w-full scrollbar-thin scrollbar-track-transparent scrollbar-gutter-auto flex-col data-[open]:flex md:mt-0 md:flex md:min-h-0 md:flex-1 md:overflow-y-auto"
           data-open={open ? '' : undefined}
           onClick={() => setOpen(false)}
         >

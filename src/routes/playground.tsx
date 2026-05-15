@@ -361,7 +361,7 @@ function Component() {
             {hasResult && (
               <div className="text-gray9 dark:text-gray6 -mx-6 flex flex-col gap-1 md:hidden">
                 {markdown && (
-                  <pre className="minimal-scrollbar bg-bg2 text-gray10 px-6 py-4 break-words whitespace-pre-wrap">
+                  <pre className="bg-bg2 text-gray10 scrollbar-thumb-gray-a3 scrollbar-thin scrollbar-track-transparent px-6 py-4 break-words whitespace-pre-wrap">
                     {markdown}
                   </pre>
                 )}
@@ -374,7 +374,7 @@ function Component() {
 
           <div className="relative hidden max-h-[calc(100dvh-10rem)] min-h-[calc(100dvh-10rem)] w-full min-w-0 flex-col gap-2 md:flex md:basis-3/5">
             {error ? (
-              <pre className="text-red9 overflow-x-auto whitespace-pre-wrap [scrollbar-gutter:stable]">
+              <pre className="text-red9 scrollbar-gutter-stable overflow-x-auto whitespace-pre-wrap">
                 {error}
               </pre>
             ) : markdown ? (
@@ -382,12 +382,12 @@ function Component() {
                 <div className="absolute end-2 top-2 z-10">
                   <CopyButton text={markdown} />
                 </div>
-                <pre className="minimal-scrollbar bg-bg2 text-gray10 min-h-0 grow overflow-auto p-4 break-words whitespace-pre-wrap [scrollbar-gutter:stable]">
+                <pre className="bg-bg2 text-gray10 scrollbar-thumb-gray-a3 min-h-0 grow scrollbar-thin scrollbar-track-transparent scrollbar-gutter-stable overflow-auto p-4 break-words whitespace-pre-wrap">
                   {markdown}
                 </pre>
               </>
             ) : (
-              <div className="bg-bg2 text-gray9 dark:text-gray6 flex min-h-0 grow flex-col gap-4 p-4 [scrollbar-gutter:stable]">
+              <div className="bg-bg2 text-gray9 dark:text-gray6 flex min-h-0 grow scrollbar-gutter-stable flex-col gap-4 p-4">
                 <p>Enter a URL and click Fetch, or try an example:</p>
                 {examples.map((example) => (
                   <button

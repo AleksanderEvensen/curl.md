@@ -259,7 +259,7 @@ export function DocContent(props: {
                       }
                     >
                       <Menu.Popup
-                        className="bg-bg1 border-gray-a3 minimal-scrollbar max-h-[min(24rem,calc(100dvh-9rem))] w-full overflow-x-hidden overflow-y-auto overscroll-contain border p-0 shadow-2xl outline-none md:w-auto"
+                        className="bg-bg1 border-gray-a3 scrollbar-thumb-gray-a3 max-h-[min(24rem,calc(100dvh-9rem))] w-full scrollbar-thin scrollbar-track-transparent overflow-x-hidden overflow-y-auto overscroll-contain border p-0 shadow-2xl outline-none md:w-auto"
                         data-doc-mobile-outline-panel=""
                         id="docs-mobile-outline"
                       >
@@ -367,7 +367,7 @@ export function DocContent(props: {
         </article>
 
         <aside className="group border-gray-a3 hidden w-64 border-s lg:block">
-          <div className="minimal-scrollbar sticky top-17 flex h-[calc(100dvh-4.25rem)] flex-col overflow-y-auto py-8 ps-6 pe-6">
+          <div className="scrollbar-thumb-gray-a3 sticky top-17 flex h-[calc(100dvh-4.25rem)] scrollbar-thin scrollbar-track-transparent flex-col overflow-y-auto py-8 ps-6 pe-6">
             <div>
               {hasHeadings && (
                 <>
@@ -1002,7 +1002,7 @@ function Notice(
 function DocsTable(props: React.ComponentProps<'table'> & { preview?: boolean }) {
   const { preview, ...rest } = props
   const containerClassName = [
-    'minimal-scrollbar',
+    'scrollbar-thin scrollbar-thumb-gray-a3 scrollbar-track-transparent',
     preview ? 'mt-4 overflow-x-hidden' : 'mt-6 overflow-x-auto',
   ]
     .filter(Boolean)
@@ -1563,7 +1563,7 @@ function getCodeGroupTabClassName(preview = false) {
 
 function getCodeGroupTabStripClassName(preview = false) {
   return [
-    'minimal-scrollbar relative flex gap-1 overflow-y-hidden px-2 [background-color:var(--color-docs-code-surface)]',
+    'relative flex gap-1 overflow-y-hidden px-2 [background-color:var(--color-docs-code-surface)] scrollbar-thin scrollbar-thumb-gray-a3 scrollbar-track-transparent',
     preview ? 'overflow-x-hidden' : 'overflow-x-auto',
   ]
     .filter(Boolean)
@@ -1706,7 +1706,7 @@ function DocsCodeBlock(props: React.ComponentProps<'pre'> & { preview?: boolean 
         <pre
           {...rest}
           className={[
-            '[background-color:var(--docs-code-block-background)] minimal-scrollbar focus-visible:ring-blue8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset mt-0',
+            '[background-color:var(--docs-code-block-background)] focus-visible:ring-blue8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset mt-0 scrollbar-thin scrollbar-thumb-gray-a3 scrollbar-track-transparent',
             preview ? 'overflow-x-hidden' : 'overflow-x-auto',
             preview ? 'p-3 leading-[1.45]' : 'p-4 leading-relaxed',
             shouldShowCopyButton && !label ? 'ps-4 pe-12' : undefined,

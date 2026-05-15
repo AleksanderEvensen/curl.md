@@ -313,11 +313,11 @@ function Component() {
             data-open={open ? '' : undefined}
           >
             <div className="h-full md:sticky md:top-17 md:h-[calc(100dvh-4.25rem)]">
-              <div className="minimal-scrollbar h-full overflow-y-auto py-6 ps-5 pe-3 md:flex md:flex-col md:overflow-hidden md:px-0 md:py-0">
+              <div className="scrollbar-thumb-gray-a3 h-full scrollbar-thin scrollbar-track-transparent overflow-y-auto py-6 ps-5 pe-3 md:flex md:flex-col md:overflow-hidden md:px-0 md:py-0">
                 <div className="flex min-h-full flex-col md:min-h-0 md:flex-1">
                   <div className="relative md:min-h-0 md:flex-1">
                     <div
-                      className="minimal-scrollbar md:h-full md:min-h-0 md:overflow-y-auto"
+                      className="scrollbar-thumb-gray-a3 scrollbar-thin scrollbar-track-transparent md:h-full md:min-h-0 md:overflow-y-auto"
                       ref={desktopSidebarScrollRef}
                     >
                       <div className="md:px-6 md:py-6">

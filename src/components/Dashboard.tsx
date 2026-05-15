@@ -61,7 +61,7 @@ function Stat(props: { label: string; tooltip?: React.ReactNode; value?: string 
 function Table(props: React.PropsWithChildren<{ className?: string }>) {
   return (
     <div className="border-gray-a3 bg-gray-a1/50 min-w-0 border">
-      <div className="minimal-scrollbar min-w-0 overflow-x-auto">
+      <div className="scrollbar-thumb-gray-a3 min-w-0 scrollbar-thin scrollbar-track-transparent overflow-x-auto">
         <table className={`w-full ${props.className ?? 'text-xs'}`}>{props.children}</table>
       </div>
     </div>
