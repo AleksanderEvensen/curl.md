@@ -1,6 +1,7 @@
 import { expect, test } from 'vitest'
 import { create, defineTransport } from './mod.ts'
 import * as profiles from './profiles.ts'
+import * as transports from './transports.ts'
 
 test('requests markdown directly for exdoc docs after profile detection', async () => {
   const body = 'Normalized docs body.'
@@ -280,6 +281,50 @@ test('browser renders spa shells when html extraction is empty', async () => {
   expect(result.content).toContain('# Rendered App')
   expect(result.content).toContain('client-rendered paragraph')
   expect(result.meta.title).toBe('SPA')
+})
+
+test('unwraps cloudflare browser rendering content responses', async () => {
+  const result = await transports.cfBrowserRendering({
+    accountId: 'account',
+    apiToken: 'token',
+  })(new URL('https://example.com'), undefined, {
+    fetch: async (input, init) => {
+      expect(input).toBe(
+        'https://api.cloudflare.com/client/v4/accounts/account/browser-rendering/content',
+      )
+      expect(new Headers(init?.headers).get('authorization')).toBe('Bearer token')
+      return new Response(
+        JSON.stringify({
+          result:
+            '<!doctype html><html><head><title>Rendered</title></head><body><main>Rendered content</main></body></html>',
+          success: true,
+        }),
+        { headers: { 'content-type': 'application/json' }, status: 200 },
+      )
+    },
+    previous: new Response(null, { status: 403 }),
+  })
+
+  expect(result?.ok).toBe(true)
+  const content = await result?.text()
+  expect(content).toContain('<title>Rendered</title>')
+  expect(content).not.toContain('"success":true')
+})
+
+test('ignores unexpected cloudflare browser rendering json responses', async () => {
+  const result = await transports.cfBrowserRendering({
+    accountId: 'account',
+    apiToken: 'token',
+  })(new URL('https://example.com'), undefined, {
+    fetch: async () =>
+      new Response(JSON.stringify({ errors: [{ message: 'unexpected' }], success: false }), {
+        headers: { 'content-type': 'application/json' },
+        status: 200,
+      }),
+    previous: new Response(null, { status: 403 }),
+  })
+
+  expect(result).toBe(null)
 })
 
 test('uses embedded agent instructions when spa html has no rendered content', async () => {
