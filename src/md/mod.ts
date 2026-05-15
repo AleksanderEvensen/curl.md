@@ -140,7 +140,16 @@ export function create(options: create.Options = {}): create.ReturnType {
           baseUrl: inputURL.href,
           profile,
         })
-        if (shouldRetryMarkdownUrl(profile?.markdownUrl, htmlResult.content)) {
+
+        const shouldUseFallbackContent = (() => {
+          // Only pay fallback costs when generic HTML extraction produced almost nothing.
+          const trimmed = htmlResult.content.trim()
+          if (trimmed === '') return true
+          const lines = trimmed.split('\n').filter(Boolean)
+          return trimmed.length < 120 && lines.length <= 3
+        })()
+
+        if (profile?.markdownUrl && shouldUseFallbackContent) {
           try {
             const url = new URL(profile.markdownUrl)
             const markdownResponse = await fetchResponse(url)
@@ -153,6 +162,80 @@ export function create(options: create.Options = {}): create.ReturnType {
               if (markdownResult) return markdownResult
             }
           } catch {}
+        }
+
+        const isSpaShell = (() => {
+          // Client-only apps usually ship an empty mount node plus a JS entrypoint.
+          if (!/<script\b[^>]*(?:\bsrc=|\btype=["']module["'])/iu.test(text)) return false
+          return spaMountElementPattern.test(text)
+        })()
+        if (isSpaShell && shouldUseFallbackContent) {
+          try {
+            const renderedResponse = await (async () => {
+              // Ask the transport chain for an expensive browser-rendered retry only on SPA shells.
+              if (!options.transport) return
+              return (
+                (await options.transport(inputURL, requestInit, {
+                  ...context,
+                  previous: response,
+                  render: true,
+                })) ?? undefined
+              )
+            })()
+            if (renderedResponse?.ok) {
+              const renderedText = await renderedResponse.text()
+              const renderedProfile = detectPageProfile(renderedText, inputURL, profiles) ?? profile
+              const renderedHtmlResult = await fromHtml(renderedText, {
+                baseUrl: inputURL.href,
+                profile: renderedProfile,
+              })
+              const renderedContentIsUseful = (() => {
+                // Rendered HTML must beat the same thin-content threshold to replace source HTML.
+                const trimmed = renderedHtmlResult.content.trim()
+                if (trimmed === '') return false
+                const lines = trimmed.split('\n').filter(Boolean)
+                return trimmed.length >= 120 || lines.length > 3
+              })()
+              if (renderedContentIsUseful) {
+                profile = renderedProfile
+                return renderedHtmlResult
+              }
+            }
+          } catch {}
+        }
+
+        const embeddedMarkdown = (() => {
+          // Some SPAs embed LLM-ready markdown in hidden agent instruction blocks.
+          for (const match of text.matchAll(embeddedMarkdownElementPattern)) {
+            const entities: Record<string, string> = {
+              amp: '&',
+              apos: "'",
+              gt: '>',
+              lt: '<',
+              nbsp: ' ',
+              quot: '"',
+            }
+            const content = (match[2] ?? '')
+              .replace(/<br\s*\/?>/giu, '\n')
+              .replace(/<[^>]+>/gu, '')
+              .replace(/&(#x[\da-f]+|#\d+|[a-z]+);/giu, (entityMatch, entity: string) => {
+                const key = entity.toLowerCase()
+                if (key.startsWith('#x'))
+                  return String.fromCodePoint(Number.parseInt(key.slice(2), 16))
+                if (key.startsWith('#'))
+                  return String.fromCodePoint(Number.parseInt(key.slice(1), 10))
+                return entities[key] ?? entityMatch
+              })
+              .trim()
+            if (content) return content
+          }
+        })()
+        if (embeddedMarkdown && shouldUseFallbackContent) {
+          const split = splitFrontmatter(embeddedMarkdown)
+          return {
+            content: split.body,
+            meta: { ...filterFrontmatterKeys(split.meta), ...htmlResult.meta },
+          }
         }
         return htmlResult
       })()
@@ -269,7 +352,7 @@ type CheckCase = {
 export type Transport = (
   url: URL,
   init: RequestInit | undefined,
-  context: FetchContext & { previous: Response | undefined },
+  context: FetchContext & { previous: Response | undefined; render?: boolean | undefined },
 ) => Promise<Response | null>
 
 export function defineTransport<options = void>(
@@ -279,6 +362,7 @@ export function defineTransport<options = void>(
     context: FetchContext & {
       options: options
       previous: Response | undefined
+      render?: boolean | undefined
     },
   ) => Promise<Response | null>,
 ): (options?: options) => Transport {
@@ -388,6 +472,23 @@ const metaKeyPriority: Record<string, number> = {
   publish_date: 7,
 }
 
+const spaMountIds = ['__next', '__nuxt', 'app', 'root', 'svelte'] as const
+const spaMountElementPattern = new RegExp(
+  `<(?:div|main)\\b[^>]*(?:\\bid=["'](?:${spaMountIds.map(escapeRegExp).join('|')})["']|\\bdata-reactroot\\b)[^>]*>\\s*<\\/\\w+>`,
+  'iu',
+)
+const embeddedMarkdownAttributes = ['data-agent-instructions'] as const
+const embeddedMarkdownElementPattern = new RegExp(
+  '<([a-z][\\w:-]*)\\b[^>]*\\b(?:' +
+    embeddedMarkdownAttributes.map(escapeRegExp).join('|') +
+    ')(?:\\s*=\\s*(?:"[^"]*"|\'[^\']*\'|[^\\s"\'=<>`]+))?[^>]*>([\\s\\S]*?)<\\/\\1>',
+  'giu',
+)
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
 function sortMeta(meta: Meta): Meta {
   return Object.fromEntries(
     Object.entries(meta).sort(
@@ -486,17 +587,6 @@ function normalizeFencedCodeBlockIndentation(content: string): string {
       return line.replace(/^[ \t]+(?=\S)/, (ws) => ws.replace(/\t/g, '  '))
     })
     .join('\n')
-}
-
-function shouldRetryMarkdownUrl(
-  markdownUrl: string | undefined,
-  content: string,
-): markdownUrl is string {
-  if (!markdownUrl) return false
-  const trimmed = content.trim()
-  if (trimmed === '') return true
-  const lines = trimmed.split('\n').filter(Boolean)
-  return trimmed.length < 120 && lines.length <= 3
 }
 
 async function extractMarkdownResponse(

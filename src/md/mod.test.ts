@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { create } from './mod.ts'
+import { create, defineTransport } from './mod.ts'
 import * as profiles from './profiles.ts'
 
 test('requests markdown directly for exdoc docs after profile detection', async () => {
@@ -242,6 +242,63 @@ test('fetches markdown from a text/markdown alternate link before converting htm
   expect(result.content).toContain('Markdown body')
   expect(result.content).not.toContain('HTML body')
   expect(result.extras.source_tokens).toBeGreaterThan(0)
+  expect(result.extras.source_tokens_method).toBe('html')
+})
+
+test('browser renders spa shells when html extraction is empty', async () => {
+  const requests: Array<{ previous: number | undefined; render: boolean; url: string }> = []
+  const md = create({
+    fetch: async () =>
+      new Response(
+        '<!doctype html><html><head><title>SPA</title></head><body><div id="root"></div><script type="module" src="/assets/app.js"></script></body></html>',
+        { headers: { 'content-type': 'text/html; charset=utf-8' }, status: 200 },
+      ),
+    profiles,
+    transport: defineTransport(async (url, init, context) => {
+      requests.push({
+        previous: context.previous?.status,
+        render: context.render ?? false,
+        url: url.href,
+      })
+      if (context.render)
+        return new Response(
+          '<!doctype html><html><head><title>SPA</title></head><body><main><h1>Rendered App</h1><p>This client-rendered paragraph is long enough to prove browser rendering produced useful page content instead of the empty shell.</p></main></body></html>',
+          { headers: { 'content-type': 'text/html; charset=utf-8' }, status: 200 },
+        )
+      return context.fetch(url, init)
+    })(),
+  })
+
+  const result = await md.fetch('https://example.com')
+  expect(result.ok).toBe(true)
+  if (!result.ok) return
+
+  expect(requests).toEqual([
+    { previous: undefined, render: false, url: 'https://example.com/' },
+    { previous: 200, render: true, url: 'https://example.com/' },
+  ])
+  expect(result.content).toContain('# Rendered App')
+  expect(result.content).toContain('client-rendered paragraph')
+  expect(result.meta.title).toBe('SPA')
+})
+
+test('uses embedded agent instructions when spa html has no rendered content', async () => {
+  const md = create({
+    fetch: async () =>
+      new Response(
+        '<!doctype html><html><head><title>Anscribe</title></head><body><div style="display:none" aria-hidden="true" data-agent-instructions="true"># Anscribe\n\n&gt; Setup instructions with &quot;quotes&quot;.</div><div id="root"></div></body></html>',
+        { headers: { 'content-type': 'text/html; charset=utf-8' }, status: 200 },
+      ),
+    profiles,
+  })
+
+  const result = await md.fetch('https://anscribe.dev')
+  expect(result.ok).toBe(true)
+  if (!result.ok) return
+
+  expect(result.content).toContain('# Anscribe')
+  expect(result.content).toContain('> Setup instructions with "quotes".')
+  expect(result.meta.title).toBe('Anscribe')
   expect(result.extras.source_tokens_method).toBe('html')
 })
 
