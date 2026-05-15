@@ -10,7 +10,7 @@ export default defineConfig({
       use: { browserName: 'chromium' },
     },
   ],
-  reporter: process.env.CI ? [['dot'], ['github']] : 'list',
+  reporter: process.env.CI ? [['dot'], ['github'], ['html', { open: 'never' }]] : 'list',
   retries: process.env.CI ? 2 : 0,
   testDir: 'e2e',
   testMatch: '**/*.test.ts',
