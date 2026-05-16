@@ -98,7 +98,7 @@ jobs:
           SHA: ${{ inputs.sha }}
 
       - name: Setup pscale
-        uses: planetscale/setup-pscale-action@d0c2789e7018488bae9d469592876b3428fa03f6 # v1
+        uses: planetscale/setup-pscale-action@b6a50ee45b4b24944e1d8de6e57b3a5f6476a1af # v1
 
       - name: Setup PlanetScale branch
         id: pscale
