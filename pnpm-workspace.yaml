@@ -48,8 +48,8 @@ packages:
 # TODO: Remove once issue is fixed
 # https://github.com/TanStack/router/pull/7115
 patchedDependencies:
-  '@tanstack/react-router@1.168.25': config/patches/@tanstack__react-router@1.168.7.patch
-  '@tanstack/router-core@1.168.17': config/patches/@tanstack__router-core@1.168.6.patch
+  '@tanstack/react-router@1.169.2': config/patches/@tanstack__react-router@1.169.2.patch
+  '@tanstack/router-core@1.169.2': config/patches/@tanstack__router-core@1.169.2.patch
 peerDependencyRules:
   allowAny:
     - vite

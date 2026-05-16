@@ -72,6 +72,7 @@ Follow [PlanetScale Postgres skill](https://github.com/planetscale/database-skil
 
 - Component/page component should be the first thing in the file (after imports)
 - Use IIFE when appropriate
+- Avoid arrow functions unless necessary (e.g. inline anonymous callbacks, callbacks requiring lexical `this`, or established API patterns)
 - No braces for single-branch statements (`if (true) return ...`)
 - No ellipsis in button text (e.g. "Deleting" not "Deleting...")
 - No emoji

@@ -84,6 +84,16 @@ test('dot-segment paths rewrite to the API handler', async ({ request }) => {
   await expect(rewrittenRes.text()).resolves.toContain('# CLI')
 })
 
+test('browser navigation to dot-segment paths renders converted external markdown', async ({
+  page,
+}) => {
+  await page.goto('/example.com')
+
+  await expect(page.locator('body')).toContainText('url: https://example.com/')
+  await expect(page.locator('body')).toContainText('site: example.com')
+  await expect(page.locator('body')).toContainText('# Example Domain')
+})
+
 test('protocol-prefixed browser paths redirect to non-protocol paths', async ({ request }) => {
   const res = await request.get('/https://curl.local/docs/guide/cli?tab=pnpm', {
     headers: { Accept: 'text/html' },

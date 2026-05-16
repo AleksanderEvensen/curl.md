@@ -1,9 +1,9 @@
 diff --git a/dist/esm/index.js b/dist/esm/index.js
-index a3c085e..153f4b4 100644
+index a8db526..0cf02c8 100644
 --- a/dist/esm/index.js
 +++ b/dist/esm/index.js
 @@ -1,6 +1,6 @@
- import { DEFAULT_PROTOCOL_ALLOWLIST, buildDevStylesUrl, createControlledPromise, deepEqual, escapeHtml, functionalUpdate, isDangerousProtocol, isModuleNotFoundError, isPlainArray, isPlainObject, replaceEqualDeep } from "./utils.js";
+ import { DEFAULT_PROTOCOL_ALLOWLIST, buildDevStylesUrl, createControlledPromise, deepEqual, escapeHtml, functionalUpdate, hasKeys, isDangerousProtocol, isModuleNotFoundError, isPlainArray, isPlainObject, replaceEqualDeep } from "./utils.js";
  import { invariant } from "./invariant.js";
 -import { cleanPath, exactPathTest, interpolatePath, joinPaths, removeTrailingSlash, resolvePath, trimPath, trimPathLeft, trimPathRight } from "./path.js";
 +import { cleanPath, exactPathTest, interpolatePath, joinPaths, removeTrailingSlash, resolvePath, routePathToRegExpSource, trimPath, trimPathLeft, trimPathRight } from "./path.js";
@@ -22,19 +22,16 @@ index a3c085e..153f4b4 100644
  import { createSerializationAdapter, makeSerovalPlugin, makeSsrSerovalPlugin } from "./ssr/serializer/transformer.js";
  import { RawStream, createRawStreamDeserializePlugin, createRawStreamRPCPlugin } from "./ssr/serializer/RawStream.js";
  import { defaultSerovalPlugins } from "./ssr/serializer/seroval-plugins.js";
--export { BaseRootRoute, BaseRoute, BaseRouteApi, DEFAULT_PROTOCOL_ALLOWLIST, PathParamError, RawStream, RouterCore, SearchParamError, TSR_DEFERRED_PROMISE, buildDevStylesUrl, cleanPath, composeRewrites, createControlledPromise, createInlineCssStyleAsset, createNonReactiveMutableStore, createNonReactiveReadonlyStore, createRawStreamDeserializePlugin, createRawStreamRPCPlugin, createRouterConfig, createSerializationAdapter, decode, deepEqual, defaultGetScrollRestorationKey, defaultParseSearch, defaultSerializeError, defaultSerovalPlugins, defaultStringifySearch, defer, encode, escapeHtml, exactPathTest, executeRewriteInput, functionalUpdate, getAssetCrossOrigin, getElementScrollRestorationEntry, getInitialRouterState, getLocationChangeInfo, getMatchedRoutes, getStylesheetHref, handleHashScroll, interpolatePath, invariant, isDangerousProtocol, isInlinableStylesheet, isMatch, isModuleNotFoundError, isNotFound, isPlainArray, isPlainObject, isRedirect, isResolvedRedirect, joinPaths, lazyFn, makeSerovalPlugin, makeSsrSerovalPlugin, notFound, parseRedirect, parseSearchWith, preloadWarning, redirect, removeTrailingSlash, replaceEqualDeep, resolveManifestAssetLink, resolvePath, retainSearchParams, rootRouteId, scrollRestorationCache, setupScrollRestoration, storageKey, stringifySearchWith, stripSearchParams, trailingSlashOptions, trimPath, trimPathLeft, trimPathRight };
-+export { BaseRootRoute, BaseRoute, BaseRouteApi, DEFAULT_PROTOCOL_ALLOWLIST, PathParamError, RawStream, RouterCore, SearchParamError, TSR_DEFERRED_PROMISE, buildDevStylesUrl, cleanPath, composeRewrites, createControlledPromise, createInlineCssStyleAsset, createNonReactiveMutableStore, createNonReactiveReadonlyStore, createRawStreamDeserializePlugin, createRawStreamRPCPlugin, createRouterConfig, createSerializationAdapter, decode, deepEqual, defaultGetScrollRestorationKey, defaultParseSearch, defaultSerializeError, defaultSerovalPlugins, defaultStringifySearch, defer, encode, escapeHtml, exactPathTest, executeRewriteInput, functionalUpdate, getAssetCrossOrigin, getElementScrollRestorationEntry, getInitialRouterState, getLocationChangeInfo, getMatchedRoutes, getStylesheetHref, getUnmaskOnReloadScript, handleHashScroll, interpolatePath, invariant, isDangerousProtocol, isInlinableStylesheet, isMatch, isModuleNotFoundError, isNotFound, isPlainArray, isPlainObject, isRedirect, isResolvedRedirect, joinPaths, lazyFn, makeSerovalPlugin, makeSsrSerovalPlugin, notFound, parseRedirect, parseSearchWith, preloadWarning, redirect, removeTrailingSlash, replaceEqualDeep, resolveManifestAssetLink, resolvePath, retainSearchParams, rootRouteId, routePathToRegExpSource, scrollRestorationCache, setupScrollRestoration, storageKey, stringifySearchWith, stripSearchParams, trailingSlashOptions, trimPath, trimPathLeft, trimPathRight };
+-export { BaseRootRoute, BaseRoute, BaseRouteApi, DEFAULT_PROTOCOL_ALLOWLIST, PathParamError, RawStream, RouterCore, SearchParamError, TSR_DEFERRED_PROMISE, buildDevStylesUrl, cleanPath, composeRewrites, createControlledPromise, createInlineCssStyleAsset, createNonReactiveMutableStore, createNonReactiveReadonlyStore, createRawStreamDeserializePlugin, createRawStreamRPCPlugin, createRouterConfig, createSerializationAdapter, decode, deepEqual, defaultGetScrollRestorationKey, defaultParseSearch, defaultSerializeError, defaultSerovalPlugins, defaultStringifySearch, defer, encode, escapeHtml, exactPathTest, executeRewriteInput, functionalUpdate, getAssetCrossOrigin, getElementScrollRestorationEntry, getInitialRouterState, getLocationChangeInfo, getMatchedRoutes, getStylesheetHref, handleHashScroll, hasKeys, interpolatePath, invariant, isDangerousProtocol, isInlinableStylesheet, isMatch, isModuleNotFoundError, isNotFound, isPlainArray, isPlainObject, isRedirect, isResolvedRedirect, joinPaths, lazyFn, makeSerovalPlugin, makeSsrSerovalPlugin, notFound, parseRedirect, parseSearchWith, preloadWarning, redirect, removeTrailingSlash, replaceEqualDeep, resolveManifestAssetLink, resolvePath, retainSearchParams, rootRouteId, scrollRestorationCache, setupScrollRestoration, storageKey, stringifySearchWith, stripSearchParams, trailingSlashOptions, trimPath, trimPathLeft, trimPathRight };
++export { BaseRootRoute, BaseRoute, BaseRouteApi, DEFAULT_PROTOCOL_ALLOWLIST, PathParamError, RawStream, RouterCore, SearchParamError, TSR_DEFERRED_PROMISE, buildDevStylesUrl, cleanPath, composeRewrites, createControlledPromise, createInlineCssStyleAsset, createNonReactiveMutableStore, createNonReactiveReadonlyStore, createRawStreamDeserializePlugin, createRawStreamRPCPlugin, createRouterConfig, createSerializationAdapter, decode, deepEqual, defaultGetScrollRestorationKey, defaultParseSearch, defaultSerializeError, defaultSerovalPlugins, defaultStringifySearch, defer, encode, escapeHtml, exactPathTest, executeRewriteInput, functionalUpdate, getAssetCrossOrigin, getElementScrollRestorationEntry, getInitialRouterState, getLocationChangeInfo, getMatchedRoutes, getStylesheetHref, getUnmaskOnReloadScript, handleHashScroll, hasKeys, interpolatePath, invariant, isDangerousProtocol, isInlinableStylesheet, isMatch, isModuleNotFoundError, isNotFound, isPlainArray, isPlainObject, isRedirect, isResolvedRedirect, joinPaths, lazyFn, makeSerovalPlugin, makeSsrSerovalPlugin, notFound, parseRedirect, parseSearchWith, preloadWarning, redirect, removeTrailingSlash, replaceEqualDeep, resolveManifestAssetLink, resolvePath, retainSearchParams, rootRouteId, routePathToRegExpSource, scrollRestorationCache, setupScrollRestoration, storageKey, stringifySearchWith, stripSearchParams, trailingSlashOptions, trimPath, trimPathLeft, trimPathRight };
 diff --git a/dist/esm/path.js b/dist/esm/path.js
-index 0f192cc..a000ad9 100644
+index 4f3c980..40bd92b 100644
 --- a/dist/esm/path.js
 +++ b/dist/esm/path.js
-@@ -97,12 +97,50 @@ function resolvePath({ base, to, trailingSlash = "never", cache }) {
- 	return result;
- }
- /**
-+* Convert a route path template into a regular expression source that matches
-+* concrete pathnames for that route.
-+*/
+@@ -79,9 +79,43 @@ function resolvePath({ base, to, trailingSlash = "never", cache }) {
+ * Create a pre-compiled decode config from allowed characters.
+ * This should be called once at router initialization.
+ */
 +function routePathToRegExpSource(routePath) {
 +	if (!routePath || routePath === "/") return "^/$";
 +	let cursor = 0;
@@ -69,10 +66,6 @@ index 0f192cc..a000ad9 100644
 +	}
 +	return `^${regExpSource}$`;
 +}
-+/**
- * Create a pre-compiled decode config from allowed characters.
- * This should be called once at router initialization.
- */
  function compileDecodeCharMap(pathParamsAllowedCharacters) {
  	const charMap = new Map(pathParamsAllowedCharacters.map((char) => [encodeURIComponent(char), char]));
 -	const pattern = Array.from(charMap.keys()).map((key) => key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
@@ -80,12 +73,12 @@ index 0f192cc..a000ad9 100644
  	const regex = new RegExp(pattern, "g");
  	return (encoded) => encoded.replace(regex, (match) => charMap.get(match) ?? match);
  }
-@@ -237,7 +275,10 @@ function encodePathParam(value, decoder) {
+@@ -216,7 +250,10 @@ function encodePathParam(value, decoder) {
  	const encoded = encodeURIComponent(value);
  	return decoder?.(encoded) ?? encoded;
  }
 +function escapeRegExp(value) {
-+	return value.replace(/[.*+?^${}()|[\]\\]/g, "\$&");
++	return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 +}
  //#endregion
 -export { cleanPath, compileDecodeCharMap, exactPathTest, interpolatePath, joinPaths, removeTrailingSlash, resolvePath, trimPath, trimPathLeft, trimPathRight };
@@ -93,7 +86,7 @@ index 0f192cc..a000ad9 100644
  
  //# sourceMappingURL=path.js.map
 \ No newline at end of file
-diff --git a/.tmp/router-core.new/dist/esm/unmask-on-reload-inline.js b/dist/esm/unmask-on-reload-inline.js
+diff --git a/dist/esm/unmask-on-reload-inline.js b/dist/esm/unmask-on-reload-inline.js
 new file mode 100644
 index 0000000..b11e761
 --- /dev/null
@@ -103,7 +96,7 @@ index 0000000..b11e761
 +var unmask_on_reload_inline_default = "function(e){const o=e.routeMaskSources.map(a=>new RegExp(a)),t=window.history.state?.__tempLocation;t?.pathname&&(t.pathname===window.location.pathname&&(t.search??\"\")===window.location.search&&(t.hash??\"\")===window.location.hash||o.some(a=>a.test(t.pathname))&&window.location.replace(t.pathname+(t.search??\"\")+(t.hash??\"\")))}";
 +//#endregion
 +export { unmask_on_reload_inline_default as default };
-diff --git a/.tmp/router-core.new/dist/esm/unmask-on-reload-script.js b/dist/esm/unmask-on-reload-script.js
+diff --git a/dist/esm/unmask-on-reload-script.js b/dist/esm/unmask-on-reload-script.js
 new file mode 100644
 index 0000000..fa522f2
 --- /dev/null

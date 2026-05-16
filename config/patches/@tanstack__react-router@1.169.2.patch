@@ -1,5 +1,3 @@
-diff --git a/dist/esm/headContentUtils.js b/dist/esm/headContentUtils.js
-index 6b27256..16ddf91 100644
 --- a/dist/esm/headContentUtils.js
 +++ b/dist/esm/headContentUtils.js
 @@ -1,5 +1,5 @@
@@ -9,7 +7,7 @@ index 6b27256..16ddf91 100644
  import * as React$1 from "react";
  import { useStore } from "@tanstack/react-store";
  import { isServer } from "@tanstack/router-core/isServer";
-@@ -57,6 +57,7 @@ function buildTagsFromMatches(router, nonce, matches, assetCrossOrigin) {
+@@ -57,6 +57,7 @@
  			nonce
  		}
  	}));
@@ -17,7 +15,7 @@ index 6b27256..16ddf91 100644
  	const manifest = router.ssr?.manifest;
  	const assetLinks = matches.map((match) => manifest?.routes[match.routeId]?.assets ?? []).filter(Boolean).flat(1).flatMap((asset) => {
  		if (asset.tag === "link") {
-@@ -117,6 +118,7 @@ function buildTagsFromMatches(router, nonce, matches, assetCrossOrigin) {
+@@ -117,6 +118,7 @@
  		...constructedLinks,
  		...assetLinks,
  		...styles,
@@ -25,7 +23,7 @@ index 6b27256..16ddf91 100644
  		...headScripts
  	], (d) => JSON.stringify(d));
  }
-@@ -237,6 +239,7 @@ var useTags = (assetCrossOrigin) => {
+@@ -237,6 +239,7 @@
  		},
  		children
  	})), deepEqual);
@@ -33,7 +31,7 @@ index 6b27256..16ddf91 100644
  	const headScripts = useStore(router.stores.matches, (matches) => matches.map((match) => match.headScripts).flat(1).filter(Boolean).map(({ children, ...script }) => ({
  		tag: "script",
  		attrs: {
-@@ -250,11 +253,23 @@ var useTags = (assetCrossOrigin) => {
+@@ -250,11 +253,23 @@
  		...preloadLinks,
  		...links,
  		...styles,

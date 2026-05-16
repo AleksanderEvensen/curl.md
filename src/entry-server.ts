@@ -9,15 +9,6 @@ import { processRequestEnrichmentMessage } from '#queues/request-enrichment.ts'
 import { processRequestMessage } from '#queues/request.ts'
 import { processStripeWebhookMessage } from '#queues/stripe-webhook.ts'
 
-const staticAssets = {
-  '/llms.txt': '/llms.txt',
-  '/robots.txt': '/robots.txt',
-  '/sitemap.xml': '/sitemap.xml',
-  '/skills': '/.well-known/skills/index.json',
-  '/.well-known/skills': '/.well-known/skills/index.json',
-  '/.well-known/skills/curl-md': '/.well-known/skills/curl-md/SKILL.md',
-} as const
-
 export default Sentry.withSentry<Env, QueueHandlerMessage>(
   (env) => ({
     dsn: env.SENTRY_DSN,
@@ -29,146 +20,54 @@ export default Sentry.withSentry<Env, QueueHandlerMessage>(
   {
     async fetch(request, env, ctx) {
       const url = new URL(request.url)
-
       const firstSegment = url.pathname.split('/')[1] ?? ''
-      const protocol =
-        request.headers.get('x-forwarded-proto') ??
-        (() => {
-          const cfVisitor = request.headers.get('cf-visitor')
-          if (!cfVisitor) return undefined
-          try {
-            return z.object({ scheme: z.string() }).parse(JSON.parse(cfVisitor)).scheme
-          } catch {
-            return undefined
-          }
-        })() ??
-        url.protocol.slice(0, -1)
 
-      // Keep unauthenticated curl fetch paths working over HTTP, but enforce HTTPS elsewhere.
-      if (protocol === 'http' && url.hostname === env.HOST) {
-        const isFetchPath = firstSegment.includes('.') || /^https?:$/.test(firstSegment)
-        if (!isFetchPath) {
-          url.protocol = 'https:'
-          return new Response(null, { status: 301, headers: { location: url.toString() } })
-        }
-        if (
-          request.headers.has('authorization') ||
-          request.headers.has('cookie') ||
-          url.searchParams.has('t') ||
-          url.searchParams.has('token')
-        )
-          return new Response('Use HTTPS for authenticated requests', { status: 400 })
-      }
+      // Enforce HTTPS for app routes while allowing unauthenticated fetch shortcuts over HTTP.
+      const httpsResponse = enforceHttps(request, env, url, firstSegment)
+      if (httpsResponse) return httpsResponse
 
       // Route API requests to the Hono API handler
       if (url.pathname.startsWith('/api/')) return api.fetch(new Request(url, request), env, ctx)
 
       // Serve sheep assets directly so they never fall through to app/API route handling.
       if (url.pathname.startsWith('/sheep/')) return env.ASSETS.fetch(request)
+
       // Serve known static assets directly from Workers Assets binding
-      const path = url.pathname.replace(/\/+$/, '')
-      if (path in staticAssets) {
-        if (path === '/robots.txt') {
-          const headers = { 'content-type': 'text/plain; charset=utf-8' }
-          if (env.HOST !== 'curl.md')
-            return new Response(['User-agent: *', 'Disallow: /', ''].join('\n'), { headers })
-          return new Response(
-            [
-              'User-agent: *',
-              'Allow: /api/og.png',
-              'Disallow: /api/',
-              'Disallow: /auth/',
-              'Disallow: /credits/',
-              'Disallow: /invite/',
-              'Disallow: /login',
-              'Disallow: /home',
-              'Disallow: /docs/*.md',
-              '',
-              'Sitemap: https://curl.md/sitemap.xml',
-              '',
-            ].join('\n'),
-            { headers },
-          )
-        }
-        return env.ASSETS.fetch(new URL(staticAssets[path as keyof typeof staticAssets], url))
-      }
+      const staticResponse = getStaticAssetResponse(env, url)
+      if (staticResponse) return staticResponse
 
       // Route dot-segment paths (e.g. curl.md/example.com) to the API handler under /api prefix
-      if (firstSegment.includes('.') || /^https?:$/.test(firstSegment)) {
-        const protocolMatch = url.pathname.match(/^\/(https?:\/\/)(.+)/)
-        if (protocolMatch) {
-          const accept = request.headers.get('accept') ?? ''
-          // Redirect protocol-prefixed paths in browsers (e.g. /https://example.com/path → /example.com/path)
-          if (accept.includes('text/html'))
-            return new Response(null, {
-              status: 301,
-              headers: { location: `/${protocolMatch[2]}${url.search}` },
-            })
-          url.pathname = `/${protocolMatch[2]}`
-        }
-        url.pathname = `/api${url.pathname}`
-        return api.fetch(new Request(url, request), env, ctx)
-      }
+      const fetchShortcutResponse = getFetchShortcutResponse(request, env, ctx, url, firstSegment)
+      if (fetchShortcutResponse) return fetchShortcutResponse
 
       // Redirect docs requests to lowercase canonical paths, but preserve case for other routes.
-      const lowercasePathname = url.pathname.toLowerCase()
-      if (
-        url.pathname !== lowercasePathname &&
-        (lowercasePathname === '/docs' || lowercasePathname.startsWith('/docs/'))
-      )
-        return new Response(null, {
-          status: 301,
-          headers: { location: `${lowercasePathname}${url.search}` },
-        })
+      const docsCanonicalResponse = getDocsCanonicalResponse(url)
+      if (docsCanonicalResponse) return docsCanonicalResponse
 
       // Handle docs .md endpoints
-      const docsPathname = (() => {
-        if (url.pathname === '/docs' || url.pathname === '/docs/') return '/docs/index.md'
-        if (!url.pathname.startsWith('/docs/')) return
-        if (url.pathname.endsWith('.txt')) return
-        const normalizedPathname = url.pathname.replace(/\/+$/, '')
-        if (normalizedPathname.endsWith('.md')) return normalizedPathname
-        return `${normalizedPathname}.md`
-      })()
-      const docsAcceptType = (() => {
-        if (url.pathname.endsWith('.md')) return 'markdown'
-        return negotiateAccept(request.headers.get('accept'), (acceptedValue) => {
-          if (acceptedValue.q <= 0) return null
-          if (acceptedValue.type === '*' && acceptedValue.subtype === '*') return 'html' as const
-          if (acceptedValue.type === 'text' && acceptedValue.subtype === '*') return 'html' as const
-          if (acceptedValue.type === 'text' && acceptedValue.subtype === 'html')
-            return 'html' as const
-          if (acceptedValue.type === 'text' && acceptedValue.subtype === 'markdown')
-            return 'markdown' as const
-          return null
-        })
-      })()
-      if (docsPathname)
-        switch (docsAcceptType) {
-          case 'markdown': {
-            const docsMarkdownUrl = new URL(docsPathname, url)
-            docsMarkdownUrl.search = url.search
-            const response = env.ASSETS.fetch(new Request(docsMarkdownUrl, request))
-            if (!url.pathname.endsWith('.md')) return appendVaryAccept(await response)
-            return response
-          }
-          case null:
-            return new Response('Not Acceptable', {
-              status: 406,
-              headers: { vary: 'Accept' },
-            })
-        }
+      const docsRequest = (() => ({
+        acceptType: getDocsAcceptType(request, url),
+        pathname: getDocsMarkdownPathname(url),
+      }))()
+      const docsResponse = await getDocsResponse(request, env, url, docsRequest)
+      if (docsResponse) return docsResponse
 
       // Validate pathname
-      try {
-        decodeURI(url.pathname)
-      } catch {
+      if (
+        !(() => {
+          try {
+            decodeURI(url.pathname)
+            return true
+          } catch {
+            return false
+          }
+        })()
+      )
         return new Response('Bad Request', { status: 400 })
-      }
 
       // Fall through to TanStack Start SSR handler for all other routes (app pages)
       const response = serverEntry.fetch(request, { context: { ctx, env, request } })
-      if (docsAcceptType === 'html') return appendVaryAccept(await response)
+      if (docsRequest.acceptType === 'html') return appendVaryAccept(await response)
       return response
     },
     async queue(batch, env) {
@@ -243,4 +142,161 @@ declare module '@tanstack/react-start' {
       }
     }
   }
+}
+
+////////////////////////////////////////////////////////////////////////////////////
+
+function enforceHttps(request: Request, env: Env, url: URL, firstSegment: string) {
+  // Keep unauthenticated curl fetch paths working over HTTP, but enforce HTTPS elsewhere.
+  if (
+    (request.headers.get('x-forwarded-proto') ??
+      (() => {
+        const cfVisitor = request.headers.get('cf-visitor')
+        if (!cfVisitor) return
+        try {
+          return z.parse(z.object({ scheme: z.string() }), JSON.parse(cfVisitor)).scheme
+        } catch {
+          return
+        }
+      })() ??
+      url.protocol.slice(0, -1)) !== 'http'
+  )
+    return
+  if (url.hostname !== env.HOST) return
+
+  if (!isFetchShortcutPath(firstSegment)) {
+    url.protocol = 'https:'
+    return new Response(null, { status: 301, headers: { location: url.toString() } })
+  }
+
+  if (
+    request.headers.has('authorization') ||
+    request.headers.has('cookie') ||
+    url.searchParams.has('t') ||
+    url.searchParams.has('token')
+  )
+    return new Response('Use HTTPS for authenticated requests', { status: 400 })
+}
+
+function getDocsAcceptType(request: Request, url: URL) {
+  if (url.pathname.endsWith('.md')) return 'markdown'
+  return negotiateAccept(
+    request.headers.get('accept'),
+    function getAcceptedDocsType(acceptedValue) {
+      if (acceptedValue.q <= 0) return null
+      if (acceptedValue.type === '*' && acceptedValue.subtype === '*') return 'html'
+      if (acceptedValue.type === 'text' && acceptedValue.subtype === '*') return 'html'
+      if (acceptedValue.type === 'text' && acceptedValue.subtype === 'html') return 'html'
+      if (acceptedValue.type === 'text' && acceptedValue.subtype === 'markdown') return 'markdown'
+      return null
+    },
+  )
+}
+
+function getDocsCanonicalResponse(url: URL) {
+  const lowercasePathname = url.pathname.toLowerCase()
+  if (url.pathname === lowercasePathname) return
+  if (lowercasePathname !== '/docs' && !lowercasePathname.startsWith('/docs/')) return
+  return new Response(null, {
+    status: 301,
+    headers: { location: `${lowercasePathname}${url.search}` },
+  })
+}
+
+function getDocsMarkdownPathname(url: URL) {
+  if (url.pathname === '/docs' || url.pathname === '/docs/') return '/docs/index.md'
+  if (!url.pathname.startsWith('/docs/')) return
+  if (url.pathname.endsWith('.txt')) return
+  const normalizedPathname = url.pathname.replace(/\/+$/, '')
+  if (normalizedPathname.endsWith('.md')) return normalizedPathname
+  return `${normalizedPathname}.md`
+}
+
+async function getDocsResponse(
+  request: Request,
+  env: Env,
+  url: URL,
+  docsRequest: { acceptType: 'html' | 'markdown' | null; pathname: string | undefined },
+) {
+  if (!docsRequest.pathname) return
+  switch (docsRequest.acceptType) {
+    case 'html':
+      return
+    case 'markdown': {
+      const docsMarkdownUrl = new URL(docsRequest.pathname, url)
+      docsMarkdownUrl.search = url.search
+      const response = env.ASSETS.fetch(new Request(docsMarkdownUrl, request))
+      if (!url.pathname.endsWith('.md')) return appendVaryAccept(await response)
+      return response
+    }
+    case null:
+      return new Response('Not Acceptable', {
+        status: 406,
+        headers: { vary: 'Accept' },
+      })
+  }
+}
+
+function getFetchShortcutResponse(
+  request: Request,
+  env: Env,
+  ctx: ExecutionContext,
+  url: URL,
+  firstSegment: string,
+) {
+  if (!isFetchShortcutPath(firstSegment)) return
+  const protocolMatch = url.pathname.match(/^\/(https?:\/\/)(.+)/)
+  if (protocolMatch) {
+    // Redirect protocol-prefixed paths in browsers (e.g. /https://example.com/path → /example.com/path)
+    if ((request.headers.get('accept') ?? '').includes('text/html'))
+      return new Response(null, {
+        status: 301,
+        headers: { location: `/${protocolMatch[2]}${url.search}` },
+      })
+    url.pathname = `/${protocolMatch[2]}`
+  }
+  url.pathname = `/api${url.pathname}`
+  return api.fetch(new Request(url, request), env, ctx)
+}
+
+const staticAssets = {
+  '/llms.txt': '/llms.txt',
+  '/robots.txt': '/robots.txt',
+  '/sitemap.xml': '/sitemap.xml',
+  '/skills': '/.well-known/skills/index.json',
+  '/.well-known/skills': '/.well-known/skills/index.json',
+  '/.well-known/skills/curl-md': '/.well-known/skills/curl-md/SKILL.md',
+} as const
+
+function getStaticAssetResponse(env: Env, url: URL) {
+  const path = url.pathname.replace(/\/+$/, '')
+  if (!(path in staticAssets)) return
+  if (path === '/robots.txt')
+    return (() => {
+      const headers = { 'content-type': 'text/plain; charset=utf-8' }
+      if (env.HOST !== 'curl.md')
+        return new Response(['User-agent: *', 'Disallow: /', ''].join('\n'), { headers })
+      return new Response(
+        [
+          'User-agent: *',
+          'Allow: /api/og.png',
+          'Disallow: /api/',
+          'Disallow: /auth/',
+          'Disallow: /credits/',
+          'Disallow: /invite/',
+          'Disallow: /login',
+          'Disallow: /home',
+          'Disallow: /docs/*.md',
+          '',
+          'Sitemap: https://curl.md/sitemap.xml',
+          '',
+        ].join('\n'),
+        { headers },
+      )
+    })()
+  return env.ASSETS.fetch(new URL(staticAssets[path as keyof typeof staticAssets], url))
+}
+
+function isFetchShortcutPath(firstSegment: string) {
+  return firstSegment.includes('.') || /^https?:$/.test(firstSegment)
 }

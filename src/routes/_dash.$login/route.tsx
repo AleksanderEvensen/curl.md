@@ -29,8 +29,18 @@ const searchSchema = z.object({
   modal: z.enum(['create_org']).optional(),
 })
 
+const loginParamPattern = /^[a-z\d](?:[a-z\d-]{0,48}[a-z\d])?$/i
+
 export const Route = createFileRoute('/_dash/$login')({
-  head: () => ({ meta: [{ name: 'robots', content: 'noindex,nofollow' }] }),
+  params: {
+    parse(params) {
+      if (!loginParamPattern.test(params.login)) return false
+      return { login: params.login }
+    },
+  },
+  head() {
+    return { meta: [{ name: 'robots', content: 'noindex,nofollow' }] }
+  },
   async beforeLoad({ location, params }): Promise<DashboardLayoutData> {
     const data = await getLayoutData({ data: { login: params.login } })
     if (data === false)
