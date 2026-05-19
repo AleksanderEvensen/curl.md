@@ -41,7 +41,7 @@
     "test:e2e": "playwright test --config test/e2e.config.ts"
   },
   "dependencies": {
-    "@base-ui/react": "^1.4.1",
+    "@base-ui/react": "^1.5.0",
     "@cloudflare/vite-plugin": "^1.37.0",
     "@fontsource-variable/geist-mono": "^5.2.7",
     "@fontsource/silkscreen": "^5.2.8",
