@@ -17,14 +17,16 @@ overrides:
   '@protobufjs/utf8@<=1.1.0': 1.1.1
   '@tanstack/start-server-core@<1.167.30': 1.167.30
   basic-ftp@<=5.3.0: 5.3.1
+  brace-expansion@>=5.0.0 <5.0.6: 5.0.6
   fast-uri@<=3.1.1: 3.1.2
   fast-xml-builder@<=1.1.6: 1.1.7
   fast-xml-parser@<5.7.0: 5.7.0
   ip-address@<10.1.1: 10.1.1
-  protobufjs@<=7.5.5: 7.5.6
+  protobufjs@<=7.5.7: 7.5.8
   uuid@<14.0.0: 14.0.0
   vite: npm:@voidzero-dev/vite-plus-core@0.1.20
   vitest: npm:@voidzero-dev/vite-plus-test@0.1.20
+  ws@>=8.0.0 <8.20.1: 8.20.1
 
 packageExtensionsChecksum: sha256-KEUofvn4PCHpgvOYlK8995oJ28kF79acmYnn/VoEFBQ=
 
@@ -325,10 +327,10 @@ importers:
     devDependencies:
       '@earendil-works/pi-ai':
         specifier: ^0.74.0
-        version: 0.74.0(ws@8.20.0)(zod@4.3.6)
+        version: 0.74.0(ws@8.20.1)(zod@4.3.6)
       '@earendil-works/pi-coding-agent':
         specifier: ^0.74.0
-        version: 0.74.0(ws@8.20.0)(zod@4.3.6)
+        version: 0.74.0(ws@8.20.1)(zod@4.3.6)
       '@earendil-works/pi-tui':
         specifier: ^0.74.0
         version: 0.74.0
@@ -2376,9 +2378,6 @@ packages:
   '@protobufjs/float@1.0.2':
     resolution: {integrity: sha512-Ddb+kVXlXst9d+R9PfTIxh1EdNkgoRe5tOX6t01f1lYWOvJnSPDBlG241QLzcyPdoNTsblLUdujGSE4RzrTZGQ==}
 
-  '@protobufjs/inquire@1.1.0':
-    resolution: {integrity: sha512-kdSefcPdruJiFMVSbn801t4vFK7KB/5gd2fYvrxhuJYg8ILrmn9SKSX2tZdV6V+ksulWqS7aXjBcRXl3wHoD9Q==}
-
   '@protobufjs/inquire@1.1.1':
     resolution: {integrity: sha512-mnzgDV26ueAvk7rsbt9L7bE0SuAoqyuys/sMMrmVcN5x9VsxpcG3rqAUSgDyLp0UZlmNfIbQ4fHfCtreVBk8Ew==}
 
@@ -3905,8 +3904,8 @@ packages:
   brace-expansion@2.0.3:
     resolution: {integrity: sha512-MCV/fYJEbqx68aE58kv2cA/kiky1G8vux3OR6/jbS+jIMe/6fJWa0DTzJU7dqijOWYwHi1t29FlfYI9uytqlpA==}
 
-  brace-expansion@5.0.5:
-    resolution: {integrity: sha512-VZznLgtwhn+Mact9tfiwx64fA9erHH/MCXEUfB/0bX/6Fz6ny5EGTXYltMocqg4xFAQZtnO3DHWWXi8RiuN7cQ==}
+  brace-expansion@5.0.6:
+    resolution: {integrity: sha512-kLpxurY4Z4r9sgMsyG0Z9uzsBlgiU/EFKhj/h91/8yHu0edo7XuixOIH3VcJ8kkxs6/jPzoI6U9Vj3WqbMQ94g==}
     engines: {node: 18 || 20 || >=22}
 
   braces@3.0.3:
@@ -5522,7 +5521,7 @@ packages:
     resolution: {integrity: sha512-zd23dbWTjiJ6sSAX6s0HrCZi41JwTA1bQVs0wLQPZ2/5o2gxOJA5wh7yOAUgwYybfhDXyhwlpeQf7Mlgx8EOCA==}
     hasBin: true
     peerDependencies:
-      ws: ^8.18.0
+      ws: 8.20.1
       zod: ^3.25 || ^4.0
     peerDependenciesMeta:
       ws:
@@ -5787,8 +5786,8 @@ packages:
   property-information@7.1.0:
     resolution: {integrity: sha512-TwEZ+X+yCJmYfL7TPUOcvBZ4QfoT5YenQiJuX//0th53DE6w0xxLEtfK3iyryQFddXuvkIk51EEgrJQ0WJkOmQ==}
 
-  protobufjs@7.5.6:
-    resolution: {integrity: sha512-M71sTMB146U3u0di3yup8iM+zv8yPRNQVr1KK4tyBitl3qFvEGucq/rGDRShD2rsJhtN02RJaJ7j5X5hmy8SJg==}
+  protobufjs@7.5.8:
+    resolution: {integrity: sha512-dvpCIeLPbXZS/Ete7yLaO7RenOdken2NHKykBXbsaGxZT0UTltcarBciw+A78SRQs9iMAAVpsYA+l8b1hTePIA==}
     engines: {node: '>=12.0.0'}
 
   proxy-agent@6.5.0:
@@ -6603,20 +6602,8 @@ packages:
   wrappy@1.0.2:
     resolution: {integrity: sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ==}
 
-  ws@8.18.0:
-    resolution: {integrity: sha512-8VbfWfHLbbwu3+N6OKsOMpBdT4kXPDDB9cJk2bJ6mh9ucxdlnNvH1e+roYkKmN9Nxw2yjz7VzeO9oOz2zJ04Pw==}
-    engines: {node: '>=10.0.0'}
-    peerDependencies:
-      bufferutil: ^4.0.1
-      utf-8-validate: '>=5.0.2'
-    peerDependenciesMeta:
-      bufferutil:
-        optional: true
-      utf-8-validate:
-        optional: true
-
-  ws@8.20.0:
-    resolution: {integrity: sha512-sAt8BhgNbzCtgGbt2OxmpuryO63ZoDk/sqaB/znQm94T4fCEsy/yV+7CdC1kJhOU9lboAEU7R3kquuycDoibVA==}
+  ws@8.20.1:
+    resolution: {integrity: sha512-It4dO0K5v//JtTXuPkfEOaI3uUN87iYPnqo/ZzqCoG3g8uhA66QUMs/SrM0YK7/NAu+r4LMh/9dq2A7k+rHs+w==}
     engines: {node: '>=10.0.0'}
     peerDependencies:
       bufferutil: ^4.0.1
@@ -7511,7 +7498,7 @@ snapshots:
       unenv: 2.0.0-rc.24
       vite: '@voidzero-dev/vite-plus-core@0.1.20(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@voidzero-dev/vite-plus-core@0.1.20)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.8.3)'
       wrangler: 4.91.0
-      ws: 8.18.0
+      ws: 8.20.1
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
@@ -7566,9 +7553,9 @@ snapshots:
     dependencies:
       '@jridgewell/trace-mapping': 0.3.9
 
-  '@earendil-works/pi-agent-core@0.74.0(ws@8.20.0)(zod@4.3.6)':
+  '@earendil-works/pi-agent-core@0.74.0(ws@8.20.1)(zod@4.3.6)':
     dependencies:
-      '@earendil-works/pi-ai': 0.74.0(ws@8.20.0)(zod@4.3.6)
+      '@earendil-works/pi-ai': 0.74.0(ws@8.20.1)(zod@4.3.6)
       typebox: 1.1.38
     transitivePeerDependencies:
       - '@modelcontextprotocol/sdk'
@@ -7579,14 +7566,14 @@ snapshots:
       - ws
       - zod
 
-  '@earendil-works/pi-ai@0.74.0(ws@8.20.0)(zod@4.3.6)':
+  '@earendil-works/pi-ai@0.74.0(ws@8.20.1)(zod@4.3.6)':
     dependencies:
       '@anthropic-ai/sdk': 0.91.1(zod@4.3.6)
       '@aws-sdk/client-bedrock-runtime': 3.1045.0
       '@google/genai': 1.48.0
       '@mistralai/mistralai': 2.2.1
       chalk: 5.6.2
-      openai: 6.26.0(ws@8.20.0)(zod@4.3.6)
+      openai: 6.26.0(ws@8.20.1)(zod@4.3.6)
       partial-json: 0.1.7
       proxy-agent: 6.5.0
       typebox: 1.1.38
@@ -7601,10 +7588,10 @@ snapshots:
       - ws
       - zod
 
-  '@earendil-works/pi-coding-agent@0.74.0(ws@8.20.0)(zod@4.3.6)':
+  '@earendil-works/pi-coding-agent@0.74.0(ws@8.20.1)(zod@4.3.6)':
     dependencies:
-      '@earendil-works/pi-agent-core': 0.74.0(ws@8.20.0)(zod@4.3.6)
-      '@earendil-works/pi-ai': 0.74.0(ws@8.20.0)(zod@4.3.6)
+      '@earendil-works/pi-agent-core': 0.74.0(ws@8.20.1)(zod@4.3.6)
+      '@earendil-works/pi-ai': 0.74.0(ws@8.20.1)(zod@4.3.6)
       '@earendil-works/pi-tui': 0.74.0
       '@silvia-odwyer/photon-node': 0.3.4
       chalk: 5.6.2
@@ -7785,8 +7772,8 @@ snapshots:
     dependencies:
       google-auth-library: 10.6.2
       p-retry: 4.6.2
-      protobufjs: 7.5.6
-      ws: 8.20.0
+      protobufjs: 7.5.8
+      ws: 8.20.1
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -7801,14 +7788,14 @@ snapshots:
     dependencies:
       lodash.camelcase: 4.3.0
       long: 5.3.2
-      protobufjs: 7.5.6
+      protobufjs: 7.5.8
       yargs: 17.7.2
 
   '@grpc/proto-loader@0.8.0':
     dependencies:
       lodash.camelcase: 4.3.0
       long: 5.3.2
-      protobufjs: 7.5.6
+      protobufjs: 7.5.8
       yargs: 17.7.2
 
   '@hono/node-server@1.19.13(hono@4.12.18)':
@@ -8106,7 +8093,7 @@ snapshots:
 
   '@mistralai/mistralai@2.2.1':
     dependencies:
-      ws: 8.20.0
+      ws: 8.20.1
       zod: 4.3.6
       zod-to-json-schema: 3.25.2(zod@4.3.6)
     transitivePeerDependencies:
@@ -8840,11 +8827,9 @@ snapshots:
   '@protobufjs/fetch@1.1.0':
     dependencies:
       '@protobufjs/aspromise': 1.1.2
-      '@protobufjs/inquire': 1.1.0
+      '@protobufjs/inquire': 1.1.1
 
   '@protobufjs/float@1.0.2': {}
-
-  '@protobufjs/inquire@1.1.0': {}
 
   '@protobufjs/inquire@1.1.1': {}
 
@@ -10242,7 +10227,7 @@ snapshots:
       tinyexec: 1.1.1
       tinyglobby: 0.2.16
       vite: '@voidzero-dev/vite-plus-core@0.1.20(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@voidzero-dev/vite-plus-core@0.1.20)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.8.3)'
-      ws: 8.20.0
+      ws: 8.20.1
     optionalDependencies:
       '@opentelemetry/api': 1.9.1
       '@types/node': 25.6.0
@@ -10454,7 +10439,7 @@ snapshots:
     dependencies:
       balanced-match: 1.0.2
 
-  brace-expansion@5.0.5:
+  brace-expansion@5.0.6:
     dependencies:
       balanced-match: 4.0.4
 
@@ -10793,7 +10778,7 @@ snapshots:
       '@grpc/grpc-js': 1.14.3
       '@grpc/proto-loader': 0.7.15
       docker-modem: 5.0.7
-      protobufjs: 7.5.6
+      protobufjs: 7.5.8
       tar-fs: 2.1.4
       uuid: 14.0.0
     transitivePeerDependencies:
@@ -12259,7 +12244,7 @@ snapshots:
       sharp: 0.34.5
       undici: 7.24.8
       workerd: 1.20260426.1
-      ws: 8.18.0
+      ws: 8.20.1
       youch: 4.1.0-beta.10
     transitivePeerDependencies:
       - bufferutil
@@ -12271,7 +12256,7 @@ snapshots:
       sharp: 0.34.5
       undici: 7.24.8
       workerd: 1.20260511.1
-      ws: 8.18.0
+      ws: 8.20.1
       youch: 4.1.0-beta.10
     transitivePeerDependencies:
       - bufferutil
@@ -12279,7 +12264,7 @@ snapshots:
 
   minimatch@10.2.5:
     dependencies:
-      brace-expansion: 5.0.5
+      brace-expansion: 5.0.6
 
   minimatch@5.1.9:
     dependencies:
@@ -12436,9 +12421,9 @@ snapshots:
       regex: 6.1.0
       regex-recursion: 6.0.2
 
-  openai@6.26.0(ws@8.20.0)(zod@4.3.6):
+  openai@6.26.0(ws@8.20.1)(zod@4.3.6):
     optionalDependencies:
-      ws: 8.20.0
+      ws: 8.20.1
       zod: 4.3.6
 
   outdent@0.5.0: {}
@@ -12772,7 +12757,7 @@ snapshots:
 
   property-information@7.1.0: {}
 
-  protobufjs@7.5.6:
+  protobufjs@7.5.8:
     dependencies:
       '@protobufjs/aspromise': 1.1.2
       '@protobufjs/base64': 1.1.2
@@ -13825,9 +13810,7 @@ snapshots:
 
   wrappy@1.0.2: {}
 
-  ws@8.18.0: {}
-
-  ws@8.20.0: {}
+  ws@8.20.1: {}
 
   xmlbuilder2@4.0.3:
     dependencies:
