@@ -53,15 +53,12 @@ export const api = new Hono<{
     return c.json({ code: 'internal_error', message: 'Internal server error' }, 500)
   })
   .use(async (c, next) => {
-    c.set('db', createClient(c.env.DB.connectionString))
-
     c.set('api_key_id', null)
     c.set('bearer_token', null)
     c.set('organization_id', null)
     c.set('session', null)
 
     // Extract auth inputs once for the request.
-    const cookie = (await Cookie.getSigned(c, c.env.COOKIE_SECRET, 'curl.session')) || undefined
     const bearerToken = (() => {
       // CLI and API clients authenticate with Bearer tokens.
       const authorizationHeader = c.req.header('authorization')
@@ -71,6 +68,16 @@ export const api = new Hono<{
     })()
     if (bearerToken) c.set('bearer_token', bearerToken)
     const authToken = bearerToken ?? c.req.query('token') ?? c.req.query('t')
+
+    if (c.env.SELFHOST_API_KEY) {
+      if (authToken !== c.env.SELFHOST_API_KEY)
+        return c.json({ code: 'invalid_api_key', message: 'Invalid API key' }, 401)
+      await next()
+      return
+    }
+
+    c.set('db', createClient(c.env.DB.connectionString))
+    const cookie = (await Cookie.getSigned(c, c.env.COOKIE_SECRET, 'curl.session')) || undefined
 
     // 1. API keys never override a browser session cookie.
     if (!cookie && authToken && ApiKey.isApiKey(authToken)) {
@@ -627,6 +634,22 @@ export const api = new Hono<{
     return c.json({ ok: true }, 200)
   })
   .get('/api/auth/me', async (c) => {
+    if (c.env.SELFHOST_API_KEY)
+      return c.json(
+        {
+          account: {
+            avatar_url: null,
+            email: 'selfhost@localhost',
+            id: 'selfhost',
+            login: 'selfhost',
+            name: 'Selfhost',
+            organizations: [],
+            role: 'crew' as const,
+          },
+        },
+        200,
+      )
+
     if (!c.var.session) return c.json({ account: null }, 200)
 
     const account = await c.var.db
@@ -1193,6 +1216,8 @@ export const api = new Hono<{
     }
   })
   .get('/api/orgs', async (c) => {
+    if (c.env.SELFHOST_API_KEY) return c.json({ organizations: [] }, 200)
+
     if (!c.var.session)
       return c.json({ code: 'unauthorized' as const, message: 'Authentication required' }, 401)
 
@@ -2051,13 +2076,16 @@ export const api = new Hono<{
           vary: 'Accept',
         })
 
-      const identity = c.var.session
-        ? c.var.session.account_id
-        : (c.req.header('cf-connecting-ip') ?? 'unknown')
+      const selfhost = Boolean(c.env.SELFHOST_API_KEY)
+      const identity = selfhost
+        ? 'selfhost'
+        : c.var.session
+          ? c.var.session.account_id
+          : (c.req.header('cf-connecting-ip') ?? 'unknown')
 
       // Check balance for paid tier
       let billable = false
-      if (c.var.session) {
+      if (!selfhost && c.var.session) {
         const billingEntityId = c.var.organization_id ?? c.var.session?.account_id
         const cached = await c.env.KV.get(`balance:${billingEntityId}`)
         const balanceMills = cached !== null ? Number(cached) : 0
@@ -2065,7 +2093,7 @@ export const api = new Hono<{
       }
 
       let rateLimitHeaders: Record<string, string> = {}
-      if (!billable) {
+      if (!selfhost && !billable) {
         const limit = (() => {
           if (query.objective)
             return {
@@ -2129,9 +2157,10 @@ export const api = new Hono<{
               c.env.ASSETS.fetch(req instanceof Request ? req : new Request(req, init)),
           }),
           ...Md.sites.github({
-            token: c.var.session
-              ? GitHub.resolveToken(c.var.db, c.var.session.account_id, c.env)
-              : undefined,
+            token:
+              !selfhost && c.var.session
+                ? GitHub.resolveToken(c.var.db, c.var.session.account_id, c.env)
+                : undefined,
           }),
         },
         transport: Md.transports.fallback([
@@ -2361,28 +2390,29 @@ export const api = new Hono<{
         if (!parsed.success) return null
         return parsed.data
       })()
-      await c.env.REQUEST_QUEUE.send({
-        account_id: c.var.session?.account_id ?? null,
-        ai_agent: aiAgent,
-        api_key_id: c.var.api_key_id,
-        billable,
-        cached,
-        cost_mills: costMills,
-        extracted_tokens: extractedTokens,
-        filtered_tokens: filteredTokens,
-        hostname: requestURL.hostname,
-        id: requestId,
-        keywords: query.keywords?.join(',') || null,
-        markdown_tokens: markdownTokens,
-        mode: query.objective ? query.mode : null,
-        objective: query.objective || null,
-        organization_id: c.var.organization_id,
-        path: requestURL.pathname,
-        source_tokens: sourceTokens,
-        source_tokens_method: sourceTokensMethod,
-        url: requestURL.href,
-        user_agent: userAgent,
-      })
+      if (!selfhost)
+        await c.env.REQUEST_QUEUE.send({
+          account_id: c.var.session?.account_id ?? null,
+          ai_agent: aiAgent,
+          api_key_id: c.var.api_key_id,
+          billable,
+          cached,
+          cost_mills: costMills,
+          extracted_tokens: extractedTokens,
+          filtered_tokens: filteredTokens,
+          hostname: requestURL.hostname,
+          id: requestId,
+          keywords: query.keywords?.join(',') || null,
+          markdown_tokens: markdownTokens,
+          mode: query.objective ? query.mode : null,
+          objective: query.objective || null,
+          organization_id: c.var.organization_id,
+          path: requestURL.pathname,
+          source_tokens: sourceTokens,
+          source_tokens_method: sourceTokensMethod,
+          url: requestURL.href,
+          user_agent: userAgent,
+        })
 
       const commonHeaders: Record<string, string> = {
         ...rateLimitHeaders,

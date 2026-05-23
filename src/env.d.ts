@@ -9,6 +9,7 @@ declare namespace Cloudflare {
       import('#queues/request-enrichment.ts').processRequestEnrichmentMessage.Body
     >
     REQUEST_QUEUE: Queue<import('#queues/request.ts').processRequestMessage.Body>
+    SELFHOST_API_KEY?: string
     STRIPE_PUBLISHABLE_KEY: string
     STRIPE_WEBHOOK_QUEUE: Queue<
       import('#queues/stripe-webhook.ts').processStripeWebhookMessage.Body
