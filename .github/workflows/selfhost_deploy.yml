@@ -37,6 +37,14 @@ jobs:
       - name: Setup pnpm
         uses: ./.github/actions/setup-pnpm
 
+      - name: Build
+        run: pnpm build
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          SELFHOST_API_KEY: ${{ secrets.SELFHOST_API_KEY }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+
       - name: Generate selfhost Wrangler config
         env:
           SELFHOST_DOMAIN: ${{ vars.SELFHOST_DOMAIN }}
@@ -50,42 +58,36 @@ jobs:
           const host = process.env.SELFHOST_HOST || domain || 'localhost'
           const kvId = process.env.SELFHOST_KV_ID
           const workerName = process.env.SELFHOST_WORKER_NAME || 'curl-selfhost'
+          const config = JSON.parse(fs.readFileSync('dist/server/wrangler.json', 'utf8'))
 
           if (!kvId) throw new Error('Missing GitHub environment variable SELFHOST_KV_ID')
 
-          const config = {
-            $schema: 'node_modules/wrangler/config-schema.json',
+          const selfhostConfig = {
+            ...config,
             name: workerName,
-            main: 'dist/server/index.js',
-            compatibility_date: '2025-10-30',
-            compatibility_flags: ['nodejs_compat', 'no_handle_cross_request_promise_resolution'],
-            assets: { binding: 'ASSETS', directory: './dist/client' },
-            no_bundle: true,
-            upload_source_maps: true,
-            version_metadata: { binding: 'CF_VERSION_METADATA' },
-            preview_urls: false,
+            main: 'index.js',
+            assets: { binding: 'ASSETS', directory: '../client' },
+            ai: undefined,
+            definedEnvironments: undefined,
+            env: undefined,
+            hyperdrive: undefined,
             kv_namespaces: [{ binding: 'KV', id: kvId }],
+            queues: undefined,
+            secrets: undefined,
+            triggers: undefined,
+            userConfigPath: undefined,
             vars: {
               GH_API_URL: 'https://api.github.com',
               GH_URL: 'https://github.com',
               HOST: host,
               STRIPE_API_URL: 'https://api.stripe.com',
             },
-            ...(domain
-              ? { routes: [{ pattern: domain, custom_domain: true }] }
-              : { workers_dev: true }),
+            workers_dev: !domain,
+            ...(domain ? { routes: [{ pattern: domain, custom_domain: true }] } : { routes: undefined }),
           }
 
-          fs.writeFileSync('wrangler.selfhost.jsonc', JSON.stringify(config, null, 2))
+          fs.writeFileSync('dist/server/wrangler.selfhost.jsonc', JSON.stringify(selfhostConfig, null, 2))
           EOF
-
-      - name: Build
-        run: pnpm build
-        env:
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          SELFHOST_API_KEY: ${{ secrets.SELFHOST_API_KEY }}
-          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
 
       - name: Upload secrets
         run: |
@@ -104,6 +106,7 @@ jobs:
           }
           console.log(JSON.stringify(secrets))
           EOF
+        working-directory: dist/server
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -119,6 +122,7 @@ jobs:
 
       - name: Deploy to Cloudflare
         run: pnpm exec wrangler deploy --config wrangler.selfhost.jsonc
+        working-directory: dist/server
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
