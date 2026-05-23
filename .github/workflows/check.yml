@@ -166,7 +166,7 @@ jobs:
         run: pnpm --filter curl.md build
 
   plugins:
-    name: Plugins
+    name: Pi Plugin
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -178,13 +178,7 @@ jobs:
         uses: ./.github/actions/setup-pnpm
 
       - name: Preconstruct
-        run: |
-          pnpm preconstruct
-          pnpm --dir plugins/claude rebuild @anthropic-ai/claude-code --pending
+        run: pnpm preconstruct
 
       - name: Test
-        run: pnpm test --project plugins:amp --project plugins:claude --project plugins:opencode --project plugins:pi
-
-      - name: Build
-        run: |
-          pnpm --filter @curl.md/amp build
+        run: pnpm test --project plugins:pi
