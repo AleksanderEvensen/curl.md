@@ -47,10 +47,10 @@ jobs:
           import fs from 'node:fs'
 
           const domain = process.env.SELFHOST_DOMAIN
+          const host = process.env.SELFHOST_HOST || domain || 'localhost'
           const kvId = process.env.SELFHOST_KV_ID
           const workerName = process.env.SELFHOST_WORKER_NAME || 'curl-selfhost'
 
-          if (!domain) throw new Error('Missing GitHub environment variable SELFHOST_DOMAIN')
           if (!kvId) throw new Error('Missing GitHub environment variable SELFHOST_KV_ID')
 
           const config = {
@@ -67,10 +67,12 @@ jobs:
             vars: {
               GH_API_URL: 'https://api.github.com',
               GH_URL: 'https://github.com',
-              HOST: domain,
+              HOST: host,
               STRIPE_API_URL: 'https://api.stripe.com',
             },
-            routes: [{ pattern: domain, custom_domain: true }],
+            ...(domain
+              ? { routes: [{ pattern: domain, custom_domain: true }] }
+              : { workers_dev: true }),
           }
 
           fs.writeFileSync('wrangler.selfhost.jsonc', JSON.stringify(config, null, 2))
