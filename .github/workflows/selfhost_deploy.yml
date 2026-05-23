@@ -86,27 +86,26 @@ jobs:
           SELFHOST_API_KEY: ${{ secrets.SELFHOST_API_KEY }}
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
 
-      - name: Deploy to Cloudflare
-        uses: cloudflare/wrangler-action@da0e0dfe58b7a431659754fdf3f186c529afbe65 # v3.14.1
-        with:
-          wranglerVersion: ''
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy --config wrangler.selfhost.jsonc
-          environment: selfhost
-          secrets: |
-            CLOUDFLARE_ACCOUNT_ID
-            CLOUDFLARE_BROWSER_API_TOKEN
-            COOKIE_SECRET
-            GH_CLIENT_ID
-            GH_CLIENT_SECRET
-            SELFHOST_API_KEY
-            SENTRY_DSN
-            STRIPE_SECRET_KEY
-            STRIPE_WEBHOOK_SECRET
-            TOKEN_ENCRYPTION_KEY
+      - name: Upload secrets
+        run: |
+          node --input-type=module <<'EOF' | pnpm exec wrangler secret bulk --config wrangler.selfhost.jsonc
+          const secrets = {
+            CLOUDFLARE_ACCOUNT_ID: process.env.CLOUDFLARE_ACCOUNT_ID,
+            CLOUDFLARE_BROWSER_API_TOKEN: process.env.CLOUDFLARE_BROWSER_API_TOKEN,
+            COOKIE_SECRET: process.env.COOKIE_SECRET,
+            GH_CLIENT_ID: process.env.GH_CLIENT_ID,
+            GH_CLIENT_SECRET: process.env.GH_CLIENT_SECRET,
+            SELFHOST_API_KEY: process.env.SELFHOST_API_KEY,
+            SENTRY_DSN: process.env.SENTRY_DSN,
+            STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
+            STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
+            TOKEN_ENCRYPTION_KEY: process.env.TOKEN_ENCRYPTION_KEY,
+          }
+          console.log(JSON.stringify(secrets))
+          EOF
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_BROWSER_API_TOKEN: ${{ secrets.CLOUDFLARE_BROWSER_API_TOKEN }}
           COOKIE_SECRET: ${{ secrets.COOKIE_SECRET }}
           GH_CLIENT_ID: ${{ secrets.GH_CLIENT_ID }}
@@ -116,3 +115,9 @@ jobs:
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
           STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
           TOKEN_ENCRYPTION_KEY: ${{ secrets.TOKEN_ENCRYPTION_KEY }}
+
+      - name: Deploy to Cloudflare
+        run: pnpm exec wrangler deploy --config wrangler.selfhost.jsonc
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
