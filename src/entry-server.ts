@@ -11,7 +11,7 @@ import { processStripeWebhookMessage } from '#queues/stripe-webhook.ts'
 
 export default Sentry.withSentry<Env, QueueHandlerMessage>(
   (env) => ({
-    dsn: env.SENTRY_DSN,
+    dsn: env.SELFHOST_API_KEY ? undefined : env.SENTRY_DSN,
     environment: __ENV__,
     release: __GIT_SHA__,
     sendDefaultPii: true,

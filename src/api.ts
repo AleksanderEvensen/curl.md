@@ -2077,6 +2077,15 @@ export const api = new Hono<{
         })
 
       const selfhost = Boolean(c.env.SELFHOST_API_KEY)
+      if (selfhost && query.objective)
+        return c.json(
+          {
+            code: 'ai_disabled' as const,
+            message: 'AI objective extraction is disabled in self-hosted mode',
+          },
+          400,
+        )
+
       const identity = selfhost
         ? 'selfhost'
         : c.var.session

@@ -73,7 +73,7 @@ test('error types', async () => {
     switch (res.status) {
       case 400: {
         const json = await res.json()
-        expectTypeOf(json.code).toEqualTypeOf<'validation_error'>()
+        expectTypeOf(json.code).toEqualTypeOf<'ai_disabled' | 'validation_error'>()
         void json
         return
       }
@@ -90,7 +90,7 @@ test('error types', async () => {
     switch (res.status) {
       case 400: {
         const json = await res.json()
-        expectTypeOf(json.code).toEqualTypeOf<'validation_error'>()
+        expectTypeOf(json.code).toEqualTypeOf<'ai_disabled' | 'validation_error'>()
         void json
         return
       }

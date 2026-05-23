@@ -49,3 +49,19 @@ test('selfhost mode returns empty organizations', async () => {
   expect(res.status).toBe(200)
   await expect(res.json()).resolves.toEqual({ organizations: [] })
 })
+
+test('selfhost mode disables objective extraction', async () => {
+  const res = await api.fetch(
+    new Request('https://curl.local/api/https%3A%2F%2Fexample.com?q=install', {
+      headers: { authorization: 'Bearer selfhost_test_key' },
+    }),
+    selfhostEnv,
+    executionCtx,
+  )
+
+  expect(res.status).toBe(400)
+  await expect(res.json()).resolves.toEqual({
+    code: 'ai_disabled',
+    message: 'AI objective extraction is disabled in self-hosted mode',
+  })
+})
